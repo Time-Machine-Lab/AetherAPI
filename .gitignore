@@ -1,2 +1,6 @@
 .codex/
 .cursor/
+**/node_modules/
+**/dist/
+**/coverage/
+**/*.tsbuildinfo

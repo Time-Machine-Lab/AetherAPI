@@ -18,7 +18,7 @@ AetherAPI 前端开发遵循以下总原则：
 - **前端框架**：统一使用 `Vue 3 + TypeScript + Vite`，默认采用 Composition API 与 `<script setup lang="ts">`。
 - **样式方案**：统一使用 `Tailwind CSS` 作为首选样式方案；主题能力通过 CSS Variables 与设计 Token 统一管理。
 - **组件体系**：统一使用 `shadcn-vue` 作为基础 UI 组件体系；跨应用共享组件风格、交互模式和封装方式。
-- **路由方案**：统一使用 `vue-router + unplugin-vue-router`，采用文件式路由；所有页面路由默认懒加载。
+- **路由方案**：统一使用 `vue-router` 的官方文件路由插件（Vue Router 5，原 `unplugin-vue-router` 已并入官方方案），采用文件式路由；所有页面路由默认懒加载。
 - **状态管理**：统一使用 `Pinia` 管理跨页面、跨模块共享的全局状态。
 - **请求方案**：统一使用 `axios` 实例作为请求入口，统一处理鉴权注入、错误归一化、超时与重试策略。
 - **国际化方案**：统一使用 `i18n` 方案管理多语言能力，默认支持 `zh-CN` 与 `en-US`。
@@ -62,7 +62,7 @@ AetherAPI 前端开发遵循以下总原则：
 - **API 模块命名**：统一使用 `xxx.api.ts`，按业务域拆分，例如 `marketplace.api.ts`。
 - **类型命名**：DTO 文件统一使用 `xxx.dto.ts`，领域类型文件统一使用 `xxx.types.ts`。
 - **工具函数命名**：函数与变量统一使用 `camelCase`，常量统一使用 `UPPER_SNAKE_CASE`。
-- **路由文件规范**：页面文件放置于 `src/pages`，遵循 `unplugin-vue-router` 约定；优先使用文件式路由，不手写分散的路由表。
+- **路由文件规范**：页面文件放置于 `src/pages`，遵循 Vue Router 官方文件路由约定；优先使用文件式路由，不手写分散的路由表。
 - **路由元信息**：页面路由 `meta` 至少应包含 `titleKey`、`layout`、`requiresAuth`。
 - **布局约定**：布局值统一限制为 `MarketingLayout`、`PortalLayout`、`AdminLayout`。
 - **认证约定**：官网默认匿名访问；开发者门户和管理后台通过 `meta.requiresAuth` 接入统一鉴权逻辑。
@@ -90,6 +90,7 @@ AetherAPI 前端开发遵循以下总原则：
 - **样式规范**：
   - 样式优先使用 Tailwind utility class。
   - 复杂样式优先沉淀为组件、语义化 class 或设计 Token，不滥用零散的局部样式。
+  - 前端目录下的任何样式修改，必须优先参考对应项目下的 `DESIGN.md`；如存在项目级设计约束，默认以该文档作为样式与视觉风格的直接依据。
   - 视觉实现必须与 `shadcn-vue` 组件体系保持一致。
 - **图标规范**：
   - 严禁在 Vue 模板内直接编写 SVG 图标。
@@ -108,6 +109,7 @@ AetherAPI 前端开发遵循以下总原则：
   - 用户可见字符串必须走 i18n。
   - 新页面、新组件、新 Store、新 API 模块必须遵循本文命名规则与落位规则。
   - 生成样式时优先使用 Tailwind utility；只有在复用或表达复杂样式时才抽离为组件或语义类。
+  - 在前端目录中生成或修改样式相关代码时，必须优先读取并遵循对应项目下的 `DESIGN.md`；若本文与项目级 `DESIGN.md` 同时存在，则样式/风格细节以项目级 `DESIGN.md` 为第一参考。
   - 生成图标时必须优先引用已有图标组件，不直接内嵌 SVG。
 - **共享能力演进原则**：
   - 对多个应用通用的能力，优先沉淀为共享规范或共享实现，而不是在各仓库重复实现。
