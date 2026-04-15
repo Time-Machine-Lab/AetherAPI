@@ -1,6 +1,6 @@
 # AetherAPI 前端技术栈与开发规范
 
-本文档适用于 AetherAPI 的官网、开发者门户、管理后台以及后续新增的 Web 前端应用。项目采用多仓模式，但所有前端仓库必须遵循统一的技术栈、工程结构、协作流程与 AI 代码生成约束。本文档同时服务于人类开发者与大模型协作编码场景，默认作为新增前端代码与重构工作的统一基线。
+本文档适用于 AetherAPI 的官网、API 市场、开发者控制台以及后续新增的 Web 前端应用。项目采用多仓模式，但所有前端仓库必须遵循统一的技术栈、工程结构、协作流程与 AI 代码生成约束。本文档同时服务于人类开发者与大模型协作编码场景，默认作为新增前端代码与重构工作的统一基线。
 
 ## 1. 核心原则 (Core Principles)
 
@@ -13,7 +13,7 @@ AetherAPI 前端开发遵循以下总原则：
 
 ### 1.1 开发技术栈 (Tech Stack)
 
-- **适用应用**：官网、开发者门户、管理后台，以及后续新增的 AetherAPI Web 前端应用。
+- **适用应用**：官网、API 市场、开发者控制台，以及后续新增的 AetherAPI Web 前端应用。
 - **工程模式**：采用多仓模式；每个前端应用可独立发布，但技术栈、目录结构与规范必须统一。
 - **前端框架**：统一使用 `Vue 3 + TypeScript + Vite`，默认采用 Composition API 与 `<script setup lang="ts">`。
 - **样式方案**：统一使用 `Tailwind CSS` 作为首选样式方案；主题能力通过 CSS Variables 与设计 Token 统一管理。
@@ -31,7 +31,7 @@ AetherAPI 前端开发遵循以下总原则：
 - **分支策略**：默认以 `main` 作为稳定分支，开发工作从短生命周期分支发起，命名建议使用 `feature/*`、`fix/*`、`chore/*`。
 - **提交规范**：统一采用 Conventional Commits。
 - **允许的提交类型**：`feat:`、`fix:`、`refactor:`、`docs:`、`style:`、`test:`、`build:`、`chore:`。
-- **提交示例**：`feat: add API marketplace search filters`、`fix: correct portal token refresh flow`。
+- **提交示例**：`feat: add API marketplace search filters`、`fix: correct console token refresh flow`。
 - **合并门槛**：代码合并前至少通过 `lint`、`format --check`、`type-check`、`build`。
 - **发布原则**：各仓库独立构建和部署，但提交说明、分支策略和发布前检查保持一致。
 
@@ -57,21 +57,21 @@ AetherAPI 前端开发遵循以下总原则：
   - `Store` 仅承载全局共享状态，不直接耦合视图组件。
 - **跨模块引用**：允许跨模块引用，但必须避免循环依赖；对于需要长期复用的能力，优先通过稳定导出入口暴露。
 - **组件命名**：组件文件统一使用 `PascalCase.vue`，例如 `UserProfileCard.vue`。
-- **Composable 命名**：统一使用 `useXxx.ts`，例如 `usePortalSession.ts`。
+- **Composable 命名**：统一使用 `useXxx.ts`，例如 `useConsoleSession.ts`。
 - **Store 命名**：统一使用 `useXxxStore.ts`，例如 `useAuthStore.ts`。
 - **API 模块命名**：统一使用 `xxx.api.ts`，按业务域拆分，例如 `marketplace.api.ts`。
 - **类型命名**：DTO 文件统一使用 `xxx.dto.ts`，领域类型文件统一使用 `xxx.types.ts`。
 - **工具函数命名**：函数与变量统一使用 `camelCase`，常量统一使用 `UPPER_SNAKE_CASE`。
 - **路由文件规范**：页面文件放置于 `src/pages`，遵循 Vue Router 官方文件路由约定；优先使用文件式路由，不手写分散的路由表。
 - **路由元信息**：页面路由 `meta` 至少应包含 `titleKey`、`layout`、`requiresAuth`。
-- **布局约定**：布局值统一限制为 `MarketingLayout`、`PortalLayout`、`AdminLayout`。
-- **认证约定**：官网默认匿名访问；开发者门户和管理后台通过 `meta.requiresAuth` 接入统一鉴权逻辑。
+- **布局约定**：布局值统一限制为 `MarketingLayout`、`MarketplaceLayout`、`ConsoleLayout`。
+- **认证约定**：官网默认匿名访问；API 市场默认支持匿名浏览，添加 API 等操作通过 `meta.requiresAuth` 接入统一鉴权逻辑；开发者控制台通过 `meta.requiresAuth` 接入统一鉴权逻辑。
 - **i18n 规则**：
   - 所有用户可见文案必须接入国际化。
   - 严禁在组件模板、脚本或配置中硬编码中文或英文文案作为最终展示文本。
   - 国际化资源文件按领域拆分。
   - 资源语言统一使用 `zh-CN` 和 `en-US`。
-  - 国际化 Key 使用领域化命名，例如 `portal.user.profile.title`。
+- 国际化 Key 使用领域化命名，例如 `console.user.profile.title`。
 - **请求规范**：
   - 所有请求必须通过统一的 `axios` 实例发起。
   - 请求模块按业务域拆分，禁止在页面组件中直接写裸请求。
@@ -144,7 +144,7 @@ AetherAPI 前端开发遵循以下总原则：
   - 合并到稳定分支前完成代码检查与必要评审。
   - 合并后由各仓库流水线独立完成对应环境的构建与部署。
   - 生产环境发布建议通过版本标记或人工确认步骤执行，保证可追溯性。
-- **多应用发布原则**：官网、开发者门户、管理后台可以独立发布，但共享的规范、配置命名和接入方式必须一致。
+- **多应用发布原则**：官网、API 市场、开发者控制台可以独立发布，但共享的规范、配置命名和接入方式必须一致。
 
 ### 2.3 监控与告警 (Monitoring & Alerting)
 

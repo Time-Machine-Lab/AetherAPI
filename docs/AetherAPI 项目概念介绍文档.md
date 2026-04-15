@@ -157,7 +157,7 @@ AetherAPI 的终极目标是成为 **API 领域的"App Store"** ——
 | 3 | **AI 文档转换** | 文档（OpenAPI/Postman/URL）→ AetherAPI 标准格式 → 自动生成多语言代码 |
 | 4 | **MCP Gateway** | MCP Server 实现，Claude/Cursor 等 AI 助手可直接调用平台 API |
 | 5 | **AI 模型接入** | 聚合接入主流 AI 模型（LLM、图像生成等），统一鉴权、统一计费 |
-| 6 | **开发者门户** | 面向 API 提供者的后台：上架管理、定价设置、收益查看 |
+| 6 | **开发者控制台** | 首页头像 / 控制台入口进入，用于查看 API 调用、API 日志、收益与后续治理信息 |
 
 ### 4.2 不在范围内的设想
 
