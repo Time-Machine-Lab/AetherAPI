@@ -1,13 +1,13 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+﻿<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>io.github.timemachinelab</groupId>
-  <artifactId>aether-api-hub-root</artifactId>
+  <artifactId>aether-api-hub</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
-  <name>AetherAPI-Hub</name>
+  <name>aether-api-hub</name>
   <url>http://maven.apache.org</url>
 
   <modules>
@@ -17,7 +17,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <aether.api.hub.foundation.version>1.1.0-alpha.2</aether.api.hub.foundation.version>
+    <tml.foundation.version>1.1.0-alpha.2</tml.foundation.version>
   </properties>
 
   <dependencyManagement>
@@ -54,17 +54,9 @@
       </dependency>
 
       <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-dependencies</artifactId>
-        <version>3.2.5</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-
-      <dependency>
         <groupId>io.github.timemachinelab</groupId>
         <artifactId>tml-sdk-java-bom</artifactId>
-        <version>${aether.api.hub.foundation.version}</version>
+        <version>${tml.foundation.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -72,3 +64,4 @@
   </dependencyManagement>
 
 </project>
+

@@ -19,7 +19,7 @@
 
 ## 2. 技术基线
 
-- 语言：Java
+- 语言：Java 17
 - 框架：Spring Boot
 - 构建：Maven
 - 持久化：MyBatis-Plus
@@ -40,7 +40,10 @@
 
 ### 3.2 命名总则
 
-- Maven `groupId` 统一使用 `io.github.timemachinelab`
+- **包名前缀**：所有代码的 `package` 声明必须使用 `io.github.timemachinelab`
+  - Maven `groupId` 统一使用 `io.github.timemachinelab`
+  - **目录名（如 `aether-api-hub`）不等于包名，包名必须严格遵循 groupId**
+  - 禁止使用 `io.github.aetherapihub` 或其他前缀
 - DTO 对外命名统一使用 `Req`、`Resp`
 - 应用层内部模型统一使用 `Command`、`Query`、`Model`、`Result`
 - 命名必须与现有骨架风格一致
@@ -48,7 +51,7 @@
 
 ## 4. 模块宪法
 
-项目骨架按以下模块分层：
+项目骨架按以下模块分层，遵循 TML-DDD 六边形架构：
 
 - `aether-api-hub-app`
 - `aether-api-hub-api`
@@ -58,106 +61,203 @@
 - `aether-api-hub-infrastructure`
 - `aether-api-hub-client`
 
+> **包名前缀规则**：所有代码的 `package` 声明必须使用 `io.github.timemachinelab`，不得使用 `io.github.aetherapihub` 或其他前缀。目录名不等于包名，包名必须严格遵循 Maven `groupId = io.github.timemachinelab`。
+
+> **Windows 兼容警告**：`port.in` 包名在 Windows 文件系统下与 `port.in_` 共享同一目录，务必使用 `port.in`，禁止使用 `port.in_`。
+
 ### 4.1 app
 
-职责：
+职责：启动应用、装配模块、放启动相关配置。
 
-- 启动应用
-- 装配模块
-- 放启动相关配置
+```
+aether-api-hub-app/src/main/java/io/github/timemachinelab/
+  App.java                          # Spring Boot 启动入口
+  InfrastructureConfig.java         # 装配配置（如 MyBatis 配置类）
+```
 
-禁止：
+禁止：写业务规则、写 Controller、写 Repository。
 
-- 写业务规则
-- 写 Controller
-- 写 Repository
+### 4.2 api（对外契约层）
 
-### 4.2 api
+职责：定义对外服务契约，给"服务调用者"（前端、网关、其他微服务）提供稳定的调用接口。
 
-职责：
+**必须放在 `api` 的包：**
 
-- 定义对外契约
-- 定义 `Req`、`Resp`
-- 定义公共枚举
-- 定义统一错误码
+```
+io.github.timemachinelab.api
+  ├─ error/
+  │    ErrorCode.java               # 模块错误码常量集中定义
+  ├─ enums/
+  │    XxxStatus.java              # 对外公开的枚举（如订单状态）
+  ├─ req/
+  │    XxxReq.java                 # 对外请求 DTO（命名：XxxReq）
+  ├─ resp/
+  │    XxxResp.java               # 对外响应 DTO（命名：XxxResp）
+  └─ contract/
+       ├─ openapi/                # OpenAPI 文件（可选）
+       └─ proto/                  # Proto 文件（可选）
+```
 
 规则：
 
 - 对外字段命名统一使用 `camelCase`
-- 对外契约不得泄漏领域对象
-- 错误码必须集中管理
+- 对外契约不得泄漏领域对象（不得出现 `ApiCategoryAggregate`、`CategoryModel` 等领域类型）
+- 错误码必须集中管理，分类模块错误码放在 `api.error.CatalogErrorCodes`
+- 不要在 `api` 包中写任何 `Controller`、`Repository`、领域模型
 
-### 4.3 adapter
+### 4.3 adapter（适配层）
 
-职责：
+职责：处理"外部世界如何调用你"，把外部协议（HTTP、MQ、RPC）翻译成内部用例调用。
 
-- 接入 HTTP 等协议
-- 做参数解析
-- 做 `Req/Resp` 与应用层模型转换
-- 调用 `service` 层用例
+**必须放在 `adapter` 的包：**
+
+```
+io.github.timemachinelab.adapter
+  ├─ web/
+  │    ├─ controller/
+  │    │    XxxController.java    # HTTP 接入（仅接收请求、返回响应）
+  │    ├─ delegate/
+  │    │    XxxWebDelegate.java    # req → model 转换与用例调用编排
+  │    ├─ handler/
+  │    │    GlobalExceptionHandler.java  # 统一异常映射
+  │    └─ interceptor/           # HTTP 拦截器（可选）
+  ├─ mq/
+  │    ├─ listener/              # MQ 消费入口
+  │    └─ delegate/              # 消息体 → model 转换
+  ├─ rpc/                         # gRPC/Dubbo 入口（可选）
+  └─ scheduler/
+       └─ job/                    # 定时任务入口
+```
+
+**典型调用链**：
+
+```
+HTTP JSON
+  → Controller（协议接入）
+      → Delegate（req → Command/Model）
+          → ApplicationService（用例编排）
+              → Repository（数据持久化）
+```
 
 规则：
 
-- Controller 只做接入、转换、响应
-- 不写业务规则
-- 不直接操作数据库
-- 不直接暴露 domain model
+- Controller 只做请求接收、参数校验、结果返回，不写任何业务逻辑
+- Delegate 负责所有 DTO 转换（`req → Command/Model`，`Model → resp`）
+- 不写业务规则、不直接操作数据库、不暴露领域模型
+- `adapter` 不得直接依赖 `infrastructure` 实现类（只依赖 `service` 端口）
 
-### 4.4 service
+### 4.4 service（应用层）
 
-职责：
+职责：用例编排层，定义系统"能做什么"（`port.in`）和"需要什么外部能力"（`port.out`），编排领域对象完成业务流程。
 
-- 承载应用服务
-- 编排用例流程
-- 定义 `port.in`、`port.out`
-- 管理事务边界
+**必须放在 `service` 的包：**
+
+```
+io.github.timemachinelab.service
+  ├─ application/
+  │    XxxApplicationService.java  # 用例实现（实现 port.in 接口）
+  ├─ port/
+  │    ├─ in/
+  │    │    XxxUseCase.java        # 入站端口（用例接口）
+  │    └─ out/
+  │         XxxRepositoryPort.java # 出站端口（抽象外部能力，如 DB、缓存、第三方）
+  ├─ model/
+  │    ├─ XxxModel.java           # 服务内部业务模型（不是对外 DTO）
+  │    ├─ XxxCommand.java         # 创建/更新命令
+  │    └─ XxxResult.java          # 操作结果
+  └─ process/                     # 跨用例编排（可选，简单场景可省略）
+```
 
 规则：
 
-- 负责跨聚合协调
-- 负责业务流程编排
-- 不承载底层技术实现
+- `service` 层通过 `port.in` 接口对外暴露用例，`adapter` 只依赖这些接口
+- 不承载底层技术实现（不写 SQL、不写 HTTP 调用）
 - 不绕过端口直接依赖基础设施实现
+- 事务边界默认放在 `service`（`@Transactional`）
+- `service.model` 中的类是应用层内部模型，不对外暴露
 
-### 4.5 domain
+### 4.5 domain（领域层）
 
-职责：
+职责：承载业务核心概念与规则，是最"纯"的业务层，不依赖任何技术框架。
 
-- 承载核心业务规则
-- 定义聚合、实体、值对象、领域服务
-- 表达领域约束
+**必须放在 `domain` 的包：**
 
-规则：
-
-- 越纯越好
-- 不依赖 Spring MVC、MyBatis-Plus、数据库实现细节
-- 不写 Controller 风格代码
-- 不写第三方协议适配逻辑
-
-### 4.6 infrastructure
-
-职责：
-
-- 实现数据库、缓存、第三方服务等技术能力
-- 实现 `service` 层定义的 `port.out`
-- 管理 DO/PO 与领域对象转换
-
-规则：
-
-- 可以依赖技术框架
-- 不反向依赖 adapter
-- 不承载业务规则决策
-
-### 4.7 client
-
-职责：
-
-- 对外提供 SDK 或客户端封装
+```
+io.github.timemachinelab.domain
+  ├─ common/
+  │    DomainException.java        # 领域公共异常基类
+  ├─ catalog/                     # catalog 子域（按业务子域划分）
+  │    ├─ model/
+  │    │    ├─ XxxAggregate.java # 聚合根（核心业务实体）
+  │    │    ├─ XxxId.java        # ID 值对象
+  │    │    ├─ XxxCode.java      # 业务编码值对象（不可变）
+  │    │    └─ XxxStatus.java    # 状态枚举
+  │    ├─ service/
+  │    │    XxxDomainService.java # 领域服务（跨聚合的业务规则）
+  │    ├─ repository/
+  │    │    XxxRepository.java     # 仓储接口（领域层定义）
+  │    └─ event/
+  │         XxxEvent.java         # 领域事件（可选）
+  └─ common/                      # 跨子域共享的稳定概念
+```
 
 规则：
 
-- 基于 `api` 契约封装
-- 不写服务内部业务逻辑
+- 越纯越好：不依赖 Spring、MyBatis-Plus、数据库、HTTP
+- 不写 Controller、Mapper、第三方协议适配
+- 聚合根承担核心业务不变量和状态流转规则
+- 仓储接口定义在 `domain`，具体实现放在 `infrastructure`
+- 值对象（ID、Code 等）创建后应设计为不可变
+
+### 4.6 infrastructure（基础设施层）
+
+职责：实现 `service` 层定义的 `port.out` 接口，包括数据库持久化、缓存、第三方调用、消息发送等所有技术实现。
+
+**必须放在 `infrastructure` 的包：**
+
+```
+io.github.timemachinelab.infrastructure
+  ├─ catalog/                      # catalog 子域的技术实现
+  │    └─ persistence/
+  │         ├─ entity/
+  │         │    XxxDo.java      # 数据库持久化对象（DO/PO）
+  │         ├─ mapper/
+  │         │    XxxMapper.java  # MyBatis-Plus Mapper 接口
+  │         ├─ converter/
+  │         │    XxxConverter.java  # Do ↔ Aggregate 转换器
+  │         └─ repository/
+  │              XxxRepositoryImpl.java  # 仓储接口实现
+  ├─ cache/                       # 缓存实现（可选）
+  ├─ external/                    # 第三方 HTTP/RPC 调用实现（可选）
+  ├─ mq/
+  │    └─ producer/                # 消息生产者实现（可选）
+  └─ config/                       # 技术配置（数据源、事务等）
+```
+
+规则：
+
+- 实现 `service.port.out` 中定义的端口接口
+- 允许依赖技术框架（MyBatis-Plus、Redis Client 等）
+- 不承载业务规则决策（业务判断应在上层完成）
+- DO/PO 不得直接传播到 `adapter` 或对外暴露
+- 所有技术细节（SQL、Redis Key 规则）应封装在此层
+
+### 4.7 client（对外 SDK 层）
+
+职责：给其他服务或调用方提供"像本地方法一样调用"的 SDK。
+
+```
+io.github.timemachinelab.client
+  ├─ api/
+  │    XxxClient.java              # 对外暴露的 Client
+  └─ internal/
+       XxxClientImpl.java          # HTTP/gRPC 调用实现
+```
+
+规则：
+
+- 基于 `api` 契约封装，不写服务内部业务逻辑
+- 不得直接依赖 `service`/`domain`/`infrastructure`
 
 ## 5. 依赖方向
 
@@ -231,12 +331,6 @@
 - 已返回 `Result` 时，不重复包装
 - 异常响应必须与 TML-SDK 统一响应机制保持一致
 
-### 7.3 DTO 规则
-
-- 对外对象只能使用 `Req`、`Resp`
-- adapter 负责 `Req/Resp` 与 `Command/Query/Model/Result` 转换
-- 禁止 Controller 直接返回 domain 实体
-
 ## 8. 错误码与异常规则
 
 - 错误码必须集中管理
@@ -286,14 +380,33 @@ AI 在本项目开发时必须遵守以下规则：
 
 开始写代码前，必须先确认：
 
-- 该功能属于哪个模块
+- 该功能属于哪个模块（app / api / adapter / service / domain / infrastructure / client）
 - 该功能属于哪个用例
 - 该功能是否需要聚合建模
 - 对外契约是否新增或变更
 - 是否需要新增错误码
 - 是否可以复用现有端口与实现
+- **包名前缀是否为 `io.github.timemachinelab`**（禁止使用 `io.github.aetherapihub` 或其他前缀）
+- **包路径是否符合 TML-DDD 骨架约定**（各包存放内容见第 4 节）
 
 若以上问题无法回答清楚，不得直接开始开发。
+
+> **快速核对清单**：
+> - [ ] 新增的类放在正确模块的正确包路径下
+> - [ ] 聚合根放在 `domain.<子域>.model`
+> - [ ] 值对象放在 `domain.<子域>.model`
+> - [ ] 仓储接口放在 `domain.<子域>.repository`
+> - [ ] 应用服务放在 `service.application`
+> - [ ] 入站端口放在 `service.port.in`
+> - [ ] 出站端口放在 `service.port.out`
+> - [ ] 服务内部模型放在 `service.model`
+> - [ ] Controller 放在 `adapter.web.controller`
+> - [ ] Delegate 放在 `adapter.web.delegate`
+> - [ ] 全局异常处理放在 `adapter.web.handler`
+> - [ ] 错误码放在 `api.error`
+> - [ ] 对外 Req 放在 `api.req`
+> - [ ] 对外 Resp 放在 `api.resp`
+> - [ ] DO/Mapper 放在 `infrastructure.<子域>.persistence`
 
 ## 13. 文档结论
 
