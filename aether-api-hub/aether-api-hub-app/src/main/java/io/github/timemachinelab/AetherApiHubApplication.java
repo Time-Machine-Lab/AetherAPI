@@ -8,7 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * Aether API Hub application entry point.
  */
 @SpringBootApplication
-@MapperScan("io.github.timemachinelab.infrastructure.**.persistence.mapper")
+@MapperScan("io.github.timemachinelab.infrastructure")
 public class AetherApiHubApplication {
 
     public static void main(String[] args) {

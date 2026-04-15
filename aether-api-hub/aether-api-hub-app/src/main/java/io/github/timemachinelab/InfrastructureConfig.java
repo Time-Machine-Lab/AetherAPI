@@ -6,10 +6,13 @@ import io.github.timemachinelab.domain.catalog.repository.ApiCategoryRepository;
 import io.github.timemachinelab.service.adapter.ApiAssetRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.CategoryValidityAdapter;
 import io.github.timemachinelab.service.application.ApiAssetApplicationService;
+import io.github.timemachinelab.service.application.CatalogDiscoveryApplicationService;
 import io.github.timemachinelab.service.adapter.CategoryRepositoryAdapter;
 import io.github.timemachinelab.service.application.CategoryApplicationService;
 import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
+import io.github.timemachinelab.service.port.in.CatalogDiscoveryUseCase;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
+import io.github.timemachinelab.service.port.out.CatalogDiscoveryQueryPort;
 import io.github.timemachinelab.service.port.out.CategoryRepositoryPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -51,5 +54,10 @@ public class InfrastructureConfig {
     public ApiAssetUseCase apiAssetUseCase(
             ApiAssetRepositoryPort apiAssetRepositoryPort, CategoryValidityChecker categoryValidityChecker) {
         return new ApiAssetApplicationService(apiAssetRepositoryPort, categoryValidityChecker);
+    }
+
+    @Bean
+    public CatalogDiscoveryUseCase catalogDiscoveryUseCase(CatalogDiscoveryQueryPort catalogDiscoveryQueryPort) {
+        return new CatalogDiscoveryApplicationService(catalogDiscoveryQueryPort);
     }
 }

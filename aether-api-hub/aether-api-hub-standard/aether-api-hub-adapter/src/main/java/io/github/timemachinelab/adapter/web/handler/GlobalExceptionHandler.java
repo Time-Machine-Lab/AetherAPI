@@ -1,8 +1,8 @@
 package io.github.timemachinelab.adapter.web.handler;
 
 import io.github.timemachinelab.api.error.CatalogErrorCodes;
+import io.github.timemachinelab.domain.catalog.model.AssetDomainException;
 import io.github.timemachinelab.domain.catalog.model.CategoryDomainException;
-import io.github.timemachinelab.service.model.CategoryValidityResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleCategoryDomainException(CategoryDomainException ex) {
         log.warn("Category domain exception: {}", ex.getMessage());
 
-        String code = mapExceptionToCode(ex.getMessage());
+        String code = mapCategoryExceptionToCode(ex.getMessage());
         Map<String, String> body = new HashMap<>();
         body.put("code", code);
         body.put("message", ex.getMessage());
@@ -40,12 +40,31 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(body);
     }
 
+    @ExceptionHandler(AssetDomainException.class)
+    public ResponseEntity<Map<String, String>> handleAssetDomainException(AssetDomainException ex) {
+        log.warn("Asset domain exception: {}", ex.getMessage());
+
+        String code = mapAssetExceptionToCode(ex.getMessage());
+        Map<String, String> body = new HashMap<>();
+        body.put("code", code);
+        body.put("message", ex.getMessage());
+
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        if (CatalogErrorCodes.ASSET_NOT_FOUND.equals(code)) {
+            status = HttpStatus.NOT_FOUND;
+        } else if (CatalogErrorCodes.API_CODE_ALREADY_EXISTS.equals(code)) {
+            status = HttpStatus.CONFLICT;
+        }
+
+        return ResponseEntity.status(status).body(body);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgumentException(IllegalArgumentException ex) {
         log.warn("Invalid argument: {}", ex.getMessage());
 
         Map<String, String> body = new HashMap<>();
-        body.put("code", CatalogErrorCodes.CATEGORY_CODE_INVALID);
+        body.put("code", mapIllegalArgumentCode(ex.getMessage()));
         body.put("message", ex.getMessage());
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
@@ -63,7 +82,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
-    private String mapExceptionToCode(String message) {
+    private String mapCategoryExceptionToCode(String message) {
         if (message.contains("already exists")) {
             return CatalogErrorCodes.CATEGORY_CODE_ALREADY_EXISTS;
         }
@@ -80,5 +99,40 @@ public class GlobalExceptionHandler {
             return CatalogErrorCodes.CATEGORY_DELETED;
         }
         return CatalogErrorCodes.CATEGORY_INVALID;
+    }
+
+    private String mapAssetExceptionToCode(String message) {
+        if (message.contains("already exists")) {
+            return CatalogErrorCodes.API_CODE_ALREADY_EXISTS;
+        }
+        if (message.contains("already enabled")) {
+            return CatalogErrorCodes.ASSET_ALREADY_ENABLED;
+        }
+        if (message.contains("already disabled")) {
+            return CatalogErrorCodes.ASSET_ALREADY_DISABLED;
+        }
+        if (message.contains("Referenced category is invalid")) {
+            return CatalogErrorCodes.ASSET_CATEGORY_INVALID;
+        }
+        if (message.contains("requires an AI capability profile")) {
+            return CatalogErrorCodes.AI_PROFILE_REQUIRED;
+        }
+        if (message.contains("AI capability profile is only allowed")) {
+            return CatalogErrorCodes.AI_PROFILE_UNSUPPORTED;
+        }
+        if (message.contains("Invalid API code")) {
+            return CatalogErrorCodes.API_CODE_INVALID;
+        }
+        if (message.contains("not found")) {
+            return CatalogErrorCodes.ASSET_NOT_FOUND;
+        }
+        return CatalogErrorCodes.ASSET_ACTIVATION_INCOMPLETE;
+    }
+
+    private String mapIllegalArgumentCode(String message) {
+        if (message != null && message.contains("ApiCode")) {
+            return CatalogErrorCodes.API_CODE_INVALID;
+        }
+        return CatalogErrorCodes.CATEGORY_CODE_INVALID;
     }
 }
