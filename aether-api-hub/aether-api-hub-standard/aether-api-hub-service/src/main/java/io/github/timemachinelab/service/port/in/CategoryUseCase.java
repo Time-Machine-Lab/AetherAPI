@@ -1,4 +1,4 @@
-package io.github.timemachinelab.service.port.in_;
+package io.github.timemachinelab.service.port.in;
 
 import io.github.timemachinelab.domain.catalog.model.CategoryStatus;
 import io.github.timemachinelab.service.model.CategoryModel;

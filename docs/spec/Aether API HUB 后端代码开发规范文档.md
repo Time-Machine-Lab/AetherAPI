@@ -322,14 +322,32 @@ io.github.timemachinelab.client
 
 项目已引入 TML 团队 SDK。
 
-所有关于 Result 的返回，以及 Controller 层返回 Result，必须遵循 TML-SDK 规范，参考 [AutoResp 注解使用指南](https://github.com/Time-Machine-Lab/TmlFoundation/blob/develop/tml-sdk-spring-boot-starter-web/src/readme/AutoResp.md)。
-
 硬规则：
 
 - Controller 层统一使用 TML-SDK 的 `Result`
 - 优先使用 `@AutoResp` 统一响应包装
 - 已返回 `Result` 时，不重复包装
 - 异常响应必须与 TML-SDK 统一响应机制保持一致
+参考代码：
+```
+import io.github.timemachinelab.common.annotation.AutoResp;
+
+// 整个Controller的所有方法都自动包装
+@RestController
+@AutoResp
+public class OrderController {
+
+    @GetMapping("/orders/{id}")
+    public Order getOrder(@PathVariable Long id) {
+        return orderService.findById(id);
+    }
+
+    @PostMapping("/orders")
+    public Order createOrder(@RequestBody OrderDTO orderDTO) {
+        return orderService.create(orderDTO);
+    }
+}
+```
 
 ## 8. 错误码与异常规则
 

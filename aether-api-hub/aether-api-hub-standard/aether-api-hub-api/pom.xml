@@ -19,7 +19,20 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
 
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.timemachinelab</groupId>
+            <artifactId>aether-api-hub-domain</artifactId>
+        </dependency>
     </dependencies>
 </project>
 

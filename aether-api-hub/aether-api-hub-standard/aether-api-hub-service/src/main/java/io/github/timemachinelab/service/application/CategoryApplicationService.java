@@ -10,7 +10,7 @@ import io.github.timemachinelab.service.model.CategoryPageResult;
 import io.github.timemachinelab.service.model.CategoryValidityResult;
 import io.github.timemachinelab.service.model.CreateCategoryCommand;
 import io.github.timemachinelab.service.model.RenameCategoryCommand;
-import io.github.timemachinelab.service.port.in_.CategoryUseCase;
+import io.github.timemachinelab.service.port.in.CategoryUseCase;
 import io.github.timemachinelab.service.port.out.CategoryRepositoryPort;
 
 import java.time.Instant;

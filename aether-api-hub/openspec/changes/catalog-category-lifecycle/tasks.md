@@ -10,10 +10,10 @@
 
 ## 3. Infrastructure and Adapter Implementation
 
-- [ ] 3.1 Implement MyBatis-Plus persistence objects, mapper/repository adapters, and mappings for category lifecycle state aligned with `docs/sql/`.
-- [ ] 3.2 Implement category management DTOs and adapter endpoints aligned with `docs/api/`, without leaking domain or persistence objects.
+- [x] 3.1 Implement MyBatis-Plus persistence objects, mapper/repository adapters, and mappings for category lifecycle state aligned with `docs/sql/`. ✓ 已创建：ApiCategoryDo, ApiCategoryMapper, ApiCategoryConverter, MybatisApiCategoryRepository, CategoryRepositoryAdapter
+- [x] 3.2 Implement category management DTOs and adapter endpoints aligned with `docs/api/`, without leaking domain or persistence objects. ✓ 已创建：CategoryController, CategoryWebDelegate, GlobalExceptionHandler，对外只暴露 API DTO
 
 ## 4. Verification
 
-- [ ] 4.1 Add tests for duplicate `CategoryCode` rejection, rename behavior, and enable/disable lifecycle transitions.
-- [ ] 4.2 Add tests for category validity lookup so disabled or missing categories are rejected for new asset assignment.
+- [x] 4.1 Add tests for duplicate `CategoryCode` rejection, rename behavior, and enable/disable lifecycle transitions. ✓ 已创建 ApiCategoryAggregateTest 和 CategoryCodeTest
+- [x] 4.2 Add tests for category validity lookup so disabled or missing categories are rejected for new asset assignment. ✓ 已创建 CategoryApplicationServiceTest
