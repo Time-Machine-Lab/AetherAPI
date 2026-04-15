@@ -32,6 +32,7 @@
         <dependency>
             <groupId>io.github.timemachinelab</groupId>
             <artifactId>tml-sdk-spring-boot-starter-web</artifactId>
+            <version>${tml.foundation.version}</version>
         </dependency>
 
         <dependency>

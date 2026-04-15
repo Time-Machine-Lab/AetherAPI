@@ -21,6 +21,12 @@
         <dependency>
             <groupId>io.github.timemachinelab</groupId>
             <artifactId>aether-api-hub-adapter</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.github.timemachinelab</groupId>
+                    <artifactId>tml-sdk-spring-boot-starter-web</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
