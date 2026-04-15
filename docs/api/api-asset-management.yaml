@@ -1,0 +1,436 @@
+openapi: 3.0.3
+info:
+  title: API Catalog 资产管理接口
+  version: 1.0.0
+  description: |
+    API Catalog 资产生命周期管理接口。
+    提供资产草稿注册、配置修订、启用、停用、AI 能力档案绑定与详情查询能力。
+    API Code 在创建后保持不可变更；启用前会校验分类有效性、访问配置完整性以及 AI 资产的能力档案。
+servers:
+  - url: /api/v1
+    description: API Catalog v1
+
+tags:
+  - name: Assets
+    description: API 资产生命周期管理
+
+paths:
+  /assets:
+    post:
+      summary: 注册新的 API 资产草稿
+      operationId: registerAsset
+      tags:
+        - Assets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterApiAssetReq'
+      responses:
+        '201':
+          description: 资产草稿注册成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiAssetResp'
+        '400':
+          description: 请求参数校验失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+        '409':
+          description: API Code 已存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
+  /assets/{apiCode}:
+    get:
+      summary: 根据 API Code 查询资产详情
+      operationId: getAssetByCode
+      tags:
+        - Assets
+      parameters:
+        - name: apiCode
+          in: path
+          required: true
+          description: 资产业务编码(API Code)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功返回资产详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiAssetResp'
+        '404':
+          description: 资产不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
+    put:
+      summary: 修订 API 资产草稿或已停用资产
+      operationId: reviseAsset
+      tags:
+        - Assets
+      parameters:
+        - name: apiCode
+          in: path
+          required: true
+          description: 资产业务编码(API Code)
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviseApiAssetReq'
+      responses:
+        '200':
+          description: 资产修订成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiAssetResp'
+        '400':
+          description: 请求参数校验失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+        '404':
+          description: 资产不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
+  /assets/{apiCode}/enable:
+    patch:
+      summary: 启用指定资产
+      operationId: enableAsset
+      tags:
+        - Assets
+      parameters:
+        - name: apiCode
+          in: path
+          required: true
+          description: 资产业务编码(API Code)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 资产启用成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiAssetResp'
+        '400':
+          description: 启用前校验失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+        '404':
+          description: 资产不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
+  /assets/{apiCode}/disable:
+    patch:
+      summary: 停用指定资产
+      operationId: disableAsset
+      tags:
+        - Assets
+      parameters:
+        - name: apiCode
+          in: path
+          required: true
+          description: 资产业务编码(API Code)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 资产停用成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiAssetResp'
+        '404':
+          description: 资产不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
+  /assets/{apiCode}/ai-profile:
+    put:
+      summary: 绑定或更新 AI 能力档案
+      operationId: attachAiCapabilityProfile
+      tags:
+        - Assets
+      parameters:
+        - name: apiCode
+          in: path
+          required: true
+          description: 资产业务编码(API Code)
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttachAiCapabilityProfileReq'
+      responses:
+        '200':
+          description: AI 能力档案绑定成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiAssetResp'
+        '400':
+          description: 当前资产不支持 AI 能力档案或请求参数无效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+        '404':
+          description: 资产不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
+components:
+  schemas:
+    RegisterApiAssetReq:
+      type: object
+      required:
+        - apiCode
+        - assetType
+      properties:
+        apiCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: 资产业务编码(API Code)，创建后不可变更
+          example: weather-forecast
+        assetType:
+          type: string
+          enum:
+            - STANDARD_API
+            - AI_API
+          description: 资产类型
+          example: STANDARD_API
+        assetName:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+          description: 资产展示名称，草稿阶段允许为空
+          example: 天气预报
+
+    ReviseApiAssetReq:
+      type: object
+      properties:
+        assetName:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+          description: 资产展示名称
+        assetType:
+          type: string
+          enum:
+            - STANDARD_API
+            - AI_API
+          description: 资产类型
+        categoryCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+          nullable: true
+          description: 分类编码
+        requestMethod:
+          type: string
+          enum:
+            - GET
+            - POST
+            - PUT
+            - PATCH
+            - DELETE
+          nullable: true
+          description: 上游请求方法
+        upstreamUrl:
+          type: string
+          maxLength: 512
+          nullable: true
+          description: 上游请求地址
+        authScheme:
+          type: string
+          enum:
+            - NONE
+            - HEADER_TOKEN
+            - QUERY_TOKEN
+          nullable: true
+          description: 鉴权方案
+        authConfig:
+          type: string
+          nullable: true
+          description: 鉴权配置(JSON 字符串)
+          example: '{"headerName":"Authorization","tokenValue":"Bearer xxx"}'
+        requestTemplate:
+          type: string
+          nullable: true
+          description: 请求模板描述
+        requestExample:
+          type: string
+          nullable: true
+          description: 请求示例快照，可为空
+        responseExample:
+          type: string
+          nullable: true
+          description: 响应示例快照，可为空
+
+    AttachAiCapabilityProfileReq:
+      type: object
+      required:
+        - provider
+        - model
+        - streamingSupported
+        - capabilityTags
+      properties:
+        provider:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: AI 服务提供商
+          example: OpenAI
+        model:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: 模型标识
+          example: gpt-4.1
+        streamingSupported:
+          type: boolean
+          description: 是否支持流式输出
+          example: true
+        capabilityTags:
+          type: array
+          minItems: 1
+          items:
+            type: string
+          description: 能力标签列表
+          example:
+            - chat
+            - vision
+
+    AiCapabilityProfileResp:
+      type: object
+      nullable: true
+      properties:
+        provider:
+          type: string
+          description: AI 服务提供商
+        model:
+          type: string
+          description: 模型标识
+        streamingSupported:
+          type: boolean
+          description: 是否支持流式输出
+        capabilityTags:
+          type: array
+          items:
+            type: string
+          description: 能力标签列表
+
+    ApiAssetResp:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 资产实体唯一标识
+        apiCode:
+          type: string
+          description: 资产业务编码(API Code)
+        assetName:
+          type: string
+          nullable: true
+          description: 资产展示名称
+        assetType:
+          type: string
+          enum:
+            - STANDARD_API
+            - AI_API
+          description: 资产类型
+        categoryCode:
+          type: string
+          nullable: true
+          description: 分类编码
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - ENABLED
+            - DISABLED
+          description: 资产状态
+        requestMethod:
+          type: string
+          nullable: true
+          description: 上游请求方法
+        upstreamUrl:
+          type: string
+          nullable: true
+          description: 上游请求地址
+        authScheme:
+          type: string
+          nullable: true
+          description: 鉴权方案
+        authConfig:
+          type: string
+          nullable: true
+          description: 鉴权配置(JSON 字符串)
+        requestTemplate:
+          type: string
+          nullable: true
+          description: 请求模板描述
+        requestExample:
+          type: string
+          nullable: true
+          description: 请求示例快照
+        responseExample:
+          type: string
+          nullable: true
+          description: 响应示例快照
+        aiCapabilityProfile:
+          $ref: '#/components/schemas/AiCapabilityProfileResp'
+        createdAt:
+          type: string
+          format: date-time
+          description: 创建时间
+        updatedAt:
+          type: string
+          format: date-time
+          description: 最近更新时间
+
+    ErrorResp:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 错误码
+        message:
+          type: string
+          description: 错误信息

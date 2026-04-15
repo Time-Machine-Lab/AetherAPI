@@ -17,4 +17,15 @@ public final class CatalogErrorCodes {
     public static final String CATEGORY_ALREADY_DISABLED = "CATEGORY_ALREADY_DISABLED";
     public static final String CATEGORY_DELETED = "CATEGORY_DELETED";
     public static final String CATEGORY_INVALID = "CATEGORY_INVALID";
+
+    // 资产相关错误码
+    public static final String ASSET_NOT_FOUND = "ASSET_NOT_FOUND";
+    public static final String API_CODE_ALREADY_EXISTS = "API_CODE_ALREADY_EXISTS";
+    public static final String API_CODE_INVALID = "API_CODE_INVALID";
+    public static final String ASSET_ALREADY_ENABLED = "ASSET_ALREADY_ENABLED";
+    public static final String ASSET_ALREADY_DISABLED = "ASSET_ALREADY_DISABLED";
+    public static final String ASSET_ACTIVATION_INCOMPLETE = "ASSET_ACTIVATION_INCOMPLETE";
+    public static final String ASSET_CATEGORY_INVALID = "ASSET_CATEGORY_INVALID";
+    public static final String AI_PROFILE_REQUIRED = "AI_PROFILE_REQUIRED";
+    public static final String AI_PROFILE_UNSUPPORTED = "AI_PROFILE_UNSUPPORTED";
 }
