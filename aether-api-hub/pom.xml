@@ -1,0 +1,66 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>io.github.timemachinelab</groupId>
+  <artifactId>aether-api-hub-root</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <name>AetherAPI-Hub</name>
+  <url>http://maven.apache.org</url>
+
+  <modules>
+    <module>aether-api-hub-app</module>
+    <module>aether-api-hub-standard</module>
+  </modules>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <aether.api.hub.foundation.version>1.1.0-alpha.2</aether.api.hub.foundation.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.github.timemachinelab</groupId>
+        <artifactId>aether-api-hub-api</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.github.timemachinelab</groupId>
+        <artifactId>aether-api-hub-adapter</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.github.timemachinelab</groupId>
+        <artifactId>aether-api-hub-client</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.github.timemachinelab</groupId>
+        <artifactId>aether-api-hub-domain</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.github.timemachinelab</groupId>
+        <artifactId>aether-api-hub-infrastructure</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.github.timemachinelab</groupId>
+        <artifactId>aether-api-hub-service</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.github.timemachinelab</groupId>
+        <artifactId>tml-sdk-java-bom</artifactId>
+        <version>${aether.api.hub.foundation.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+</project>
