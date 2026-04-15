@@ -89,6 +89,8 @@ classDiagram
     ApiCategoryAggregate --> CategoryRef : referenced by
 ```
 
+
+
 简要说明：
 
 - `ApiAssetAggregate` 是本模块的核心聚合根，负责保证单个 API 资产在注册、编辑、启停、AI 标记过程中的业务一致性。
@@ -116,19 +118,15 @@ classDiagram
 - 用户故事 1：作为内部维护人员，我希望注册一个新的 API 资产，以便平台能够统一管理和后续接入该 API。
   - 验收标准 (AC)：当 `API Code` 重复时，系统必须拒绝创建并提示编码已存在。
   - 验收标准 (AC)：新建资产默认进入“草稿”状态，而不是直接启用。
-
 - 用户故事 2：作为内部维护人员，我希望为一个 API 资产配置上游端点、鉴权方案和示例信息，以便后续展示与统一调用都使用同一份主数据。
   - 验收标准 (AC)：关键接入配置缺失时，资产不能被启用。
   - 验收标准 (AC)：示例信息可缺省，但缺省不影响草稿保存。
-
 - 用户故事 3：作为内部维护人员，我希望将某个 API 资产标记为 AI API，并补充供应商、模型和流式能力信息，以便平台为后续 AI 能力演进预留结构。
   - 验收标准 (AC)：当资产类型为 AI API 时，缺失 AI 能力档案不得启用。
   - 验收标准 (AC)：AI 能力标签支持多值，但第一期不要求复杂标签治理。
-
 - 用户故事 4：作为平台运营人员，我希望启用或停用某个 API 资产，以便控制其是否对外展示和可被统一接入层使用。
   - 验收标准 (AC)：停用后的 API 资产不再出现在可调用资产集合中。
   - 验收标准 (AC)：启用动作必须触发一次完整配置校验。
-
 - 用户故事 5：作为内部开发者，我希望查看已启用 API 资产的列表和详情，以便快速判断可用能力并决定是否接入。
   - 验收标准 (AC)：列表只展示处于启用状态的资产。
   - 验收标准 (AC)：详情页能清晰区分普通 API 和 AI API。
@@ -141,7 +139,6 @@ classDiagram
 - 命令 (Command)：`DisableApiAssetCommand`，停用 API 资产。
 - 命令 (Command)：`AttachAiCapabilityProfileCommand`，补充或更新 AI 能力档案。
 - 命令 (Command)：`CreateApiCategoryCommand`，创建 API 分类。
-
 - 事件 (Event)：`ApiAssetRegisteredEvent`，API 资产已注册。
 - 事件 (Event)：`ApiAssetRevisedEvent`，API 资产配置已更新。
 - 事件 (Event)：`ApiAssetEnabledEvent`，API 资产已启用。
@@ -181,6 +178,8 @@ sequenceDiagram
     Asset-->>AppService: ApiAssetEnabledEvent
     AppService->>AssetRepo: 保存启用状态
 ```
+
+
 
 这个业务闭环说明了为什么 `API Catalog` 应该先做：
 

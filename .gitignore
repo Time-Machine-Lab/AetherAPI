@@ -1,5 +1,6 @@
 .codex/
 .cursor/
+.idea/
 **/node_modules/
 **/dist/
 **/coverage/

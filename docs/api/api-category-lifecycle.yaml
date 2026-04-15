@@ -1,0 +1,386 @@
+openapi: 3.0.3
+info:
+  title: API Catalog 分类管理接口
+  version: 1.0.0
+  description: |
+    API Catalog 分类生命周期管理接口。
+    提供分类的创建、重命名、启用、停用和查询能力。
+    分类编码（CategoryCode）在创建后不可变更。
+    只有处于 ENABLED 状态的分类才可被新的 API 资产引用。
+servers:
+  - url: /api/v1
+    description: API Catalog v1
+
+tags:
+  - name: Categories
+    description: API 分类生命周期管理
+
+paths:
+  /categories:
+    get:
+      summary: 分页查询分类列表
+      operationId: listCategories
+      tags:
+        - Categories
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: 按状态过滤（ENABLED / DISABLED），不传则返回所有非删除分类
+          schema:
+            type: string
+            enum:
+              - ENABLED
+              - DISABLED
+        - name: page
+          in: query
+          required: false
+          description: 页码（从 1 开始），默认 1
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: size
+          in: query
+          required: false
+          description: 每页记录数，默认 20，最大 100
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: 成功返回分类分页列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryPageResp'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
+    post:
+      summary: 创建新分类
+      operationId: createCategory
+      tags:
+        - Categories
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategoryReq'
+      responses:
+        '201':
+          description: 分类创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResp'
+        '400':
+          description: 请求参数校验失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+        '409':
+          description: 分类编码已存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
+  /categories/{categoryCode}:
+    get:
+      summary: 根据分类编码查询分类详情
+      operationId: getCategoryByCode
+      tags:
+        - Categories
+      parameters:
+        - name: categoryCode
+          in: path
+          required: true
+          description: 分类业务编码（CategoryCode）
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功返回分类详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResp'
+        '404':
+          description: 分类不存在或已删除
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
+    put:
+      summary: 重命名分类
+      operationId: renameCategory
+      description: |
+        更新分类的展示名称，分类编码（CategoryCode）保持不变。
+        适用于管理员修改分类展示名但不改变其业务标识的场景。
+      tags:
+        - Categories
+      parameters:
+        - name: categoryCode
+          in: path
+          required: true
+          description: 分类业务编码（CategoryCode）
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameCategoryReq'
+      responses:
+        '200':
+          description: 重命名成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResp'
+        '400':
+          description: 请求参数校验失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+        '404':
+          description: 分类不存在或已删除
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
+  /categories/{categoryCode}/enable:
+    patch:
+      summary: 启用分类
+      description: |
+        将指定分类从 DISABLED 状态切换为 ENABLED 状态。
+        启用后的分类可以被新的 API 资产引用。
+      operationId: enableCategory
+      tags:
+        - Categories
+      parameters:
+        - name: categoryCode
+          in: path
+          required: true
+          description: 分类业务编码（CategoryCode）
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 启用成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResp'
+        '404':
+          description: 分类不存在或已删除
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
+  /categories/{categoryCode}/disable:
+    patch:
+      summary: 停用分类
+      description: |
+        将指定分类从 ENABLED 状态切换为 DISABLED 状态。
+        停用后，该分类不得继续被新资产引用，但不影响已关联资产的状态。
+      operationId: disableCategory
+      tags:
+        - Categories
+      parameters:
+        - name: categoryCode
+          in: path
+          required: true
+          description: 分类业务编码（CategoryCode）
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 停用成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResp'
+        '404':
+          description: 分类不存在或已删除
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
+  /categories/validate:
+    get:
+      summary: 校验分类有效性
+      description: |
+        供下游资产模块调用的校验接口。
+        判定指定分类编码是否存在且处于 ENABLED 状态。
+        只有返回有效的分类才允许被新的 API 资产引用或重新分配。
+      operationId: validateCategory
+      tags:
+        - Categories
+      parameters:
+        - name: categoryCode
+          in: query
+          required: true
+          description: 待校验的分类业务编码（CategoryCode）
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 校验结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryValidityResp'
+        '400':
+          description: 缺少 categoryCode 参数
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
+components:
+  schemas:
+    CreateCategoryReq:
+      type: object
+      required:
+        - categoryCode
+        - categoryName
+      properties:
+        categoryCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: 分类业务编码，创建后不可变更，唯一标识一个分类
+          example: llm
+        categoryName:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: 分类展示名称，允许后续重命名
+          example: 大语言模型
+      example:
+        categoryCode: llm
+        categoryName: 大语言模型
+
+    RenameCategoryReq:
+      type: object
+      required:
+        - categoryName
+      properties:
+        categoryName:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: 新的分类展示名称
+          example: 大模型
+      example:
+        categoryName: 大模型
+
+    CategoryResp:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 分类实体唯一标识
+        categoryCode:
+          type: string
+          description: 分类业务编码
+        categoryName:
+          type: string
+          description: 分类展示名称
+        status:
+          type: string
+          enum:
+            - ENABLED
+            - DISABLED
+          description: 当前启用状态
+        createdAt:
+          type: string
+          format: date-time
+          description: 创建时间
+        updatedAt:
+          type: string
+          format: date-time
+          description: 最近更新时间
+      example:
+        id: 550e8400-e29b-41d4-a716-446655440000
+        categoryCode: llm
+        categoryName: 大语言模型
+        status: ENABLED
+        createdAt: '2026-04-15T10:00:00Z'
+        updatedAt: '2026-04-15T10:00:00Z'
+
+    CategoryPageResp:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryResp'
+        page:
+          type: integer
+          description: 当前页码
+        size:
+          type: integer
+          description: 每页记录数
+        total:
+          type: integer
+          description: 总记录数
+      example:
+        items:
+          - id: 550e8400-e29b-41d4-a716-446655440000
+            categoryCode: llm
+            categoryName: 大语言模型
+            status: ENABLED
+            createdAt: '2026-04-15T10:00:00Z'
+            updatedAt: '2026-04-15T10:00:00Z'
+        page: 1
+        size: 20
+        total: 1
+
+    CategoryValidityResp:
+      type: object
+      properties:
+        categoryCode:
+          type: string
+          description: 待校验的分类编码
+        valid:
+          type: boolean
+          description: '是否有效：true-有效（存在且处于 ENABLED 状态），false-无效'
+        reason:
+          type: string
+          description: 无效时的具体原因
+          nullable: true
+      example:
+        categoryCode: llm
+        valid: true
+        reason: null
+
+    ErrorResp:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 错误码
+        message:
+          type: string
+          description: 错误信息
+      example:
+        code: CATEGORY_NOT_FOUND
+        message: 分类不存在或已删除
