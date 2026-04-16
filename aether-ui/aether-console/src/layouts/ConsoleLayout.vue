@@ -4,13 +4,12 @@ import { storeToRefs } from 'pinia'
 import {
   Activity,
   BookOpen,
-  Bot,
   CreditCard,
-  Grid2x2,
   KeyRound,
-  LayoutDashboard,
+  LayoutList,
   LogOut,
   Menu,
+  Package,
   ReceiptText,
   UserRound,
 } from 'lucide-vue-next'
@@ -39,9 +38,9 @@ const { t } = useI18n()
 const isSignInScreen = computed(() => route.name === appConfig.signInRouteName)
 
 const iconMap = {
-  overview: LayoutDashboard,
-  marketplace: Grid2x2,
-  agents: Bot,
+  'catalog-browse': LayoutList,
+  'catalog-manage': Package,
+  'category-manage': Package,
   credentials: KeyRound,
   usage: Activity,
   orders: ReceiptText,
@@ -51,7 +50,7 @@ const iconMap = {
 
 const activeNavId = computed<ConsoleNavId>(() => {
   if (route.name === 'console-home') {
-    return 'marketplace'
+    return 'catalog-browse'
   }
 
   const hashId = route.hash.replace('#', '') as ConsoleNavId
@@ -60,7 +59,7 @@ const activeNavId = computed<ConsoleNavId>(() => {
     return hashId
   }
 
-  return 'overview'
+  return 'catalog-manage'
 })
 
 const pageTitle = computed(() => {
