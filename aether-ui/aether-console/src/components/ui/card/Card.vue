@@ -19,7 +19,7 @@ const props = withDefaults(
     :data-size="size"
     :class="
       cn(
-        'bg-card text-card-foreground gap-6 overflow-hidden rounded-xl py-6 text-sm shadow-[0_24px_48px_-36px_rgba(28,39,56,0.28)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-4 data-[size=sm]:py-4 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl group/card flex flex-col',
+        'group/card flex flex-col overflow-hidden rounded-[20px] border border-[rgb(34_34_34_/_0.04)] bg-white text-sm text-card-foreground shadow-console data-[size=sm]:rounded-[18px]',
         props.class,
       )
     "

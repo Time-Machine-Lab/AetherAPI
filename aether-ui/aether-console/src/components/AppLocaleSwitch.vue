@@ -17,12 +17,13 @@ function labelFor(targetLocale: SupportedLocale) {
 </script>
 
 <template>
-  <div class="flex items-center gap-2">
+  <div class="inline-flex items-center gap-1 rounded-full bg-white p-1 shadow-console">
     <Button
       v-for="targetLocale in locales"
       :key="targetLocale"
-      :variant="locale === targetLocale ? 'default' : 'outline'"
-      size="sm"
+      :variant="locale === targetLocale ? 'secondary' : 'ghost'"
+      size="xs"
+      class="rounded-full px-3"
       @click="appShellStore.setLocalePreference(targetLocale)"
     >
       {{ labelFor(targetLocale) }}

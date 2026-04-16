@@ -12,7 +12,7 @@ const props = defineProps<{
     data-slot="card-header"
     :class="
       cn(
-        'gap-2 rounded-t-xl px-6 group-data-[size=sm]/card:px-4 group/card-header @container/card-header grid auto-rows-min items-start has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto]',
+        'grid auto-rows-min items-start gap-3 px-6 pt-6 group-data-[size=sm]/card:px-5 group-data-[size=sm]/card:pt-5',
         props.class,
       )
     "

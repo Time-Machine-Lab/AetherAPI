@@ -16,14 +16,14 @@ const props = defineProps<{
     <defs>
       <linearGradient
         id="brand-gradient"
-        x1="8"
-        y1="10"
-        x2="56"
-        y2="54"
+        x1="9"
+        y1="9"
+        x2="55"
+        y2="55"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="#0F766E" />
-        <stop offset="1" stop-color="#1D4ED8" />
+        <stop stop-color="#ff385c" />
+        <stop offset="1" stop-color="#e00b41" />
       </linearGradient>
     </defs>
   </svg>
