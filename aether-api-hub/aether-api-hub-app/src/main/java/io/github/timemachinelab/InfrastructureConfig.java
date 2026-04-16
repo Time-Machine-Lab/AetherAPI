@@ -13,18 +13,21 @@ import io.github.timemachinelab.service.adapter.ConsumerIdentityRepositoryAdapte
 import io.github.timemachinelab.service.application.ApiAssetApplicationService;
 import io.github.timemachinelab.service.application.ApiCredentialApplicationService;
 import io.github.timemachinelab.service.application.CatalogDiscoveryApplicationService;
+import io.github.timemachinelab.service.application.CredentialValidationApplicationService;
 import io.github.timemachinelab.service.adapter.CategoryRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.UserConsumerMappingRepositoryAdapter;
 import io.github.timemachinelab.service.application.CategoryApplicationService;
 import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
 import io.github.timemachinelab.service.port.in.ApiCredentialUseCase;
 import io.github.timemachinelab.service.port.in.CatalogDiscoveryUseCase;
+import io.github.timemachinelab.service.port.in.CredentialValidationUseCase;
 import io.github.timemachinelab.service.port.out.ApiCredentialRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
 import io.github.timemachinelab.service.port.out.CatalogDiscoveryQueryPort;
 import io.github.timemachinelab.service.port.out.CategoryRepositoryPort;
 import io.github.timemachinelab.service.port.out.ConsumerIdentityRepositoryPort;
 import io.github.timemachinelab.service.port.out.UserConsumerMappingRepositoryPort;
+import io.github.timemachinelab.domain.consumerauth.service.CredentialValidationDomainService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -92,6 +95,23 @@ public class InfrastructureConfig {
                 apiCredentialRepositoryPort,
                 consumerIdentityRepositoryPort,
                 userConsumerMappingRepositoryPort
+        );
+    }
+
+    @Bean
+    public CredentialValidationDomainService credentialValidationDomainService() {
+        return new CredentialValidationDomainService();
+    }
+
+    @Bean
+    public CredentialValidationUseCase credentialValidationUseCase(
+            ApiCredentialRepositoryPort apiCredentialRepositoryPort,
+            ConsumerIdentityRepositoryPort consumerIdentityRepositoryPort,
+            CredentialValidationDomainService credentialValidationDomainService) {
+        return new CredentialValidationApplicationService(
+                apiCredentialRepositoryPort,
+                consumerIdentityRepositoryPort,
+                credentialValidationDomainService
         );
     }
 

@@ -14,6 +14,8 @@ import java.util.Optional;
  */
 public interface ApiCredentialRepositoryPort {
 
+    Optional<ApiCredentialAggregate> findByFingerprintHash(String fingerprintHash);
+
     Optional<ApiCredentialAggregate> findByIdAndConsumerId(ApiCredentialId credentialId, ConsumerId consumerId);
 
     List<ApiCredentialAggregate> findPageByConsumerId(

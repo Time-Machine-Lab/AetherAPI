@@ -209,6 +209,13 @@ class ApiCredentialApplicationServiceTest {
         private final Map<String, ApiCredentialAggregate> storage = new HashMap<>();
 
         @Override
+        public Optional<ApiCredentialAggregate> findByFingerprintHash(String fingerprintHash) {
+            return storage.values().stream()
+                    .filter(item -> item.getKeyFingerprint().getHashValue().equals(fingerprintHash))
+                    .findFirst();
+        }
+
+        @Override
         public Optional<ApiCredentialAggregate> findByIdAndConsumerId(ApiCredentialId credentialId, ConsumerId consumerId) {
             ApiCredentialAggregate aggregate = storage.get(credentialId.getValue());
             if (aggregate == null || !aggregate.getConsumerId().equals(consumerId)) {

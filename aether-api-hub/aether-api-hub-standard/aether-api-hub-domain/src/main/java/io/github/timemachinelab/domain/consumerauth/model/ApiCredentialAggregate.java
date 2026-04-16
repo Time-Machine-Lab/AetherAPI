@@ -153,6 +153,20 @@ public class ApiCredentialAggregate {
         touch();
     }
 
+    public CredentialValidationFailureReason validateForAccess(Instant now) {
+        ensureNotDeleted();
+        if (status == ApiCredentialStatus.DISABLED) {
+            return CredentialValidationFailureReason.CREDENTIAL_DISABLED;
+        }
+        if (status == ApiCredentialStatus.REVOKED) {
+            return CredentialValidationFailureReason.CREDENTIAL_REVOKED;
+        }
+        if (expirationPolicy.isExpired(now)) {
+            return CredentialValidationFailureReason.CREDENTIAL_EXPIRED;
+        }
+        return null;
+    }
+
     public boolean isExpired(Instant now) {
         return expirationPolicy.isExpired(now);
     }

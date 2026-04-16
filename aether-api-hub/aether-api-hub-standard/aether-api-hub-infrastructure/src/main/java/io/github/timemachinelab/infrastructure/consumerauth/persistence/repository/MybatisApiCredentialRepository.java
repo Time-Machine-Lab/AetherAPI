@@ -33,6 +33,11 @@ public class MybatisApiCredentialRepository implements ApiCredentialRepository {
     }
 
     @Override
+    public Optional<ApiCredentialAggregate> findByFingerprintHash(String fingerprintHash) {
+        return Optional.ofNullable(ApiCredentialConverter.toAggregate(mapper.selectByFingerprintHash(fingerprintHash)));
+    }
+
+    @Override
     public Optional<ApiCredentialAggregate> findByIdAndConsumerId(ApiCredentialId credentialId, ConsumerId consumerId) {
         return Optional.ofNullable(ApiCredentialConverter.toAggregate(
                 mapper.selectByIdAndConsumerId(credentialId.getValue(), consumerId.getValue())));

@@ -12,6 +12,14 @@ public interface ApiCredentialMapper extends BaseMapper<ApiCredentialDo> {
 
     @Select("""
             SELECT * FROM api_credential
+            WHERE fingerprint_hash = #{fingerprintHash}
+              AND is_deleted = FALSE
+            LIMIT 1
+            """)
+    ApiCredentialDo selectByFingerprintHash(@Param("fingerprintHash") String fingerprintHash);
+
+    @Select("""
+            SELECT * FROM api_credential
             WHERE id = #{credentialId}
               AND consumer_id = #{consumerId}
               AND is_deleted = FALSE

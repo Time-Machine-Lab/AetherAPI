@@ -23,6 +23,11 @@ public class ApiCredentialRepositoryAdapter implements ApiCredentialRepositoryPo
     }
 
     @Override
+    public Optional<ApiCredentialAggregate> findByFingerprintHash(String fingerprintHash) {
+        return delegate.findByFingerprintHash(fingerprintHash);
+    }
+
+    @Override
     public Optional<ApiCredentialAggregate> findByIdAndConsumerId(ApiCredentialId credentialId, ConsumerId consumerId) {
         return delegate.findByIdAndConsumerId(credentialId, consumerId);
     }
