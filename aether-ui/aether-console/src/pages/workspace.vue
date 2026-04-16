@@ -1,83 +1,160 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { appConfig } from '@/app/app-config'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAppInfo } from '@/composables/useAppInfo'
-import { useAuthStore } from '@/stores/useAuthStore'
+import {
+  consoleTimeline,
+  consoleWorkspacePanels,
+  summarizeConsoleSkeleton,
+} from '@/features/console/console-shell'
 
-const authStore = useAuthStore()
-const router = useRouter()
 const { env } = useAppInfo()
 const { t } = useI18n()
-const cards = ['app', 'auth', 'next'] as const
-
-async function handleSignOut() {
-  authStore.signOut()
-  await router.push({ name: appConfig.signInRouteName })
-}
+const summary = summarizeConsoleSkeleton()
 </script>
 
 <route lang="json5">
 {
-  name: 'portal-workspace',
+  name: 'console-workspace',
   meta: {
-    layout: 'PortalLayout',
-    titleKey: 'portal.workspace.metaTitle',
+    layout: 'ConsoleLayout',
+    titleKey: 'console.workspace.metaTitle',
     requiresAuth: true,
   },
 }
 </route>
 
 <template>
-  <div class="space-y-8">
-    <section class="grid gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.9fr)]">
-      <div class="rounded-[2rem] bg-card/95 p-8 shadow-[0_30px_60px_-40px_rgba(28,39,56,0.3)] sm:p-10">
-        <p class="text-sm font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-          BUILDER WORKSPACE
-        </p>
-        <h1 class="mt-4 max-w-3xl text-5xl font-semibold tracking-tight text-foreground sm:text-6xl">
-          {{ t('portal.workspace.title') }}
-        </h1>
-        <p class="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
-          {{ t('portal.workspace.description') }}
-        </p>
-        <div class="mt-8 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-          <span class="rounded-full bg-secondary px-3 py-1.5 text-foreground/80">{{ env.appId }}</span>
-          <span class="rounded-full bg-secondary px-3 py-1.5 text-foreground/80">
-            {{ env.apiBaseUrl }}
-          </span>
-        </div>
+  <div class="space-y-6">
+    <section class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <p class="console-kicker">{{ t('console.navigation.overview') }}</p>
+        <h2 class="console-display mt-3 text-[1.75rem] font-bold text-foreground">
+          {{ t('console.workspace.title') }}
+        </h2>
+        <p class="mt-3 text-sm leading-6 text-muted-foreground">{{ t('console.workspace.description') }}</p>
       </div>
-
-      <div class="rounded-[2rem] bg-secondary/78 p-6 shadow-[0_24px_44px_-36px_rgba(28,39,56,0.3)] sm:p-8">
-        <p class="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-          Focus
-        </p>
-        <p class="mt-6 text-6xl font-semibold tracking-tight text-foreground">03</p>
-        <p class="mt-3 max-w-xs text-sm leading-7 text-muted-foreground">
-          {{ t('portal.workspace.description') }}
-        </p>
+      <div class="flex flex-wrap gap-2">
+        <Button size="sm">{{ t('console.workspace.primaryAction') }}</Button>
+        <Button variant="outline" size="sm">{{ t('console.workspace.secondaryAction') }}</Button>
       </div>
     </section>
 
-    <div class="grid gap-5 lg:grid-cols-3">
-      <Card v-for="cardKey in cards" :key="cardKey" class="relative bg-card/95">
-        <CardHeader class="pl-7">
-          <span class="absolute inset-y-6 left-0 w-1 rounded-full bg-primary/80" />
-          <CardTitle>{{ t(`portal.workspace.cards.${cardKey}.title`) }}</CardTitle>
-          <CardDescription>{{
-            t(`portal.workspace.cards.${cardKey}.description`)
-          }}</CardDescription>
-        </CardHeader>
+    <section class="grid gap-4 xl:grid-cols-4">
+      <Card>
+        <CardContent class="p-5">
+          <p class="text-sm text-muted-foreground">{{ t('console.workspace.statLabel') }}</p>
+          <p class="console-display mt-3 text-[2rem] font-bold text-foreground">
+            {{ summary.sidebarItemCount }}
+          </p>
+          <p class="mt-2 text-xs text-muted-foreground">{{ t('console.workspace.statHint') }}</p>
+        </CardContent>
       </Card>
-    </div>
+      <Card>
+        <CardContent class="p-5">
+          <p class="text-sm text-muted-foreground">{{ t('console.workspace.readyLabel') }}</p>
+          <p class="console-display mt-3 text-[2rem] font-bold text-foreground">
+            {{ summary.readyCount }}
+          </p>
+          <p class="mt-2 text-xs text-muted-foreground">{{ t('console.workspace.readyHint') }}</p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent class="p-5">
+          <p class="text-sm text-muted-foreground">{{ t('console.workspace.timelineLabel') }}</p>
+          <p class="console-display mt-3 text-[2rem] font-bold text-foreground">
+            {{ summary.plannedCount }}
+          </p>
+          <p class="mt-2 text-xs text-muted-foreground">{{ t('console.workspace.timelineHint') }}</p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent class="p-5">
+          <p class="text-sm text-muted-foreground">{{ t('console.workspace.envLabel') }}</p>
+          <p class="mt-2 truncate text-base font-semibold text-foreground">{{ env.apiBaseUrl }}</p>
+          <p class="mt-2 text-xs text-muted-foreground">{{ env.appName }}</p>
+        </CardContent>
+      </Card>
+    </section>
 
-    <div class="flex justify-start">
-      <Button variant="outline" @click="handleSignOut">
-        {{ t('portal.workspace.actions.signOut') }}
-      </Button>
-    </div>
+    <section class="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div class="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>{{ t('console.workspace.panelsTitle') }}</CardTitle>
+            <CardDescription>{{ t('console.workspace.panelsDescription') }}</CardDescription>
+          </CardHeader>
+          <CardContent class="grid gap-4 lg:grid-cols-2">
+            <Card
+              v-for="panel in consoleWorkspacePanels"
+              :id="panel.id"
+              :key="panel.id"
+              class="scroll-mt-24"
+            >
+              <CardContent class="p-5">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <p class="text-base font-semibold text-foreground">{{ t(panel.titleKey) }}</p>
+                    <p class="mt-2 text-sm leading-6 text-muted-foreground">
+                      {{ t(panel.descriptionKey) }}
+                    </p>
+                  </div>
+                  <span
+                    class="rounded-full bg-[color-mix(in_srgb,var(--primary)_10%,white)] px-2.5 py-1 text-[11px] font-medium text-foreground"
+                  >
+                    {{ t(panel.statusKey) }}
+                  </span>
+                </div>
+                <div class="mt-4 rounded-[14px] bg-secondary px-3 py-3 text-sm font-medium text-foreground">
+                  {{ panel.metric }}
+                </div>
+              </CardContent>
+            </Card>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div class="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>{{ t('console.workspace.timelineTitle') }}</CardTitle>
+            <CardDescription>{{ t('console.workspace.timelineDescription') }}</CardDescription>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <div
+              v-for="item in consoleTimeline"
+              :key="item.id"
+              class="rounded-[20px] bg-secondary px-4 py-4"
+            >
+              <p class="text-sm font-semibold text-foreground">{{ t(item.titleKey) }}</p>
+              <p class="mt-2 text-sm leading-6 text-muted-foreground">
+                {{ t(item.descriptionKey) }}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{{ t('console.workspace.environmentTitle') }}</CardTitle>
+          </CardHeader>
+          <CardContent class="space-y-3 text-sm">
+            <div class="rounded-[14px] bg-secondary px-4 py-3">
+              <p class="text-xs text-muted-foreground">APP ID</p>
+              <p class="mt-1 font-medium text-foreground">{{ env.appId }}</p>
+            </div>
+            <div class="rounded-[14px] bg-secondary px-4 py-3">
+              <p class="text-xs text-muted-foreground">APP NAME</p>
+              <p class="mt-1 font-medium text-foreground">{{ env.appName }}</p>
+            </div>
+            <div class="rounded-[14px] bg-secondary px-4 py-3">
+              <p class="text-xs text-muted-foreground">API BASE</p>
+              <p class="mt-1 break-all font-medium text-foreground">{{ env.apiBaseUrl }}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </section>
   </div>
 </template>

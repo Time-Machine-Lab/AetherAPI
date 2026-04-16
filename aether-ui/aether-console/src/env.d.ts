@@ -2,7 +2,7 @@
 
 export {}
 
-type AppLayoutKey = 'MarketingLayout' | 'PortalLayout' | 'AdminLayout'
+type AppLayoutKey = 'MarketingLayout' | 'ConsoleLayout' | 'AdminLayout'
 
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string

@@ -48,8 +48,8 @@ export const useAuthStore = defineStore('auth', {
       const nextState: AuthState = {
         token: `${appConfig.appId}-demo-token`,
         user: {
-          displayName: user?.displayName ?? 'AetherAPI Operator',
-          email: user?.email ?? 'operator@aetherapi.local',
+          displayName: user?.displayName ?? 'Aether Console Operator',
+          email: user?.email ?? 'console@aetherapi.local',
           role: user?.role ?? 'owner',
         },
       }

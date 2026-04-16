@@ -1,7 +1,7 @@
 export default {
   app: {
     name: 'AetherAPI',
-    subtitle: '开发者门户',
+    subtitle: '控制台',
   },
   common: {
     locale: {
@@ -12,65 +12,150 @@ export default {
       continue: '继续',
     },
   },
-  portal: {
+  console: {
     nav: {
-      home: '门户首页',
+      home: '模型广场',
       workspace: '工作台',
       signIn: '登录',
-      signOut: '退出',
+      signOut: '退出登录',
+      searchPlaceholder: '搜索模型、Agent、API Key、文档',
     },
-    shell: {
-      session: '当前会话',
+    sidebar: {
+      modelSuite: 'AI 大模型管理',
+      operations: '运营与结算',
+    },
+    navigation: {
+      overview: '运营概览',
+      marketplace: '模型广场',
+      agents: 'Agent Hub',
+      credentials: 'API Key',
+      usage: '用量统计',
+      orders: '订单中心',
+      billing: '账单管理',
+      docs: '文档中心',
+    },
+    topbar: {
+      new: '新建',
+      messages: '消息',
+      docs: '文档',
+      workorder: '工单',
+      usage: '用量',
+      cloud: '云市场',
+    },
+    notices: {
+      tokenCampaign: '新用户专享福利：现在使用模型广场即可快速完成首轮接入与 Token 体验。',
+      agentTrial: 'Agent 功能进入测试阶段，前往工作台即可配置第一条自动化流程。',
+    },
+    filters: {
+      all: '全部',
+      new: '最新上架',
+      free: '限免试用',
+      vision: '检索与上下文',
+      reasoning: '推理增强',
+    },
+    metrics: {
+      models: '模型数量',
+      vendors: '接入厂商',
+      new: '本周上新',
+    },
+    metricsHints: {
+      models: '模型货架已经按控制台方式铺好，可继续扩充。',
+      vendors: '当前上游渠道已经在壳层中预留接入位置。',
+      new: '新模型优先暴露给运营侧做筛选和上架判断。',
     },
     home: {
-      metaTitle: '开发者门户',
-      badge: '开发者门户骨架',
-      headline: '面向 API 提供者与集成者的统一入口',
-      description:
-        '这里预置了门户首页、登录页与受保护工作台，方便后续继续扩展上架管理、收益查看、文档生成与密钥管理能力。',
-      primaryAction: '进入登录页',
-      secondaryAction: '查看工作台',
-      sections: {
-        onboarding: {
-          title: '上架准备',
-          description: '后续可以在这里补上 API 上架流程、定价、文档转换和测试工具。',
-        },
-        governance: {
-          title: '开发约束',
-          description: '页面文案走 i18n，请求统一走 API 层，工作台路由通过命名路由与守卫控制访问。',
-        },
-      },
+      metaTitle: '模型广场',
+      title: '模型广场',
+      description: '按照全屏后台控制台的方式组织模型浏览、筛选、排序和上架准备。',
+      banner: '先在这里完成模型筛选、排序和价格查看，后续渠道管理与配置会继续接在同一套控制台里。',
+      searchPlaceholder: '搜索模型名称或厂商',
+      toolbarExpand: '展开筛选',
+      toolbarSort: '排序',
+      toolbarExport: '导出清单',
+      promoBadge: '推荐',
+      promoTitle: '用量告急与限时专属特惠',
+      promoDescription: '首屏直接承接模型推荐、上新、价格和运营动作，让控制台真正成为工作台而不是展示页。',
+      promoAction: '立即抢购',
+      inputPrice: '输入',
+      outputPrice: '输出',
     },
     signIn: {
-      metaTitle: '登录',
-      eyebrow: '门户访问控制',
-      title: '使用演示身份进入开发者工作台',
-      description:
-        '当前为初始化阶段，登录动作会创建本地演示会话，便于验证守卫、状态管理与页面流转。',
-      nameLabel: '显示名称',
-      emailLabel: '邮箱',
-      submit: '进入工作台',
+      metaTitle: '控制台登录',
+      eyebrow: '演示访问',
+      title: '进入运营控制台',
+      description: '当前先使用本地演示会话，保证布局、导航和受保护路由可以继续开发，不被真实身份系统阻塞。',
+      note: '这里只会在当前应用沙箱中创建本地演示会话。',
+      nameLabel: '操作员名称',
+      emailLabel: '工作邮箱',
+      submit: '进入控制台',
+      helperTitle: '当前已经准备好的内容',
+      helperDescription: '全屏后台壳层、左侧菜单和主要工作面板已经搭好，后续功能可以继续往里接。',
     },
     workspace: {
-      metaTitle: '工作台',
-      title: '开发者工作台已初始化',
-      description: '接下来可以在此基础上接入 API 上架、调用统计、定价与收益管理能力。',
-      cards: {
-        app: {
-          title: '应用标识',
-          description: '当前应用与 API 基地址来自环境变量，避免在业务代码中写死地址。',
-        },
-        auth: {
-          title: '鉴权状态',
-          description: '当前页面通过路由守卫保护，只允许带会话的用户访问。',
-        },
-        next: {
-          title: '下一步建议',
-          description: '继续补充 API 列表、文档解析流水线与密钥管理页面。',
-        },
+      metaTitle: '控制台工作台',
+      title: '运营概览',
+      description: '把 Agent、凭证、用量、订单、账单和文档都收进同一个控制台壳层中。',
+      primaryAction: '创建工作流',
+      secondaryAction: '查看定价',
+      statLabel: '侧边栏入口',
+      statHint: '左侧菜单已经按后台系统方式分层整理。',
+      readyLabel: '当前面板',
+      readyHint: '核心工作面板已经有稳定位置，可直接继续开发。',
+      timelineLabel: '后续切片',
+      timelineHint: '后续模块只需要接入，不需要再推翻布局。',
+      envLabel: '运行环境',
+      panelsTitle: '运营面板',
+      panelsDescription: '每个面板都绑定到左侧菜单，后续按模块逐步填充即可。',
+      timelineTitle: '执行节奏',
+      timelineDescription: '把接下来的功能交付继续压进这套控制台节奏里。',
+      environmentTitle: '环境快照',
+    },
+    panels: {
+      agents: {
+        title: 'Agent 工作流',
+        description: '准备 Agent 模板、关联工具与发布状态，后续自动化配置直接接入。',
       },
-      actions: {
-        signOut: '退出当前会话',
+      credentials: {
+        title: '凭证管理',
+        description: '统一查看活动密钥、归属关系和环境隔离信息。',
+      },
+      usage: {
+        title: '用量统计',
+        description: '展示调用量、消耗趋势和模型层级的流量信号。',
+      },
+      orders: {
+        title: '订单处理',
+        description: '把结算、合同审核和异常处理留在同一个工作区完成。',
+      },
+      billing: {
+        title: '账单策略',
+        description: '为套餐、利润和面向客户的账单控制预留稳定入口。',
+      },
+      docs: {
+        title: '文档交付',
+        description: '把文档发布、版本说明和接入指南统一收口到文档中心。',
+      },
+    },
+    panelStatus: {
+      beta: '测试中',
+      ready: '已就绪',
+      stable: '稳定',
+      attention: '需关注',
+      planned: '待规划',
+      inProgress: '进行中',
+    },
+    timeline: {
+      launch: {
+        title: '模型广场保留在首屏',
+        description: '用户进入控制台后，第一时间就能浏览供给和价格，而不是先看展示页。',
+      },
+      pricing: {
+        title: '账单与定价下一步接入',
+        description: '后续定价草稿、结算和套餐策略都继续放在这套后台壳层里。',
+      },
+      docs: {
+        title: '文档中心直接挂侧栏',
+        description: '文档发布能力后续直接接入，不再额外分叉出新的界面体系。',
       },
     },
   },
