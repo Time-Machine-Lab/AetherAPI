@@ -2,6 +2,9 @@ import axios, { AxiosError, type AxiosRequestConfig } from 'axios'
 import { appConfig } from '@/app/app-config'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { env } from '@/utils/env'
+import { mockAdapter } from '@/api/catalog/catalog.mock'
+
+const isMock = import.meta.env.VITE_MOCK === 'true'
 
 interface HttpErrorPayload {
   code?: string
@@ -53,6 +56,7 @@ export const http = axios.create({
     'X-App-Id': appConfig.appId,
     'X-Requested-With': 'XMLHttpRequest',
   },
+  ...(isMock ? { adapter: mockAdapter } : {}),
 })
 
 http.interceptors.request.use((config) => {
