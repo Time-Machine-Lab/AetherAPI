@@ -35,4 +35,17 @@ export default defineConfig({
   test: {
     include: ['src/**/*.spec.ts'],
   },
+  server: {
+    port: 80,
+    host: '0.0.0.0',
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+        // rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
+    allowedHosts:['ai.cybernomads.cn']
+  },
 })

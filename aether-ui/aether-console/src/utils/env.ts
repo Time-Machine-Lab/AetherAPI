@@ -11,7 +11,7 @@ export function isSupportedLocale(candidate?: string): candidate is SupportedLoc
 const defaultLocale = import.meta.env.VITE_DEFAULT_LOCALE
 
 export const env = {
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL ?? '/api',
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL ?? '/api/v1',
   appId: import.meta.env.VITE_APP_ID ?? appConfig.appId,
   appName: import.meta.env.VITE_APP_NAME ?? appConfig.appName,
   defaultLocale: isSupportedLocale(defaultLocale) ? defaultLocale : 'zh-CN',
