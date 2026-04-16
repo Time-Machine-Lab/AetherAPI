@@ -1,8 +1,10 @@
 package io.github.timemachinelab.adapter.web.handler;
 
 import io.github.timemachinelab.api.error.CatalogErrorCodes;
+import io.github.timemachinelab.api.error.ConsumerAuthErrorCodes;
 import io.github.timemachinelab.domain.catalog.model.AssetDomainException;
 import io.github.timemachinelab.domain.catalog.model.CategoryDomainException;
+import io.github.timemachinelab.domain.consumerauth.model.ConsumerAuthDomainException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -59,6 +61,29 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(body);
     }
 
+    @ExceptionHandler(ConsumerAuthDomainException.class)
+    public ResponseEntity<Map<String, String>> handleConsumerAuthDomainException(ConsumerAuthDomainException ex) {
+        log.warn("Consumer auth domain exception: {}", ex.getMessage());
+
+        String code = mapConsumerAuthExceptionToCode(ex.getMessage());
+        Map<String, String> body = new HashMap<>();
+        body.put("code", code);
+        body.put("message", ex.getMessage());
+
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        if (ConsumerAuthErrorCodes.API_CREDENTIAL_NOT_FOUND.equals(code)) {
+            status = HttpStatus.NOT_FOUND;
+        } else if (ConsumerAuthErrorCodes.API_CREDENTIAL_ALREADY_ENABLED.equals(code)
+                || ConsumerAuthErrorCodes.API_CREDENTIAL_ALREADY_DISABLED.equals(code)
+                || ConsumerAuthErrorCodes.API_CREDENTIAL_ALREADY_REVOKED.equals(code)
+                || ConsumerAuthErrorCodes.API_CREDENTIAL_EXPIRED.equals(code)
+                || ConsumerAuthErrorCodes.API_CREDENTIAL_REVOKED.equals(code)) {
+            status = HttpStatus.CONFLICT;
+        }
+
+        return ResponseEntity.status(status).body(body);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgumentException(IllegalArgumentException ex) {
         log.warn("Invalid argument: {}", ex.getMessage());
@@ -76,7 +101,12 @@ public class GlobalExceptionHandler {
         String message = fieldError != null ? fieldError.getDefaultMessage() : "Validation failed";
 
         Map<String, String> body = new HashMap<>();
-        body.put("code", CatalogErrorCodes.CATEGORY_NAME_INVALID);
+        String objectName = ex.getBindingResult().getObjectName();
+        if (objectName != null && objectName.toLowerCase().contains("credential")) {
+            body.put("code", ConsumerAuthErrorCodes.API_CREDENTIAL_INVALID);
+        } else {
+            body.put("code", CatalogErrorCodes.CATEGORY_NAME_INVALID);
+        }
         body.put("message", message);
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
@@ -129,9 +159,40 @@ public class GlobalExceptionHandler {
         return CatalogErrorCodes.ASSET_ACTIVATION_INCOMPLETE;
     }
 
+    private String mapConsumerAuthExceptionToCode(String message) {
+        if (message.contains("not found")) {
+            return ConsumerAuthErrorCodes.API_CREDENTIAL_NOT_FOUND;
+        }
+        if (message.contains("already enabled")) {
+            return ConsumerAuthErrorCodes.API_CREDENTIAL_ALREADY_ENABLED;
+        }
+        if (message.contains("already disabled")) {
+            return ConsumerAuthErrorCodes.API_CREDENTIAL_ALREADY_DISABLED;
+        }
+        if (message.contains("already revoked")) {
+            return ConsumerAuthErrorCodes.API_CREDENTIAL_ALREADY_REVOKED;
+        }
+        if (message.contains("Expired API credential")) {
+            return ConsumerAuthErrorCodes.API_CREDENTIAL_EXPIRED;
+        }
+        if (message.contains("Revoked API credential")) {
+            return ConsumerAuthErrorCodes.API_CREDENTIAL_REVOKED;
+        }
+        if (message.contains("consumer is unavailable")) {
+            return ConsumerAuthErrorCodes.CONSUMER_UNAVAILABLE;
+        }
+        return ConsumerAuthErrorCodes.API_CREDENTIAL_INVALID;
+    }
+
     private String mapIllegalArgumentCode(String message) {
         if (message != null && message.contains("ApiCode")) {
             return CatalogErrorCodes.API_CODE_INVALID;
+        }
+        if (message != null && message.contains("Current user")) {
+            return ConsumerAuthErrorCodes.CURRENT_USER_REQUIRED;
+        }
+        if (message != null && (message.contains("Credential") || message.contains("ExpireAt"))) {
+            return ConsumerAuthErrorCodes.API_CREDENTIAL_INVALID;
         }
         return CatalogErrorCodes.CATEGORY_CODE_INVALID;
     }
