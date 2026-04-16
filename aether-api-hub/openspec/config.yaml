@@ -27,15 +27,21 @@ rules:
   proposal:
     - "项目的 `docs/` 目录是唯一的绝对真理（Single Source of Truth）。在 proposal 中不得脱离 `docs/design/`、`docs/api/`、`docs/sql/` 凭空创造接口或数据结构。"
     - "在形成 proposal 前，必须主动比对 `docs/design/`、`docs/api/`、`docs/sql/` 的现状，确保提案与现有架构兼容，并点出潜在边界冲突。"
+    - "`docs/sql/` 与 `docs/api/` 分别是数据库表结构设计与接口文件设计的顶层权威文档；只要提案涉及表结构变化或接口变化，就必须先明确将更新这些顶层文档，再进入代码设计与实现。"
     - "如果 proposal 已经识别出后续需要新增或更新 `docs/sql/`、`docs/api/` 下的顶层文件，必须在提案中明确这些文件属于权威设计产物，并要求后续生成时使用 `tml-docs-spec-generate` 技能；其中 `docs/sql/` 文件必须使用 SQL 生成模板，`docs/api/` 文件必须使用 API 生成模板。"
   design:
     - "项目的 `docs/` 目录是唯一的绝对真理（Single Source of Truth）。design 必须围绕现有架构文档展开，不得写出未被顶层文档支撑的数据库或 API 事实。"
     - "design 必须遵守 Aether API HUB 的模块边界与 DDD 分层约束，避免把业务规则塞进 adapter 或 infrastructure。"
+    - "`docs/sql/` 只允许存放 DDL 语句和表结构设计内容（如 `CREATE TABLE`、`ALTER TABLE`、索引定义等），不得写入 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 等实现性 SQL；查询或持久化实现细节应放在代码与设计说明中，而不是 `docs/sql/` 顶层文档中。"
+    - "`docs/api/` 是接口层开发的顶层契约文档，`docs/sql/` 是存储层开发的顶层表结构文档；design 必须明确先更新对应顶层文档，再安排接口层或存储层代码开发。"
     - "凡是 design 涉及新增或修改 `docs/sql/`、`docs/api/` 顶层文件时，都必须注明这些文档要通过 `tml-docs-spec-generate` 技能生成；`docs/sql/` 使用 SQL 生成模板，`docs/api/` 使用 API 生成模板。"
   specs:
     - "项目的 `docs/` 目录是唯一的绝对真理（Single Source of Truth）。specs 中的行为要求必须能回溯到 `docs/design/` 的领域语义，并为后续 `docs/api/`、`docs/sql/` 落地留出明确边界。"
     - "如果 specs 导致需要更新 `docs/sql/` 或 `docs/api` 顶层文档，对应文档生成必须使用 `tml-docs-spec-generate` 技能；`docs/sql/` 使用 SQL 生成模板，`docs/api/` 使用 API 生成模板。"
   tasks:
     - "当需求涉及任何数据存储变更（新增表/改字段）或接口变更（新增接口/改参数）时，必须将【更新或创建对应的 `.sql` 文件到 `docs/sql/`】以及【更新或创建对应的 `.yaml` 文件到 `docs/api/`】列为最高优先级的首要任务；在这些顶层设计文档更新完成前，不得安排业务代码开发任务。"
+    - "进行存储层代码开发时，必须先参考并更新 `docs/sql/` 中的顶层 DDL 文档；`docs/sql/` 仅存放 DDL 语句，不得把查询 SQL、调优 SQL 或业务实现 SQL 写入其中。"
+    - "进行接口层代码开发时，必须先参考并更新 `docs/api/` 中的顶层接口契约文档；只有在 `docs/api/` 更新完成后，才允许开发或修改 `api`、`adapter` 中的接口 DTO、controller、delegate 等代码。"
     - "开始代码实现前，必须先阅读并遵守 `docs/spec/` 的开发规范；所有涉及数据库交互或 API 调用的实现，都必须与 `docs/sql/` 和 `docs/api/` 100% 对齐。"
     - "凡是任务要求生成或更新 `docs/sql/`、`docs/api/` 下的顶层文件，执行时必须使用 `tml-docs-spec-generate` 技能；生成 `docs/sql/` 文件时必须使用 SQL 生成模板，生成 `docs/api/` 文件时必须使用 API 生成模板。"
+
