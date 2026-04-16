@@ -1,0 +1,526 @@
+openapi: 3.0.3
+info:
+  title: Consumer & Auth 当前用户 API Key 管理接口
+  version: 1.0.0
+  description: |
+    当前登录用户 API Key 生命周期管理接口。
+    接口只围绕当前用户展开，不暴露显式 Consumer 标识或独立 Consumer 业务操作。
+    创建成功时仅返回一次明文 API Key，后续列表与详情查询只返回掩码信息。
+    Controller 层统一通过 TML-SDK Result 进行响应包装，OpenAPI 中显式描述 Result 包裹结构。
+servers:
+  - url: /api/v1
+    description: Consumer & Auth v1
+
+tags:
+  - name: CurrentUserApiKeys
+    description: 当前用户 API Key 管理
+
+security:
+  - bearerAuth: []
+
+paths:
+  /current-user/api-keys:
+    get:
+      summary: 分页查询当前用户的 API Key 列表
+      operationId: listCurrentUserApiKeys
+      tags:
+        - CurrentUserApiKeys
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: 按凭证状态过滤，不传则返回当前用户全部未删除凭证
+          schema:
+            type: string
+            enum:
+              - ENABLED
+              - DISABLED
+              - REVOKED
+              - EXPIRED
+        - name: page
+          in: query
+          required: false
+          description: 页码，从 1 开始，默认 1
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: size
+          in: query
+          required: false
+          description: 每页记录数，默认 20，最大 100
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: 成功返回当前用户的 API Key 列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultCurrentUserApiKeyPageResp'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+        '401':
+          description: 当前请求未通过登录认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+
+    post:
+      summary: 为当前用户创建新的 API Key
+      operationId: createCurrentUserApiKey
+      description: |
+        请求体中不得包含 consumerId、consumerCode 等显式 Consumer 字段。
+        系统会在签发前自动确保“当前用户 -> 内部 Consumer”映射存在。
+      tags:
+        - CurrentUserApiKeys
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCurrentUserApiKeyReq'
+      responses:
+        '201':
+          description: API Key 创建成功，并仅在本次返回中携带明文 key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultIssuedCurrentUserApiKeyResp'
+        '400':
+          description: 请求参数校验失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+        '401':
+          description: 当前请求未通过登录认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+        '409':
+          description: 凭证业务编码冲突或其他并发冲突
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+
+  /current-user/api-keys/{credentialId}:
+    get:
+      summary: 查询当前用户指定 API Key 的详情
+      operationId: getCurrentUserApiKeyDetail
+      tags:
+        - CurrentUserApiKeys
+      parameters:
+        - name: credentialId
+          in: path
+          required: true
+          description: API Key 凭证唯一标识(UUID)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 成功返回当前用户凭证详情，响应中不包含明文 key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultCurrentUserApiKeyResp'
+        '401':
+          description: 当前请求未通过登录认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+        '404':
+          description: 凭证不存在，或不属于当前用户
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+
+  /current-user/api-keys/{credentialId}/enable:
+    patch:
+      summary: 启用当前用户指定的 API Key
+      operationId: enableCurrentUserApiKey
+      tags:
+        - CurrentUserApiKeys
+      parameters:
+        - name: credentialId
+          in: path
+          required: true
+          description: API Key 凭证唯一标识(UUID)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 启用成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultCurrentUserApiKeyResp'
+        '401':
+          description: 当前请求未通过登录认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+        '404':
+          description: 凭证不存在，或不属于当前用户
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+        '409':
+          description: 当前凭证状态不允许执行启用操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+
+  /current-user/api-keys/{credentialId}/disable:
+    patch:
+      summary: 停用当前用户指定的 API Key
+      operationId: disableCurrentUserApiKey
+      tags:
+        - CurrentUserApiKeys
+      parameters:
+        - name: credentialId
+          in: path
+          required: true
+          description: API Key 凭证唯一标识(UUID)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 停用成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultCurrentUserApiKeyResp'
+        '401':
+          description: 当前请求未通过登录认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+        '404':
+          description: 凭证不存在，或不属于当前用户
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+        '409':
+          description: 当前凭证状态不允许执行停用操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+
+  /current-user/api-keys/{credentialId}/revoke:
+    patch:
+      summary: 吊销当前用户指定的 API Key
+      operationId: revokeCurrentUserApiKey
+      tags:
+        - CurrentUserApiKeys
+      parameters:
+        - name: credentialId
+          in: path
+          required: true
+          description: API Key 凭证唯一标识(UUID)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 吊销成功，吊销后凭证不可恢复
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultCurrentUserApiKeyResp'
+        '401':
+          description: 当前请求未通过登录认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+        '404':
+          description: 凭证不存在，或不属于当前用户
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+        '409':
+          description: 当前凭证状态不允许执行吊销操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    CreateCurrentUserApiKeyReq:
+      type: object
+      required:
+        - credentialName
+      properties:
+        credentialName:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: API Key 展示名称
+          example: 控制台默认密钥
+        credentialDescription:
+          type: string
+          maxLength: 512
+          nullable: true
+          description: API Key 用途说明，可为空
+          example: 用于本地开发环境联调
+        expireAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 期望的过期时间，为空表示永不过期
+          example: '2026-12-31T23:59:59Z'
+      example:
+        credentialName: 控制台默认密钥
+        credentialDescription: 用于本地开发环境联调
+        expireAt: '2026-12-31T23:59:59Z'
+
+    LastUsedSnapshotResp:
+      type: object
+      nullable: true
+      properties:
+        lastUsedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 最近一次使用时间
+        lastUsedChannel:
+          type: string
+          nullable: true
+          description: 最近一次使用来源通道快照
+        lastUsedResult:
+          type: string
+          nullable: true
+          description: 最近一次使用结果快照
+
+    CurrentUserApiKeyResp:
+      type: object
+      properties:
+        credentialId:
+          type: string
+          format: uuid
+          description: API Key 凭证唯一标识
+        credentialCode:
+          type: string
+          description: 凭证业务编码
+        credentialName:
+          type: string
+          description: API Key 展示名称
+        credentialDescription:
+          type: string
+          nullable: true
+          description: API Key 用途说明
+        maskedKey:
+          type: string
+          description: 掩码后的 API Key，仅用于查询展示
+          example: ak_live_****A9K2
+        keyPrefix:
+          type: string
+          description: API Key 前缀快照
+          example: ak_live
+        status:
+          type: string
+          enum:
+            - ENABLED
+            - DISABLED
+            - REVOKED
+            - EXPIRED
+          description: 当前展示态状态。EXPIRED 为查询视图上的过期态，不表示底层持久化状态值新增
+        expireAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 过期时间，为空表示永不过期
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 吊销时间，未吊销时为空
+        createdAt:
+          type: string
+          format: date-time
+          description: 签发时间
+        updatedAt:
+          type: string
+          format: date-time
+          description: 最近更新时间
+        lastUsedSnapshot:
+          $ref: '#/components/schemas/LastUsedSnapshotResp'
+      example:
+        credentialId: 550e8400-e29b-41d4-a716-446655440000
+        credentialCode: cred_20260417_0001
+        credentialName: 控制台默认密钥
+        credentialDescription: 用于本地开发环境联调
+        maskedKey: ak_live_****A9K2
+        keyPrefix: ak_live
+        status: ENABLED
+        expireAt: '2026-12-31T23:59:59Z'
+        revokedAt: null
+        createdAt: '2026-04-17T09:00:00Z'
+        updatedAt: '2026-04-17T09:00:00Z'
+        lastUsedSnapshot:
+          lastUsedAt: '2026-04-17T10:15:00Z'
+          lastUsedChannel: UNIFIED_ACCESS
+          lastUsedResult: SUCCESS
+
+    IssuedCurrentUserApiKeyResp:
+      allOf:
+        - $ref: '#/components/schemas/CurrentUserApiKeyResp'
+        - type: object
+          required:
+            - plaintextKey
+          properties:
+            plaintextKey:
+              type: string
+              description: 仅在创建成功当次返回的完整明文 API Key，后续查询不再返回
+              example: ak_live_4f7f1f2e9f8a11ef8f8fa9k2
+
+    CurrentUserApiKeyPageResp:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CurrentUserApiKeyResp'
+        page:
+          type: integer
+          description: 当前页码
+        size:
+          type: integer
+          description: 每页记录数
+        total:
+          type: integer
+          description: 总记录数
+      example:
+        items:
+          - credentialId: 550e8400-e29b-41d4-a716-446655440000
+            credentialCode: cred_20260417_0001
+            credentialName: 控制台默认密钥
+            credentialDescription: 用于本地开发环境联调
+            maskedKey: ak_live_****A9K2
+            keyPrefix: ak_live
+            status: ENABLED
+            expireAt: '2026-12-31T23:59:59Z'
+            revokedAt: null
+            createdAt: '2026-04-17T09:00:00Z'
+            updatedAt: '2026-04-17T09:00:00Z'
+            lastUsedSnapshot:
+              lastUsedAt: '2026-04-17T10:15:00Z'
+              lastUsedChannel: UNIFIED_ACCESS
+              lastUsedResult: SUCCESS
+        page: 1
+        size: 20
+        total: 1
+
+    TmlResultCurrentUserApiKeyResp:
+      type: object
+      properties:
+        code:
+          type: string
+          description: TML-SDK 统一响应码
+          example: SUCCESS
+        message:
+          type: string
+          description: TML-SDK 统一响应消息
+          example: OK
+        traceId:
+          type: string
+          nullable: true
+          description: 链路追踪标识
+        data:
+          $ref: '#/components/schemas/CurrentUserApiKeyResp'
+
+    TmlResultIssuedCurrentUserApiKeyResp:
+      type: object
+      properties:
+        code:
+          type: string
+          description: TML-SDK 统一响应码
+          example: SUCCESS
+        message:
+          type: string
+          description: TML-SDK 统一响应消息
+          example: OK
+        traceId:
+          type: string
+          nullable: true
+          description: 链路追踪标识
+        data:
+          $ref: '#/components/schemas/IssuedCurrentUserApiKeyResp'
+
+    TmlResultCurrentUserApiKeyPageResp:
+      type: object
+      properties:
+        code:
+          type: string
+          description: TML-SDK 统一响应码
+          example: SUCCESS
+        message:
+          type: string
+          description: TML-SDK 统一响应消息
+          example: OK
+        traceId:
+          type: string
+          nullable: true
+          description: 链路追踪标识
+        data:
+          $ref: '#/components/schemas/CurrentUserApiKeyPageResp'
+
+    ErrorResp:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 业务错误码
+          example: API_CREDENTIAL_NOT_FOUND
+        message:
+          type: string
+          description: 错误说明
+          example: 当前用户下未找到指定 API Key
+
+    TmlResultErrorResp:
+      type: object
+      properties:
+        code:
+          type: string
+          description: TML-SDK 统一响应码或业务错误码
+          example: API_CREDENTIAL_NOT_FOUND
+        message:
+          type: string
+          description: 统一错误消息
+          example: 当前用户下未找到指定 API Key
+        traceId:
+          type: string
+          nullable: true
+          description: 链路追踪标识
+        data:
+          $ref: '#/components/schemas/ErrorResp'

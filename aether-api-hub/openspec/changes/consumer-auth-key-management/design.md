@@ -14,7 +14,7 @@
 - 建立“当前用户 -> 隐式 Consumer -> 多个 API Key”的稳定写模型。
 - 提供当前用户可直接使用的 API Key 生命周期能力，包括创建、掩码查询、详情查看、停用、启用、吊销与过期信息展示。
 - 保证 API Key 明文只在签发时返回一次，系统内部只保存安全指纹、掩码与必要管理信息。
-- 明确并先行生成 `docs/sql/consumer-api-key-management.sql` 与 `docs/api/consumer-api-key-management.yaml`；执行时必须使用 `tml-docs-spec-generate`，SQL 文档使用 SQL 模板，API 文档使用 API 模板。
+- 明确并先行生成或更新 `docs/sql/api_credential.sql`、`docs/sql/consumer_identity.sql`、`docs/sql/user_consumer_mapping.sql` 以及 `docs/api/api-credential.yaml`；执行时必须使用 `tml-docs-spec-generate`，SQL 文档使用 SQL 模板，API 文档使用 API 模板。
 - 保持 DDD 边界清晰：聚合负责凭证规则，应用服务负责用例编排，adapter 只做请求响应转换。
 
 **Non-Goals:**
@@ -38,9 +38,9 @@
 
 备选方案是把所有 Key 都挂到 `ConsumerAggregate` 中统一管理，但这会让单个 Consumer 聚合承载高频状态变化和多 Key 集合，不利于后续多 Key 并发更新，也不利于将来扩展轮换、用途标记和细粒度治理。
 
-### 3. 顶层 SQL/API 文档必须先于代码实现
+### 3. 顶层 SQL/API 文档必须先于代码实现，且遵守“一表一 SQL / 一 Controller 一 YAML”
 
-由于本提案同时引入新的存储结构和新的前端联调接口，`docs/sql/consumer-api-key-management.sql` 与 `docs/api/consumer-api-key-management.yaml` 必须先作为权威设计产物生成并评审，通过后再开始编码。任务执行时必须调用 `tml-docs-spec-generate` 技能生成这两份文档。
+由于本提案同时引入新的存储结构和新的前端联调接口，必须先按规范维护表级 SQL 文档与控制器级 API 文档：`docs/sql/api_credential.sql`、`docs/sql/consumer_identity.sql`、`docs/sql/user_consumer_mapping.sql` 分别对应三张表，`docs/api/api-credential.yaml` 对应单一 `ApiCredentialController.java`。这些文档必须先作为权威设计产物生成并评审，通过后再开始编码。任务执行时必须调用 `tml-docs-spec-generate` 技能生成或更新这些文档。
 
 备选方案是先写代码再反推文档，但这与 `config.yaml` 中“docs/ 为唯一真理源”的规则冲突，也会让前后端联调缺少稳定契约，因此不采用。
 
@@ -64,8 +64,8 @@
 
 ## Migration Plan
 
-1. 使用 `tml-docs-spec-generate` 生成并评审 `docs/sql/consumer-api-key-management.sql`。
-2. 使用 `tml-docs-spec-generate` 生成并评审 `docs/api/consumer-api-key-management.yaml`。
+1. 使用 `tml-docs-spec-generate` 生成并评审 `docs/sql/api_credential.sql`、`docs/sql/consumer_identity.sql`、`docs/sql/user_consumer_mapping.sql`。
+2. 使用 `tml-docs-spec-generate` 生成并评审 `docs/api/api-credential.yaml`，并确保它与单一 `ApiCredentialController.java` 的职责对应。
 3. 在 `domain` 中落地 `ConsumerAggregate`、`ApiCredentialAggregate`、值对象与仓储端口。
 4. 在 `service` 中实现当前用户凭证管理用例与隐式 Consumer 自动确保逻辑。
 5. 在 `infrastructure` 中完成 MyBatis-Plus 持久化对象、Mapper 与仓储适配。
