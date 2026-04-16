@@ -1,0 +1,43 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+# Example:
+#   context: |
+#     Tech stack: TypeScript, React, Node.js
+#     We use conventional commits
+#     Domain: e-commerce platform
+project_context:
+  - path: "../docs/spec/AetherAPI 前端技术栈与开发规范文档.md"
+    description: "前端统一技术栈与开发规范文档。包含 AetherAPI 前端应用在技术栈、目录结构、命名规则、协作流程与 AI 代码生成上的统一约束。Agent 在需求探索、方案设计和代码编写前必须先阅读该文档，确保实现与团队前端基线一致。"
+  - path: "*/DESIGN.md"
+    description: "前端各应用的项目级视觉与交互设计文档。包含页面风格、版式语言、组件气质、色彩与动效约束。Agent 在涉及页面结构、样式、组件外观或品牌表达时必须优先参考目标应用的 DESIGN.md，避免偏离项目既定视觉方向。"
+  - path: "../docs/design/**/*.md"
+    description: "系统级架构与业务背景文档。帮助 Agent 理解前端所服务的整体产品结构、上下游边界和关键业务语义，确保前端需求分析与实现不脱离全局架构。"
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+rules:
+  proposal:
+    - "项目的 `../docs/` 目录是业务规则、接口契约与架构设计的权威来源；各前端应用目录下的 `DESIGN.md` 是视觉与交互实现的权威来源。proposal 中不得脱离这些文档凭空创造接口字段、页面行为、鉴权流程、布局规则或视觉风格。"
+    - "在形成 proposal 前，必须主动比对 `../docs/spec/AetherAPI 前端技术栈与开发规范文档.md`、目标应用的 `DESIGN.md`、`../docs/api/` 中的接口定义以及必要的 `../docs/design/` 架构文档，确保提案与既有技术栈、组件体系、接口能力和产品边界兼容，并指出潜在冲突。"
+    - "如果 proposal 已识别出后续需要新增或更新 `../docs/api/` 下的接口契约、统一前端规范文档或目标应用的 `DESIGN.md`，必须在提案中明确这些文件属于权威设计产物，并要求后续实现以前先完成这些顶层文档的同步。"
+  design:
+    - "design 必须以前端统一规范、目标应用 `DESIGN.md` 以及系统级架构文档为基础展开，不得写出未被现有文档支撑的接口事实、页面规则、共享组件规范或视觉原则。"
+    - "design 必须遵守 AetherAPI 前端统一技术栈与分层约束，避免把裸请求写进页面层、把业务编排堆进 Store，或绕开既有的 API 层、i18n、layout 与组件体系。"
+    - "凡是 design 涉及新增或修改 `../docs/api/`、`../docs/spec/AetherAPI 前端技术栈与开发规范文档.md` 或目标应用 `DESIGN.md` 时，都必须注明这些顶层文档需要先行更新，再进入具体页面与业务代码实现。"
+  specs:
+    - "specs 中的行为要求必须能回溯到现有前端规范、项目级设计文档和系统级业务语义，确保需求描述既能指导页面实现，也不会脱离现有接口契约与架构边界。"
+    - "如果 specs 导致需要更新 `../docs/api/`、前端统一规范文档或目标应用 `DESIGN.md`，必须在对应 spec 中明确这些文档的更新边界，并将其作为后续任务的前置依赖。"
+  tasks:
+    - "当需求涉及任何接口变更（新增接口/改参数/改字段）、鉴权流程调整、共享组件规范变化或页面视觉规则更新时，必须将【更新或创建对应的 `../docs/api/*.yaml`】以及【更新 `../docs/spec/AetherAPI 前端技术栈与开发规范文档.md` 或目标应用 `DESIGN.md`】列为最高优先级的首要任务；在这些顶层文档更新完成前，不得安排具体页面或业务代码开发任务。"
+    - "开始代码实现前，必须先阅读并遵守 `../docs/spec/AetherAPI 前端技术栈与开发规范文档.md` 与目标应用的 `DESIGN.md`；所有实现都必须与统一技术栈、组件体系、API 契约、i18n 规则和视觉约束 100% 对齐。"
+    - "凡是任务要求生成或更新规范化文档时，应优先使用 `tml-docs-spec-generate` 技能生成对应文档内容；其中接口契约沿用 API 文档模板，规范类文档按匹配的 TML-Docs-Spec 模板生成。"
