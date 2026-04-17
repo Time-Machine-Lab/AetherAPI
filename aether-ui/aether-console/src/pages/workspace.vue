@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import {
   listCategories,
   createCategory,
@@ -18,12 +19,16 @@ import {
 import type { ApiCategory, ApiAsset } from '@/api/catalog/catalog.types'
 import type { RegisterAssetBody, BindAiProfileBody } from '@/api/catalog/catalog.dto'
 import { getRecentAssets } from '@/features/catalog/catalog-helpers'
+import CredentialWorkspace from '@/features/credential/CredentialWorkspace.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 
 const { t } = useI18n()
+const route = useRoute()
+
+const isCredentialsSection = computed(() => route.hash === '#credentials')
 
 // ── Categories ──────────────────────────────────────────────
 const categories = ref<ApiCategory[]>([])
@@ -155,7 +160,8 @@ onMounted(loadCategories)
 </route>
 
 <template>
-  <div class="space-y-8">
+  <CredentialWorkspace v-if="isCredentialsSection" />
+  <div v-else class="space-y-6">
     <!-- Header -->
     <section>
       <p class="console-kicker">{{ t('console.navigation.catalogManage') }}</p>
@@ -165,7 +171,7 @@ onMounted(loadCategories)
       <p class="mt-3 text-sm leading-6 text-muted-foreground">{{ t('console.workspace.description') }}</p>
     </section>
 
-    <div class="grid gap-8 2xl:grid-cols-2">
+    <div class="grid gap-5 2xl:grid-cols-2">
       <!-- Category management -->
       <Card id="category-manage" class="scroll-mt-24">
         <CardHeader>
@@ -191,16 +197,20 @@ onMounted(loadCategories)
             <div
               v-for="cat in categories"
               :key="cat.categoryCode"
-              class="flex items-center gap-3 rounded-[14px] bg-secondary px-4 py-3"
+              class="relative flex min-h-[44px] items-center gap-3 rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-white py-3 pl-7 pr-4 shadow-console transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-console-hover"
             >
+              <span
+                class="absolute left-3 top-3 bottom-3 w-[3px] rounded-full"
+                :class="cat.status === 'ENABLED' ? 'bg-primary' : 'bg-muted-foreground/25'"
+              />
               <div class="min-w-0 flex-1">
                 <template v-if="renamingCat === cat.categoryCode">
-                  <div class="flex gap-2">
-                    <Input v-model="renameValue" class="h-7 flex-1 text-sm" />
-                    <Button size="sm" variant="outline" @click="handleRenameCategory(cat.categoryCode)">
+                  <div class="flex items-center gap-2">
+                    <Input v-model="renameValue" class="h-9 flex-1 text-sm" />
+                    <Button size="xs" variant="outline" @click="handleRenameCategory(cat.categoryCode)">
                       {{ t('console.workspace.save') }}
                     </Button>
-                    <Button size="sm" variant="ghost" @click="renamingCat = null">
+                    <Button size="xs" variant="ghost" @click="renamingCat = null">
                       {{ t('console.workspace.cancel') }}
                     </Button>
                   </div>
@@ -210,18 +220,22 @@ onMounted(loadCategories)
                   <p class="text-xs text-muted-foreground">{{ cat.categoryCode }}</p>
                 </template>
               </div>
-              <Badge :variant="cat.status === 'ENABLED' ? 'default' : 'outline'" class="shrink-0 text-[11px]">
+              <Badge :variant="cat.status === 'ENABLED' ? 'status-enabled' : 'status-disabled'" class="shrink-0 text-[11px]">
                 {{ cat.status === 'ENABLED' ? t('console.workspace.enabled') : t('console.workspace.disabled') }}
               </Badge>
               <div class="flex shrink-0 gap-1">
                 <Button
-                  size="sm"
-                  variant="ghost"
+                  size="xs"
+                  variant="outline"
                   @click="renamingCat = cat.categoryCode; renameValue = cat.name"
                 >
                   {{ t('console.workspace.rename') }}
                 </Button>
-                <Button size="sm" variant="ghost" @click="handleToggleCategory(cat)">
+                <Button
+                  size="xs"
+                  :variant="cat.status === 'ENABLED' ? 'outline' : 'default'"
+                  @click="handleToggleCategory(cat)"
+                >
                   {{ cat.status === 'ENABLED' ? t('console.workspace.disable') : t('console.workspace.enable') }}
                 </Button>
               </div>
@@ -251,40 +265,44 @@ onMounted(loadCategories)
             </div>
 
             <!-- Register new asset -->
-            <div class="space-y-2 rounded-[14px] bg-secondary p-4">
+            <div class="space-y-3 rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-secondary/60 p-4">
               <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {{ t('console.workspace.registerTitle') }}
               </p>
-              <Input v-model="registerForm.apiCode" :placeholder="t('console.workspace.fieldApiCode')" />
+              <div class="grid gap-3 sm:grid-cols-2">
+                <Input v-model="registerForm.apiCode" :placeholder="t('console.workspace.fieldApiCode')" />
+                <Input v-model="registerForm.categoryCode" :placeholder="t('console.workspace.fieldCategoryCode')" />
+              </div>
               <Input v-model="registerForm.displayName" :placeholder="t('console.workspace.fieldDisplayName')" />
-              <Input v-model="registerForm.categoryCode" :placeholder="t('console.workspace.fieldCategoryCode')" />
               <select
                 v-model="registerForm.assetType"
-                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                class="h-11 w-full cursor-pointer appearance-none rounded-[8px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:bg-[color-mix(in_srgb,var(--primary)_4%,white)] focus-visible:ring-2 focus-visible:ring-primary/15"
               >
                 <option value="STANDARD_API">STANDARD_API</option>
                 <option value="AI_API">AI_API</option>
               </select>
-              <Button size="sm" :disabled="assetLoading" @click="handleRegisterAsset">
-                {{ t('console.workspace.registerAction') }}
-              </Button>
+              <div class="flex justify-end pt-1">
+                <Button size="sm" :disabled="assetLoading" @click="handleRegisterAsset">
+                  {{ t('console.workspace.registerAction') }}
+                </Button>
+              </div>
             </div>
 
             <p v-if="assetError" class="text-sm text-destructive">{{ assetError }}</p>
 
             <!-- Current asset snapshot -->
             <div v-if="currentAsset" class="space-y-3 rounded-[14px] border px-4 py-4">
-              <div class="flex items-start justify-between gap-3">
+              <div class="flex min-h-[44px] items-start justify-between gap-3">
                 <div>
                   <p class="font-semibold text-foreground">{{ currentAsset.displayName }}</p>
                   <p class="text-xs text-muted-foreground">{{ currentAsset.apiCode }}</p>
                 </div>
-                <Badge :variant="currentAsset.status === 'ENABLED' ? 'default' : 'outline'" class="shrink-0">
+                <Badge :variant="currentAsset.status === 'ENABLED' ? 'status-enabled' : 'status-disabled'" class="shrink-0">
                   {{ currentAsset.status }}
                 </Badge>
               </div>
               <div class="flex gap-2">
-                <Button size="sm" variant="outline" @click="handleToggleAsset">
+                <Button size="xs" variant="outline" @click="handleToggleAsset">
                   {{ currentAsset.status === 'ENABLED' ? t('console.workspace.disable') : t('console.workspace.enable') }}
                 </Button>
               </div>
@@ -330,11 +348,12 @@ onMounted(loadCategories)
               v-for="asset in recentAssets"
               :key="asset.apiCode"
               type="button"
-              class="flex w-full items-center justify-between rounded-[14px] bg-secondary px-4 py-3 text-left hover:bg-white hover:shadow-console"
+              class="group flex min-h-[44px] w-full cursor-pointer items-center gap-3 rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-white px-4 py-3 text-left shadow-console transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-console-hover active:scale-[0.995]"
               @click="assetCodeInput = asset.apiCode; handleLoadAsset()"
             >
-              <span class="truncate text-sm font-medium text-foreground">{{ asset.displayName }}</span>
-              <span class="ml-3 shrink-0 text-xs text-muted-foreground">{{ asset.apiCode }}</span>
+              <span class="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{{ asset.displayName }}</span>
+              <span class="shrink-0 text-xs text-muted-foreground">{{ asset.apiCode }}</span>
+              <span class="shrink-0 text-muted-foreground/40 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-foreground/60">→</span>
             </button>
           </CardContent>
         </Card>

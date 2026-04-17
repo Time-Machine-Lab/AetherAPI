@@ -1,5 +1,6 @@
 import type { AxiosRequestConfig, AxiosResponse } from 'axios'
 import type { CategoryDto, AssetDto, DiscoveryAssetDto, DiscoveryAssetDetailDto, PageDto } from './catalog.dto'
+import { credentialMockRoutes } from '@/api/credential/credential.mock'
 
 // ── Seed data ────────────────────────────────────────────────
 
@@ -236,7 +237,8 @@ export function mockAdapter(config: AxiosRequestConfig): Promise<AxiosResponse> 
     }
   }
 
-  for (const route of routes) {
+  const allRoutes = [...routes, ...credentialMockRoutes]
+  for (const route of allRoutes) {
     if (route.method !== method) continue
     const match = url.match(route.pattern)
     if (!match) continue

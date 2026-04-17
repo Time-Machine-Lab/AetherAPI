@@ -5,11 +5,13 @@ import {
   Activity,
   BookOpen,
   CreditCard,
+  Info,
   KeyRound,
   LayoutList,
   LogOut,
   Menu,
   Package,
+  Rocket,
   ReceiptText,
   UserRound,
 } from 'lucide-vue-next'
@@ -171,10 +173,10 @@ async function handleSignOut() {
 
               <div class="flex flex-wrap items-center justify-end gap-2">
                 <div class="hidden items-center lg:flex">
-                  <div class="w-[320px] rounded-full bg-white shadow-console">
+                  <div class="w-[280px] rounded-full bg-secondary">
                     <Input
                       :default-value="''"
-                      class="rounded-full border-transparent pl-5 pr-5 shadow-none focus-visible:bg-white"
+                      class="rounded-full border-transparent bg-transparent pl-5 pr-5 shadow-none focus-visible:ring-1 focus-visible:ring-ring/10 focus-visible:bg-transparent"
                       :placeholder="t('console.nav.searchPlaceholder')"
                     />
                   </div>
@@ -187,18 +189,23 @@ async function handleSignOut() {
               </div>
             </div>
 
-            <div class="mt-4 flex flex-wrap gap-3">
+            <div v-if="consoleNotices.length" class="mt-4 flex flex-col gap-3">
               <div
                 v-for="notice in consoleNotices"
                 :key="notice.id"
-                class="inline-flex items-center rounded-full px-4 py-2 text-sm shadow-console"
+                class="flex items-center gap-3 rounded-[14px] px-4 py-3 text-sm font-medium text-foreground"
                 :class="
                   notice.tone === 'success'
-                    ? 'bg-[color-mix(in_srgb,var(--primary)_9%,white)] text-foreground'
-                    : 'bg-white text-muted-foreground'
+                    ? 'bg-[color-mix(in_srgb,var(--primary)_6%,white)] border-b-2 border-primary'
+                    : 'bg-[color-mix(in_srgb,var(--palette-text-legal)_6%,white)] border-b-2 border-[var(--palette-text-legal)]'
                 "
               >
-                {{ t(notice.labelKey) }}
+                <component
+                  :is="notice.tone === 'success' ? Rocket : Info"
+                  class="size-4 shrink-0"
+                  :class="notice.tone === 'success' ? 'text-primary' : 'text-[var(--palette-text-legal)]'"
+                />
+                <span>{{ t(notice.labelKey) }}</span>
               </div>
             </div>
           </div>

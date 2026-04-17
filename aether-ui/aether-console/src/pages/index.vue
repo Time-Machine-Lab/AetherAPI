@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { Search } from 'lucide-vue-next'
+import { Search, MousePointerClick } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { getDiscoveryAssetDetail, listDiscoveryAssets } from '@/api/catalog/discovery.api'
 import type { DiscoveryAsset, DiscoveryAssetDetail } from '@/api/catalog/catalog.types'
@@ -70,7 +70,7 @@ loadList()
 </route>
 
 <template>
-  <div class="space-y-5">
+  <div class="space-y-6">
     <section class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="console-kicker">{{ t('console.home.kicker') }}</p>
@@ -79,19 +79,19 @@ loadList()
         </h2>
         <p class="mt-3 text-sm leading-6 text-muted-foreground">{{ t('console.home.description') }}</p>
       </div>
-      <div class="w-full max-w-sm rounded-full bg-white px-2 py-2 shadow-console">
+      <div class="relative w-full max-w-sm">
         <div class="relative">
           <Search class="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             v-model="keyword"
-            class="rounded-full border-transparent pl-10 pr-4 shadow-none focus-visible:bg-white"
+            class="rounded-full border-[rgb(34_34_34_/_0.06)] pl-10 pr-4 shadow-none focus-visible:border-primary focus-visible:shadow-console"
             :placeholder="t('console.home.searchPlaceholder')"
           />
         </div>
       </div>
     </section>
 
-    <section class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+    <section class="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
       <!-- Asset list -->
       <div>
         <div v-if="listLoading" class="py-16 text-center text-sm text-muted-foreground">
@@ -103,18 +103,18 @@ loadList()
         <div v-else-if="assets.length === 0" class="py-16 text-center text-sm text-muted-foreground">
           {{ t('console.home.empty') }}
         </div>
-        <div v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div v-else class="grid min-h-[200px] gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Card
             v-for="asset in assets"
             :key="asset.apiCode"
-            class="cursor-pointer transition-shadow hover:shadow-console"
-            :class="selectedAsset?.apiCode === asset.apiCode ? 'ring-2 ring-primary/30' : ''"
+            class="cursor-pointer transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-px hover:shadow-console-hover"
+            :class="selectedAsset?.apiCode === asset.apiCode ? 'ring-2 ring-primary/40 border-primary/25 shadow-console-hover' : ''"
             @click="selectAsset(asset)"
           >
             <CardContent class="p-5">
               <div class="flex items-start justify-between gap-2">
                 <p class="truncate text-sm font-semibold text-foreground">{{ asset.displayName }}</p>
-                <Badge variant="outline" class="shrink-0 text-[11px]">
+                <Badge :variant="asset.assetType === 'AI_API' ? 'type-ai' : 'type-api'" class="shrink-0 text-[11px]">
                   {{ asset.assetType === 'AI_API' ? 'AI' : 'API' }}
                 </Badge>
               </div>
@@ -134,16 +134,18 @@ loadList()
             <CardTitle class="text-base">{{ t('console.home.detailTitle') }}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div v-if="!selectedAsset" class="py-10 text-center text-sm text-muted-foreground">
-              {{ t('console.home.detailEmpty') }}
+            <Transition name="fade" mode="out-in">
+            <div v-if="!selectedAsset" key="empty" class="flex flex-col items-center gap-3 py-12 text-center">
+              <MousePointerClick class="size-8 text-muted-foreground/40" />
+              <p class="text-sm text-muted-foreground">{{ t('console.home.detailEmpty') }}</p>
             </div>
-            <div v-else-if="detailLoading" class="py-10 text-center text-sm text-muted-foreground">
+            <div v-else-if="detailLoading" key="loading" class="py-10 text-center text-sm text-muted-foreground">
               {{ t('console.home.loading') }}
             </div>
-            <div v-else-if="detailError" class="py-10 text-center text-sm text-destructive">
+            <div v-else-if="detailError" key="error" class="py-10 text-center text-sm text-destructive">
               {{ t('console.home.detailError') }}
             </div>
-            <div v-else-if="detail" class="space-y-4 text-sm">
+            <div v-else-if="detail" :key="detail.apiCode" class="space-y-5 text-sm">
               <div>
                 <p class="font-semibold text-foreground">{{ detail.displayName }}</p>
                 <p class="mt-1 text-xs text-muted-foreground">{{ detail.apiCode }}</p>
@@ -159,7 +161,7 @@ loadList()
                 <span
                   v-for="method in detail.methods"
                   :key="method"
-                  class="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-foreground"
+                  class="rounded-[8px] border border-[rgb(34_34_34_/_0.08)] bg-white px-2.5 py-1 text-[11px] font-mono font-medium text-foreground shadow-console"
                 >
                   {{ method }}
                 </span>
@@ -174,7 +176,7 @@ loadList()
                     <span
                       v-for="label in getAiCapabilityLabels(detail.aiProfile)"
                       :key="label"
-                      class="rounded-full bg-white px-2.5 py-1 text-[11px] shadow-console"
+                      class="rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-[var(--chart-3)] shadow-console"
                     >
                       {{ label }}
                     </span>
@@ -185,12 +187,24 @@ loadList()
                 <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {{ t('console.home.exampleSnapshot') }}
                 </p>
-                <pre class="overflow-x-auto rounded-[14px] bg-secondary px-4 py-3 text-xs text-foreground">{{ detail.exampleSnapshot }}</pre>
+                <pre class="overflow-x-auto rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-[#fafafa] px-4 py-3 text-xs leading-5 text-foreground">{{ detail.exampleSnapshot }}</pre>
               </div>
             </div>
+            </Transition>
           </CardContent>
         </Card>
       </div>
     </section>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.18s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
