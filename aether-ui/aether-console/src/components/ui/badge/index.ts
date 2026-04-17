@@ -16,6 +16,14 @@ export const badgeVariants = cva(
         outline: 'border-[rgb(34_34_34_/_0.08)] bg-white text-foreground shadow-console',
         ghost: 'border-transparent bg-transparent text-muted-foreground',
         link: 'border-transparent bg-transparent px-0 text-foreground underline-offset-4 hover:underline',
+        'status-enabled':
+          'border-transparent bg-[color-mix(in_srgb,var(--primary)_10%,white)] text-primary cursor-default',
+        'status-disabled':
+          'border-transparent bg-secondary text-secondary-foreground cursor-default',
+        'type-ai':
+          'border-transparent bg-[color-mix(in_srgb,var(--chart-3)_10%,white)] text-[var(--chart-3)] cursor-default',
+        'type-api':
+          'border-transparent bg-[color-mix(in_srgb,var(--primary)_10%,white)] text-primary cursor-default',
       },
     },
     defaultVariants: {

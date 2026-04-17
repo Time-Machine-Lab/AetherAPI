@@ -244,3 +244,130 @@ What distinguishes Airbnb is its palette-based token system (`--palette-*`) and 
 5. Generous radius: 8px buttons, 20px cards, 50% controls
 6. Cereal VF at 500–700 weight — no thin weights for any heading
 7. Photography is hero — every listing card is image-first
+
+## 10. Console Semantic Roles & Page Hierarchy
+
+This section defines component semantics, page-level hierarchy, and interaction feedback rules specific to the **control-panel (console)** context. All rules below extend (never contradict) Sections 1–9. When implementing console pages, this section takes precedence over generic component examples.
+
+### 10.1 Semantic Role Taxonomy
+
+Every visible element in the console belongs to exactly one of five semantic roles. The roles determine fill, border, elevation, and interaction affordance:
+
+| Role | Purpose | Fill | Border | Elevation | Interaction Cue |
+|------|---------|------|--------|-----------|-----------------|
+| **Action** | Clickable operations (create, save, toggle, rename, sign-out) | Solid fill or transparent | 1 px `rgb(34 34 34 / 0.08)` for outline; none for primary | `shadow-console` on outline; none on ghost | Hover: lift / color shift; Focus: `ring-2 ring-ring/20`; Active: `scale-[0.98]`; Disabled: `opacity-50 pointer-events-none` |
+| **Status** | Read-only state labels (Enabled / Disabled, AI / API type) | Tinted background — `color-mix(in srgb, <role-color> 10%, white)` | None (`border-transparent`) | None | No hover/focus affordance; cursor remains default |
+| **Notice** | System feedback or announcements (banners, alerts) | Full-width tinted strip — info: `color-mix(in srgb, var(--palette-text-legal) 6%, white)`; success: `color-mix(in srgb, var(--primary) 6%, white)` | Bottom 2 px accent line: info `var(--palette-text-legal)`, success `var(--primary)` | None (flat) | Non-interactive; icon slot left, dismiss slot right (optional) |
+| **Field** | Data-entry surfaces (inputs, selects, inline-edit) | `bg-white` | 1 px `rgb(34 34 34 / 0.08)` default; `border-primary` on focus | None | Focus: `ring-2 ring-primary/15` + subtle primary bg tint; Disabled: `bg-muted opacity-60`; Min height: `h-9` (compact) / `h-11` (standard) |
+| **Surface** | Passive containers (cards, panels, sections, detail panes) | `bg-white` | 1 px `rgb(34 34 34 / 0.04)` | `shadow-console` | Selected: `ring-2 ring-primary/30`; Hover (if clickable): `shadow-console-hover` |
+
+#### Key Differentiation Rules
+
+- **Action vs. Status**: Status elements NEVER use `shadow-console`, hover lift, or `cursor-pointer`. Actions ALWAYS show a cursor change and at least one visual state transition on hover.
+- **Status badge fill colors**: Enabled/success → `color-mix(in srgb, var(--primary) 12%, white)` with `text-primary`; Disabled/neutral → `bg-secondary text-secondary-foreground`; Error/destructive → `color-mix(in srgb, var(--destructive) 12%, white)` with `text-destructive`.
+- **Notice vs. Status badge**: Notices are full-width block-level strips with icon + text + optional dismiss; badges are inline pill tokens. They must never share the same container shape.
+
+### 10.2 Notice Banner Specification
+
+The console uses a **dedicated notice banner** (not a reused pill/badge) for system-level messages displayed below the shell header.
+
+**Structure:**
+```
+┌────────────────────────────────────────────────────────┐
+│ [icon]  Notice text content                   [dismiss?] │
+│ ── 2 px accent bottom border ──────────────────────────│
+└────────────────────────────────────────────────────────┘
+```
+
+**Styling:**
+- Container: full width of header content area, `rounded-[14px]`, `px-4 py-3`
+- Background: tone-dependent tinted fill (see role table)
+- Bottom accent: `border-b-2` with tone color
+- Icon slot: `size-4`, tone-colored, left-aligned
+- Text: `text-sm font-medium text-foreground`
+- No `shadow-console` — banners are flat informational strips
+- Gap between multiple notices: `gap-3` vertical stack
+
+### 10.3 Shell Search vs. Page Search Hierarchy
+
+| Attribute | Shell Search (header) | Page Search (in-content) |
+|-----------|-----------------------|--------------------------|
+| **Visual weight** | Subordinate — blends into header | Primary — the page's main filter action |
+| **Container** | No shadow, `bg-secondary` tinted, `rounded-full` | `shadow-console`, `bg-white`, `rounded-full` |
+| **Border** | `border-transparent` | `border-transparent` (shadow provides edge) |
+| **Width** | Fixed `w-[280px]` | Responsive `max-w-sm` minimum |
+| **Icon** | None — placeholder text only | `Search` icon in `left-4` position |
+| **Focus** | Subtle `ring-1 ring-ring/10` | Standard field focus (`ring-2 ring-primary/15` + tint) |
+
+**Rationale:** The shell search is a global jump/quick-find utility; it must not compete with the page's primary browsing or query control.
+
+### 10.4 Marketplace Page Layout Rules
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Page header: kicker + display title + description      │
+│  ───────────────────────  [Page search ⌕]               │
+├─────────────────────────────────┬───────────────────────┤
+│  Asset card grid                │  Detail panel (sticky) │
+│  3-col on lg / 2-col sm        │  Fixed 360px on xl     │
+│  gap-4                          │  top-24 sticky         │
+│                                 │                        │
+│  [empty / loading / error]      │  [empty / loading /    │
+│                                 │   error / detail]      │
+└─────────────────────────────────┴───────────────────────┘
+```
+
+- Asset cards and detail panel share the same top edge alignment.
+- Selected card: `ring-2 ring-primary/30` (surface selected state).
+- Detail panel uses the same card radius and shadow as asset cards, ensuring visual parity.
+- Empty / loading / error states: centered text inside the region, `py-16` on list, `py-10` on detail, `text-sm text-muted-foreground` (or `text-destructive` for errors).
+
+### 10.5 Workspace Alignment Grid
+
+All workspace management panels (category management, asset management, recent assets) observe a shared alignment grid:
+
+| Token | Value | Applies to |
+|-------|-------|------------|
+| **Row height (standard)** | `min-h-[44px]` (`h-11`) | Category rows, asset snapshot header, recent-asset rows |
+| **Row height (compact)** | `min-h-[36px]` (`h-9`) | Inline rename input + adjacent action buttons |
+| **Row inner padding** | `px-4 py-3` | All list-item rows |
+| **Action button size** | `size="xs"` (`h-8 rounded-full px-3`) | Row-level actions (rename, enable, disable, save, cancel) |
+| **Input min height** | `h-9` | Inline rename input (never below this) |
+| **Create row** | Input `flex-1` + Button `size="sm"` | Category create, asset lookup rows |
+| **Section gap** | `gap-5` | Between workspace cards |
+
+#### Inline Rename Rules
+- When rename mode activates, the input replaces the text display but keeps `h-9` minimum height.
+- Adjacent save/cancel buttons use `size="xs"` to stay within the row rhythm.
+- The row container does NOT change its padding or background during rename mode.
+
+### 10.6 State Feedback Inventory
+
+| State | Visual Treatment |
+|-------|-----------------|
+| **Empty** | Centered `text-sm text-muted-foreground` message, `py-6` (workspace) or `py-16` (marketplace) |
+| **Loading** | Same layout as empty, with `text-muted-foreground` loading message |
+| **Error** | Same layout as empty, with `text-destructive` error message |
+| **Selected (card)** | `ring-2 ring-primary/30` on the surface |
+| **Hover (clickable surface)** | `shadow-console-hover` transition |
+| **Focus (field)** | `border-primary ring-2 ring-primary/15` + `bg-[color-mix(in srgb, var(--primary) 4%, white)]` |
+| **Disabled (action)** | `opacity-50 pointer-events-none` |
+| **Disabled (field)** | `bg-muted opacity-60 pointer-events-none cursor-not-allowed` |
+| **Active (action)** | `scale-[0.98]` press feedback |
+
+### 10.7 Console-Specific Do's and Don'ts
+
+#### Do
+- Use the semantic role table to classify every new element before choosing its variant
+- Use the dedicated notice banner for system-level messages — never reuse badge or pill
+- Keep shell search visually subordinate to page-level search
+- Maintain `h-9` minimum on all inline-edit inputs
+- Use `size="xs"` for row-level compact actions inside list items
+- Align category rows, asset rows, and recent-asset rows to the same baseline grid
+
+#### Don't
+- Don't apply `shadow-console` to status badges — shadows imply interactivity
+- Don't use `rounded-full` on notice banners — banners use `rounded-[14px]`
+- Don't let the shell search container use `shadow-console` — use `bg-secondary` instead
+- Don't give inline-rename inputs a height below `h-9` — cramped inputs break row rhythm
+- Don't mix action affordances (hover lift, cursor-pointer) into read-only status labels
