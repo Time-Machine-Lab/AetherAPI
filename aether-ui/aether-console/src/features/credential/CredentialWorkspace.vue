@@ -396,7 +396,7 @@ onMounted(loadApiKeys)
               v-for="key in apiKeys"
               :key="key.credentialId"
               type="button"
-              class="group flex w-full min-h-[44px] items-center gap-3 rounded-[14px] border bg-white py-3 pl-7 pr-4 text-left transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-console-hover"
+              class="group relative flex w-full min-h-[44px] items-center gap-3 rounded-[14px] border bg-white py-3 pl-7 pr-4 text-left transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-console-hover"
               :class="
                 selectedKey?.credentialId === key.credentialId
                   ? 'border-primary/30 ring-2 ring-primary/30 shadow-console'
