@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import {
   listCategories,
   createCategory,
@@ -18,12 +19,16 @@ import {
 import type { ApiCategory, ApiAsset } from '@/api/catalog/catalog.types'
 import type { RegisterAssetBody, BindAiProfileBody } from '@/api/catalog/catalog.dto'
 import { getRecentAssets } from '@/features/catalog/catalog-helpers'
+import CredentialWorkspace from '@/features/credential/CredentialWorkspace.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 
 const { t } = useI18n()
+const route = useRoute()
+
+const isCredentialsSection = computed(() => route.hash === '#credentials')
 
 // ── Categories ──────────────────────────────────────────────
 const categories = ref<ApiCategory[]>([])
@@ -155,7 +160,8 @@ onMounted(loadCategories)
 </route>
 
 <template>
-  <div class="space-y-6">
+  <CredentialWorkspace v-if="isCredentialsSection" />
+  <div v-else class="space-y-6">
     <!-- Header -->
     <section>
       <p class="console-kicker">{{ t('console.navigation.catalogManage') }}</p>
