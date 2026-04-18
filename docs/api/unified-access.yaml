@@ -1,0 +1,269 @@
+openapi: 3.0.3
+info:
+  title: UnifiedAccessController 统一接入调用接口
+  version: 1.0.0
+  description: |
+    统一接入调用入口。
+    本文件是 UnifiedAccessController.java 的唯一顶层 API 契约，不拆分为额外 YAML。
+    入口在转发前负责 API Key 校验、Consumer Context 解析和目标 API 快照解析。
+    成功响应应尽量透传上游状态码、关键响应头与响应体，不使用 TML-SDK Result 包装成功载荷。
+servers:
+  - url: /api/v1
+    description: Unified Access v1
+
+tags:
+  - name: UnifiedAccess
+    description: 统一接入调用入口
+
+security:
+  - aetherApiKey: []
+
+paths:
+  /access/{apiCode}:
+    get:
+      summary: 通过统一入口调用已启用目标 API
+      operationId: invokeUnifiedAccessByGet
+      tags:
+        - UnifiedAccess
+      parameters:
+        - $ref: '#/components/parameters/ApiCodePath'
+      responses:
+        '2XX':
+          $ref: '#/components/responses/UnifiedAccessSuccess'
+        '400':
+          $ref: '#/components/responses/InvalidApiCodeFailure'
+        '401':
+          $ref: '#/components/responses/InvalidCredentialFailure'
+        '404':
+          $ref: '#/components/responses/TargetNotFoundFailure'
+        '503':
+          $ref: '#/components/responses/TargetUnavailableFailure'
+    post:
+      summary: 通过统一入口调用已启用目标 API
+      operationId: invokeUnifiedAccessByPost
+      tags:
+        - UnifiedAccess
+      parameters:
+        - $ref: '#/components/parameters/ApiCodePath'
+      requestBody:
+        $ref: '#/components/requestBodies/UnifiedAccessPayload'
+      responses:
+        '2XX':
+          $ref: '#/components/responses/UnifiedAccessSuccess'
+        '400':
+          $ref: '#/components/responses/InvalidApiCodeFailure'
+        '401':
+          $ref: '#/components/responses/InvalidCredentialFailure'
+        '404':
+          $ref: '#/components/responses/TargetNotFoundFailure'
+        '503':
+          $ref: '#/components/responses/TargetUnavailableFailure'
+    put:
+      summary: 通过统一入口调用已启用目标 API
+      operationId: invokeUnifiedAccessByPut
+      tags:
+        - UnifiedAccess
+      parameters:
+        - $ref: '#/components/parameters/ApiCodePath'
+      requestBody:
+        $ref: '#/components/requestBodies/UnifiedAccessPayload'
+      responses:
+        '2XX':
+          $ref: '#/components/responses/UnifiedAccessSuccess'
+        '400':
+          $ref: '#/components/responses/InvalidApiCodeFailure'
+        '401':
+          $ref: '#/components/responses/InvalidCredentialFailure'
+        '404':
+          $ref: '#/components/responses/TargetNotFoundFailure'
+        '503':
+          $ref: '#/components/responses/TargetUnavailableFailure'
+    patch:
+      summary: 通过统一入口调用已启用目标 API
+      operationId: invokeUnifiedAccessByPatch
+      tags:
+        - UnifiedAccess
+      parameters:
+        - $ref: '#/components/parameters/ApiCodePath'
+      requestBody:
+        $ref: '#/components/requestBodies/UnifiedAccessPayload'
+      responses:
+        '2XX':
+          $ref: '#/components/responses/UnifiedAccessSuccess'
+        '400':
+          $ref: '#/components/responses/InvalidApiCodeFailure'
+        '401':
+          $ref: '#/components/responses/InvalidCredentialFailure'
+        '404':
+          $ref: '#/components/responses/TargetNotFoundFailure'
+        '503':
+          $ref: '#/components/responses/TargetUnavailableFailure'
+    delete:
+      summary: 通过统一入口调用已启用目标 API
+      operationId: invokeUnifiedAccessByDelete
+      tags:
+        - UnifiedAccess
+      parameters:
+        - $ref: '#/components/parameters/ApiCodePath'
+      responses:
+        '2XX':
+          $ref: '#/components/responses/UnifiedAccessSuccess'
+        '400':
+          $ref: '#/components/responses/InvalidApiCodeFailure'
+        '401':
+          $ref: '#/components/responses/InvalidCredentialFailure'
+        '404':
+          $ref: '#/components/responses/TargetNotFoundFailure'
+        '503':
+          $ref: '#/components/responses/TargetUnavailableFailure'
+
+components:
+  securitySchemes:
+    aetherApiKey:
+      type: apiKey
+      in: header
+      name: X-Aether-Api-Key
+      description: 统一接入调用使用的 API Key。
+
+  parameters:
+    ApiCodePath:
+      name: apiCode
+      in: path
+      required: true
+      description: 目标 API 的业务编码，由统一入口解析为唯一目标 API 快照。
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 64
+        pattern: '^[a-z0-9][a-z0-9_-]*[a-z0-9]$|^[a-z0-9]$'
+      example: chat-completions
+
+  requestBodies:
+    UnifiedAccessPayload:
+      required: false
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - type: object
+                additionalProperties: true
+              - type: array
+                items:
+                  type: object
+                  additionalProperties: true
+          example:
+            model: gpt-4.1
+            messages:
+              - role: user
+                content: Hello
+        text/plain:
+          schema:
+            type: string
+          example: raw request payload
+        application/octet-stream:
+          schema:
+            type: string
+            format: binary
+
+  responses:
+    UnifiedAccessSuccess:
+      description: |
+        统一入口已完成前置校验并成功执行上游调用。
+        成功场景下应尽量保留上游状态码、关键响应头与响应体语义，不使用 TML-SDK Result 包装。
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UnifiedAccessPassthroughJsonResp'
+        text/plain:
+          schema:
+            type: string
+        application/octet-stream:
+          schema:
+            type: string
+            format: binary
+    InvalidApiCodeFailure:
+      description: 目标 API 标识不合法
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UnifiedAccessPlatformFailureResp'
+          example:
+            code: API_CODE_INVALID
+            message: ApiCode value must match the required pattern
+            failureType: INVALID_API_CODE
+            traceId: null
+            apiCode: chat-completions
+    InvalidCredentialFailure:
+      description: API Key 无效、不可用或对应 Consumer 不可用
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UnifiedAccessPlatformFailureResp'
+          example:
+            code: API_CREDENTIAL_INVALID
+            message: API credential is disabled
+            failureType: INVALID_CREDENTIAL
+            traceId: null
+            apiCode: chat-completions
+    TargetNotFoundFailure:
+      description: API 标识无法解析到已启用目标 API
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UnifiedAccessPlatformFailureResp'
+          example:
+            code: ASSET_NOT_FOUND
+            message: Asset not found: chat-completions
+            failureType: TARGET_NOT_FOUND
+            traceId: null
+            apiCode: chat-completions
+    TargetUnavailableFailure:
+      description: 目标 API 存在但当前不可调用
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UnifiedAccessPlatformFailureResp'
+          example:
+            code: TARGET_API_UNAVAILABLE
+            message: Target API is unavailable: chat-completions
+            failureType: TARGET_UNAVAILABLE
+            traceId: null
+            apiCode: chat-completions
+
+  schemas:
+    UnifiedAccessPassthroughJsonResp:
+      type: object
+      additionalProperties: true
+      description: 统一入口成功时透传的上游 JSON 响应体。
+
+    UnifiedAccessPlatformFailureResp:
+      type: object
+      required:
+        - code
+        - message
+        - failureType
+      properties:
+        code:
+          type: string
+          description: 平台侧前置失败错误码
+          example: API_CREDENTIAL_INVALID
+        message:
+          type: string
+          description: 平台侧前置失败说明
+          example: API credential is disabled
+        failureType:
+          type: string
+          enum:
+            - INVALID_API_CODE
+            - INVALID_CREDENTIAL
+            - TARGET_NOT_FOUND
+            - TARGET_UNAVAILABLE
+          description: 统一入口在转发前给出的失败分类
+        traceId:
+          type: string
+          nullable: true
+          description: 链路追踪标识
+        apiCode:
+          type: string
+          nullable: true
+          description: 调用方请求的 API 标识

@@ -2,9 +2,11 @@ package io.github.timemachinelab.adapter.web.handler;
 
 import io.github.timemachinelab.api.error.CatalogErrorCodes;
 import io.github.timemachinelab.api.error.ConsumerAuthErrorCodes;
+import io.github.timemachinelab.api.resp.UnifiedAccessPlatformFailureResp;
 import io.github.timemachinelab.domain.catalog.model.AssetDomainException;
 import io.github.timemachinelab.domain.catalog.model.CategoryDomainException;
 import io.github.timemachinelab.domain.consumerauth.model.ConsumerAuthDomainException;
+import io.github.timemachinelab.service.model.UnifiedAccessPlatformFailureException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +24,22 @@ import java.util.Map;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(UnifiedAccessPlatformFailureException.class)
+    public ResponseEntity<UnifiedAccessPlatformFailureResp> handleUnifiedAccessPlatformFailure(
+            UnifiedAccessPlatformFailureException ex) {
+        log.warn("Unified access pre-forward failure: {}", ex.getMessage());
+
+        return ResponseEntity.status(ex.getFailure().getHttpStatus()).body(
+                new UnifiedAccessPlatformFailureResp(
+                        ex.getFailure().getCode(),
+                        ex.getFailure().getMessage(),
+                        ex.getFailure().getFailureType().name(),
+                        null,
+                        ex.getFailure().getApiCode()
+                )
+        );
+    }
 
     @ExceptionHandler(CategoryDomainException.class)
     public ResponseEntity<Map<String, String>> handleCategoryDomainException(CategoryDomainException ex) {

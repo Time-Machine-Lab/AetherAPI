@@ -14,6 +14,7 @@ import io.github.timemachinelab.service.application.ApiAssetApplicationService;
 import io.github.timemachinelab.service.application.ApiCredentialApplicationService;
 import io.github.timemachinelab.service.application.CatalogDiscoveryApplicationService;
 import io.github.timemachinelab.service.application.CredentialValidationApplicationService;
+import io.github.timemachinelab.service.application.UnifiedAccessApplicationService;
 import io.github.timemachinelab.service.adapter.CategoryRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.UserConsumerMappingRepositoryAdapter;
 import io.github.timemachinelab.service.application.CategoryApplicationService;
@@ -21,11 +22,13 @@ import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
 import io.github.timemachinelab.service.port.in.ApiCredentialUseCase;
 import io.github.timemachinelab.service.port.in.CatalogDiscoveryUseCase;
 import io.github.timemachinelab.service.port.in.CredentialValidationUseCase;
+import io.github.timemachinelab.service.port.in.UnifiedAccessUseCase;
 import io.github.timemachinelab.service.port.out.ApiCredentialRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
 import io.github.timemachinelab.service.port.out.CatalogDiscoveryQueryPort;
 import io.github.timemachinelab.service.port.out.CategoryRepositoryPort;
 import io.github.timemachinelab.service.port.out.ConsumerIdentityRepositoryPort;
+import io.github.timemachinelab.service.port.out.UnifiedAccessDownstreamProxyPort;
 import io.github.timemachinelab.service.port.out.UserConsumerMappingRepositoryPort;
 import io.github.timemachinelab.domain.consumerauth.service.CredentialValidationDomainService;
 import org.springframework.context.annotation.Bean;
@@ -118,5 +121,17 @@ public class InfrastructureConfig {
     @Bean
     public CatalogDiscoveryUseCase catalogDiscoveryUseCase(CatalogDiscoveryQueryPort catalogDiscoveryQueryPort) {
         return new CatalogDiscoveryApplicationService(catalogDiscoveryQueryPort);
+    }
+
+    @Bean
+    public UnifiedAccessUseCase unifiedAccessUseCase(
+            CredentialValidationUseCase credentialValidationUseCase,
+            ApiAssetRepositoryPort apiAssetRepositoryPort,
+            UnifiedAccessDownstreamProxyPort unifiedAccessDownstreamProxyPort) {
+        return new UnifiedAccessApplicationService(
+                credentialValidationUseCase,
+                apiAssetRepositoryPort,
+                unifiedAccessDownstreamProxyPort
+        );
     }
 }
