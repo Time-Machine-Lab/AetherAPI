@@ -8,7 +8,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,7 +31,7 @@ public class UnifiedAccessWebDelegate {
         this.unifiedAccessUseCase = unifiedAccessUseCase;
     }
 
-    public ResponseEntity<byte[]> invoke(
+    public ResponseEntity<?> invoke(
             String apiCode,
             String httpMethod,
             HttpHeaders headers,
@@ -47,6 +49,16 @@ public class UnifiedAccessWebDelegate {
                 DEFAULT_ACCESS_CHANNEL
         );
         UnifiedAccessProxyResponseModel response = unifiedAccessUseCase.invoke(command);
+        if (response.isStreaming() && response.hasResponseStream()) {
+            StreamingResponseBody body = outputStream -> {
+                try (InputStream inputStream = response.getResponseStream()) {
+                    inputStream.transferTo(outputStream);
+                }
+            };
+            return ResponseEntity.status(response.getStatusCode())
+                    .headers(toHttpHeaders(response))
+                    .body(body);
+        }
         return ResponseEntity.status(response.getStatusCode())
                 .headers(toHttpHeaders(response))
                 .body(response.getResponseBody());

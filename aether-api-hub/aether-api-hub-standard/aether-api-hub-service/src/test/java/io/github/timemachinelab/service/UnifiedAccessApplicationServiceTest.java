@@ -15,6 +15,7 @@ import io.github.timemachinelab.service.model.ConsumerContextModel;
 import io.github.timemachinelab.service.model.CredentialValidationResult;
 import io.github.timemachinelab.service.model.PlatformPreForwardFailureType;
 import io.github.timemachinelab.service.model.ResolveUnifiedAccessInvocationCommand;
+import io.github.timemachinelab.service.model.UnifiedAccessExecutionOutcomeType;
 import io.github.timemachinelab.service.model.UnifiedAccessInvocationModel;
 import io.github.timemachinelab.service.model.UnifiedAccessPlatformFailureException;
 import io.github.timemachinelab.service.model.UnifiedAccessProxyResponseModel;
@@ -131,7 +132,59 @@ class UnifiedAccessApplicationServiceTest {
         assertEquals(1, downstreamProxyPort.invocationCount);
         assertEquals("chat-completions", downstreamProxyPort.lastInvocation.getTargetApi().getApiCode());
         assertEquals(202, response.getStatusCode());
+        assertEquals(UnifiedAccessExecutionOutcomeType.SUCCESS, response.getOutcomeType());
         assertEquals("application/json", response.getContentType());
+        assertEquals(1, credentialValidationUseCase.validationCount);
+        assertEquals(1, apiAssetRepositoryPort.findByCodeCount);
+    }
+
+    @Test
+    @DisplayName("invoke keeps upstream timeout distinct from platform pre-forward failures")
+    void shouldReturnUpstreamTimeoutOutcomeWithoutWrappingItAsPlatformFailure() {
+        InMemoryCredentialValidationUseCase credentialValidationUseCase = new InMemoryCredentialValidationUseCase(
+                CredentialValidationResult.valid(new ConsumerContextModel(
+                        "consumer-1",
+                        "consumer_code_1",
+                        "consumer-one",
+                        "USER_ACCOUNT",
+                        "credential-1",
+                        "cred_code_1",
+                        "ENABLED",
+                        "ak_live",
+                        "ak_live_****1234"
+                ))
+        );
+        InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
+        InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
+        downstreamProxyPort.response = UnifiedAccessProxyResponseModel.upstreamTimeout(
+                504,
+                "{\"code\":\"UPSTREAM_TIMEOUT\"}".getBytes(),
+                "application/json",
+                "Upstream request timed out"
+        );
+        apiAssetRepositoryPort.save(enabledAsset("chat-completions", AssetType.AI_API, true));
+
+        UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
+                credentialValidationUseCase,
+                apiAssetRepositoryPort,
+                downstreamProxyPort
+        );
+
+        UnifiedAccessProxyResponseModel response = service.invoke(new ResolveUnifiedAccessInvocationCommand(
+                "chat-completions",
+                "ak_live_validation_key",
+                "POST",
+                Map.of(),
+                Map.of("stream", List.of("true")),
+                "{\"message\":\"hello\"}".getBytes(),
+                "application/json",
+                null
+        ));
+
+        assertEquals(UnifiedAccessExecutionOutcomeType.UPSTREAM_TIMEOUT, response.getOutcomeType());
+        assertEquals(504, response.getStatusCode());
+        assertEquals("application/json", response.getContentType());
+        assertEquals(1, downstreamProxyPort.invocationCount);
         assertEquals(1, credentialValidationUseCase.validationCount);
         assertEquals(1, apiAssetRepositoryPort.findByCodeCount);
     }
@@ -371,18 +424,19 @@ class UnifiedAccessApplicationServiceTest {
 
         private int invocationCount;
         private UnifiedAccessInvocationModel lastInvocation;
+        private UnifiedAccessProxyResponseModel response = UnifiedAccessProxyResponseModel.success(
+                202,
+                Map.of("X-Aether-Forwarded", List.of("true")),
+                "{\"accepted\":true}".getBytes(),
+                "application/json",
+                false
+        );
 
         @Override
         public UnifiedAccessProxyResponseModel forward(UnifiedAccessInvocationModel invocation) {
             this.invocationCount++;
             this.lastInvocation = invocation;
-            return new UnifiedAccessProxyResponseModel(
-                    202,
-                    Map.of("X-Aether-Forwarded", List.of("true")),
-                    "{\"accepted\":true}".getBytes(),
-                    "application/json",
-                    false
-            );
+            return response;
         }
     }
 }

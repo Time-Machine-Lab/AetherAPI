@@ -30,7 +30,7 @@ public class UnifiedAccessController {
     }
 
     @GetMapping("/{apiCode}")
-    public ResponseEntity<byte[]> get(
+    public ResponseEntity<?> get(
             @PathVariable String apiCode,
             @RequestHeader HttpHeaders headers,
             @RequestParam MultiValueMap<String, String> queryParameters) {
@@ -38,7 +38,7 @@ public class UnifiedAccessController {
     }
 
     @PostMapping("/{apiCode}")
-    public ResponseEntity<byte[]> post(
+    public ResponseEntity<?> post(
             @PathVariable String apiCode,
             @RequestHeader HttpHeaders headers,
             @RequestParam MultiValueMap<String, String> queryParameters,
@@ -47,7 +47,7 @@ public class UnifiedAccessController {
     }
 
     @PutMapping("/{apiCode}")
-    public ResponseEntity<byte[]> put(
+    public ResponseEntity<?> put(
             @PathVariable String apiCode,
             @RequestHeader HttpHeaders headers,
             @RequestParam MultiValueMap<String, String> queryParameters,
@@ -56,7 +56,7 @@ public class UnifiedAccessController {
     }
 
     @PatchMapping("/{apiCode}")
-    public ResponseEntity<byte[]> patch(
+    public ResponseEntity<?> patch(
             @PathVariable String apiCode,
             @RequestHeader HttpHeaders headers,
             @RequestParam MultiValueMap<String, String> queryParameters,
@@ -65,7 +65,7 @@ public class UnifiedAccessController {
     }
 
     @DeleteMapping("/{apiCode}")
-    public ResponseEntity<byte[]> delete(
+    public ResponseEntity<?> delete(
             @PathVariable String apiCode,
             @RequestHeader HttpHeaders headers,
             @RequestParam MultiValueMap<String, String> queryParameters) {

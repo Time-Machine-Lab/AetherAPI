@@ -6,6 +6,7 @@ import io.github.timemachinelab.domain.catalog.repository.ApiCategoryRepository;
 import io.github.timemachinelab.domain.consumerauth.repository.ApiCredentialRepository;
 import io.github.timemachinelab.domain.consumerauth.repository.ConsumerIdentityRepository;
 import io.github.timemachinelab.domain.consumerauth.repository.UserConsumerMappingRepository;
+import io.github.timemachinelab.infrastructure.external.unifiedaccess.JdkUnifiedAccessDownstreamProxyPort;
 import io.github.timemachinelab.service.adapter.ApiAssetRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.ApiCredentialRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.CategoryValidityAdapter;
@@ -33,6 +34,9 @@ import io.github.timemachinelab.service.port.out.UserConsumerMappingRepositoryPo
 import io.github.timemachinelab.domain.consumerauth.service.CredentialValidationDomainService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.net.http.HttpClient;
+import java.time.Duration;
 
 /**
  * Infrastructure layer configuration class.
@@ -121,6 +125,19 @@ public class InfrastructureConfig {
     @Bean
     public CatalogDiscoveryUseCase catalogDiscoveryUseCase(CatalogDiscoveryQueryPort catalogDiscoveryQueryPort) {
         return new CatalogDiscoveryApplicationService(catalogDiscoveryQueryPort);
+    }
+
+    @Bean
+    public HttpClient unifiedAccessHttpClient() {
+        return HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(10))
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .build();
+    }
+
+    @Bean
+    public UnifiedAccessDownstreamProxyPort unifiedAccessDownstreamProxyPort(HttpClient unifiedAccessHttpClient) {
+        return new JdkUnifiedAccessDownstreamProxyPort(unifiedAccessHttpClient);
     }
 
     @Bean
