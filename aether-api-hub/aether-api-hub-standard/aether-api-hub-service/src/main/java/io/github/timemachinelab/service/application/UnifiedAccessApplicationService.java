@@ -11,18 +11,23 @@ import io.github.timemachinelab.domain.consumerauth.model.CredentialValidationFa
 import io.github.timemachinelab.service.model.ConsumerContextModel;
 import io.github.timemachinelab.service.model.CredentialValidationResult;
 import io.github.timemachinelab.service.model.PlatformPreForwardFailureType;
+import io.github.timemachinelab.service.model.RecordApiCallLogCommand;
 import io.github.timemachinelab.service.model.ResolveUnifiedAccessInvocationCommand;
 import io.github.timemachinelab.service.model.TargetApiSnapshotModel;
 import io.github.timemachinelab.service.model.UnifiedAccessInvocationModel;
+import io.github.timemachinelab.service.model.UnifiedAccessExecutionOutcomeType;
 import io.github.timemachinelab.service.model.UnifiedAccessPlatformFailureException;
 import io.github.timemachinelab.service.model.UnifiedAccessPlatformFailureModel;
 import io.github.timemachinelab.service.model.UnifiedAccessProxyResponseModel;
 import io.github.timemachinelab.service.model.ValidateApiCredentialCommand;
 import io.github.timemachinelab.service.port.in.CredentialValidationUseCase;
+import io.github.timemachinelab.service.port.in.ObservabilityUseCase;
 import io.github.timemachinelab.service.port.in.UnifiedAccessUseCase;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
 import io.github.timemachinelab.service.port.out.UnifiedAccessDownstreamProxyPort;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -36,20 +41,31 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
     private final CredentialValidationUseCase credentialValidationUseCase;
     private final ApiAssetRepositoryPort apiAssetRepositoryPort;
     private final UnifiedAccessDownstreamProxyPort unifiedAccessDownstreamProxyPort;
+    private final ObservabilityUseCase observabilityUseCase;
 
     public UnifiedAccessApplicationService(
             CredentialValidationUseCase credentialValidationUseCase,
             ApiAssetRepositoryPort apiAssetRepositoryPort,
-            UnifiedAccessDownstreamProxyPort unifiedAccessDownstreamProxyPort) {
+            UnifiedAccessDownstreamProxyPort unifiedAccessDownstreamProxyPort,
+            ObservabilityUseCase observabilityUseCase) {
         this.credentialValidationUseCase = credentialValidationUseCase;
         this.apiAssetRepositoryPort = apiAssetRepositoryPort;
         this.unifiedAccessDownstreamProxyPort = unifiedAccessDownstreamProxyPort;
+        this.observabilityUseCase = observabilityUseCase;
     }
 
     @Override
     public UnifiedAccessProxyResponseModel invoke(ResolveUnifiedAccessInvocationCommand command) {
-        UnifiedAccessInvocationModel invocation = resolveInvocation(command);
-        return unifiedAccessDownstreamProxyPort.forward(invocation);
+        Instant invocationStartedAt = Instant.now();
+        try {
+            UnifiedAccessInvocationModel invocation = resolveInvocation(command);
+            UnifiedAccessProxyResponseModel response = unifiedAccessDownstreamProxyPort.forward(invocation);
+            observabilityUseCase.recordApiCallLog(toCompletionLogCommand(invocation, response, invocationStartedAt));
+            return response;
+        } catch (UnifiedAccessPlatformFailureException ex) {
+            observabilityUseCase.recordApiCallLog(toPlatformFailureLogCommand(command, ex.getFailure(), invocationStartedAt));
+            throw ex;
+        }
     }
 
     @Override
@@ -138,7 +154,9 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
                 upstreamConfig.getUpstreamUrl(),
                 upstreamConfig.getAuthScheme().name(),
                 upstreamConfig.getAuthConfig(),
-                streamingSupported
+                streamingSupported,
+                targetApi.getAiCapabilityProfile() == null ? null : targetApi.getAiCapabilityProfile().getProvider(),
+                targetApi.getAiCapabilityProfile() == null ? null : targetApi.getAiCapabilityProfile().getModel()
         );
     }
 
@@ -226,5 +244,98 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
             return DEFAULT_ACCESS_CHANNEL;
         }
         return accessChannel.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private RecordApiCallLogCommand toCompletionLogCommand(
+            UnifiedAccessInvocationModel invocation,
+            UnifiedAccessProxyResponseModel response,
+            Instant invocationStartedAt) {
+        UnifiedAccessExecutionOutcomeType outcomeType = response.getOutcomeType();
+        boolean success = outcomeType == UnifiedAccessExecutionOutcomeType.SUCCESS;
+        String resultType = success ? "SUCCESS" : outcomeType.name();
+        String errorType = success ? null : outcomeType.name();
+        String errorSummary = success ? null : defaultFailureSummary(response);
+
+        return new RecordApiCallLogCommand(
+                invocation.getConsumerContext().getConsumerId(),
+                invocation.getConsumerContext().getConsumerCode(),
+                invocation.getConsumerContext().getConsumerName(),
+                invocation.getConsumerContext().getConsumerType(),
+                invocation.getConsumerContext().getCredentialId(),
+                invocation.getConsumerContext().getCredentialCode(),
+                invocation.getConsumerContext().getCredentialStatus(),
+                invocation.getAccessChannel(),
+                invocation.getTargetApi().getAssetId(),
+                invocation.getTargetApi().getApiCode(),
+                invocation.getTargetApi().getAssetName(),
+                invocation.getTargetApi().getAssetType(),
+                invocation.getHttpMethod(),
+                invocationStartedAt,
+                computeDurationMillis(invocationStartedAt),
+                resultType,
+                success,
+                response.getStatusCode(),
+                null,
+                errorType,
+                errorSummary,
+                invocation.getTargetApi().getAiProvider(),
+                invocation.getTargetApi().getAiModel(),
+                resolveAiStreaming(invocation.getTargetApi()),
+                null,
+                null
+        );
+    }
+
+    private RecordApiCallLogCommand toPlatformFailureLogCommand(
+            ResolveUnifiedAccessInvocationCommand command,
+            UnifiedAccessPlatformFailureModel failure,
+            Instant invocationStartedAt) {
+        String requestedApiCode = command == null ? null : command.getApiCode();
+        return new RecordApiCallLogCommand(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                normalizeAccessChannel(command == null ? null : command.getAccessChannel()),
+                null,
+                requestedApiCode == null || requestedApiCode.isBlank() ? failure.getApiCode() : requestedApiCode.trim(),
+                null,
+                null,
+                normalizeHttpMethod(command == null ? null : command.getHttpMethod()),
+                invocationStartedAt,
+                computeDurationMillis(invocationStartedAt),
+                failure.getFailureType().name(),
+                false,
+                failure.getHttpStatus(),
+                failure.getCode(),
+                failure.getFailureType().name(),
+                failure.getMessage(),
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+    }
+
+    private long computeDurationMillis(Instant invocationStartedAt) {
+        return Math.max(0L, Duration.between(invocationStartedAt, Instant.now()).toMillis());
+    }
+
+    private String defaultFailureSummary(UnifiedAccessProxyResponseModel response) {
+        if (response.getMessage() != null && !response.getMessage().isBlank()) {
+            return response.getMessage();
+        }
+        return "Unified access invocation finished with result " + response.getOutcomeType().name();
+    }
+
+    private Boolean resolveAiStreaming(TargetApiSnapshotModel targetApi) {
+        if (targetApi.getAiProvider() == null && targetApi.getAiModel() == null) {
+            return null;
+        }
+        return targetApi.isStreamingSupported();
     }
 }

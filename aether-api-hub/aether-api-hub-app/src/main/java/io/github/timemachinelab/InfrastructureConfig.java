@@ -6,7 +6,9 @@ import io.github.timemachinelab.domain.catalog.repository.ApiCategoryRepository;
 import io.github.timemachinelab.domain.consumerauth.repository.ApiCredentialRepository;
 import io.github.timemachinelab.domain.consumerauth.repository.ConsumerIdentityRepository;
 import io.github.timemachinelab.domain.consumerauth.repository.UserConsumerMappingRepository;
+import io.github.timemachinelab.domain.observability.repository.ApiCallLogRepository;
 import io.github.timemachinelab.infrastructure.external.unifiedaccess.JdkUnifiedAccessDownstreamProxyPort;
+import io.github.timemachinelab.service.adapter.ApiCallLogRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.ApiAssetRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.ApiCredentialRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.CategoryValidityAdapter;
@@ -15,15 +17,18 @@ import io.github.timemachinelab.service.application.ApiAssetApplicationService;
 import io.github.timemachinelab.service.application.ApiCredentialApplicationService;
 import io.github.timemachinelab.service.application.CatalogDiscoveryApplicationService;
 import io.github.timemachinelab.service.application.CredentialValidationApplicationService;
+import io.github.timemachinelab.service.application.ObservabilityApplicationService;
 import io.github.timemachinelab.service.application.UnifiedAccessApplicationService;
 import io.github.timemachinelab.service.adapter.CategoryRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.UserConsumerMappingRepositoryAdapter;
 import io.github.timemachinelab.service.application.CategoryApplicationService;
+import io.github.timemachinelab.service.port.in.ObservabilityUseCase;
 import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
 import io.github.timemachinelab.service.port.in.ApiCredentialUseCase;
 import io.github.timemachinelab.service.port.in.CatalogDiscoveryUseCase;
 import io.github.timemachinelab.service.port.in.CredentialValidationUseCase;
 import io.github.timemachinelab.service.port.in.UnifiedAccessUseCase;
+import io.github.timemachinelab.service.port.out.ApiCallLogRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiCredentialRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
 import io.github.timemachinelab.service.port.out.CatalogDiscoveryQueryPort;
@@ -94,6 +99,11 @@ public class InfrastructureConfig {
     }
 
     @Bean
+    public ApiCallLogRepositoryPort apiCallLogRepositoryPort(ApiCallLogRepository apiCallLogRepository) {
+        return new ApiCallLogRepositoryAdapter(apiCallLogRepository);
+    }
+
+    @Bean
     public ApiCredentialUseCase apiCredentialUseCase(
             ApiCredentialRepositoryPort apiCredentialRepositoryPort,
             ConsumerIdentityRepositoryPort consumerIdentityRepositoryPort,
@@ -128,6 +138,11 @@ public class InfrastructureConfig {
     }
 
     @Bean
+    public ObservabilityUseCase observabilityUseCase(ApiCallLogRepositoryPort apiCallLogRepositoryPort) {
+        return new ObservabilityApplicationService(apiCallLogRepositoryPort);
+    }
+
+    @Bean
     public HttpClient unifiedAccessHttpClient() {
         return HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
@@ -144,11 +159,13 @@ public class InfrastructureConfig {
     public UnifiedAccessUseCase unifiedAccessUseCase(
             CredentialValidationUseCase credentialValidationUseCase,
             ApiAssetRepositoryPort apiAssetRepositoryPort,
-            UnifiedAccessDownstreamProxyPort unifiedAccessDownstreamProxyPort) {
+            UnifiedAccessDownstreamProxyPort unifiedAccessDownstreamProxyPort,
+            ObservabilityUseCase observabilityUseCase) {
         return new UnifiedAccessApplicationService(
                 credentialValidationUseCase,
                 apiAssetRepositoryPort,
-                unifiedAccessDownstreamProxyPort
+                unifiedAccessDownstreamProxyPort,
+                observabilityUseCase
         );
     }
 }

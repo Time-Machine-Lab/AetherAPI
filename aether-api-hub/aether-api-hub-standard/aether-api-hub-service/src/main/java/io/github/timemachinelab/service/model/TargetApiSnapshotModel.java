@@ -14,6 +14,8 @@ public class TargetApiSnapshotModel {
     private final String authScheme;
     private final String authConfig;
     private final boolean streamingSupported;
+    private final String aiProvider;
+    private final String aiModel;
 
     public TargetApiSnapshotModel(
             String assetId,
@@ -24,7 +26,9 @@ public class TargetApiSnapshotModel {
             String upstreamUrl,
             String authScheme,
             String authConfig,
-            boolean streamingSupported) {
+            boolean streamingSupported,
+            String aiProvider,
+            String aiModel) {
         this.assetId = assetId;
         this.apiCode = apiCode;
         this.assetName = assetName;
@@ -34,6 +38,8 @@ public class TargetApiSnapshotModel {
         this.authScheme = authScheme;
         this.authConfig = authConfig;
         this.streamingSupported = streamingSupported;
+        this.aiProvider = aiProvider;
+        this.aiModel = aiModel;
     }
 
     public String getAssetId() {
@@ -70,5 +76,13 @@ public class TargetApiSnapshotModel {
 
     public boolean isStreamingSupported() {
         return streamingSupported;
+    }
+
+    public String getAiProvider() {
+        return aiProvider;
+    }
+
+    public String getAiModel() {
+        return aiModel;
     }
 }

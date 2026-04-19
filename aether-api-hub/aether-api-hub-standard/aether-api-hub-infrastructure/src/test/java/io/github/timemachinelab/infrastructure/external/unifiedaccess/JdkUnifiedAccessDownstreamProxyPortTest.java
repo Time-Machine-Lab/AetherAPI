@@ -190,7 +190,9 @@ class JdkUnifiedAccessDownstreamProxyPortTest {
                         upstreamUrl,
                         "HEADER_TOKEN",
                         "Authorization: Bearer upstream-token",
-                        streamingSupported
+                        streamingSupported,
+                        "OpenAI",
+                        "gpt-4.1"
                 ),
                 "POST",
                 Map.of(

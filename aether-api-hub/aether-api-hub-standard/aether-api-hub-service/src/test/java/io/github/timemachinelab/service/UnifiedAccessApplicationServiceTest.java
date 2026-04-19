@@ -14,6 +14,7 @@ import io.github.timemachinelab.service.application.UnifiedAccessApplicationServ
 import io.github.timemachinelab.service.model.ConsumerContextModel;
 import io.github.timemachinelab.service.model.CredentialValidationResult;
 import io.github.timemachinelab.service.model.PlatformPreForwardFailureType;
+import io.github.timemachinelab.service.model.RecordApiCallLogCommand;
 import io.github.timemachinelab.service.model.ResolveUnifiedAccessInvocationCommand;
 import io.github.timemachinelab.service.model.UnifiedAccessExecutionOutcomeType;
 import io.github.timemachinelab.service.model.UnifiedAccessInvocationModel;
@@ -21,11 +22,13 @@ import io.github.timemachinelab.service.model.UnifiedAccessPlatformFailureExcept
 import io.github.timemachinelab.service.model.UnifiedAccessProxyResponseModel;
 import io.github.timemachinelab.service.model.ValidateApiCredentialCommand;
 import io.github.timemachinelab.service.port.in.CredentialValidationUseCase;
+import io.github.timemachinelab.service.port.in.ObservabilityUseCase;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
 import io.github.timemachinelab.service.port.out.UnifiedAccessDownstreamProxyPort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -57,12 +60,14 @@ class UnifiedAccessApplicationServiceTest {
         );
         InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
         InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
+        InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
         apiAssetRepositoryPort.save(enabledAsset("chat-completions", AssetType.AI_API, true));
 
         UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
                 credentialValidationUseCase,
                 apiAssetRepositoryPort,
-                downstreamProxyPort
+                downstreamProxyPort,
+                observabilityUseCase
         );
 
         UnifiedAccessInvocationModel invocation = service.resolveInvocation(new ResolveUnifiedAccessInvocationCommand(
@@ -90,6 +95,7 @@ class UnifiedAccessApplicationServiceTest {
         assertEquals(1, credentialValidationUseCase.validationCount);
         assertEquals(1, apiAssetRepositoryPort.findByCodeCount);
         assertEquals(0, downstreamProxyPort.invocationCount);
+        assertEquals(0, observabilityUseCase.recordedCommands.size());
     }
 
     @Test
@@ -110,12 +116,14 @@ class UnifiedAccessApplicationServiceTest {
         );
         InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
         InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
+        InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
         apiAssetRepositoryPort.save(enabledAsset("chat-completions", AssetType.AI_API, true));
 
         UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
                 credentialValidationUseCase,
                 apiAssetRepositoryPort,
-                downstreamProxyPort
+                downstreamProxyPort,
+                observabilityUseCase
         );
 
         UnifiedAccessProxyResponseModel response = service.invoke(new ResolveUnifiedAccessInvocationCommand(
@@ -136,6 +144,16 @@ class UnifiedAccessApplicationServiceTest {
         assertEquals("application/json", response.getContentType());
         assertEquals(1, credentialValidationUseCase.validationCount);
         assertEquals(1, apiAssetRepositoryPort.findByCodeCount);
+        assertEquals(1, observabilityUseCase.recordedCommands.size());
+        RecordApiCallLogCommand logCommand = observabilityUseCase.recordedCommands.get(0);
+        assertEquals("consumer-1", logCommand.getConsumerId());
+        assertEquals("chat-completions", logCommand.getTargetApiCode());
+        assertEquals("SUCCESS", logCommand.getResultType());
+        assertEquals(202, logCommand.getHttpStatusCode());
+        assertTrue(logCommand.isSuccess());
+        assertEquals("OpenAI", logCommand.getAiProvider());
+        assertEquals("gpt-4.1", logCommand.getAiModel());
+        assertEquals(Boolean.TRUE, logCommand.getAiStreaming());
     }
 
     @Test
@@ -156,6 +174,7 @@ class UnifiedAccessApplicationServiceTest {
         );
         InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
         InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
+        InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
         downstreamProxyPort.response = UnifiedAccessProxyResponseModel.upstreamTimeout(
                 504,
                 "{\"code\":\"UPSTREAM_TIMEOUT\"}".getBytes(),
@@ -167,7 +186,8 @@ class UnifiedAccessApplicationServiceTest {
         UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
                 credentialValidationUseCase,
                 apiAssetRepositoryPort,
-                downstreamProxyPort
+                downstreamProxyPort,
+                observabilityUseCase
         );
 
         UnifiedAccessProxyResponseModel response = service.invoke(new ResolveUnifiedAccessInvocationCommand(
@@ -187,6 +207,13 @@ class UnifiedAccessApplicationServiceTest {
         assertEquals(1, downstreamProxyPort.invocationCount);
         assertEquals(1, credentialValidationUseCase.validationCount);
         assertEquals(1, apiAssetRepositoryPort.findByCodeCount);
+        assertEquals(1, observabilityUseCase.recordedCommands.size());
+        RecordApiCallLogCommand logCommand = observabilityUseCase.recordedCommands.get(0);
+        assertEquals("UPSTREAM_TIMEOUT", logCommand.getResultType());
+        assertEquals("UPSTREAM_TIMEOUT", logCommand.getErrorType());
+        assertEquals("Upstream request timed out", logCommand.getErrorSummary());
+        assertEquals(504, logCommand.getHttpStatusCode());
+        assertTrue(!logCommand.isSuccess());
     }
 
     @Test
@@ -201,12 +228,14 @@ class UnifiedAccessApplicationServiceTest {
         );
         InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
         InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
+        InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
         apiAssetRepositoryPort.save(enabledAsset("chat-completions", AssetType.STANDARD_API, false));
 
         UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
                 credentialValidationUseCase,
                 apiAssetRepositoryPort,
-                downstreamProxyPort
+                downstreamProxyPort,
+                observabilityUseCase
         );
 
         UnifiedAccessPlatformFailureException ex = assertThrows(UnifiedAccessPlatformFailureException.class, () -> service.invoke(
@@ -229,6 +258,13 @@ class UnifiedAccessApplicationServiceTest {
         assertEquals(1, credentialValidationUseCase.validationCount);
         assertEquals(0, apiAssetRepositoryPort.findByCodeCount);
         assertEquals(0, downstreamProxyPort.invocationCount);
+        assertEquals(1, observabilityUseCase.recordedCommands.size());
+        RecordApiCallLogCommand logCommand = observabilityUseCase.recordedCommands.get(0);
+        assertEquals("INVALID_CREDENTIAL", logCommand.getResultType());
+        assertEquals("API_CREDENTIAL_INVALID", logCommand.getErrorCode());
+        assertEquals("chat-completions", logCommand.getTargetApiCode());
+        assertEquals("GET", logCommand.getRequestMethod());
+        assertTrue(!logCommand.isSuccess());
     }
 
     @Test
@@ -249,10 +285,12 @@ class UnifiedAccessApplicationServiceTest {
         );
         InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
         InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
+        InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
         UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
                 credentialValidationUseCase,
                 apiAssetRepositoryPort,
-                downstreamProxyPort
+                downstreamProxyPort,
+                observabilityUseCase
         );
 
         UnifiedAccessPlatformFailureException ex = assertThrows(UnifiedAccessPlatformFailureException.class, () -> service.invoke(
@@ -275,6 +313,7 @@ class UnifiedAccessApplicationServiceTest {
         assertEquals(1, credentialValidationUseCase.validationCount);
         assertEquals(1, apiAssetRepositoryPort.findByCodeCount);
         assertEquals(0, downstreamProxyPort.invocationCount);
+        assertEquals(1, observabilityUseCase.recordedCommands.size());
     }
 
     @Test
@@ -295,12 +334,14 @@ class UnifiedAccessApplicationServiceTest {
         );
         InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
         InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
+        InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
         apiAssetRepositoryPort.save(disabledAsset("chat-completions"));
 
         UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
                 credentialValidationUseCase,
                 apiAssetRepositoryPort,
-                downstreamProxyPort
+                downstreamProxyPort,
+                observabilityUseCase
         );
 
         UnifiedAccessPlatformFailureException ex = assertThrows(UnifiedAccessPlatformFailureException.class, () -> service.invoke(
@@ -323,6 +364,56 @@ class UnifiedAccessApplicationServiceTest {
         assertEquals(1, credentialValidationUseCase.validationCount);
         assertEquals(1, apiAssetRepositoryPort.findByCodeCount);
         assertEquals(0, downstreamProxyPort.invocationCount);
+        assertEquals(1, observabilityUseCase.recordedCommands.size());
+    }
+
+    @Test
+    @DisplayName("invoke leaves AI extension fields empty for standard api logging")
+    void shouldLeaveAiExtensionFieldsEmptyForStandardApiLog() {
+        InMemoryCredentialValidationUseCase credentialValidationUseCase = new InMemoryCredentialValidationUseCase(
+                CredentialValidationResult.valid(new ConsumerContextModel(
+                        "consumer-1",
+                        "consumer_code_1",
+                        "consumer-one",
+                        "USER_ACCOUNT",
+                        "credential-1",
+                        "cred_code_1",
+                        "ENABLED",
+                        "ak_live",
+                        "ak_live_****1234"
+                ))
+        );
+        InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
+        InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
+        InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
+        apiAssetRepositoryPort.save(enabledAsset("weather-api", AssetType.STANDARD_API, false));
+
+        UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
+                credentialValidationUseCase,
+                apiAssetRepositoryPort,
+                downstreamProxyPort,
+                observabilityUseCase
+        );
+
+        UnifiedAccessProxyResponseModel response = service.invoke(new ResolveUnifiedAccessInvocationCommand(
+                "weather-api",
+                "ak_live_validation_key",
+                "GET",
+                Map.of(),
+                Map.of("city", List.of("shanghai")),
+                null,
+                null,
+                null
+        ));
+
+        assertEquals(UnifiedAccessExecutionOutcomeType.SUCCESS, response.getOutcomeType());
+        assertEquals(1, observabilityUseCase.recordedCommands.size());
+        RecordApiCallLogCommand logCommand = observabilityUseCase.recordedCommands.get(0);
+        assertEquals("weather-api", logCommand.getTargetApiCode());
+        assertEquals("SUCCESS", logCommand.getResultType());
+        assertEquals(null, logCommand.getAiProvider());
+        assertEquals(null, logCommand.getAiModel());
+        assertEquals(null, logCommand.getAiStreaming());
     }
 
     private ApiAssetAggregate enabledAsset(String apiCode, AssetType assetType, boolean streamingSupported) {
@@ -437,6 +528,16 @@ class UnifiedAccessApplicationServiceTest {
             this.invocationCount++;
             this.lastInvocation = invocation;
             return response;
+        }
+    }
+
+    private static final class InMemoryObservabilityUseCase implements ObservabilityUseCase {
+
+        private final List<RecordApiCallLogCommand> recordedCommands = new ArrayList<>();
+
+        @Override
+        public void recordApiCallLog(RecordApiCallLogCommand command) {
+            recordedCommands.add(command);
         }
     }
 }
