@@ -1,0 +1,341 @@
+openapi: 3.0.3
+info:
+  title: ApiCallLogController 当前用户 API 调用日志接口
+  version: 1.0.0
+  description: |
+    当前登录用户的 API 调用日志查询接口。
+    本文档唯一映射到 `ApiCallLogController.java`，覆盖日志列表、基础筛选和单条详情查询。
+    Controller 层统一通过 TML-SDK Result 返回业务结果，不暴露显式 Consumer 标识或管理员视角能力。
+servers:
+  - url: /api/v1
+    description: Observability v1
+
+tags:
+  - name: CurrentUserApiCallLogs
+    description: 当前用户 API 调用日志
+
+security:
+  - bearerAuth: []
+
+paths:
+  /current-user/api-call-logs:
+    get:
+      summary: 分页查询当前用户 API 调用日志
+      operationId: listCurrentUserApiCallLogs
+      tags:
+        - CurrentUserApiCallLogs
+      parameters:
+        - name: targetApiCode
+          in: query
+          required: false
+          description: 按目标 API 编码精确筛选
+          schema:
+            type: string
+            maxLength: 64
+            example: chat-completions
+        - name: invocationStartAt
+          in: query
+          required: false
+          description: 调用时间起始值，ISO-8601 UTC 时间
+          schema:
+            type: string
+            format: date-time
+            example: '2026-04-19T08:00:00Z'
+        - name: invocationEndAt
+          in: query
+          required: false
+          description: 调用时间结束值，ISO-8601 UTC 时间
+          schema:
+            type: string
+            format: date-time
+            example: '2026-04-19T12:00:00Z'
+        - name: page
+          in: query
+          required: false
+          description: 页码，从 1 开始，默认 1
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: size
+          in: query
+          required: false
+          description: 每页记录数，默认 20，最大 100
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: 成功返回当前用户范围内的调用日志列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultApiCallLogPageResp'
+        '400':
+          description: 查询条件不合法
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+        '401':
+          description: 当前请求未通过登录认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+
+  /current-user/api-call-logs/{logId}:
+    get:
+      summary: 查询当前用户单条 API 调用日志详情
+      operationId: getCurrentUserApiCallLogDetail
+      tags:
+        - CurrentUserApiCallLogs
+      parameters:
+        - name: logId
+          in: path
+          required: true
+          description: 调用日志唯一标识
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 成功返回当前用户范围内的调用日志详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultApiCallLogDetailResp'
+        '401':
+          description: 当前请求未通过登录认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+        '404':
+          description: 调用日志不存在，或不属于当前用户
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ApiCallLogResp:
+      type: object
+      properties:
+        logId:
+          type: string
+          format: uuid
+          description: 调用日志唯一标识
+        targetApiCode:
+          type: string
+          description: 目标 API 编码
+        targetApiName:
+          type: string
+          nullable: true
+          description: 目标 API 名称快照
+        requestMethod:
+          type: string
+          description: 请求方法
+          example: POST
+        invocationTime:
+          type: string
+          format: date-time
+          description: 调用发生时间
+        durationMs:
+          type: integer
+          format: int64
+          description: 调用耗时（毫秒）
+        resultType:
+          type: string
+          description: 平台侧结果分类
+          example: SUCCESS
+        success:
+          type: boolean
+          description: 是否调用成功
+        httpStatusCode:
+          type: integer
+          nullable: true
+          description: 上游响应状态码快照
+      example:
+        logId: 550e8400-e29b-41d4-a716-446655440000
+        targetApiCode: chat-completions
+        targetApiName: OpenAI Chat Completions
+        requestMethod: POST
+        invocationTime: '2026-04-19T09:30:00Z'
+        durationMs: 842
+        resultType: SUCCESS
+        success: true
+        httpStatusCode: 200
+
+    ApiCallLogErrorResp:
+      type: object
+      nullable: true
+      properties:
+        errorCode:
+          type: string
+          nullable: true
+          description: 错误码快照
+        errorType:
+          type: string
+          nullable: true
+          description: 错误类型快照
+        errorSummary:
+          type: string
+          nullable: true
+          description: 错误摘要
+
+    ApiCallLogAiExtensionResp:
+      type: object
+      nullable: true
+      properties:
+        provider:
+          type: string
+          nullable: true
+          description: AI 提供方快照
+        model:
+          type: string
+          nullable: true
+          description: AI 模型快照
+        streaming:
+          type: boolean
+          nullable: true
+          description: 是否流式调用
+        usageSnapshot:
+          type: string
+          nullable: true
+          description: AI 用量快照
+
+    ApiCallLogDetailResp:
+      allOf:
+        - $ref: '#/components/schemas/ApiCallLogResp'
+        - type: object
+          properties:
+            accessChannel:
+              type: string
+              description: 调用接入通道
+              example: UNIFIED_ACCESS
+            credentialCode:
+              type: string
+              nullable: true
+              description: 凭证业务编码快照
+            credentialStatus:
+              type: string
+              nullable: true
+              description: 凭证状态快照
+            error:
+              $ref: '#/components/schemas/ApiCallLogErrorResp'
+            aiExtension:
+              $ref: '#/components/schemas/ApiCallLogAiExtensionResp'
+            createdAt:
+              type: string
+              format: date-time
+              nullable: true
+              description: 日志创建时间
+            updatedAt:
+              type: string
+              format: date-time
+              nullable: true
+              description: 日志最近更新时间
+      example:
+        logId: 550e8400-e29b-41d4-a716-446655440000
+        targetApiCode: chat-completions
+        targetApiName: OpenAI Chat Completions
+        requestMethod: POST
+        invocationTime: '2026-04-19T09:30:00Z'
+        durationMs: 842
+        resultType: SUCCESS
+        success: true
+        httpStatusCode: 200
+        accessChannel: UNIFIED_ACCESS
+        credentialCode: cred_20260419_0001
+        credentialStatus: ENABLED
+        error: null
+        aiExtension:
+          provider: OpenAI
+          model: gpt-4.1
+          streaming: false
+          usageSnapshot: '{"promptTokens":123,"completionTokens":456}'
+        createdAt: '2026-04-19T09:30:00Z'
+        updatedAt: '2026-04-19T09:30:01Z'
+
+    ApiCallLogPageResp:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApiCallLogResp'
+        page:
+          type: integer
+          description: 当前页码
+        size:
+          type: integer
+          description: 每页记录数
+        total:
+          type: integer
+          format: int64
+          description: 总记录数
+
+    TmlResultApiCallLogDetailResp:
+      type: object
+      properties:
+        code:
+          type: string
+          example: SUCCESS
+        message:
+          type: string
+          example: OK
+        traceId:
+          type: string
+          nullable: true
+        data:
+          $ref: '#/components/schemas/ApiCallLogDetailResp'
+
+    TmlResultApiCallLogPageResp:
+      type: object
+      properties:
+        code:
+          type: string
+          example: SUCCESS
+        message:
+          type: string
+          example: OK
+        traceId:
+          type: string
+          nullable: true
+        data:
+          $ref: '#/components/schemas/ApiCallLogPageResp'
+
+    ErrorResp:
+      type: object
+      properties:
+        code:
+          type: string
+          example: API_CALL_LOG_NOT_FOUND
+        message:
+          type: string
+          example: API call log not found for current user
+
+    TmlResultErrorResp:
+      type: object
+      properties:
+        code:
+          type: string
+          example: API_CALL_LOG_NOT_FOUND
+        message:
+          type: string
+          example: API call log not found for current user
+        traceId:
+          type: string
+          nullable: true
+        data:
+          $ref: '#/components/schemas/ErrorResp'

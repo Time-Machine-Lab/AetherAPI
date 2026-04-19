@@ -2,10 +2,12 @@ package io.github.timemachinelab.adapter.web.handler;
 
 import io.github.timemachinelab.api.error.CatalogErrorCodes;
 import io.github.timemachinelab.api.error.ConsumerAuthErrorCodes;
+import io.github.timemachinelab.api.error.ObservabilityErrorCodes;
 import io.github.timemachinelab.api.resp.UnifiedAccessPlatformFailureResp;
 import io.github.timemachinelab.domain.catalog.model.AssetDomainException;
 import io.github.timemachinelab.domain.catalog.model.CategoryDomainException;
 import io.github.timemachinelab.domain.consumerauth.model.ConsumerAuthDomainException;
+import io.github.timemachinelab.domain.observability.model.ObservabilityDomainException;
 import io.github.timemachinelab.service.model.UnifiedAccessPlatformFailureException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -102,6 +104,22 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(body);
     }
 
+    @ExceptionHandler(ObservabilityDomainException.class)
+    public ResponseEntity<Map<String, String>> handleObservabilityDomainException(ObservabilityDomainException ex) {
+        log.warn("Observability domain exception: {}", ex.getMessage());
+
+        String code = mapObservabilityExceptionToCode(ex.getMessage());
+        Map<String, String> body = new HashMap<>();
+        body.put("code", code);
+        body.put("message", ex.getMessage());
+
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        if (ObservabilityErrorCodes.API_CALL_LOG_NOT_FOUND.equals(code)) {
+            status = HttpStatus.NOT_FOUND;
+        }
+        return ResponseEntity.status(status).body(body);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgumentException(IllegalArgumentException ex) {
         log.warn("Invalid argument: {}", ex.getMessage());
@@ -122,6 +140,8 @@ public class GlobalExceptionHandler {
         String objectName = ex.getBindingResult().getObjectName();
         if (objectName != null && objectName.toLowerCase().contains("credential")) {
             body.put("code", ConsumerAuthErrorCodes.API_CREDENTIAL_INVALID);
+        } else if (objectName != null && objectName.toLowerCase().contains("apicalllog")) {
+            body.put("code", ObservabilityErrorCodes.API_CALL_LOG_INVALID_QUERY);
         } else {
             body.put("code", CatalogErrorCodes.CATEGORY_NAME_INVALID);
         }
@@ -202,9 +222,21 @@ public class GlobalExceptionHandler {
         return ConsumerAuthErrorCodes.API_CREDENTIAL_INVALID;
     }
 
+    private String mapObservabilityExceptionToCode(String message) {
+        if (message.contains("not found")) {
+            return ObservabilityErrorCodes.API_CALL_LOG_NOT_FOUND;
+        }
+        return ObservabilityErrorCodes.API_CALL_LOG_INVALID_QUERY;
+    }
+
     private String mapIllegalArgumentCode(String message) {
         if (message != null && message.contains("ApiCode")) {
             return CatalogErrorCodes.API_CODE_INVALID;
+        }
+        if (message != null && (message.contains("ApiCallLog")
+                || message.contains("Invocation")
+                || message.contains("API call log"))) {
+            return ObservabilityErrorCodes.API_CALL_LOG_INVALID_QUERY;
         }
         if (message != null && message.contains("Current user")) {
             return ConsumerAuthErrorCodes.CURRENT_USER_REQUIRED;

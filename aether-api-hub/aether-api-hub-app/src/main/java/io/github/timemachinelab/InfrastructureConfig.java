@@ -13,6 +13,7 @@ import io.github.timemachinelab.service.adapter.ApiAssetRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.ApiCredentialRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.CategoryValidityAdapter;
 import io.github.timemachinelab.service.adapter.ConsumerIdentityRepositoryAdapter;
+import io.github.timemachinelab.service.application.ApiCallLogApplicationService;
 import io.github.timemachinelab.service.application.ApiAssetApplicationService;
 import io.github.timemachinelab.service.application.ApiCredentialApplicationService;
 import io.github.timemachinelab.service.application.CatalogDiscoveryApplicationService;
@@ -24,6 +25,7 @@ import io.github.timemachinelab.service.adapter.UserConsumerMappingRepositoryAda
 import io.github.timemachinelab.service.application.CategoryApplicationService;
 import io.github.timemachinelab.service.port.in.ObservabilityUseCase;
 import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
+import io.github.timemachinelab.service.port.in.ApiCallLogUseCase;
 import io.github.timemachinelab.service.port.in.ApiCredentialUseCase;
 import io.github.timemachinelab.service.port.in.CatalogDiscoveryUseCase;
 import io.github.timemachinelab.service.port.in.CredentialValidationUseCase;
@@ -31,6 +33,7 @@ import io.github.timemachinelab.service.port.in.UnifiedAccessUseCase;
 import io.github.timemachinelab.service.port.out.ApiCallLogRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiCredentialRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
+import io.github.timemachinelab.service.port.out.ApiCallLogQueryPort;
 import io.github.timemachinelab.service.port.out.CatalogDiscoveryQueryPort;
 import io.github.timemachinelab.service.port.out.CategoryRepositoryPort;
 import io.github.timemachinelab.service.port.out.ConsumerIdentityRepositoryPort;
@@ -113,6 +116,13 @@ public class InfrastructureConfig {
                 consumerIdentityRepositoryPort,
                 userConsumerMappingRepositoryPort
         );
+    }
+
+    @Bean
+    public ApiCallLogUseCase apiCallLogUseCase(
+            ApiCallLogQueryPort apiCallLogQueryPort,
+            UserConsumerMappingRepositoryPort userConsumerMappingRepositoryPort) {
+        return new ApiCallLogApplicationService(apiCallLogQueryPort, userConsumerMappingRepositoryPort);
     }
 
     @Bean
