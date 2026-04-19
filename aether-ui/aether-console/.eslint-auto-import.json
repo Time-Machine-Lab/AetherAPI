@@ -93,6 +93,7 @@
     "useRouter": "readonly",
     "useSlots": "readonly",
     "useTemplateRef": "readonly",
+    "useUnifiedAccessPlayground": "readonly",
     "watch": "readonly",
     "watchEffect": "readonly",
     "watchPostEffect": "readonly",
