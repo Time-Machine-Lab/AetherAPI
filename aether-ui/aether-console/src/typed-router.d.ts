@@ -34,6 +34,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    'console-playground': RouteRecordInfo<
+      'console-playground',
+      '/playground',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     'console-sign-in': RouteRecordInfo<
       'console-sign-in',
       '/sign-in',
@@ -64,6 +71,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/index.vue': {
       routes:
         | 'console-home'
+      views:
+        | never
+    }
+    'src/pages/playground.vue': {
+      routes:
+        | 'console-playground'
       views:
         | never
     }

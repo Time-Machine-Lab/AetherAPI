@@ -1,9 +1,10 @@
-export type ConsoleRouteName = 'console-home' | 'console-workspace'
+export type ConsoleRouteName = 'console-home' | 'console-workspace' | 'console-playground'
 
 export type ConsoleNavId =
   | 'catalog-browse'
   | 'catalog-manage'
   | 'category-manage'
+  | 'unified-access-playground'
   | 'credentials'
   | 'usage'
   | 'orders'
@@ -63,6 +64,17 @@ export const consoleSidebarGroups: ConsoleSidebarGroup[] = [
         labelKey: 'console.navigation.categoryManage',
         routeName: 'console-workspace',
         hash: '#category-manage',
+      },
+    ],
+  },
+  {
+    id: 'unified-access',
+    titleKey: 'console.sidebar.unifiedAccess',
+    items: [
+      {
+        id: 'unified-access-playground',
+        labelKey: 'console.navigation.playground',
+        routeName: 'console-playground',
       },
     ],
   },

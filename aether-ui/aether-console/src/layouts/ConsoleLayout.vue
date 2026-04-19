@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   Package,
+  Play,
   Rocket,
   ReceiptText,
   UserRound,
@@ -43,6 +44,7 @@ const iconMap = {
   'catalog-browse': LayoutList,
   'catalog-manage': Package,
   'category-manage': Package,
+  'unified-access-playground': Play,
   credentials: KeyRound,
   usage: Activity,
   orders: ReceiptText,
@@ -53,6 +55,10 @@ const iconMap = {
 const activeNavId = computed<ConsoleNavId>(() => {
   if (route.name === 'console-home') {
     return 'catalog-browse'
+  }
+
+  if (route.name === 'console-playground') {
+    return 'unified-access-playground'
   }
 
   const hashId = route.hash.replace('#', '') as ConsoleNavId
