@@ -36,29 +36,29 @@ public class ApiAssetController {
     }
 
     @GetMapping("/{apiCode}")
-    public ApiAssetResp getAssetByCode(@PathVariable String apiCode) {
+    public ApiAssetResp getAssetByCode(@PathVariable("apiCode") String apiCode) {
         return delegate.getAssetByCode(apiCode);
     }
 
     @PutMapping("/{apiCode}")
-    public ApiAssetResp reviseAsset(@PathVariable String apiCode, @Valid @RequestBody ReviseApiAssetReq req) {
+    public ApiAssetResp reviseAsset(
+            @PathVariable("apiCode") String apiCode, @Valid @RequestBody ReviseApiAssetReq req) {
         return delegate.reviseAsset(apiCode, req);
     }
 
     @PatchMapping("/{apiCode}/enable")
-    public ApiAssetResp enableAsset(@PathVariable String apiCode) {
+    public ApiAssetResp enableAsset(@PathVariable("apiCode") String apiCode) {
         return delegate.enableAsset(apiCode);
     }
 
     @PatchMapping("/{apiCode}/disable")
-    public ApiAssetResp disableAsset(@PathVariable String apiCode) {
+    public ApiAssetResp disableAsset(@PathVariable("apiCode") String apiCode) {
         return delegate.disableAsset(apiCode);
     }
 
     @PutMapping("/{apiCode}/ai-profile")
     public ApiAssetResp attachAiCapabilityProfile(
-            @PathVariable String apiCode, @Valid @RequestBody AttachAiCapabilityProfileReq req) {
+            @PathVariable("apiCode") String apiCode, @Valid @RequestBody AttachAiCapabilityProfileReq req) {
         return delegate.attachAiCapabilityProfile(apiCode, req);
     }
 }
-

@@ -55,6 +55,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResp'
+              example:
+                code: API_CODE_INVALID
+                message: Invalid asset request parameters
         '404':
           description: 资产不存在或未处于启用状态
           content:

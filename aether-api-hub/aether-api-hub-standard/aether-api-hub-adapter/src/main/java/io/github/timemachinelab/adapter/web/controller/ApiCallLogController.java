@@ -33,7 +33,8 @@ public class ApiCallLogController {
     }
 
     @GetMapping("/{logId}")
-    public ApiCallLogDetailResp getApiCallLogDetail(@PathVariable String logId, Principal principal) {
+    public ApiCallLogDetailResp getApiCallLogDetail(
+            @PathVariable("logId") String logId, Principal principal) {
         return delegate.getApiCallLogDetail(currentUserId(principal), logId);
     }
 

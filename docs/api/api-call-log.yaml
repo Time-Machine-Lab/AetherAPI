@@ -79,6 +79,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TmlResultErrorResp'
+              example:
+                code: API_CALL_LOG_INVALID_QUERY
+                message: Invalid API call log request parameters
+                traceId: null
+                data:
+                  code: API_CALL_LOG_INVALID_QUERY
+                  message: Invalid API call log request parameters
         '401':
           description: 当前请求未通过登录认证
           content:
@@ -107,6 +114,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TmlResultApiCallLogDetailResp'
+        '400':
+          description: Path parameter binding failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+              example:
+                code: API_CALL_LOG_INVALID_QUERY
+                message: Invalid API call log request parameters
+                traceId: null
+                data:
+                  code: API_CALL_LOG_INVALID_QUERY
+                  message: Invalid API call log request parameters
         '401':
           description: 当前请求未通过登录认证
           content:

@@ -9,13 +9,19 @@ import io.github.timemachinelab.domain.catalog.model.CategoryDomainException;
 import io.github.timemachinelab.domain.consumerauth.model.ConsumerAuthDomainException;
 import io.github.timemachinelab.domain.observability.model.ObservabilityDomainException;
 import io.github.timemachinelab.service.model.UnifiedAccessPlatformFailureException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingPathVariableException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -121,14 +127,32 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, String>> handleIllegalArgumentException(IllegalArgumentException ex) {
+    public ResponseEntity<Map<String, String>> handleIllegalArgumentException(
+            IllegalArgumentException ex, HttpServletRequest request) {
         log.warn("Invalid argument: {}", ex.getMessage());
+
+        if (isFrameworkBindingIllegalArgumentException(ex)) {
+            return buildFrameworkBindingErrorResponse(request.getRequestURI());
+        }
 
         Map<String, String> body = new HashMap<>();
         body.put("code", mapIllegalArgumentCode(ex.getMessage()));
         body.put("message", ex.getMessage());
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler({
+            MissingServletRequestParameterException.class,
+            MissingPathVariableException.class,
+            MethodArgumentTypeMismatchException.class,
+            BindException.class,
+            ServletRequestBindingException.class
+    })
+    public ResponseEntity<Map<String, String>> handleFrameworkBindingException(
+            Exception ex, HttpServletRequest request) {
+        log.warn("Framework binding failure on {}: {}", request.getRequestURI(), ex.getMessage());
+        return buildFrameworkBindingErrorResponse(request.getRequestURI());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -245,5 +269,54 @@ public class GlobalExceptionHandler {
             return ConsumerAuthErrorCodes.API_CREDENTIAL_INVALID;
         }
         return CatalogErrorCodes.CATEGORY_CODE_INVALID;
+    }
+
+    private boolean isFrameworkBindingIllegalArgumentException(IllegalArgumentException ex) {
+        String message = ex.getMessage();
+        if (message == null) {
+            return false;
+        }
+        return message.contains("-parameters")
+                || message.contains("parameter name information")
+                || message.contains("Name for argument of type")
+                || message.contains("PathVariable")
+                || message.contains("RequestParam");
+    }
+
+    private ResponseEntity<Map<String, String>> buildFrameworkBindingErrorResponse(String requestUri) {
+        Map<String, String> body = new HashMap<>();
+        body.put("code", resolveFrameworkBindingCode(requestUri));
+        body.put("message", resolveFrameworkBindingMessage(requestUri));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    private String resolveFrameworkBindingCode(String requestUri) {
+        if (requestUri != null) {
+            if (requestUri.startsWith("/api/v1/current-user/api-keys")) {
+                return ConsumerAuthErrorCodes.API_CREDENTIAL_INVALID;
+            }
+            if (requestUri.startsWith("/api/v1/current-user/api-call-logs")) {
+                return ObservabilityErrorCodes.API_CALL_LOG_INVALID_QUERY;
+            }
+            if (requestUri.startsWith("/api/v1/assets") || requestUri.startsWith("/api/v1/discovery/assets")) {
+                return CatalogErrorCodes.API_CODE_INVALID;
+            }
+        }
+        return CatalogErrorCodes.CATEGORY_CODE_INVALID;
+    }
+
+    private String resolveFrameworkBindingMessage(String requestUri) {
+        if (requestUri != null) {
+            if (requestUri.startsWith("/api/v1/current-user/api-keys")) {
+                return "Invalid API credential request parameters";
+            }
+            if (requestUri.startsWith("/api/v1/current-user/api-call-logs")) {
+                return "Invalid API call log request parameters";
+            }
+            if (requestUri.startsWith("/api/v1/assets") || requestUri.startsWith("/api/v1/discovery/assets")) {
+                return "Invalid asset request parameters";
+            }
+        }
+        return "Invalid category request parameters";
     }
 }

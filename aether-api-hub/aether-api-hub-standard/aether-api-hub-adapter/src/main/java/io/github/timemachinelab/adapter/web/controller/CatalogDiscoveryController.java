@@ -29,7 +29,7 @@ public class CatalogDiscoveryController {
     }
 
     @GetMapping("/{apiCode}")
-    public CatalogDiscoveryAssetDetailResp getAssetDetail(@PathVariable String apiCode) {
+    public CatalogDiscoveryAssetDetailResp getAssetDetail(@PathVariable("apiCode") String apiCode) {
         return delegate.getAssetDetail(apiCode);
     }
 }

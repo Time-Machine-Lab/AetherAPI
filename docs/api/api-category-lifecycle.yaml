@@ -62,6 +62,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResp'
+              example:
+                code: CATEGORY_CODE_INVALID
+                message: Invalid category request parameters
 
     post:
       summary: 创建新分类
@@ -114,6 +117,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CategoryResp'
+        '400':
+          description: Path parameter binding failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+              example:
+                code: CATEGORY_CODE_INVALID
+                message: Invalid category request parameters
         '404':
           description: 分类不存在或已删除
           content:

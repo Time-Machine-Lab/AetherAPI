@@ -46,9 +46,9 @@ public class CategoryController {
      */
     @GetMapping
     public CategoryPageResp listCategories(
-            @RequestParam(required = false) String status,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "size", defaultValue = "20") int size) {
         return delegate.listCategories(status, page, size);
     }
 
@@ -56,7 +56,7 @@ public class CategoryController {
      * 根据分类编码查询分类详情。
      */
     @GetMapping("/{categoryCode}")
-    public CategoryResp getCategoryByCode(@PathVariable String categoryCode) {
+    public CategoryResp getCategoryByCode(@PathVariable("categoryCode") String categoryCode) {
         return delegate.getCategoryByCode(categoryCode);
     }
 
@@ -65,7 +65,7 @@ public class CategoryController {
      */
     @PutMapping("/{categoryCode}")
     public CategoryResp renameCategory(
-            @PathVariable String categoryCode,
+            @PathVariable("categoryCode") String categoryCode,
             @Valid @RequestBody RenameCategoryReq req) {
         return delegate.renameCategory(categoryCode, req);
     }
@@ -74,7 +74,7 @@ public class CategoryController {
      * 启用分类。
      */
     @PatchMapping("/{categoryCode}/enable")
-    public CategoryResp enableCategory(@PathVariable String categoryCode) {
+    public CategoryResp enableCategory(@PathVariable("categoryCode") String categoryCode) {
         return delegate.enableCategory(categoryCode);
     }
 
@@ -82,7 +82,7 @@ public class CategoryController {
      * 停用分类。
      */
     @PatchMapping("/{categoryCode}/disable")
-    public CategoryResp disableCategory(@PathVariable String categoryCode) {
+    public CategoryResp disableCategory(@PathVariable("categoryCode") String categoryCode) {
         return delegate.disableCategory(categoryCode);
     }
 
@@ -90,7 +90,7 @@ public class CategoryController {
      * 校验分类有效性（供下游资产模块调用）。
      */
     @GetMapping("/validate")
-    public CategoryValidityResp validateCategory(@RequestParam String categoryCode) {
+    public CategoryValidityResp validateCategory(@RequestParam("categoryCode") String categoryCode) {
         return delegate.validateCategory(categoryCode);
     }
 }

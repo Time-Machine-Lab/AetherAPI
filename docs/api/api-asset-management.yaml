@@ -67,6 +67,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiAssetResp'
+        '400':
+          description: Path parameter binding failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+              example:
+                code: API_CODE_INVALID
+                message: Invalid asset request parameters
         '404':
           description: 资产不存在
           content:

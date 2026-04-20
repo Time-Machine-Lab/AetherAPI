@@ -39,30 +39,34 @@ public class ApiCredentialController {
 
     @GetMapping
     public ApiCredentialPageResp listApiCredentials(
-            @RequestParam(required = false) String status,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "size", defaultValue = "20") int size,
             Principal principal) {
         return delegate.listApiCredentials(currentUserId(principal), status, page, size);
     }
 
     @GetMapping("/{credentialId}")
-    public ApiCredentialResp getApiCredentialDetail(@PathVariable String credentialId, Principal principal) {
+    public ApiCredentialResp getApiCredentialDetail(
+            @PathVariable("credentialId") String credentialId, Principal principal) {
         return delegate.getApiCredentialDetail(currentUserId(principal), credentialId);
     }
 
     @PatchMapping("/{credentialId}/enable")
-    public ApiCredentialResp enableApiCredential(@PathVariable String credentialId, Principal principal) {
+    public ApiCredentialResp enableApiCredential(
+            @PathVariable("credentialId") String credentialId, Principal principal) {
         return delegate.enableApiCredential(currentUserId(principal), credentialId);
     }
 
     @PatchMapping("/{credentialId}/disable")
-    public ApiCredentialResp disableApiCredential(@PathVariable String credentialId, Principal principal) {
+    public ApiCredentialResp disableApiCredential(
+            @PathVariable("credentialId") String credentialId, Principal principal) {
         return delegate.disableApiCredential(currentUserId(principal), credentialId);
     }
 
     @PatchMapping("/{credentialId}/revoke")
-    public ApiCredentialResp revokeApiCredential(@PathVariable String credentialId, Principal principal) {
+    public ApiCredentialResp revokeApiCredential(
+            @PathVariable("credentialId") String credentialId, Principal principal) {
         return delegate.revokeApiCredential(currentUserId(principal), credentialId);
     }
 
