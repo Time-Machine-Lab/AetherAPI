@@ -4,7 +4,7 @@ import { useAuthStore } from '@/stores/useAuthStore'
 import { env } from '@/utils/env'
 import { mockAdapter } from '@/api/catalog/catalog.mock'
 
-const isMock = import.meta.env.VITE_MOCK === 'true'
+const isMock = import.meta.env.VITE_MOCK === 'false'
 
 interface HttpErrorPayload {
   code?: string

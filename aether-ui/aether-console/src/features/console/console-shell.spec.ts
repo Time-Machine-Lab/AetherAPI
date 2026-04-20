@@ -1,40 +1,41 @@
 import { describe, expect, it } from 'vitest'
-import { summarizeConsoleSkeleton } from '@/features/console/console-shell'
+import {
+  consoleSidebarGroups,
+  consoleTopUtilities,
+  consoleWorkspacePanels,
+} from '@/features/console/console-shell'
 
 describe('console shell blueprint', () => {
-  it('keeps the core scaffold mapped before feature work lands', () => {
-    const summary = summarizeConsoleSkeleton()
+  it('keeps key operations navigation entries wired to workspace hashes', () => {
+    const operationsGroup = consoleSidebarGroups.find((group) => group.id === 'operations')
+    expect(operationsGroup).toBeDefined()
 
-    expect(summary.navIds).toEqual([
-      'marketplace',
-      'agents',
+    const operationIds = operationsGroup!.items.map((item) => item.id)
+    expect(operationIds).toEqual([
       'credentials',
-      'usage',
-      'orders',
-      'billing',
-      'docs',
-      'overview',
-    ])
-    expect(summary.moduleIds).toEqual([
-      'agents',
-      'credentials',
+      'api-call-logs',
       'usage',
       'orders',
       'billing',
       'docs',
     ])
-    expect(summary.quickActionIds).toEqual([
+    expect(operationsGroup!.items.find((item) => item.id === 'api-call-logs')?.hash).toBe(
+      '#api-call-logs',
+    )
+  })
+
+  it('keeps top utilities and workspace panels available for shell rendering', () => {
+    expect(consoleTopUtilities.map((item) => item.id)).toEqual([
       'new',
       'messages',
       'docs',
       'workorder',
       'usage',
-      'cloud',
     ])
-    expect(summary.readyCount).toBe(6)
-    expect(summary.plannedCount).toBe(3)
-    expect(summary.sidebarGroupCount).toBe(2)
-    expect(summary.topUtilityCount).toBe(6)
-    expect(summary.marketplaceCardCount).toBeGreaterThanOrEqual(8)
+    expect(consoleWorkspacePanels.map((item) => item.id)).toEqual([
+      'category-manage',
+      'asset-manage',
+      'recent-assets',
+    ])
   })
 })

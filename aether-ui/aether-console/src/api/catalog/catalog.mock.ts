@@ -1,6 +1,7 @@
-import type { AxiosRequestConfig, AxiosResponse } from 'axios'
+import type { AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import type { CategoryDto, AssetDto, DiscoveryAssetDto, DiscoveryAssetDetailDto, PageDto } from './catalog.dto'
 import { credentialMockRoutes } from '@/api/credential/credential.mock'
+import { apiCallLogMockRoutes } from '@/api/api-call-log/api-call-log.mock'
 
 // ── Seed data ────────────────────────────────────────────────
 
@@ -66,7 +67,13 @@ function page<T>(items: T[], params: Record<string, string>): PageDto<T> {
 }
 
 function ok<T>(data: T): AxiosResponse<T> {
-  return { data, status: 200, statusText: 'OK', headers: {}, config: {} as AxiosRequestConfig }
+  return {
+    data,
+    status: 200,
+    statusText: 'OK',
+    headers: {},
+    config: { headers: {} } as InternalAxiosRequestConfig,
+  }
 }
 
 function notFound(): never {
@@ -237,7 +244,7 @@ export function mockAdapter(config: AxiosRequestConfig): Promise<AxiosResponse> 
     }
   }
 
-  const allRoutes = [...routes, ...credentialMockRoutes]
+  const allRoutes = [...routes, ...credentialMockRoutes, ...apiCallLogMockRoutes]
   for (const route of allRoutes) {
     if (route.method !== method) continue
     const match = url.match(route.pattern)

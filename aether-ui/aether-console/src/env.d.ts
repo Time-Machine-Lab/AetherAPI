@@ -4,16 +4,14 @@ export {}
 
 type AppLayoutKey = 'MarketingLayout' | 'ConsoleLayout' | 'AdminLayout'
 
-interface ImportMetaEnv {
-  readonly VITE_API_BASE_URL?: string
-  readonly VITE_APP_ID?: string
-  readonly VITE_APP_NAME?: string
-  readonly VITE_DEFAULT_LOCALE?: 'zh-CN' | 'en-US'
-  readonly VITE_REQUEST_TIMEOUT_MS?: string
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv
+declare global {
+  interface ImportMetaEnv {
+    readonly VITE_API_BASE_URL?: string
+    readonly VITE_APP_ID?: string
+    readonly VITE_APP_NAME?: string
+    readonly VITE_DEFAULT_LOCALE?: 'zh-CN' | 'en-US'
+    readonly VITE_REQUEST_TIMEOUT_MS?: string
+  }
 }
 
 declare module 'vue-router' {
