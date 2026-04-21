@@ -67,17 +67,25 @@ export default {
     },
     signIn: {
       metaTitle: 'Console Sign In',
-      eyebrow: 'Demo access',
+      eyebrow: 'Operator Console',
       title: 'Enter the operator console',
-      description:
-        'A local session is used so layout, navigation, and protected routes can continue development.',
-      note: 'This only creates a local demo session in the current app sandbox.',
-      nameLabel: 'Operator name',
-      emailLabel: 'Work email',
-      submit: 'Enter console',
+      description: 'Sign in with your console account to manage API assets, call logs, and credentials.',
+      note: 'Console session is only used for console API authentication, independent of Unified Access API Keys.',
+      formTitle: 'Sign in',
+      formDescription: 'Enter your console login name and password to continue.',
+      loginNameLabel: 'Login name',
+      passwordLabel: 'Password',
+      submit: 'Sign in',
+      submitting: 'Signing in…',
       helperTitle: 'What is already prepared',
       helperDescription:
         'The full-screen shell, sidebar navigation, and working surfaces are already in place.',
+      errors: {
+        CONSOLE_SIGN_IN_CREDENTIALS_INVALID: 'Invalid login name or password. Please check and try again.',
+        CONSOLE_SIGN_IN_REQUEST_INVALID: 'Invalid request parameters. Please check the login name and password format.',
+        UNKNOWN: 'Sign in failed. Please try again later.',
+      },
+      sessionExpired: 'Your session has expired. Please sign in again.',
     },
     workspace: {
       metaTitle: 'API Asset Management',

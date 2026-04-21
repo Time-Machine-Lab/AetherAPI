@@ -3,6 +3,7 @@ import { appConfig } from '@/app/app-config'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { env } from '@/utils/env'
 import { mockAdapter } from '@/api/catalog/catalog.mock'
+import router from '@/app/router'
 
 const isMock = import.meta.env.VITE_MOCK === 'false'
 
@@ -62,9 +63,9 @@ export const http = axios.create({
 http.interceptors.request.use((config) => {
   const authStore = useAuthStore()
 
-  if (authStore.token) {
+  if (authStore.accessToken) {
     config.headers = config.headers ?? {}
-    config.headers.Authorization = `Bearer ${authStore.token}`
+    config.headers.Authorization = `Bearer ${authStore.accessToken}`
   }
 
   return config
@@ -80,6 +81,17 @@ http.interceptors.response.use(
       return http(config)
     }
 
-    return Promise.reject(normalizeHttpError(error))
+    const normalized = normalizeHttpError(error)
+
+    // Treat CONSOLE_SESSION_UNAUTHORIZED as a console session invalidation signal.
+    // This error code is specific to the console auth chain and must not be confused
+    // with Unified Access API Key failures which carry their own distinct error codes.
+    if (normalized.status === 401 && normalized.code === 'CONSOLE_SESSION_UNAUTHORIZED') {
+      const authStore = useAuthStore()
+      authStore.clearSession()
+      router.push({ name: appConfig.signInRouteName })
+    }
+
+    return Promise.reject(normalized)
   },
 )

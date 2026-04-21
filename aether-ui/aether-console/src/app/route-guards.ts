@@ -1,10 +1,17 @@
 import type { Router } from 'vue-router'
 import { appConfig } from '@/app/app-config'
 import { useAuthStore } from '@/stores/useAuthStore'
+import { useConsoleAuth } from '@/composables/useConsoleAuth'
 
 export function applyRouteGuards(router: Router) {
-  router.beforeEach((to) => {
+  router.beforeEach(async (to) => {
     const authStore = useAuthStore()
+    const { restoreSession } = useConsoleAuth()
+
+    // Attempt session restore once per app lifecycle before accessing any protected route
+    if (!authStore.sessionInitialized && to.meta.requiresAuth) {
+      await restoreSession()
+    }
 
     if (to.meta.guestOnly && authStore.isAuthenticated) {
       return { name: appConfig.protectedHomeRouteName }

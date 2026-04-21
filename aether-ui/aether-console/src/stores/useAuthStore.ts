@@ -1,36 +1,35 @@
 import { defineStore } from 'pinia'
 import { appConfig } from '@/app/app-config'
+import type { ConsoleCurrentUser, ConsoleSession } from '@/api/console-auth/console-auth.types'
 
-interface AuthUser {
-  displayName: string
-  email: string
-  role: string
+interface PersistedAuthState {
+  accessToken: string | null
+  currentUser: ConsoleCurrentUser | null
 }
 
-interface AuthState {
-  token: string | null
-  user: AuthUser | null
+interface AuthState extends PersistedAuthState {
+  sessionInitialized: boolean
 }
 
-function readSession(): AuthState {
+function readPersistedSession(): PersistedAuthState {
   if (typeof window === 'undefined') {
-    return { token: null, user: null }
+    return { accessToken: null, currentUser: null }
   }
 
   const raw = window.localStorage.getItem(appConfig.storageKey)
 
   if (!raw) {
-    return { token: null, user: null }
+    return { accessToken: null, currentUser: null }
   }
 
   try {
-    return JSON.parse(raw) as AuthState
+    return JSON.parse(raw) as PersistedAuthState
   } catch {
-    return { token: null, user: null }
+    return { accessToken: null, currentUser: null }
   }
 }
 
-function persistSession(state: AuthState) {
+function persistSession(state: PersistedAuthState) {
   if (typeof window === 'undefined') {
     return
   }
@@ -39,29 +38,28 @@ function persistSession(state: AuthState) {
 }
 
 export const useAuthStore = defineStore('auth', {
-  state: (): AuthState => readSession(),
+  state: (): AuthState => ({
+    ...readPersistedSession(),
+    sessionInitialized: false,
+  }),
   getters: {
-    isAuthenticated: (state) => Boolean(state.token),
+    isAuthenticated: (state) => Boolean(state.accessToken) && state.sessionInitialized,
   },
   actions: {
-    signIn(user?: Partial<AuthUser>) {
-      const nextState: AuthState = {
-        token: `${appConfig.appId}-demo-token`,
-        user: {
-          displayName: user?.displayName ?? 'Aether Console Operator',
-          email: user?.email ?? 'console@aetherapi.local',
-          role: user?.role ?? 'owner',
-        },
-      }
-
-      this.token = nextState.token
-      this.user = nextState.user
-      persistSession(nextState)
+    setSession(session: ConsoleSession) {
+      this.accessToken = session.accessToken
+      this.currentUser = session.currentUser
+      this.sessionInitialized = true
+      persistSession({ accessToken: session.accessToken, currentUser: session.currentUser })
     },
-    signOut() {
-      this.token = null
-      this.user = null
-      persistSession({ token: null, user: null })
+    clearSession() {
+      this.accessToken = null
+      this.currentUser = null
+      this.sessionInitialized = true
+      persistSession({ accessToken: null, currentUser: null })
+    },
+    markInitialized() {
+      this.sessionInitialized = true
     },
   },
 })

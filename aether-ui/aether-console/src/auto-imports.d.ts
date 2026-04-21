@@ -73,6 +73,7 @@ declare global {
   const useAppShellStore: typeof import('./stores/useAppShellStore').useAppShellStore
   const useAttrs: typeof import('vue').useAttrs
   const useAuthStore: typeof import('./stores/useAuthStore').useAuthStore
+  const useConsoleAuth: typeof import('./composables/useConsoleAuth').useConsoleAuth
   const useCssModule: typeof import('vue').useCssModule
   const useCssVars: typeof import('vue').useCssVars
   const useI18n: typeof import('vue-i18n').useI18n
@@ -102,7 +103,6 @@ declare module 'vue' {
   interface ComponentCustomProperties {
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
-    readonly actions: UnwrapRef<typeof import('./stores/useAuthStore')['actions']>
     readonly computed: UnwrapRef<typeof import('vue')['computed']>
     readonly createApp: UnwrapRef<typeof import('vue')['createApp']>
     readonly createPinia: UnwrapRef<typeof import('pinia')['createPinia']>
@@ -167,6 +167,7 @@ declare module 'vue' {
     readonly useAppShellStore: UnwrapRef<typeof import('./stores/useAppShellStore')['useAppShellStore']>
     readonly useAttrs: UnwrapRef<typeof import('vue')['useAttrs']>
     readonly useAuthStore: UnwrapRef<typeof import('./stores/useAuthStore')['useAuthStore']>
+    readonly useConsoleAuth: UnwrapRef<typeof import('./composables/useConsoleAuth')['useConsoleAuth']>
     readonly useCssModule: UnwrapRef<typeof import('vue')['useCssModule']>
     readonly useCssVars: UnwrapRef<typeof import('vue')['useCssVars']>
     readonly useI18n: UnwrapRef<typeof import('vue-i18n')['useI18n']>

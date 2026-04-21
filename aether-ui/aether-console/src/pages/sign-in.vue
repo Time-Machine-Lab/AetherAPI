@@ -11,33 +11,38 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { appConfig } from '@/app/app-config'
 import { consoleWorkspacePanels } from '@/features/console/console-shell'
-import { useAuthStore } from '@/stores/useAuthStore'
+import { useConsoleAuth } from '@/composables/useConsoleAuth'
+import type { NormalizedHttpError } from '@/api/http'
 
-const authStore = useAuthStore()
+const { signIn } = useConsoleAuth()
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 
-const displayName = ref('Console Operator')
-const email = ref('console@aetherapi.local')
+const loginName = ref('')
+const password = ref('')
 const isSubmitting = ref(false)
+const errorCode = ref<string | null>(null)
 
 async function handleSignIn() {
   isSubmitting.value = true
+  errorCode.value = null
 
-  authStore.signIn({
-    displayName: displayName.value,
-    email: email.value,
-    role: 'developer',
-  })
+  try {
+    await signIn(loginName.value, password.value)
 
-  const redirectName =
-    typeof route.query.redirectName === 'string'
-      ? (route.query.redirectName as RouteRecordName)
-      : (appConfig.protectedHomeRouteName as RouteRecordName)
+    const redirectName =
+      typeof route.query.redirectName === 'string'
+        ? (route.query.redirectName as RouteRecordName)
+        : (appConfig.protectedHomeRouteName as RouteRecordName)
 
-  await router.push({ name: redirectName })
-  isSubmitting.value = false
+    await router.push({ name: redirectName })
+  } catch (err) {
+    const httpError = err as NormalizedHttpError
+    errorCode.value = httpError.code ?? 'UNKNOWN'
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
@@ -101,24 +106,27 @@ async function handleSignIn() {
 
     <Card class="self-start">
       <CardHeader class="space-y-3">
-        <CardTitle class="text-3xl">{{ t('console.signIn.title') }}</CardTitle>
-        <CardDescription>{{ t('console.signIn.description') }}</CardDescription>
+        <CardTitle class="text-3xl">{{ t('console.signIn.formTitle') }}</CardTitle>
+        <CardDescription>{{ t('console.signIn.formDescription') }}</CardDescription>
       </CardHeader>
       <CardContent>
         <form class="space-y-5" @submit.prevent="handleSignIn">
           <div class="space-y-2">
-            <Label for="display-name">{{ t('console.signIn.nameLabel') }}</Label>
-            <Input id="display-name" v-model="displayName" />
+            <Label for="login-name">{{ t('console.signIn.loginNameLabel') }}</Label>
+            <Input id="login-name" v-model="loginName" autocomplete="username" :disabled="isSubmitting" />
           </div>
           <div class="space-y-2">
-            <Label for="email">{{ t('console.signIn.emailLabel') }}</Label>
-            <Input id="email" v-model="email" type="email" />
+            <Label for="password">{{ t('console.signIn.passwordLabel') }}</Label>
+            <Input id="password" v-model="password" type="password" autocomplete="current-password" :disabled="isSubmitting" />
           </div>
-          <p class="rounded-[18px] bg-secondary px-4 py-3 text-sm leading-6 text-muted-foreground">
-            {{ t('console.signIn.note') }}
+          <p
+            v-if="errorCode"
+            class="rounded-[18px] bg-destructive/10 px-4 py-3 text-sm leading-6 text-destructive"
+          >
+            {{ t(`console.signIn.errors.${errorCode}`, t('console.signIn.errors.UNKNOWN')) }}
           </p>
-          <Button class="w-full" type="submit" :disabled="isSubmitting">
-            {{ t('console.signIn.submit') }}
+          <Button class="w-full" type="submit" :disabled="isSubmitting || !loginName || !password">
+            {{ isSubmitting ? t('console.signIn.submitting') : t('console.signIn.submit') }}
           </Button>
         </form>
       </CardContent>

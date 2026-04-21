@@ -32,9 +32,11 @@ import {
   type ConsoleNavId,
 } from '@/features/console/console-shell'
 import { useAuthStore } from '@/stores/useAuthStore'
+import { useConsoleAuth } from '@/composables/useConsoleAuth'
 
 const authStore = useAuthStore()
-const { user } = storeToRefs(authStore)
+const { currentUser } = storeToRefs(authStore)
+const { signOut } = useConsoleAuth()
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
@@ -78,7 +80,7 @@ const pageTitle = computed(() => {
 })
 
 async function handleSignOut() {
-  authStore.signOut()
+  signOut()
   await router.push({ name: appConfig.signInRouteName })
 }
 </script>
@@ -123,10 +125,10 @@ async function handleSignOut() {
               </div>
               <div class="min-w-0">
                 <p class="truncate text-sm font-medium text-foreground">
-                  {{ user?.displayName ?? 'Console Operator' }}
+                  {{ currentUser?.displayName ?? 'Console Operator' }}
                 </p>
                 <p class="truncate text-xs text-muted-foreground">
-                  {{ user?.email ?? 'console@aetherapi.local' }}
+                  {{ currentUser?.email ?? 'console@aetherapi.local' }}
                 </p>
               </div>
             </div>
