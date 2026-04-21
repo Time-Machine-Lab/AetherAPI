@@ -1,4 +1,4 @@
-import type { AxiosRequestConfig, AxiosResponse } from 'axios'
+import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import type {
   CurrentUserApiKeyDto,
   CurrentUserApiKeyPageDto,
@@ -65,7 +65,13 @@ const apiKeys: CurrentUserApiKeyDto[] = [
 let counter = apiKeys.length
 
 function ok<T>(data: T, status = 200): AxiosResponse<T> {
-  return { data, status, statusText: 'OK', headers: {}, config: {} as AxiosRequestConfig }
+  return {
+    data,
+    status,
+    statusText: 'OK',
+    headers: {},
+    config: { headers: {} } as InternalAxiosRequestConfig,
+  }
 }
 
 function notFound(): never {

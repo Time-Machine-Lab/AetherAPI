@@ -13,6 +13,7 @@ import {
   Package,
   Play,
   Rocket,
+  ScrollText,
   ReceiptText,
   UserRound,
 } from 'lucide-vue-next'
@@ -46,6 +47,7 @@ const iconMap = {
   'category-manage': Package,
   'unified-access-playground': Play,
   credentials: KeyRound,
+  'api-call-logs': ScrollText,
   usage: Activity,
   orders: ReceiptText,
   billing: CreditCard,

@@ -20,6 +20,7 @@ import type { ApiCategory, ApiAsset } from '@/api/catalog/catalog.types'
 import type { RegisterAssetBody, BindAiProfileBody } from '@/api/catalog/catalog.dto'
 import { getRecentAssets } from '@/features/catalog/catalog-helpers'
 import CredentialWorkspace from '@/features/credential/CredentialWorkspace.vue'
+import ApiCallLogWorkspace from '@/features/api-call-log/ApiCallLogWorkspace.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -29,6 +30,7 @@ const { t } = useI18n()
 const route = useRoute()
 
 const isCredentialsSection = computed(() => route.hash === '#credentials')
+const isApiCallLogsSection = computed(() => route.hash === '#api-call-logs')
 
 // ── Categories ──────────────────────────────────────────────
 const categories = ref<ApiCategory[]>([])
@@ -161,6 +163,7 @@ onMounted(loadCategories)
 
 <template>
   <CredentialWorkspace v-if="isCredentialsSection" />
+  <ApiCallLogWorkspace v-else-if="isApiCallLogsSection" />
   <div v-else class="space-y-6">
     <!-- Header -->
     <section>

@@ -6,6 +6,7 @@ export type ConsoleNavId =
   | 'category-manage'
   | 'unified-access-playground'
   | 'credentials'
+  | 'api-call-logs'
   | 'usage'
   | 'orders'
   | 'billing'
@@ -87,6 +88,12 @@ export const consoleSidebarGroups: ConsoleSidebarGroup[] = [
         labelKey: 'console.navigation.credentials',
         routeName: 'console-workspace',
         hash: '#credentials',
+      },
+      {
+        id: 'api-call-logs',
+        labelKey: 'console.navigation.apiCallLogs',
+        routeName: 'console-workspace',
+        hash: '#api-call-logs',
       },
       {
         id: 'usage',
