@@ -1,16 +1,19 @@
 package io.github.timemachinelab.adapter.web.handler;
 
 import io.github.timemachinelab.api.error.CatalogErrorCodes;
+import io.github.timemachinelab.api.error.ConsoleSessionAuthErrorCodes;
 import io.github.timemachinelab.api.error.ConsumerAuthErrorCodes;
 import io.github.timemachinelab.api.error.ObservabilityErrorCodes;
 import io.github.timemachinelab.api.resp.UnifiedAccessPlatformFailureResp;
 import io.github.timemachinelab.domain.catalog.model.AssetDomainException;
 import io.github.timemachinelab.domain.catalog.model.CategoryDomainException;
+import io.github.timemachinelab.domain.consolesessionauth.model.ConsoleSessionAuthDomainException;
 import io.github.timemachinelab.domain.consumerauth.model.ConsumerAuthDomainException;
 import io.github.timemachinelab.domain.observability.model.ObservabilityDomainException;
 import io.github.timemachinelab.service.model.UnifiedAccessPlatformFailureException;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
@@ -29,9 +32,10 @@ import java.util.Map;
 /**
  * 全局异常处理器，将领域异常映射为标准响应。
  */
-@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(UnifiedAccessPlatformFailureException.class)
     public ResponseEntity<UnifiedAccessPlatformFailureResp> handleUnifiedAccessPlatformFailure(
@@ -110,6 +114,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(body);
     }
 
+    @ExceptionHandler(ConsoleSessionAuthDomainException.class)
+    public ResponseEntity<Map<String, String>> handleConsoleSessionAuthDomainException(ConsoleSessionAuthDomainException ex) {
+        log.warn("Console session auth exception: {}", ex.getMessage());
+
+        Map<String, String> body = new HashMap<>();
+        body.put("code", mapConsoleSessionAuthExceptionToCode(ex.getMessage()));
+        body.put("message", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    }
+
     @ExceptionHandler(ObservabilityDomainException.class)
     public ResponseEntity<Map<String, String>> handleObservabilityDomainException(ObservabilityDomainException ex) {
         log.warn("Observability domain exception: {}", ex.getMessage());
@@ -162,7 +177,9 @@ public class GlobalExceptionHandler {
 
         Map<String, String> body = new HashMap<>();
         String objectName = ex.getBindingResult().getObjectName();
-        if (objectName != null && objectName.toLowerCase().contains("credential")) {
+        if (objectName != null && objectName.toLowerCase().contains("consolesignin")) {
+            body.put("code", ConsoleSessionAuthErrorCodes.CONSOLE_SIGN_IN_REQUEST_INVALID);
+        } else if (objectName != null && objectName.toLowerCase().contains("credential")) {
             body.put("code", ConsumerAuthErrorCodes.API_CREDENTIAL_INVALID);
         } else if (objectName != null && objectName.toLowerCase().contains("apicalllog")) {
             body.put("code", ObservabilityErrorCodes.API_CALL_LOG_INVALID_QUERY);
@@ -246,6 +263,13 @@ public class GlobalExceptionHandler {
         return ConsumerAuthErrorCodes.API_CREDENTIAL_INVALID;
     }
 
+    private String mapConsoleSessionAuthExceptionToCode(String message) {
+        if (message != null && message.contains("sign-in credentials")) {
+            return ConsoleSessionAuthErrorCodes.CONSOLE_SIGN_IN_CREDENTIALS_INVALID;
+        }
+        return ConsoleSessionAuthErrorCodes.CONSOLE_SESSION_UNAUTHORIZED;
+    }
+
     private String mapObservabilityExceptionToCode(String message) {
         if (message.contains("not found")) {
             return ObservabilityErrorCodes.API_CALL_LOG_NOT_FOUND;
@@ -261,6 +285,14 @@ public class GlobalExceptionHandler {
                 || message.contains("Invocation")
                 || message.contains("API call log"))) {
             return ObservabilityErrorCodes.API_CALL_LOG_INVALID_QUERY;
+        }
+        if (message != null && (message.contains("console sign-in")
+                || message.contains("Console sign-in"))) {
+            return ConsoleSessionAuthErrorCodes.CONSOLE_SIGN_IN_REQUEST_INVALID;
+        }
+        if (message != null && (message.contains("Console session")
+                || message.contains("console session"))) {
+            return ConsoleSessionAuthErrorCodes.CONSOLE_SESSION_UNAUTHORIZED;
         }
         if (message != null && message.contains("Current user")) {
             return ConsumerAuthErrorCodes.CURRENT_USER_REQUIRED;
@@ -292,6 +324,9 @@ public class GlobalExceptionHandler {
 
     private String resolveFrameworkBindingCode(String requestUri) {
         if (requestUri != null) {
+            if (requestUri.startsWith("/api/v1/console/auth")) {
+                return ConsoleSessionAuthErrorCodes.CONSOLE_SIGN_IN_REQUEST_INVALID;
+            }
             if (requestUri.startsWith("/api/v1/current-user/api-keys")) {
                 return ConsumerAuthErrorCodes.API_CREDENTIAL_INVALID;
             }
@@ -307,6 +342,9 @@ public class GlobalExceptionHandler {
 
     private String resolveFrameworkBindingMessage(String requestUri) {
         if (requestUri != null) {
+            if (requestUri.startsWith("/api/v1/console/auth")) {
+                return "Invalid console sign-in request parameters";
+            }
             if (requestUri.startsWith("/api/v1/current-user/api-keys")) {
                 return "Invalid API credential request parameters";
             }

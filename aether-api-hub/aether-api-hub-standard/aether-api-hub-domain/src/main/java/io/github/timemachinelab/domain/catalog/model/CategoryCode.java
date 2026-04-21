@@ -34,6 +34,9 @@ public final class CategoryCode {
             throw new IllegalArgumentException(
                     "CategoryCode value must not exceed " + MAX_LENGTH + " characters, got: " + trimmed.length());
         }
+        if (trimmed.contains("--")) {
+            throw new IllegalArgumentException("CategoryCode value must not contain consecutive hyphens, got: " + trimmed);
+        }
         if (!VALID_PATTERN.matcher(trimmed).matches()) {
             throw new IllegalArgumentException(
                     "CategoryCode value must match pattern '^[a-z0-9][a-z0-9_-]*[a-z0-9]$|^[a-z0-9]$', got: " + trimmed);

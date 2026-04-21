@@ -1,5 +1,6 @@
 package io.github.timemachinelab.adapter.web.controller;
 
+import io.github.timemachinelab.adapter.web.auth.ConsoleSessionPrincipal;
 import io.github.timemachinelab.adapter.web.delegate.ApiCredentialWebDelegate;
 import io.github.timemachinelab.api.req.CreateApiCredentialReq;
 import io.github.timemachinelab.api.resp.ApiCredentialPageResp;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
@@ -33,8 +35,12 @@ public class ApiCredentialController {
     }
 
     @PostMapping
-    public IssuedApiCredentialResp createApiCredential(@Valid @RequestBody CreateApiCredentialReq req, Principal principal) {
-        return delegate.createApiCredential(currentUserId(principal), req);
+    public IssuedApiCredentialResp createApiCredential(
+            @Valid @RequestBody CreateApiCredentialReq req,
+            @RequestAttribute(name = ConsoleSessionPrincipal.REQUEST_ATTRIBUTE, required = false)
+            ConsoleSessionPrincipal consoleSessionPrincipal,
+            Principal principal) {
+        return delegate.createApiCredential(currentUserId(consoleSessionPrincipal, principal), req);
     }
 
     @GetMapping
@@ -42,35 +48,54 @@ public class ApiCredentialController {
             @RequestParam(name = "status", required = false) String status,
             @RequestParam(name = "page", defaultValue = "1") int page,
             @RequestParam(name = "size", defaultValue = "20") int size,
+            @RequestAttribute(name = ConsoleSessionPrincipal.REQUEST_ATTRIBUTE, required = false)
+            ConsoleSessionPrincipal consoleSessionPrincipal,
             Principal principal) {
-        return delegate.listApiCredentials(currentUserId(principal), status, page, size);
+        return delegate.listApiCredentials(currentUserId(consoleSessionPrincipal, principal), status, page, size);
     }
 
     @GetMapping("/{credentialId}")
     public ApiCredentialResp getApiCredentialDetail(
-            @PathVariable("credentialId") String credentialId, Principal principal) {
-        return delegate.getApiCredentialDetail(currentUserId(principal), credentialId);
+            @PathVariable("credentialId") String credentialId,
+            @RequestAttribute(name = ConsoleSessionPrincipal.REQUEST_ATTRIBUTE, required = false)
+            ConsoleSessionPrincipal consoleSessionPrincipal,
+            Principal principal) {
+        return delegate.getApiCredentialDetail(currentUserId(consoleSessionPrincipal, principal), credentialId);
     }
 
     @PatchMapping("/{credentialId}/enable")
     public ApiCredentialResp enableApiCredential(
-            @PathVariable("credentialId") String credentialId, Principal principal) {
-        return delegate.enableApiCredential(currentUserId(principal), credentialId);
+            @PathVariable("credentialId") String credentialId,
+            @RequestAttribute(name = ConsoleSessionPrincipal.REQUEST_ATTRIBUTE, required = false)
+            ConsoleSessionPrincipal consoleSessionPrincipal,
+            Principal principal) {
+        return delegate.enableApiCredential(currentUserId(consoleSessionPrincipal, principal), credentialId);
     }
 
     @PatchMapping("/{credentialId}/disable")
     public ApiCredentialResp disableApiCredential(
-            @PathVariable("credentialId") String credentialId, Principal principal) {
-        return delegate.disableApiCredential(currentUserId(principal), credentialId);
+            @PathVariable("credentialId") String credentialId,
+            @RequestAttribute(name = ConsoleSessionPrincipal.REQUEST_ATTRIBUTE, required = false)
+            ConsoleSessionPrincipal consoleSessionPrincipal,
+            Principal principal) {
+        return delegate.disableApiCredential(currentUserId(consoleSessionPrincipal, principal), credentialId);
     }
 
     @PatchMapping("/{credentialId}/revoke")
     public ApiCredentialResp revokeApiCredential(
-            @PathVariable("credentialId") String credentialId, Principal principal) {
-        return delegate.revokeApiCredential(currentUserId(principal), credentialId);
+            @PathVariable("credentialId") String credentialId,
+            @RequestAttribute(name = ConsoleSessionPrincipal.REQUEST_ATTRIBUTE, required = false)
+            ConsoleSessionPrincipal consoleSessionPrincipal,
+            Principal principal) {
+        return delegate.revokeApiCredential(currentUserId(consoleSessionPrincipal, principal), credentialId);
     }
 
-    private String currentUserId(Principal principal) {
+    private String currentUserId(ConsoleSessionPrincipal consoleSessionPrincipal, Principal principal) {
+        if (consoleSessionPrincipal != null
+                && consoleSessionPrincipal.getUserId() != null
+                && !consoleSessionPrincipal.getUserId().isBlank()) {
+            return consoleSessionPrincipal.getUserId();
+        }
         if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
             throw new IllegalArgumentException("Current user id must not be blank");
         }

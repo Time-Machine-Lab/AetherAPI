@@ -25,3 +25,15 @@ logging:
   level:
     io.github.timemachinelab: DEBUG
     com.baomidou.mybatisplus: INFO
+
+aether:
+  console:
+    session-auth:
+      user-id: ${AETHER_CONSOLE_AUTH_USER_ID:console-operator}
+      login-name: ${AETHER_CONSOLE_AUTH_LOGIN_NAME:console@aetherapi.local}
+      password: ${AETHER_CONSOLE_AUTH_PASSWORD:change-me-console-password}
+      display-name: ${AETHER_CONSOLE_AUTH_DISPLAY_NAME:Aether Console Operator}
+      email: ${AETHER_CONSOLE_AUTH_EMAIL:console@aetherapi.local}
+      role: ${AETHER_CONSOLE_AUTH_ROLE:OWNER}
+      token-secret: ${AETHER_CONSOLE_AUTH_TOKEN_SECRET:change-me-console-session-secret}
+      token-ttl-seconds: ${AETHER_CONSOLE_AUTH_TOKEN_TTL_SECONDS:43200}

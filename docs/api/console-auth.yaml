@@ -1,0 +1,231 @@
+openapi: 3.0.3
+info:
+  title: ConsoleAuthController 控制台会话认证接口
+  version: 1.0.0
+  description: |
+    控制台登录与当前会话恢复接口。
+    该文档与 `ConsoleAuthController.java` 保持一一映射，仅覆盖控制台 bearer token 的签发与当前会话查询。
+    前端联调时应将本地 `${appId}-demo-token` 替换为本接口返回的 `accessToken`，并将 `currentUser` 写入本地登录态；
+    Unified Access 仍继续使用 `X-Aether-Api-Key` 鉴权，不以控制台 bearer token 代替 API Key。
+servers:
+  - url: /api/v1
+    description: Console Session Auth v1
+
+tags:
+  - name: ConsoleAuth
+    description: 控制台登录与会话恢复
+
+paths:
+  /console/auth/sign-in:
+    post:
+      summary: 控制台登录
+      operationId: signInConsole
+      tags:
+        - ConsoleAuth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsoleSignInReq'
+      responses:
+        '200':
+          description: 登录成功并返回控制台 bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultConsoleSignInResp'
+        '400':
+          description: 请求参数校验失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+              example:
+                code: CONSOLE_SIGN_IN_REQUEST_INVALID
+                message: Invalid console sign-in request parameters
+                traceId: null
+                data:
+                  code: CONSOLE_SIGN_IN_REQUEST_INVALID
+                  message: Invalid console sign-in request parameters
+        '401':
+          description: 登录凭证无效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+              example:
+                code: CONSOLE_SIGN_IN_CREDENTIALS_INVALID
+                message: Invalid console sign-in credentials
+                traceId: null
+                data:
+                  code: CONSOLE_SIGN_IN_CREDENTIALS_INVALID
+                  message: Invalid console sign-in credentials
+
+  /console/auth/current-session:
+    get:
+      summary: 查询当前控制台会话
+      operationId: getCurrentConsoleSession
+      tags:
+        - ConsoleAuth
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 当前 bearer token 对应的控制台会话有效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultConsoleCurrentSessionResp'
+        '401':
+          description: 未登录或 bearer token 无效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+              example:
+                code: CONSOLE_SESSION_UNAUTHORIZED
+                message: Console session authentication required
+                traceId: null
+                data:
+                  code: CONSOLE_SESSION_UNAUTHORIZED
+                  message: Console session authentication required
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+
+  schemas:
+    ConsoleSignInReq:
+      type: object
+      required:
+        - loginName
+        - password
+      properties:
+        loginName:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: 控制台登录账号
+          example: console@aetherapi.local
+        password:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: 控制台登录密码
+          example: change-me-console-password
+
+    ConsoleCurrentUserResp:
+      type: object
+      properties:
+        userId:
+          type: string
+          description: 控制台登录主体唯一标识
+          example: console-operator
+        loginName:
+          type: string
+          description: 控制台登录账号
+          example: console@aetherapi.local
+        displayName:
+          type: string
+          description: 控制台用户展示名
+          example: Aether Console Operator
+        email:
+          type: string
+          description: 控制台用户邮箱
+          example: console@aetherapi.local
+        role:
+          type: string
+          description: 控制台用户角色展示值
+          example: OWNER
+
+    ConsoleSignInResp:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: 后端签发的控制台 bearer token
+        tokenType:
+          type: string
+          description: token 类型，固定为 Bearer
+          example: Bearer
+        expiresAt:
+          type: string
+          format: date-time
+          description: token 失效时间（UTC）
+          example: '2026-04-21T18:00:00Z'
+        expiresInSeconds:
+          type: integer
+          format: int64
+          description: token 剩余有效秒数
+          example: 43200
+        currentUser:
+          $ref: '#/components/schemas/ConsoleCurrentUserResp'
+
+    ConsoleCurrentSessionResp:
+      type: object
+      properties:
+        currentUser:
+          $ref: '#/components/schemas/ConsoleCurrentUserResp'
+
+    TmlResultConsoleSignInResp:
+      type: object
+      properties:
+        code:
+          type: string
+          example: SUCCESS
+        message:
+          type: string
+          example: OK
+        traceId:
+          type: string
+          nullable: true
+        data:
+          $ref: '#/components/schemas/ConsoleSignInResp'
+
+    TmlResultConsoleCurrentSessionResp:
+      type: object
+      properties:
+        code:
+          type: string
+          example: SUCCESS
+        message:
+          type: string
+          example: OK
+        traceId:
+          type: string
+          nullable: true
+        data:
+          $ref: '#/components/schemas/ConsoleCurrentSessionResp'
+
+    ErrorResp:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 业务错误码
+          example: CONSOLE_SESSION_UNAUTHORIZED
+        message:
+          type: string
+          description: 错误说明
+          example: Console session authentication required
+
+    TmlResultErrorResp:
+      type: object
+      properties:
+        code:
+          type: string
+          description: TML-SDK 统一响应码或业务错误码
+          example: CONSOLE_SESSION_UNAUTHORIZED
+        message:
+          type: string
+          description: 统一错误消息
+          example: Console session authentication required
+        traceId:
+          type: string
+          nullable: true
+        data:
+          $ref: '#/components/schemas/ErrorResp'

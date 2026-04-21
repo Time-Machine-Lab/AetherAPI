@@ -73,7 +73,10 @@ public class ApiCategoryAggregate {
             throw new IllegalArgumentException("Category name must not be blank");
         }
         this.name = newName.trim();
-        this.updatedAt = Instant.now();
+        Instant now = Instant.now();
+        this.updatedAt = (this.updatedAt != null && !now.isAfter(this.updatedAt))
+                ? this.updatedAt.plusNanos(1)
+                : now;
         this.version++;
     }
 

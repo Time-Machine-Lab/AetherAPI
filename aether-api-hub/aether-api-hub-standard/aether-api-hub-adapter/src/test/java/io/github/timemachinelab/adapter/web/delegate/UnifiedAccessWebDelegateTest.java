@@ -92,6 +92,36 @@ class UnifiedAccessWebDelegateTest {
         assertEquals("data: hello\n\n", outputStream.toString(StandardCharsets.UTF_8));
     }
 
+    @Test
+    @DisplayName("invoke should not treat console bearer token as unified access api key")
+    void shouldKeepConsoleBearerTokenSeparateFromApiKeyAuth() {
+        StubUnifiedAccessUseCase useCase = new StubUnifiedAccessUseCase(
+                UnifiedAccessProxyResponseModel.success(
+                        200,
+                        Map.of(),
+                        "{}".getBytes(StandardCharsets.UTF_8),
+                        "application/json",
+                        false
+                )
+        );
+        UnifiedAccessWebDelegate delegate = new UnifiedAccessWebDelegate(useCase);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.AUTHORIZATION, "Bearer console-session-token");
+
+        delegate.invoke(
+                "chat-completions",
+                "GET",
+                headers,
+                new LinkedMultiValueMap<>(),
+                null,
+                null
+        );
+
+        assertEquals(null, useCase.lastCommand.getPlaintextApiKey());
+        assertEquals(List.of("Bearer console-session-token"), useCase.lastCommand.getHeaders().get(HttpHeaders.AUTHORIZATION));
+    }
+
     private static final class StubUnifiedAccessUseCase implements UnifiedAccessUseCase {
 
         private final UnifiedAccessProxyResponseModel response;
