@@ -1,0 +1,96 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('@/api/http', () => ({
+  http: {
+    get: vi.fn(),
+  },
+}))
+
+import { http } from '@/api/http'
+import { getDiscoveryAssetDetail, listDiscoveryAssets } from './discovery.api'
+
+const mockedGet = vi.mocked(http.get)
+
+describe('discovery api', () => {
+  beforeEach(() => {
+    mockedGet.mockReset()
+  })
+
+  it('maps discovery list response and forwards query params', async () => {
+    mockedGet.mockResolvedValueOnce({
+      data: {
+        items: [
+          {
+            apiCode: 'chat-completions',
+            displayName: 'Chat Completions',
+            assetType: 'AI_API',
+            categoryCode: 'ai',
+            categoryName: 'AI',
+          },
+        ],
+        page: 1,
+        pageSize: 10,
+        total: 1,
+      },
+    })
+
+    const result = await listDiscoveryAssets({
+      page: 1,
+      pageSize: 10,
+      keyword: 'chat',
+      categoryCode: 'ai',
+    })
+
+    expect(mockedGet).toHaveBeenCalledWith('v1/discovery/assets', {
+      params: {
+        page: 1,
+        pageSize: 10,
+        keyword: 'chat',
+        categoryCode: 'ai',
+      },
+    })
+    expect(result).toEqual({
+      items: [
+        {
+          apiCode: 'chat-completions',
+          displayName: 'Chat Completions',
+          assetType: 'AI_API',
+          categoryCode: 'ai',
+          categoryName: 'AI',
+        },
+      ],
+      total: 1,
+      page: 1,
+      pageSize: 10,
+    })
+  })
+
+  it('maps discovery detail response', async () => {
+    mockedGet.mockResolvedValueOnce({
+      data: {
+        apiCode: 'chat-completions',
+        displayName: 'Chat Completions',
+        assetType: 'AI_API',
+        categoryCode: 'ai',
+        categoryName: 'AI',
+        description: 'LLM chat completion endpoint',
+        authScheme: 'X-Aether-Api-Key',
+        methods: ['POST'],
+        requestTemplate: '{"model":"gpt-4.1"}',
+        exampleSnapshot: '{"messages":[]}',
+        aiProfile: {
+          provider: 'OpenAI',
+          model: 'gpt-4.1',
+          streaming: true,
+          tags: ['chat', 'llm'],
+        },
+      },
+    })
+
+    const result = await getDiscoveryAssetDetail('chat-completions')
+
+    expect(mockedGet).toHaveBeenCalledWith('v1/discovery/assets/chat-completions')
+    expect(result.aiProfile?.provider).toBe('OpenAI')
+    expect(result.methods).toEqual(['POST'])
+  })
+})

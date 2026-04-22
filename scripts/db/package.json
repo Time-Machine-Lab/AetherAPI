@@ -1,0 +1,10 @@
+{
+  "name": "aether-db-tools",
+  "private": true,
+  "scripts": {
+    "create:user-consumer-mapping": "node create-user-consumer-mapping.js"
+  },
+  "dependencies": {
+    "mysql2": "^3.15.3"
+  }
+}
