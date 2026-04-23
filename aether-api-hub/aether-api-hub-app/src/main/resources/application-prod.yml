@@ -25,11 +25,11 @@ logging:
 aether:
   console:
     session-auth:
-      user-id: 'ENC(KK6klTq56ESUZAARF6fz8odrAtwb1Yp7GJXkBTko22g=)'
-      login-name: 'ENC(QVqXO9aWFlBtlDowf7i2koCYwnOOuhpA5JT18BTr2PE=)'
-      password: 'ENC(j3LOSrQBkQ4zgnlZWBzbvUdNKYcF/JdJ/FuXmCN6cWUQxvIXEWuZgHqqCtGdSV1i)'
-      display-name: 'ENC(VgNfun4JpBufA7Wv4Sxmn6h68eL4alqM2sf9ZZEP+Cc=)'
-      email: 'ENC(FUGKdyVhklhVYiAt8t6JpsLpgyb1jgn5GEmFlnYK4ys=)'
+      user-id: ${AETHER_CONSOLE_AUTH_USER_ID:console-operator}
+      login-name: ${AETHER_CONSOLE_AUTH_LOGIN_NAME:console@aetherapi.local}
+      password: ${AETHER_CONSOLE_AUTH_PASSWORD:change-me-console-password}
+      display-name: ${AETHER_CONSOLE_AUTH_DISPLAY_NAME:Aether Console Operator}
+      email: ${AETHER_CONSOLE_AUTH_EMAIL:console@aetherapi.local}
       role: ${AETHER_CONSOLE_AUTH_ROLE:OWNER}
-      token-secret: 'ENC(048VjhmuI9iRWYpehkSn92n5d+damCmbgax/FUa9FgcYAq5GVKVkXfSC6Qqj8IBOPBHQCH+omMuzPmuROty9oA==)'
+      token-secret: ${AETHER_CONSOLE_AUTH_TOKEN_SECRET:change-me-console-session-secret}
       token-ttl-seconds: ${AETHER_CONSOLE_AUTH_TOKEN_TTL_SECONDS:43200}
