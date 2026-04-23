@@ -5,17 +5,21 @@ import io.github.timemachinelab.adapter.web.delegate.ApiCallLogWebDelegate;
 import io.github.timemachinelab.adapter.web.delegate.ApiCredentialWebDelegate;
 import io.github.timemachinelab.adapter.web.delegate.CatalogDiscoveryWebDelegate;
 import io.github.timemachinelab.adapter.web.delegate.CategoryWebDelegate;
+import io.github.timemachinelab.adapter.web.delegate.UnifiedAccessWebDelegate;
 import io.github.timemachinelab.api.req.ListApiCallLogReq;
+import org.springframework.http.ResponseEntity;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.security.Principal;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -100,6 +104,20 @@ class ControllerParameterBindingRegressionTest {
                 .andExpect(status().isOk());
 
         verify(delegate).listApiCallLogs(eq("user-1"), argThat(this::matchesCallLogQuery));
+    }
+
+    @Test
+    void unifiedAccessBindsApiCodePathVariableExplicitly() throws Exception {
+        UnifiedAccessWebDelegate delegate = mock(UnifiedAccessWebDelegate.class);
+        when(delegate.invoke(eq("unknown-api"), eq("GET"), any(), any(), eq(null), eq(null)))
+                .thenReturn(ResponseEntity.ok().build());
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new UnifiedAccessController(delegate)).build();
+
+        mockMvc.perform(get("/api/v1/access/unknown-api")
+                        .header("X-Aether-Api-Key", "ak_live_validation_key"))
+                .andExpect(status().isOk());
+
+        verify(delegate).invoke(eq("unknown-api"), eq("GET"), any(), any(), eq(null), eq(null));
     }
 
     private boolean matchesCallLogQuery(ListApiCallLogReq req) {

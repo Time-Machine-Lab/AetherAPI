@@ -98,6 +98,31 @@ class MybatisCatalogDiscoveryQueryPortTest {
         assertFalse(result.get().getAiCapabilityProfile().getCapabilityTags().isEmpty());
     }
 
+    @Test
+    @DisplayName("revised enabled asset should appear in discovery and draft should remain hidden")
+    void shouldExposeEnabledRevisedAssetAndHideDraftAsset() {
+        CatalogDiscoveryAssetRecord enabled = assetRecord("weather-forecast", "ENABLED", "STANDARD_API");
+        enabled.setAssetName("天气预报");
+        enabled.setRequestMethod("GET");
+        enabled.setAuthScheme("NONE");
+        enabled.setRequestTemplate("template");
+        CatalogDiscoveryAssetRecord draft = assetRecord("draft-weather", "DRAFT", "STANDARD_API");
+
+        when(mapper.selectAssetSummaries()).thenReturn(List.of(enabled, draft));
+        when(mapper.selectAssetDetail("weather-forecast")).thenReturn(enabled);
+
+        List<CatalogDiscoveryAssetSummaryModel> list = queryPort.listDiscoverableAssets();
+        Optional<CatalogDiscoveryAssetDetailModel> detail =
+                queryPort.findDiscoverableAssetDetail("weather-forecast");
+
+        assertEquals(1, list.size());
+        assertEquals("weather-forecast", list.get(0).getApiCode());
+        assertTrue(detail.isPresent());
+        assertEquals("天气预报", detail.get().getAssetName());
+        assertEquals("GET", detail.get().getRequestMethod());
+        assertEquals("NONE", detail.get().getAuthScheme());
+    }
+
     private CatalogDiscoveryAssetRecord assetRecord(String apiCode, String status, String assetType) {
         CatalogDiscoveryAssetRecord record = new CatalogDiscoveryAssetRecord();
         record.setApiCode(apiCode);

@@ -31,7 +31,7 @@ public class UnifiedAccessController {
 
     @GetMapping("/{apiCode}")
     public ResponseEntity<?> get(
-            @PathVariable String apiCode,
+            @PathVariable("apiCode") String apiCode,
             @RequestHeader HttpHeaders headers,
             @RequestParam MultiValueMap<String, String> queryParameters) {
         return delegate.invoke(apiCode, "GET", headers, queryParameters, null, headers.getFirst(HttpHeaders.CONTENT_TYPE));
@@ -39,7 +39,7 @@ public class UnifiedAccessController {
 
     @PostMapping("/{apiCode}")
     public ResponseEntity<?> post(
-            @PathVariable String apiCode,
+            @PathVariable("apiCode") String apiCode,
             @RequestHeader HttpHeaders headers,
             @RequestParam MultiValueMap<String, String> queryParameters,
             @RequestBody(required = false) byte[] requestBody) {
@@ -48,7 +48,7 @@ public class UnifiedAccessController {
 
     @PutMapping("/{apiCode}")
     public ResponseEntity<?> put(
-            @PathVariable String apiCode,
+            @PathVariable("apiCode") String apiCode,
             @RequestHeader HttpHeaders headers,
             @RequestParam MultiValueMap<String, String> queryParameters,
             @RequestBody(required = false) byte[] requestBody) {
@@ -57,7 +57,7 @@ public class UnifiedAccessController {
 
     @PatchMapping("/{apiCode}")
     public ResponseEntity<?> patch(
-            @PathVariable String apiCode,
+            @PathVariable("apiCode") String apiCode,
             @RequestHeader HttpHeaders headers,
             @RequestParam MultiValueMap<String, String> queryParameters,
             @RequestBody(required = false) byte[] requestBody) {
@@ -66,7 +66,7 @@ public class UnifiedAccessController {
 
     @DeleteMapping("/{apiCode}")
     public ResponseEntity<?> delete(
-            @PathVariable String apiCode,
+            @PathVariable("apiCode") String apiCode,
             @RequestHeader HttpHeaders headers,
             @RequestParam MultiValueMap<String, String> queryParameters) {
         return delegate.invoke(apiCode, "DELETE", headers, queryParameters, null, headers.getFirst(HttpHeaders.CONTENT_TYPE));

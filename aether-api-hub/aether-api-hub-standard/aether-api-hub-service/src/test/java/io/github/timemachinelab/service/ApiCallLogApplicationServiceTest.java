@@ -89,6 +89,24 @@ class ApiCallLogApplicationServiceTest {
                 "2026-04-19T08:00:00Z",
                 "2026-04-19T08:00:02Z"
         ));
+        apiCallLogQueryPort.add("11111111-1111-1111-1111-111111111111", detail(
+                "log-4",
+                "unknown-api",
+                null,
+                "GET",
+                "2026-04-19T10:00:00Z",
+                12L,
+                "TARGET_NOT_FOUND",
+                false,
+                404,
+                "UNIFIED_ACCESS",
+                "cred_alpha",
+                "ENABLED",
+                new ApiCallLogErrorModel("ASSET_NOT_FOUND", "TARGET_NOT_FOUND", "Asset not found: unknown-api"),
+                null,
+                "2026-04-19T10:00:00Z",
+                "2026-04-19T10:00:00Z"
+        ));
         apiCallLogQueryPort.add("22222222-2222-2222-2222-222222222222", detail(
                 "log-3",
                 "chat-completions",
@@ -115,10 +133,11 @@ class ApiCallLogApplicationServiceTest {
         ApiCallLogPageResult result = service.listApiCallLogs(
                 new ListApiCallLogQuery("user-1", null, null, null, 1, 20));
 
-        assertEquals(2, result.getItems().size());
-        assertEquals(2L, result.getTotal());
-        assertEquals("log-1", result.getItems().get(0).getLogId());
-        assertEquals("log-2", result.getItems().get(1).getLogId());
+        assertEquals(3, result.getItems().size());
+        assertEquals(3L, result.getTotal());
+        assertEquals("log-4", result.getItems().get(0).getLogId());
+        assertEquals("log-1", result.getItems().get(1).getLogId());
+        assertEquals("log-2", result.getItems().get(2).getLogId());
     }
 
     @Test
@@ -145,6 +164,29 @@ class ApiCallLogApplicationServiceTest {
 
         assertEquals(1, result.getItems().size());
         assertEquals("log-1", result.getItems().get(0).getLogId());
+    }
+
+    @Test
+    @DisplayName("current user can list and view valid-key unknown target failure logs")
+    void shouldReturnUnknownTargetFailureLogForCurrentUser() {
+        ApiCallLogPageResult result = service.listApiCallLogs(
+                new ListApiCallLogQuery("user-1", "unknown-api", null, null, 1, 20));
+
+        assertEquals(1, result.getItems().size());
+        assertEquals("log-4", result.getItems().get(0).getLogId());
+        assertEquals("unknown-api", result.getItems().get(0).getTargetApiCode());
+        assertEquals("TARGET_NOT_FOUND", result.getItems().get(0).getResultType());
+        assertEquals(404, result.getItems().get(0).getHttpStatusCode());
+        assertTrue(!result.getItems().get(0).isSuccess());
+
+        ApiCallLogDetailModel detail = service.getApiCallLogDetail(
+                new GetApiCallLogDetailQuery("user-1", "log-4"));
+        assertEquals("cred_alpha", detail.getCredentialCode());
+        assertEquals("ENABLED", detail.getCredentialStatus());
+        assertNotNull(detail.getError());
+        assertEquals("ASSET_NOT_FOUND", detail.getError().getErrorCode());
+        assertEquals("TARGET_NOT_FOUND", detail.getError().getErrorType());
+        assertEquals("Asset not found: unknown-api", detail.getError().getErrorSummary());
     }
 
     @Test

@@ -36,6 +36,7 @@ import java.util.Objects;
  */
 public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
 
+    private static final System.Logger log = System.getLogger(UnifiedAccessApplicationService.class.getName());
     private static final String DEFAULT_ACCESS_CHANNEL = "UNIFIED_ACCESS";
 
     private final CredentialValidationUseCase credentialValidationUseCase;
@@ -63,7 +64,7 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
             observabilityUseCase.recordApiCallLog(toCompletionLogCommand(invocation, response, invocationStartedAt));
             return response;
         } catch (UnifiedAccessPlatformFailureException ex) {
-            observabilityUseCase.recordApiCallLog(toPlatformFailureLogCommand(command, ex.getFailure(), invocationStartedAt));
+            recordPlatformFailureBestEffort(command, ex.getFailure(), invocationStartedAt);
             throw ex;
         }
     }
@@ -95,16 +96,17 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
             throw new IllegalStateException("Consumer context must be present after successful credential validation");
         }
 
-        ApiCode apiCode = parseApiCode(requestedApiCode);
+        ApiCode apiCode = parseApiCode(requestedApiCode, consumerContext);
         ApiAssetAggregate targetApi = apiAssetRepositoryPort.findByCode(apiCode)
                 .orElseThrow(() -> platformFailure(
                         CatalogErrorCodes.ASSET_NOT_FOUND,
                         "Asset not found: " + apiCode.getValue(),
                         PlatformPreForwardFailureType.TARGET_NOT_FOUND,
                         apiCode.getValue(),
-                        404
+                        404,
+                        consumerContext
                 ));
-        ensureTargetAvailable(targetApi, apiCode.getValue());
+        ensureTargetAvailable(targetApi, apiCode.getValue(), consumerContext);
 
         return new UnifiedAccessInvocationModel(
                 consumerContext,
@@ -118,14 +120,15 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
         );
     }
 
-    private void ensureTargetAvailable(ApiAssetAggregate targetApi, String apiCode) {
+    private void ensureTargetAvailable(ApiAssetAggregate targetApi, String apiCode, ConsumerContextModel consumerContext) {
         if (targetApi.getStatus() != AssetStatus.ENABLED) {
             throw platformFailure(
                     UnifiedAccessErrorCodes.TARGET_API_UNAVAILABLE,
                     "Target API is unavailable: " + apiCode,
                     PlatformPreForwardFailureType.TARGET_UNAVAILABLE,
                     apiCode,
-                    503
+                    503,
+                    consumerContext
             );
         }
 
@@ -136,7 +139,8 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
                     "Target API is unavailable: " + apiCode,
                     PlatformPreForwardFailureType.TARGET_UNAVAILABLE,
                     apiCode,
-                    503
+                    503,
+                    consumerContext
             );
         }
     }
@@ -160,7 +164,7 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
         );
     }
 
-    private ApiCode parseApiCode(String requestedApiCode) {
+    private ApiCode parseApiCode(String requestedApiCode, ConsumerContextModel consumerContext) {
         try {
             return ApiCode.of(requestedApiCode);
         } catch (IllegalArgumentException ex) {
@@ -169,7 +173,8 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
                     ex.getMessage(),
                     PlatformPreForwardFailureType.INVALID_API_CODE,
                     requestedApiCode,
-                    400
+                    400,
+                    consumerContext
             );
         }
     }
@@ -227,8 +232,18 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
             PlatformPreForwardFailureType failureType,
             String apiCode,
             int httpStatus) {
+        return platformFailure(code, message, failureType, apiCode, httpStatus, null);
+    }
+
+    private UnifiedAccessPlatformFailureException platformFailure(
+            String code,
+            String message,
+            PlatformPreForwardFailureType failureType,
+            String apiCode,
+            int httpStatus,
+            ConsumerContextModel consumerContext) {
         return new UnifiedAccessPlatformFailureException(
-                new UnifiedAccessPlatformFailureModel(code, message, failureType, apiCode, httpStatus)
+                new UnifiedAccessPlatformFailureModel(code, message, failureType, apiCode, httpStatus, consumerContext)
         );
     }
 
@@ -291,14 +306,15 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
             UnifiedAccessPlatformFailureModel failure,
             Instant invocationStartedAt) {
         String requestedApiCode = command == null ? null : command.getApiCode();
+        ConsumerContextModel consumerContext = failure.getConsumerContext();
         return new RecordApiCallLogCommand(
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
+                consumerContext == null ? null : consumerContext.getConsumerId(),
+                consumerContext == null ? null : consumerContext.getConsumerCode(),
+                consumerContext == null ? null : consumerContext.getConsumerName(),
+                consumerContext == null ? null : consumerContext.getConsumerType(),
+                consumerContext == null ? null : consumerContext.getCredentialId(),
+                consumerContext == null ? null : consumerContext.getCredentialCode(),
+                consumerContext == null ? null : consumerContext.getCredentialStatus(),
                 normalizeAccessChannel(command == null ? null : command.getAccessChannel()),
                 null,
                 requestedApiCode == null || requestedApiCode.isBlank() ? failure.getApiCode() : requestedApiCode.trim(),
@@ -319,6 +335,23 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
                 null,
                 null
         );
+    }
+
+    private void recordPlatformFailureBestEffort(
+            ResolveUnifiedAccessInvocationCommand command,
+            UnifiedAccessPlatformFailureModel failure,
+            Instant invocationStartedAt) {
+        try {
+            observabilityUseCase.recordApiCallLog(toPlatformFailureLogCommand(command, failure, invocationStartedAt));
+        } catch (RuntimeException logException) {
+            log.log(
+                    System.Logger.Level.WARNING,
+                    "Unified access platform failure log persistence failed; preserving original failure response. apiCode={0}, failureType={1}",
+                    failure.getApiCode(),
+                    failure.getFailureType(),
+                    logException
+            );
+        }
     }
 
     private long computeDurationMillis(Instant invocationStartedAt) {

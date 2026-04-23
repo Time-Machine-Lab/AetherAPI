@@ -4,6 +4,7 @@ import io.github.timemachinelab.domain.consumerauth.model.ApiCredentialAggregate
 import io.github.timemachinelab.domain.consumerauth.model.ApiCredentialId;
 import io.github.timemachinelab.domain.consumerauth.model.ApiCredentialStatus;
 import io.github.timemachinelab.domain.consumerauth.model.ConsumerAggregate;
+import io.github.timemachinelab.domain.consumerauth.model.ConsumerAuthDomainException;
 import io.github.timemachinelab.domain.consumerauth.model.ConsumerCode;
 import io.github.timemachinelab.domain.consumerauth.model.ConsumerId;
 import io.github.timemachinelab.domain.consumerauth.model.UserConsumerMapping;
@@ -37,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -141,6 +143,83 @@ class ApiCredentialApplicationServiceTest {
         ApiCredentialModel stillEnabled = service.getApiCredentialDetail(
                 new GetApiCredentialDetailQuery("user-1", second.getCredentialId()));
         assertEquals("ENABLED", stillEnabled.getStatus());
+    }
+
+    @Test
+    @DisplayName("状态变更后详情与列表应能重新查询到落库状态")
+    void shouldPersistLifecycleTransitionsInDetailAndList() {
+        IssuedApiCredentialModel issued = service.issueApiCredential(
+                new IssueApiCredentialCommand("user-1", "清理密钥", null, null));
+
+        service.disableApiCredential(new DisableApiCredentialCommand("user-1", issued.getCredentialId()));
+        ApiCredentialModel disabledDetail = service.getApiCredentialDetail(
+                new GetApiCredentialDetailQuery("user-1", issued.getCredentialId()));
+        ApiCredentialPageResult disabledPage = service.listApiCredentials(
+                new ListApiCredentialQuery("user-1", "DISABLED", 1, 20));
+        assertEquals("DISABLED", disabledDetail.getStatus());
+        assertEquals(1, disabledPage.getItems().size());
+        assertEquals(issued.getCredentialId(), disabledPage.getItems().get(0).getCredentialId());
+
+        service.enableApiCredential(new EnableApiCredentialCommand("user-1", issued.getCredentialId()));
+        ApiCredentialModel enabledDetail = service.getApiCredentialDetail(
+                new GetApiCredentialDetailQuery("user-1", issued.getCredentialId()));
+        ApiCredentialPageResult enabledPage = service.listApiCredentials(
+                new ListApiCredentialQuery("user-1", "ENABLED", 1, 20));
+        assertEquals("ENABLED", enabledDetail.getStatus());
+        assertEquals(1, enabledPage.getItems().size());
+        assertEquals(issued.getCredentialId(), enabledPage.getItems().get(0).getCredentialId());
+
+        service.revokeApiCredential(new RevokeApiCredentialCommand("user-1", issued.getCredentialId()));
+        ApiCredentialModel revokedDetail = service.getApiCredentialDetail(
+                new GetApiCredentialDetailQuery("user-1", issued.getCredentialId()));
+        ApiCredentialPageResult revokedPage = service.listApiCredentials(
+                new ListApiCredentialQuery("user-1", "REVOKED", 1, 20));
+        assertEquals("REVOKED", revokedDetail.getStatus());
+        assertNotNull(revokedDetail.getRevokedAt());
+        assertEquals(1, revokedPage.getItems().size());
+        assertEquals(issued.getCredentialId(), revokedPage.getItems().get(0).getCredentialId());
+    }
+
+    @Test
+    @DisplayName("非法生命周期状态变更应返回业务异常")
+    void shouldRejectLifecycleConflictsAsBusinessErrors() {
+        IssuedApiCredentialModel issued = service.issueApiCredential(
+                new IssueApiCredentialCommand("user-1", "冲突密钥", null, null));
+
+        service.disableApiCredential(new DisableApiCredentialCommand("user-1", issued.getCredentialId()));
+        ConsumerAuthDomainException disableAgain = assertThrows(
+                ConsumerAuthDomainException.class,
+                () -> service.disableApiCredential(new DisableApiCredentialCommand("user-1", issued.getCredentialId()))
+        );
+        assertTrue(disableAgain.getMessage().contains("already disabled"));
+
+        service.revokeApiCredential(new RevokeApiCredentialCommand("user-1", issued.getCredentialId()));
+        ConsumerAuthDomainException revokeAgain = assertThrows(
+                ConsumerAuthDomainException.class,
+                () -> service.revokeApiCredential(new RevokeApiCredentialCommand("user-1", issued.getCredentialId()))
+        );
+        assertTrue(revokeAgain.getMessage().contains("already revoked"));
+
+        ConsumerAuthDomainException enableRevoked = assertThrows(
+                ConsumerAuthDomainException.class,
+                () -> service.enableApiCredential(new EnableApiCredentialCommand("user-1", issued.getCredentialId()))
+        );
+        assertTrue(enableRevoked.getMessage().contains("Revoked API credential"));
+    }
+
+    @Test
+    @DisplayName("当前用户不能操作其他用户的 API Key")
+    void shouldPreserveCurrentUserBoundaryForLifecycleActions() {
+        IssuedApiCredentialModel issued = service.issueApiCredential(
+                new IssueApiCredentialCommand("user-1", "我的密钥", null, null));
+        service.issueApiCredential(new IssueApiCredentialCommand("user-2", "别人的密钥", null, null));
+
+        ConsumerAuthDomainException exception = assertThrows(
+                ConsumerAuthDomainException.class,
+                () -> service.disableApiCredential(new DisableApiCredentialCommand("user-2", issued.getCredentialId()))
+        );
+
+        assertTrue(exception.getMessage().contains("not found"));
     }
 
     @Test

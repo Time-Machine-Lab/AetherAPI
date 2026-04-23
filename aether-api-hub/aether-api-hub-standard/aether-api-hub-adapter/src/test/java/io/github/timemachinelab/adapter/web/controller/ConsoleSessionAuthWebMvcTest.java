@@ -7,8 +7,13 @@ import io.github.timemachinelab.adapter.web.delegate.UnifiedAccessWebDelegate;
 import io.github.timemachinelab.adapter.web.handler.GlobalExceptionHandler;
 import io.github.timemachinelab.adapter.web.interceptor.ConsoleSessionAuthInterceptor;
 import io.github.timemachinelab.adapter.web.resolver.ConsoleSessionPrincipalArgumentResolver;
+import io.github.timemachinelab.api.error.CatalogErrorCodes;
+import io.github.timemachinelab.domain.consumerauth.model.ConsumerAuthDomainException;
 import io.github.timemachinelab.service.application.ConsoleSessionAuthApplicationService;
 import io.github.timemachinelab.service.model.ConsoleSignInCommand;
+import io.github.timemachinelab.service.model.PlatformPreForwardFailureType;
+import io.github.timemachinelab.service.model.UnifiedAccessPlatformFailureException;
+import io.github.timemachinelab.service.model.UnifiedAccessPlatformFailureModel;
 import io.github.timemachinelab.service.port.out.ConsoleSessionSettingsPort;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,6 +30,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -103,6 +109,34 @@ class ConsoleSessionAuthWebMvcTest {
     }
 
     @Test
+    @DisplayName("current-user api credential lifecycle endpoint should resolve principal from console token")
+    void shouldResolvePrincipalForApiKeyLifecycleActions() throws Exception {
+        ApiCredentialWebDelegate credentialDelegate = mock(ApiCredentialWebDelegate.class);
+        when(credentialDelegate.disableApiCredential(eq("console-operator"), eq("credential-1"))).thenReturn(null);
+        MockMvc mockMvc = buildMockMvc(credentialDelegate, mock(ApiCallLogWebDelegate.class), mock(UnifiedAccessWebDelegate.class));
+
+        mockMvc.perform(patch("/api/v1/current-user/api-keys/credential-1/disable")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + issueToken()))
+                .andExpect(status().isOk());
+
+        verify(credentialDelegate).disableApiCredential("console-operator", "credential-1");
+    }
+
+    @Test
+    @DisplayName("current-user api credential lifecycle conflict should return business error")
+    void shouldReturnBusinessErrorForApiKeyLifecycleConflict() throws Exception {
+        ApiCredentialWebDelegate credentialDelegate = mock(ApiCredentialWebDelegate.class);
+        when(credentialDelegate.disableApiCredential(eq("console-operator"), eq("credential-1")))
+                .thenThrow(new ConsumerAuthDomainException("API credential is already disabled"));
+        MockMvc mockMvc = buildMockMvc(credentialDelegate, mock(ApiCallLogWebDelegate.class), mock(UnifiedAccessWebDelegate.class));
+
+        mockMvc.perform(patch("/api/v1/current-user/api-keys/credential-1/disable")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + issueToken()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("API_CREDENTIAL_ALREADY_DISABLED"));
+    }
+
+    @Test
     @DisplayName("current-user api call log endpoint should resolve principal from console token")
     void shouldResolvePrincipalForCurrentUserApiCallLogs() throws Exception {
         ApiCallLogWebDelegate callLogDelegate = mock(ApiCallLogWebDelegate.class);
@@ -117,6 +151,32 @@ class ConsoleSessionAuthWebMvcTest {
                 .andExpect(status().isOk());
 
         verify(callLogDelegate).listApiCallLogs(eq("console-operator"), any());
+    }
+
+    @Test
+    @DisplayName("unified access unknown api should return platform failure response")
+    void shouldReturnUnifiedAccessPlatformFailureForUnknownApi() throws Exception {
+        UnifiedAccessWebDelegate unifiedAccessDelegate = mock(UnifiedAccessWebDelegate.class);
+        when(unifiedAccessDelegate.invoke(eq("unknown-api"), eq("GET"), any(), any(), eq(null), eq(null)))
+                .thenThrow(new UnifiedAccessPlatformFailureException(new UnifiedAccessPlatformFailureModel(
+                        CatalogErrorCodes.ASSET_NOT_FOUND,
+                        "Asset not found: unknown-api",
+                        PlatformPreForwardFailureType.TARGET_NOT_FOUND,
+                        "unknown-api",
+                        404
+                )));
+        MockMvc mockMvc = buildMockMvc(
+                mock(ApiCredentialWebDelegate.class),
+                mock(ApiCallLogWebDelegate.class),
+                unifiedAccessDelegate
+        );
+
+        mockMvc.perform(get("/api/v1/access/unknown-api")
+                        .header("X-Aether-Api-Key", "ak_live_validation_key"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ASSET_NOT_FOUND"))
+                .andExpect(jsonPath("$.failureType").value("TARGET_NOT_FOUND"))
+                .andExpect(jsonPath("$.apiCode").value("unknown-api"));
     }
 
     private MockMvc buildMockMvc(

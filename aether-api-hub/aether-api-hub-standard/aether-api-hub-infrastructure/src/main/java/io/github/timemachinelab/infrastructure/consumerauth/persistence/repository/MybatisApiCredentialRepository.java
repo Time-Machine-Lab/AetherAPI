@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.github.timemachinelab.domain.consumerauth.model.ApiCredentialAggregate;
 import io.github.timemachinelab.domain.consumerauth.model.ApiCredentialId;
 import io.github.timemachinelab.domain.consumerauth.model.ApiCredentialStatus;
+import io.github.timemachinelab.domain.consumerauth.model.ConsumerAuthDomainException;
 import io.github.timemachinelab.domain.consumerauth.model.ConsumerId;
 import io.github.timemachinelab.domain.consumerauth.repository.ApiCredentialRepository;
 import io.github.timemachinelab.infrastructure.consumerauth.persistence.converter.ApiCredentialConverter;
@@ -80,8 +81,13 @@ public class MybatisApiCredentialRepository implements ApiCredentialRepository {
             mapper.insert(ApiCredentialConverter.toDo(aggregate));
             return;
         }
+        Long persistedVersion = existing.getVersion();
         ApiCredentialConverter.updateDo(existing, aggregate);
-        mapper.updateById(existing);
+        existing.setVersion(persistedVersion);
+        int updatedRows = mapper.updateById(existing);
+        if (updatedRows == 0) {
+            throw new ConsumerAuthDomainException("API credential update conflict: " + aggregate.getId().getValue());
+        }
     }
 
     private void applyStatusFilter(

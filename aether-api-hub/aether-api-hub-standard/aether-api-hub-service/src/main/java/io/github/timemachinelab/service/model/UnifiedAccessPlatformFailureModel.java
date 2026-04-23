@@ -10,6 +10,7 @@ public class UnifiedAccessPlatformFailureModel {
     private final PlatformPreForwardFailureType failureType;
     private final String apiCode;
     private final int httpStatus;
+    private final ConsumerContextModel consumerContext;
 
     public UnifiedAccessPlatformFailureModel(
             String code,
@@ -17,11 +18,22 @@ public class UnifiedAccessPlatformFailureModel {
             PlatformPreForwardFailureType failureType,
             String apiCode,
             int httpStatus) {
+        this(code, message, failureType, apiCode, httpStatus, null);
+    }
+
+    public UnifiedAccessPlatformFailureModel(
+            String code,
+            String message,
+            PlatformPreForwardFailureType failureType,
+            String apiCode,
+            int httpStatus,
+            ConsumerContextModel consumerContext) {
         this.code = code;
         this.message = message;
         this.failureType = failureType;
         this.apiCode = apiCode;
         this.httpStatus = httpStatus;
+        this.consumerContext = consumerContext;
     }
 
     public String getCode() {
@@ -42,5 +54,9 @@ public class UnifiedAccessPlatformFailureModel {
 
     public int getHttpStatus() {
         return httpStatus;
+    }
+
+    public ConsumerContextModel getConsumerContext() {
+        return consumerContext;
     }
 }

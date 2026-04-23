@@ -314,6 +314,66 @@ class UnifiedAccessApplicationServiceTest {
         assertEquals(1, apiAssetRepositoryPort.findByCodeCount);
         assertEquals(0, downstreamProxyPort.invocationCount);
         assertEquals(1, observabilityUseCase.recordedCommands.size());
+        RecordApiCallLogCommand logCommand = observabilityUseCase.recordedCommands.get(0);
+        assertEquals("consumer-1", logCommand.getConsumerId());
+        assertEquals("consumer_code_1", logCommand.getConsumerCode());
+        assertEquals("credential-1", logCommand.getCredentialId());
+        assertEquals("cred_code_1", logCommand.getCredentialCode());
+        assertEquals("ENABLED", logCommand.getCredentialStatus());
+        assertEquals("chat-completions", logCommand.getTargetApiCode());
+        assertEquals("TARGET_NOT_FOUND", logCommand.getResultType());
+        assertEquals("ASSET_NOT_FOUND", logCommand.getErrorCode());
+        assertEquals("TARGET_NOT_FOUND", logCommand.getErrorType());
+        assertEquals("Asset not found: chat-completions", logCommand.getErrorSummary());
+        assertEquals(404, logCommand.getHttpStatusCode());
+        assertTrue(!logCommand.isSuccess());
+    }
+
+    @Test
+    @DisplayName("platform failure response should survive call-log persistence failure")
+    void shouldPreservePlatformFailureWhenFailureLogPersistenceFails() {
+        InMemoryCredentialValidationUseCase credentialValidationUseCase = new InMemoryCredentialValidationUseCase(
+                CredentialValidationResult.valid(new ConsumerContextModel(
+                        "consumer-1",
+                        "consumer_code_1",
+                        "consumer-one",
+                        "USER_ACCOUNT",
+                        "credential-1",
+                        "cred_code_1",
+                        "ENABLED",
+                        "ak_live",
+                        "ak_live_****1234"
+                ))
+        );
+        InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
+        InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
+        InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
+        observabilityUseCase.exceptionToThrow = new IllegalStateException("log database unavailable");
+        UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
+                credentialValidationUseCase,
+                apiAssetRepositoryPort,
+                downstreamProxyPort,
+                observabilityUseCase
+        );
+
+        UnifiedAccessPlatformFailureException ex = assertThrows(UnifiedAccessPlatformFailureException.class, () -> service.invoke(
+                new ResolveUnifiedAccessInvocationCommand(
+                        "chat-completions",
+                        "ak_live_validation_key",
+                        "GET",
+                        Map.of(),
+                        Map.of(),
+                        null,
+                        null,
+                        null
+                )
+        ));
+
+        assertEquals("ASSET_NOT_FOUND", ex.getFailure().getCode());
+        assertEquals(PlatformPreForwardFailureType.TARGET_NOT_FOUND, ex.getFailure().getFailureType());
+        assertEquals(404, ex.getFailure().getHttpStatus());
+        assertEquals(1, observabilityUseCase.recordAttempts);
+        assertEquals(0, downstreamProxyPort.invocationCount);
     }
 
     @Test
@@ -534,9 +594,15 @@ class UnifiedAccessApplicationServiceTest {
     private static final class InMemoryObservabilityUseCase implements ObservabilityUseCase {
 
         private final List<RecordApiCallLogCommand> recordedCommands = new ArrayList<>();
+        private RuntimeException exceptionToThrow;
+        private int recordAttempts;
 
         @Override
         public void recordApiCallLog(RecordApiCallLogCommand command) {
+            recordAttempts++;
+            if (exceptionToThrow != null) {
+                throw exceptionToThrow;
+            }
             recordedCommands.add(command);
         }
     }

@@ -2,6 +2,7 @@ package io.github.timemachinelab.infrastructure.catalog.persistence.repository;
 
 import io.github.timemachinelab.domain.catalog.model.ApiAssetAggregate;
 import io.github.timemachinelab.domain.catalog.model.ApiCode;
+import io.github.timemachinelab.domain.catalog.model.AssetDomainException;
 import io.github.timemachinelab.domain.catalog.repository.ApiAssetRepository;
 import io.github.timemachinelab.infrastructure.catalog.persistence.converter.ApiAssetConverter;
 import io.github.timemachinelab.infrastructure.catalog.persistence.entity.ApiAssetDo;
@@ -44,8 +45,12 @@ public class MybatisApiAssetRepository implements ApiAssetRepository {
             mapper.insert(ApiAssetConverter.toDo(aggregate));
             return;
         }
+        Long persistedVersion = existing.getVersion();
         ApiAssetConverter.updateDo(existing, aggregate);
-        mapper.updateById(existing);
+        existing.setVersion(persistedVersion);
+        int updatedRows = mapper.updateById(existing);
+        if (updatedRows == 0) {
+            throw new AssetDomainException("Asset update conflict: " + aggregate.getCode().getValue());
+        }
     }
 }
-
