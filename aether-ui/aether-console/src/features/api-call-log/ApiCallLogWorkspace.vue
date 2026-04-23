@@ -1,14 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  getCurrentUserApiCallLogDetail,
-  listCurrentUserApiCallLogs,
-} from '@/api/api-call-log/api-call-log.api'
-import type {
-  ApiCallLogDetail,
-  ApiCallLogItem,
-} from '@/api/api-call-log/api-call-log.types'
+import { useApiCallLogWorkspace } from '@/composables/useApiCallLogWorkspace'
+import type { ApiCallLogItem } from '@/api/api-call-log/api-call-log.types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,148 +10,29 @@ import { AlertTriangle, CheckCircle2, Clock3, Loader2 } from 'lucide-vue-next'
 
 const { t } = useI18n()
 
-const listLoading = ref(false)
-const listError = ref(false)
-const listItems = ref<ApiCallLogItem[]>([])
-const listTotal = ref(0)
-const listPage = ref(1)
-const listSize = ref(20)
-
-const targetApiCodeFilter = ref('')
-const invocationStartAt = ref('')
-const invocationEndAt = ref('')
-const filterError = ref('')
-
-const selectedLogId = ref<string | null>(null)
-const selectedLogDetail = ref<ApiCallLogDetail | null>(null)
-const detailLoading = ref(false)
-const detailError = ref(false)
-
-const pageCount = computed(() => {
-  if (listTotal.value <= 0) {
-    return 1
-  }
-  return Math.ceil(listTotal.value / listSize.value)
-})
-
-function toIsoString(input: string): string | undefined {
-  if (!input) {
-    return undefined
-  }
-  const timestamp = Date.parse(input)
-  if (Number.isNaN(timestamp)) {
-    return undefined
-  }
-  return new Date(timestamp).toISOString()
-}
-
-function hasValidDateRange() {
-  if (!invocationStartAt.value || !invocationEndAt.value) {
-    return true
-  }
-
-  const startTime = Date.parse(invocationStartAt.value)
-  const endTime = Date.parse(invocationEndAt.value)
-
-  if (Number.isNaN(startTime) || Number.isNaN(endTime)) {
-    return false
-  }
-
-  return startTime <= endTime
-}
-
-async function loadApiCallLogs() {
-  if (!hasValidDateRange()) {
-    filterError.value = t('console.apiCallLogs.filterRangeError')
-    return
-  }
-
-  listLoading.value = true
-  listError.value = false
-  filterError.value = ''
-
-  try {
-    const result = await listCurrentUserApiCallLogs({
-      targetApiCode: targetApiCodeFilter.value.trim() || undefined,
-      invocationStartAt: toIsoString(invocationStartAt.value),
-      invocationEndAt: toIsoString(invocationEndAt.value),
-      page: listPage.value,
-      size: listSize.value,
-    })
-    listItems.value = result.items
-    listTotal.value = result.total
-
-    if (selectedLogId.value && !result.items.some((item) => item.logId === selectedLogId.value)) {
-      selectedLogId.value = null
-      selectedLogDetail.value = null
-      detailError.value = false
-    }
-  } catch {
-    listError.value = true
-  } finally {
-    listLoading.value = false
-  }
-}
-
-async function loadLogDetail(logId: string) {
-  detailLoading.value = true
-  detailError.value = false
-
-  try {
-    selectedLogDetail.value = await getCurrentUserApiCallLogDetail(logId)
-  } catch {
-    selectedLogDetail.value = null
-    detailError.value = true
-  } finally {
-    detailLoading.value = false
-  }
-}
-
-async function handleSelectLog(log: ApiCallLogItem) {
-  if (selectedLogId.value === log.logId) {
-    selectedLogId.value = null
-    selectedLogDetail.value = null
-    detailError.value = false
-    return
-  }
-
-  selectedLogId.value = log.logId
-  await loadLogDetail(log.logId)
-}
-
-async function handleSearch() {
-  listPage.value = 1
-  await loadApiCallLogs()
-}
-
-async function handleReset() {
-  targetApiCodeFilter.value = ''
-  invocationStartAt.value = ''
-  invocationEndAt.value = ''
-  listPage.value = 1
-  selectedLogId.value = null
-  selectedLogDetail.value = null
-  detailError.value = false
-  await loadApiCallLogs()
-}
-
-async function handlePrevPage() {
-  if (listPage.value <= 1 || listLoading.value) {
-    return
-  }
-
-  listPage.value -= 1
-  await loadApiCallLogs()
-}
-
-async function handleNextPage() {
-  if (listPage.value >= pageCount.value || listLoading.value) {
-    return
-  }
-
-  listPage.value += 1
-  await loadApiCallLogs()
-}
+const {
+  listLoading,
+  listError,
+  listItems,
+  listTotal,
+  listPage,
+  targetApiCodeFilter,
+  invocationStartAt,
+  invocationEndAt,
+  filterError,
+  selectedLogId,
+  selectedLogDetail,
+  detailLoading,
+  detailError,
+  pageCount,
+  showingFrom,
+  showingTo,
+  handleSelectLog,
+  handleSearch,
+  handleReset,
+  handlePrevPage,
+  handleNextPage,
+} = useApiCallLogWorkspace({ t })
 
 function formatDateTime(iso: string | null): string {
   if (!iso) {
@@ -186,21 +60,6 @@ function statusBadgeVariant(log: ApiCallLogItem) {
   return 'destructive' as const
 }
 
-const showingFrom = computed(() => {
-  if (listTotal.value === 0) {
-    return 0
-  }
-  return (listPage.value - 1) * listSize.value + 1
-})
-
-const showingTo = computed(() => {
-  if (listTotal.value === 0) {
-    return 0
-  }
-  return Math.min(listPage.value * listSize.value, listTotal.value)
-})
-
-onMounted(loadApiCallLogs)
 </script>
 
 <template>

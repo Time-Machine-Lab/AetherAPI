@@ -69,11 +69,14 @@ declare global {
   const toValue: typeof import('vue').toValue
   const triggerRef: typeof import('vue').triggerRef
   const unref: typeof import('vue').unref
+  const useApiCallLogWorkspace: typeof import('./composables/useApiCallLogWorkspace').useApiCallLogWorkspace
   const useAppInfo: typeof import('./composables/useAppInfo').useAppInfo
   const useAppShellStore: typeof import('./stores/useAppShellStore').useAppShellStore
   const useAttrs: typeof import('vue').useAttrs
   const useAuthStore: typeof import('./stores/useAuthStore').useAuthStore
+  const useCatalogDiscovery: typeof import('./composables/useCatalogDiscovery').useCatalogDiscovery
   const useConsoleAuth: typeof import('./composables/useConsoleAuth').useConsoleAuth
+  const useCredentialWorkspace: typeof import('./composables/useCredentialWorkspace').useCredentialWorkspace
   const useCssModule: typeof import('vue').useCssModule
   const useCssVars: typeof import('vue').useCssVars
   const useI18n: typeof import('vue-i18n').useI18n
@@ -81,9 +84,11 @@ declare global {
   const useModel: typeof import('vue').useModel
   const useRoute: typeof import('vue-router').useRoute
   const useRouter: typeof import('vue-router').useRouter
+  const useSignInForm: typeof import('./composables/useSignInForm').useSignInForm
   const useSlots: typeof import('vue').useSlots
   const useTemplateRef: typeof import('vue').useTemplateRef
   const useUnifiedAccessPlayground: typeof import('./composables/useUnifiedAccessPlayground').useUnifiedAccessPlayground
+  const useWorkspaceCatalog: typeof import('./composables/useWorkspaceCatalog').useWorkspaceCatalog
   const watch: typeof import('vue').watch
   const watchEffect: typeof import('vue').watchEffect
   const watchPostEffect: typeof import('vue').watchPostEffect
@@ -163,11 +168,14 @@ declare module 'vue' {
     readonly toValue: UnwrapRef<typeof import('vue')['toValue']>
     readonly triggerRef: UnwrapRef<typeof import('vue')['triggerRef']>
     readonly unref: UnwrapRef<typeof import('vue')['unref']>
+    readonly useApiCallLogWorkspace: UnwrapRef<typeof import('./composables/useApiCallLogWorkspace')['useApiCallLogWorkspace']>
     readonly useAppInfo: UnwrapRef<typeof import('./composables/useAppInfo')['useAppInfo']>
     readonly useAppShellStore: UnwrapRef<typeof import('./stores/useAppShellStore')['useAppShellStore']>
     readonly useAttrs: UnwrapRef<typeof import('vue')['useAttrs']>
     readonly useAuthStore: UnwrapRef<typeof import('./stores/useAuthStore')['useAuthStore']>
+    readonly useCatalogDiscovery: UnwrapRef<typeof import('./composables/useCatalogDiscovery')['useCatalogDiscovery']>
     readonly useConsoleAuth: UnwrapRef<typeof import('./composables/useConsoleAuth')['useConsoleAuth']>
+    readonly useCredentialWorkspace: UnwrapRef<typeof import('./composables/useCredentialWorkspace')['useCredentialWorkspace']>
     readonly useCssModule: UnwrapRef<typeof import('vue')['useCssModule']>
     readonly useCssVars: UnwrapRef<typeof import('vue')['useCssVars']>
     readonly useI18n: UnwrapRef<typeof import('vue-i18n')['useI18n']>
@@ -175,9 +183,11 @@ declare module 'vue' {
     readonly useModel: UnwrapRef<typeof import('vue')['useModel']>
     readonly useRoute: UnwrapRef<typeof import('vue-router')['useRoute']>
     readonly useRouter: UnwrapRef<typeof import('vue-router')['useRouter']>
+    readonly useSignInForm: UnwrapRef<typeof import('./composables/useSignInForm')['useSignInForm']>
     readonly useSlots: UnwrapRef<typeof import('vue')['useSlots']>
     readonly useTemplateRef: UnwrapRef<typeof import('vue')['useTemplateRef']>
     readonly useUnifiedAccessPlayground: UnwrapRef<typeof import('./composables/useUnifiedAccessPlayground')['useUnifiedAccessPlayground']>
+    readonly useWorkspaceCatalog: UnwrapRef<typeof import('./composables/useWorkspaceCatalog')['useWorkspaceCatalog']>
     readonly watch: UnwrapRef<typeof import('vue')['watch']>
     readonly watchEffect: UnwrapRef<typeof import('vue')['watchEffect']>
     readonly watchPostEffect: UnwrapRef<typeof import('vue')['watchPostEffect']>
