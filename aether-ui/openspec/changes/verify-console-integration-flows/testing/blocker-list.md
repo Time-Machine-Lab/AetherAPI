@@ -7,17 +7,19 @@
 阻塞来源：
 
 - `2026-04-22` 本地后端真实联调
+- `2026-04-23` 本地后端 `http://localhost:8089/api/v1` 修复后复测
+- `2026-04-23` 本地后端重启并加载 MyBatis-Plus 乐观锁配置后复测通过
 - `aether-ui/openspec/changes/verify-console-integration-flows/testing/test-record.md`
 
 ## 2. 阻塞总览
 
 | 编号 | 阻塞主题 | 当前状态 | 影响等级 | 影响链路 |
 | --- | --- | --- | --- | --- |
-| B1 | 资产修订接口返回默认 `500` | 待后端定位 | 高 | 资产管理 -> 资产启用 -> 市场发现 -> Unified Access 成功调用 |
-| B2 | 有效 API Key 调未知接口返回默认 `500` | 待后端定位 | 高 | Unified Access 前置失败分类 -> 错误展示 -> 调用日志 |
-| B3 | API Key 停用 / 吊销返回默认 `500` | 待后端定位 | 高 | API Key 生命周期 -> 测试数据清理 |
-| B4 | 当前失败调用未观察到日志落库 | 待后端定位 | 中 | 调用日志列表 -> 日志详情 -> 联调排障 |
-| B5 | 真实环境缺少可发现资产样本 | 环境阻塞 | 中 | 市场浏览 -> 工作台 -> Playground 闭环 |
+| B1 | 资产修订接口返回默认 `500` | `2026-04-23` 已复测解除 | 高 | 资产管理 -> 资产启用 -> 市场发现 -> Unified Access 成功调用 |
+| B2 | 有效 API Key 调未知接口返回默认 `500` | `2026-04-23` 已复测解除 | 高 | Unified Access 前置失败分类 -> 错误展示 -> 调用日志 |
+| B3 | API Key 停用 / 吊销返回默认 `500` | `2026-04-23` 已复测解除 | 高 | API Key 生命周期 -> 测试数据清理 |
+| B4 | 当前失败调用未观察到日志落库 | `2026-04-23` 已复测解除 | 中 | 调用日志列表 -> 日志详情 -> 联调排障 |
+| B5 | 真实环境缺少可发现资产样本 | `2026-04-23` 已复测解除 | 中 | 市场浏览 -> 工作台 -> Playground 闭环 |
 
 ## 3. 详细阻塞
 
@@ -53,6 +55,31 @@
   "status": 500,
   "error": "Internal Server Error",
   "path": "/api/v1/assets/opsx-proxy-20260422231328"
+}
+```
+
+`2026-04-23` 复测 `http://localhost:8089/api/v1`，使用新建资产 `opsx-asset-fix2-20260423174133` 再次执行 `PUT /assets/{apiCode}`，仍返回默认 `500`：
+
+```json
+{
+  "timestamp": "2026-04-23T09:41:34.498+00:00",
+  "status": 500,
+  "error": "Internal Server Error",
+  "path": "/api/v1/assets/opsx-asset-fix2-20260423174133"
+}
+```
+
+根因补充：后端报错为 `org.apache.ibatis.binding.BindingException: Parameter 'MP_OPTLOCK_VERSION_ORIGINAL' not found. Available parameters are [param1, et]`，后续通过补充 MyBatis-Plus 乐观锁插件配置并重启后端解决。
+
+`2026-04-23` 重启后复测 `opsx-asset-lockfix-20260423175229`，`PUT /assets/{apiCode}` 返回 `200`，并成功补齐分类与上游配置：
+
+```json
+{
+  "apiCode": "opsx-asset-lockfix-20260423175229",
+  "categoryCode": "opsx-cat-lockfix-20260423175229",
+  "status": "DRAFT",
+  "requestMethod": "GET",
+  "authScheme": "NONE"
 }
 ```
 
@@ -108,6 +135,29 @@
 }
 ```
 
+`2026-04-23` 复测中，使用新建有效 API Key 调用 `GET /access/unknown-api`，仍返回默认 `500`：
+
+```json
+{
+  "timestamp": "2026-04-23T09:41:36.536+00:00",
+  "status": 500,
+  "error": "Internal Server Error",
+  "path": "/api/v1/access/unknown-api"
+}
+```
+
+`2026-04-23` 重启后复测中，使用有效 API Key 调用 `GET /access/unknown-api` 返回契约预期的 `TARGET_NOT_FOUND`：
+
+```json
+{
+  "code": "ASSET_NOT_FOUND",
+  "message": "Asset not found: unknown-api",
+  "failureType": "TARGET_NOT_FOUND",
+  "traceId": null,
+  "apiCode": "unknown-api"
+}
+```
+
 **影响范围**
 
 - 前端无法按契约区分 `TARGET_NOT_FOUND`
@@ -150,6 +200,36 @@
   "status": 500,
   "error": "Internal Server Error",
   "path": "/api/v1/current-user/api-keys/9f4e950a-e475-45cd-95e8-84b9b7e8b9c4/disable"
+}
+```
+
+`2026-04-23` 复测中，新建 `credentialId=1e4b38fb-9bf9-43ab-8fd6-298cd0d94602` 后执行 `disable` 与 `revoke`，仍返回默认 `500`：
+
+```json
+{
+  "timestamp": "2026-04-23T09:41:38.804+00:00",
+  "status": 500,
+  "error": "Internal Server Error",
+  "path": "/api/v1/current-user/api-keys/1e4b38fb-9bf9-43ab-8fd6-298cd0d94602/disable"
+}
+```
+
+`2026-04-23` 重启后复测中，新建 `credentialId=a6701622-c8a6-4481-a4a2-894b6b602207` 后，`disable` 与 `revoke` 均返回 `200`，最终状态为 `REVOKED`：
+
+```json
+{
+  "credentialId": "a6701622-c8a6-4481-a4a2-894b6b602207",
+  "status": "REVOKED",
+  "maskedKey": "ak_live_****04b4"
+}
+```
+
+```json
+{
+  "timestamp": "2026-04-23T09:41:39.008+00:00",
+  "status": 500,
+  "error": "Internal Server Error",
+  "path": "/api/v1/current-user/api-keys/1e4b38fb-9bf9-43ab-8fd6-298cd0d94602/revoke"
 }
 ```
 
@@ -205,6 +285,39 @@
 }
 ```
 
+`2026-04-23` 复测中，分别查询全量日志、`targetApiCode=unknown-api` 与 `targetApiCode=opsx-asset-fix2-20260423174133`，仍均为空：
+
+```json
+{
+  "items": [],
+  "page": 1,
+  "size": 20,
+  "total": 0
+}
+```
+
+`2026-04-23` 重启后复测中，失败调用与成功调用均可查询到日志：
+
+```json
+{
+  "items": [
+    {
+      "targetApiCode": "opsx-asset-lockfix-20260423175229",
+      "resultType": "SUCCESS",
+      "success": true,
+      "httpStatusCode": 200
+    },
+    {
+      "targetApiCode": "unknown-api",
+      "resultType": "TARGET_NOT_FOUND",
+      "success": false,
+      "httpStatusCode": 404
+    }
+  ],
+  "total": 2
+}
+```
+
 **影响范围**
 
 - 无法验证日志列表
@@ -235,6 +348,28 @@
 }
 ```
 
+`2026-04-23` 复测中，资产修订仍未生效，`GET /discovery/assets?page=1&pageSize=20` 仍返回空列表：
+
+```json
+{
+  "items": []
+}
+```
+
+`2026-04-23` 重启后复测中，启用后的测试资产已出现在 discovery 列表：
+
+```json
+{
+  "items": [
+    {
+      "apiCode": "opsx-asset-lockfix-20260423175229",
+      "assetName": "OpenSpec lockfix asset 20260423175229",
+      "assetType": "STANDARD_API"
+    }
+  ]
+}
+```
+
 **影响范围**
 
 - 市场页只能验证空态，无法验证真实详情与最近访问更新
@@ -252,17 +387,25 @@
 - `opsx-cat-debug`
 - `opsx-cat-20260422231328`
 - `opsx-cat-revise-20260422231418`
+- `opsx-cat-fix-20260423174054`
+- `opsx-cat-fix2-20260423174133`
+- `opsx-cat-lockfix-20260423175229`
 
 ### 资产草稿
 
 - `opsx-proxy-20260422231328`
 - `opsx-asset-revise-20260422231418`
+- `opsx-asset-fix-20260423174054`
+- `opsx-asset-fix2-20260423174133`
+- `opsx-asset-lockfix-20260423175229`（已通过公开接口停用）
 
 ### API Key
 
 - `0f606e46-74fb-4bc6-88ea-85b18684fdd3`
 - `88bf85e2-002a-4cf5-a03d-3f8c1ccb5a70`
 - `9f4e950a-e475-45cd-95e8-84b9b7e8b9c4`
+- `1e4b38fb-9bf9-43ab-8fd6-298cd0d94602`
+- `a6701622-c8a6-4481-a4a2-894b6b602207`（已通过公开接口吊销）
 
 ## 5. 建议的后续跟踪顺序
 
