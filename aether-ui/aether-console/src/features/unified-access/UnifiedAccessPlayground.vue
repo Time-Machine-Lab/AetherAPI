@@ -87,7 +87,9 @@ async function handleCopyResponse() {
   try {
     await navigator.clipboard.writeText(text)
     responseCopied.value = true
-    setTimeout(() => { responseCopied.value = false }, 2000)
+    setTimeout(() => {
+      responseCopied.value = false
+    }, 2000)
   } catch {
     // clipboard may not be available
   }
@@ -143,7 +145,9 @@ onMounted(loadDiscoveryAssets)
     </section>
 
     <!-- Security notice -->
-    <div class="flex items-start gap-3 rounded-[14px] border border-amber-200 bg-amber-50 px-5 py-4">
+    <div
+      class="flex items-start gap-3 rounded-[14px] border border-amber-200 bg-amber-50 px-5 py-4"
+    >
       <ShieldAlert class="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
       <p class="text-sm leading-6 text-amber-800">{{ t('console.playground.securityNotice') }}</p>
     </div>
@@ -157,13 +161,20 @@ onMounted(loadDiscoveryAssets)
             <CardTitle class="flex items-center justify-between">
               {{ t('console.playground.targetApi') }}
               <Button variant="ghost" size="sm" @click="toggleDiscoveryPicker">
-                {{ showDiscoveryPicker ? t('console.playground.hideDiscovery') : t('console.playground.browseDiscovery') }}
+                {{
+                  showDiscoveryPicker
+                    ? t('console.playground.hideDiscovery')
+                    : t('console.playground.browseDiscovery')
+                }}
               </Button>
             </CardTitle>
           </CardHeader>
           <CardContent class="space-y-4">
             <!-- Discovery picker -->
-            <div v-if="showDiscoveryPicker" class="rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-muted/40 p-4">
+            <div
+              v-if="showDiscoveryPicker"
+              class="rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-muted/40 p-4"
+            >
               <div v-if="discoveryLoading" class="py-4 text-center text-sm text-muted-foreground">
                 <Loader2 class="mx-auto mb-2 h-4 w-4 animate-spin" />
                 {{ t('console.playground.discoveryLoading') }}
@@ -171,7 +182,10 @@ onMounted(loadDiscoveryAssets)
               <div v-else-if="discoveryError" class="py-4 text-center text-sm text-destructive">
                 {{ t('console.playground.discoveryError') }}
               </div>
-              <div v-else-if="discoveryAssets.length === 0" class="py-4 text-center text-sm text-muted-foreground">
+              <div
+                v-else-if="discoveryAssets.length === 0"
+                class="py-4 text-center text-sm text-muted-foreground"
+              >
                 {{ t('console.playground.discoveryEmpty') }}
               </div>
               <div v-else class="grid gap-2 sm:grid-cols-2">
@@ -182,10 +196,14 @@ onMounted(loadDiscoveryAssets)
                   @click="handleSelectAsset(asset)"
                 >
                   <div class="min-w-0 flex-1">
-                    <p class="truncate text-sm font-medium text-foreground">{{ asset.displayName || asset.apiCode }}</p>
+                    <p class="truncate text-sm font-medium text-foreground">
+                      {{ asset.displayName || asset.apiCode }}
+                    </p>
                     <p class="mt-0.5 truncate text-xs text-muted-foreground">{{ asset.apiCode }}</p>
                   </div>
-                  <Badge variant="secondary" class="shrink-0 text-xs">{{ asset.assetType === 'AI_API' ? 'AI' : 'API' }}</Badge>
+                  <Badge variant="secondary" class="shrink-0 text-xs">{{
+                    asset.assetType === 'AI_API' ? 'AI' : 'API'
+                  }}</Badge>
                 </button>
               </div>
             </div>
@@ -193,10 +211,7 @@ onMounted(loadDiscoveryAssets)
             <!-- apiCode input -->
             <div class="space-y-2">
               <Label>{{ t('console.playground.fieldApiCode') }}</Label>
-              <Input
-                v-model="apiCode"
-                :placeholder="t('console.playground.apiCodePlaceholder')"
-              />
+              <Input v-model="apiCode" :placeholder="t('console.playground.apiCodePlaceholder')" />
             </div>
 
             <!-- Detail loading indicator -->
@@ -211,8 +226,17 @@ onMounted(loadDiscoveryAssets)
               class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
             >
               <Info class="h-3.5 w-3.5" />
-              <span>{{ t('console.playground.prefilledFrom') }} <strong>{{ selectedAssetDetail.displayName || selectedAssetDetail.apiCode }}</strong></span>
-              <Badge v-if="selectedAssetDetail.aiProfile?.streaming" variant="outline" class="text-xs">
+              <span
+                >{{ t('console.playground.prefilledFrom') }}
+                <strong>{{
+                  selectedAssetDetail.displayName || selectedAssetDetail.apiCode
+                }}</strong></span
+              >
+              <Badge
+                v-if="selectedAssetDetail.aiProfile?.streaming"
+                variant="outline"
+                class="text-xs"
+              >
                 {{ t('console.playground.streamingSupported') }}
               </Badge>
             </div>
@@ -325,12 +349,23 @@ onMounted(loadDiscoveryAssets)
           <CardHeader>
             <CardTitle class="flex items-center gap-3">
               {{ t('console.playground.responseTitle') }}
-              <Badge v-if="result" :variant="result.status >= 200 && result.status < 300 ? 'default' : 'destructive'" class="text-xs">
+              <Badge
+                v-if="result"
+                :variant="result.status >= 200 && result.status < 300 ? 'default' : 'destructive'"
+                class="text-xs"
+              >
                 {{ result.status }}
               </Badge>
-              <span v-if="elapsedMs" class="text-xs font-normal text-muted-foreground">{{ elapsedMs }}ms</span>
+              <span v-if="elapsedMs" class="text-xs font-normal text-muted-foreground"
+                >{{ elapsedMs }}ms</span
+              >
               <span class="flex-1" />
-              <Button v-if="result && result.kind !== 'binary'" variant="ghost" size="sm" @click="handleCopyResponse">
+              <Button
+                v-if="result && result.kind !== 'binary'"
+                variant="ghost"
+                size="sm"
+                @click="handleCopyResponse"
+              >
                 <Copy v-if="!responseCopied" class="mr-1 h-3.5 w-3.5" />
                 <CheckCircle2 v-else class="mr-1 h-3.5 w-3.5 text-emerald-600" />
                 {{ responseCopied ? t('console.playground.copied') : t('console.playground.copy') }}
@@ -342,19 +377,30 @@ onMounted(loadDiscoveryAssets)
           </CardHeader>
           <CardContent>
             <!-- Client-side error -->
-            <div v-if="invokeError" class="flex items-start gap-3 rounded-[14px] bg-red-50 px-5 py-4">
+            <div
+              v-if="invokeError"
+              class="flex items-start gap-3 rounded-[14px] bg-red-50 px-5 py-4"
+            >
               <XCircle class="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
               <p class="text-sm text-red-800">{{ invokeError }}</p>
             </div>
 
             <!-- Platform failure -->
-            <div v-else-if="result?.kind === 'platform-failure' && result.platformFailure" class="space-y-4">
+            <div
+              v-else-if="result?.kind === 'platform-failure' && result.platformFailure"
+              class="space-y-4"
+            >
               <div class="flex items-start gap-3 rounded-[14px] bg-amber-50 px-5 py-4">
                 <AlertTriangle class="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
                 <div class="min-w-0 flex-1 space-y-2">
-                  <p class="text-sm font-medium text-amber-800">{{ t('console.playground.platformFailure') }}</p>
+                  <p class="text-sm font-medium text-amber-800">
+                    {{ t('console.playground.platformFailure') }}
+                  </p>
                   <div class="flex flex-wrap items-center gap-2">
-                    <Badge :class="getFailureTypeColor(result.platformFailure.failureType)" class="text-xs">
+                    <Badge
+                      :class="getFailureTypeColor(result.platformFailure.failureType)"
+                      class="text-xs"
+                    >
                       {{ result.platformFailure.failureType }}
                     </Badge>
                     <code class="text-xs text-amber-700">{{ result.platformFailure.code }}</code>
@@ -378,26 +424,41 @@ onMounted(loadDiscoveryAssets)
             <div v-else-if="result?.kind === 'json'">
               <div class="flex items-center gap-2 mb-3">
                 <CheckCircle2 class="h-4 w-4 text-emerald-600" />
-                <span class="text-sm text-emerald-700">{{ t('console.playground.passthroughSuccess') }}</span>
+                <span class="text-sm text-emerald-700">{{
+                  t('console.playground.passthroughSuccess')
+                }}</span>
                 <Badge variant="outline" class="text-xs">{{ result.contentType }}</Badge>
               </div>
-              <pre class="max-h-[500px] overflow-auto rounded-[8px] border border-[rgb(34_34_34_/_0.06)] bg-muted/40 p-4 font-mono text-sm leading-6 text-foreground">{{ JSON.stringify(result.jsonBody, null, 2) }}</pre>
+              <pre
+                class="max-h-[500px] overflow-auto rounded-[8px] border border-[rgb(34_34_34_/_0.06)] bg-muted/40 p-4 font-mono text-sm leading-6 text-foreground"
+                >{{ JSON.stringify(result.jsonBody, null, 2) }}</pre
+              >
             </div>
 
             <!-- Text success -->
             <div v-else-if="result?.kind === 'text'">
               <div class="flex items-center gap-2 mb-3">
                 <CheckCircle2 class="h-4 w-4 text-emerald-600" />
-                <span class="text-sm text-emerald-700">{{ t('console.playground.passthroughSuccess') }}</span>
+                <span class="text-sm text-emerald-700">{{
+                  t('console.playground.passthroughSuccess')
+                }}</span>
                 <Badge variant="outline" class="text-xs">{{ result.contentType }}</Badge>
               </div>
-              <pre class="max-h-[500px] overflow-auto rounded-[8px] border border-[rgb(34_34_34_/_0.06)] bg-muted/40 p-4 font-mono text-sm leading-6 text-foreground">{{ result.textBody }}</pre>
+              <pre
+                class="max-h-[500px] overflow-auto rounded-[8px] border border-[rgb(34_34_34_/_0.06)] bg-muted/40 p-4 font-mono text-sm leading-6 text-foreground"
+                >{{ result.textBody }}</pre
+              >
             </div>
 
             <!-- Binary -->
-            <div v-else-if="result?.kind === 'binary'" class="flex flex-col items-center gap-4 py-6">
+            <div
+              v-else-if="result?.kind === 'binary'"
+              class="flex flex-col items-center gap-4 py-6"
+            >
               <Download class="h-8 w-8 text-muted-foreground" />
-              <p class="text-sm text-muted-foreground">{{ t('console.playground.binaryResponse') }}</p>
+              <p class="text-sm text-muted-foreground">
+                {{ t('console.playground.binaryResponse') }}
+              </p>
               <Badge variant="outline" class="text-xs">{{ result.contentType }}</Badge>
               <Button variant="outline" @click="handleDownloadBlob">
                 <Download class="mr-2 h-4 w-4" />
@@ -407,10 +468,15 @@ onMounted(loadDiscoveryAssets)
 
             <!-- Raw headers -->
             <details v-if="result" class="mt-4">
-              <summary class="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground">
+              <summary
+                class="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground"
+              >
                 {{ t('console.playground.rawHeaders') }}
               </summary>
-              <pre class="mt-2 max-h-[200px] overflow-auto rounded-[8px] border border-[rgb(34_34_34_/_0.06)] bg-muted/40 p-3 font-mono text-xs leading-5 text-muted-foreground">{{ JSON.stringify(result.rawHeaders, null, 2) }}</pre>
+              <pre
+                class="mt-2 max-h-[200px] overflow-auto rounded-[8px] border border-[rgb(34_34_34_/_0.06)] bg-muted/40 p-3 font-mono text-xs leading-5 text-muted-foreground"
+                >{{ JSON.stringify(result.rawHeaders, null, 2) }}</pre
+              >
             </details>
           </CardContent>
         </Card>
@@ -423,11 +489,7 @@ onMounted(loadDiscoveryAssets)
           :selected-asset-detail="selectedAssetDetail"
           @close="showGuidance = false"
         />
-        <UnifiedAccessGuidance
-          v-else
-          :selected-asset-detail="selectedAssetDetail"
-          compact
-        />
+        <UnifiedAccessGuidance v-else :selected-asset-detail="selectedAssetDetail" compact />
       </div>
     </div>
   </div>

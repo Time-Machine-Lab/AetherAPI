@@ -6,12 +6,7 @@ import type {
   IssuedCurrentUserApiKeyDto,
   LastUsedSnapshotDto,
 } from './credential.dto'
-import type {
-  ApiKey,
-  CredentialStatus,
-  IssuedApiKey,
-  LastUsedSnapshot,
-} from './credential.types'
+import type { ApiKey, CredentialStatus, IssuedApiKey, LastUsedSnapshot } from './credential.types'
 import type { PageResult } from '@/api/catalog/catalog.types'
 
 function mapLastUsedSnapshot(dto: LastUsedSnapshotDto | null): LastUsedSnapshot | null {

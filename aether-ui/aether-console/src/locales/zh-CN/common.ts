@@ -218,8 +218,10 @@ export default {
     playground: {
       metaTitle: '统一接入调用工作台',
       title: '调用工作台',
-      description: '通过统一接入入口调用已启用的 API 资产。选择目标 API、输入 API Key，发起真实调用并查看响应。',
-      securityNotice: 'API Key 是敏感凭证，仅在创建时展示一次完整明文。本页面不会持久化您输入的 Key，刷新或关闭后将丢失。',
+      description:
+        '通过统一接入入口调用已启用的 API 资产。选择目标 API、输入 API Key，发起真实调用并查看响应。',
+      securityNotice:
+        'API Key 是敏感凭证，仅在创建时展示一次完整明文。本页面不会持久化您输入的 Key，刷新或关闭后将丢失。',
       targetApi: '目标 API',
       browseDiscovery: '浏览 API 市场',
       hideDiscovery: '隐藏 API 列表',
@@ -254,18 +256,23 @@ export default {
       rawHeaders: '查看原始响应头',
       failureExplain: {
         INVALID_API_CODE: 'API Code 不合法或格式不符合要求。请检查输入的 API Code 是否正确。',
-        INVALID_CREDENTIAL: 'API Key 无效、已停用，或其归属的调用主体上下文不可用。请确认 Key 状态是否正常。',
-        TARGET_NOT_FOUND: '无法根据该 API Code 解析到已启用的目标 API。请确认该 API 是否存在且已启用。',
+        INVALID_CREDENTIAL:
+          'API Key 无效、已停用，或其归属的调用主体上下文不可用。请确认 Key 状态是否正常。',
+        TARGET_NOT_FOUND:
+          '无法根据该 API Code 解析到已启用的目标 API。请确认该 API 是否存在且已启用。',
         TARGET_UNAVAILABLE: '目标 API 存在但当前不可用，可能正在维护或已被暂时禁用。',
       },
       guidanceCompactHint: '点击右上方「使用帮助」查看统一接入说明与失败类型参考。',
       guidanceTitle: '统一接入使用指引',
       guidanceAuthTitle: '请求鉴权',
-      guidanceAuthBody: '统一接入通过请求头 X-Aether-Api-Key 鉴权，与控制台自身的登录态（Bearer Token）完全独立。请在"我的 API Key"中创建密钥后使用。',
+      guidanceAuthBody:
+        '统一接入通过请求头 X-Aether-Api-Key 鉴权，与控制台自身的登录态（Bearer Token）完全独立。请在"我的 API Key"中创建密钥后使用。',
       guidancePassthroughTitle: '响应透传',
-      guidancePassthroughBody: '调用成功时，响应内容直接来自上游 API，不使用平台管理接口的 TML-SDK Result 包装。排查上游行为时请优先查看原始响应。',
+      guidancePassthroughBody:
+        '调用成功时，响应内容直接来自上游 API，不使用平台管理接口的 TML-SDK Result 包装。排查上游行为时请优先查看原始响应。',
       guidanceStreamingTitle: '流式输出',
-      guidanceStreamingBody: '当前所选目标 API 标记了支持流式输出，实际响应可能通过流式协议返回。当前工作台以完整响应展示为主。',
+      guidanceStreamingBody:
+        '当前所选目标 API 标记了支持流式输出，实际响应可能通过流式协议返回。当前工作台以完整响应展示为主。',
       failureReferenceTitle: '失败类型参考',
       selectedAssetTitle: '已选资产详情',
       fieldDisplayName: '显示名称',

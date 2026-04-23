@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { useApiCallLogWorkspace } from './useApiCallLogWorkspace'
-import type {
-  ApiCallLogDetail,
-  ApiCallLogItem,
-} from '@/api/api-call-log/api-call-log.types'
+import type { ApiCallLogDetail, ApiCallLogItem } from '@/api/api-call-log/api-call-log.types'
 import type { PageResult } from '@/api/catalog/catalog.types'
 
 vi.mock('@/api/api-call-log/api-call-log.api', () => ({
@@ -60,8 +57,8 @@ describe('useApiCallLogWorkspace', () => {
 
     expect(listLogs).toHaveBeenCalledWith({
       targetApiCode: 'weather-api',
-      invocationStartAt: '2026-04-23T01:00:00.000Z',
-      invocationEndAt: '2026-04-23T02:00:00.000Z',
+      invocationStartAt: new Date('2026-04-23T09:00').toISOString(),
+      invocationEndAt: new Date('2026-04-23T10:00').toISOString(),
       page: 1,
       size: 20,
     })
@@ -118,7 +115,8 @@ describe('useApiCallLogWorkspace', () => {
   })
 
   it('separates list failures from detail failures and supports reset', async () => {
-    const listLogs = vi.fn()
+    const listLogs = vi
+      .fn()
       .mockRejectedValueOnce(new Error('list failed'))
       .mockResolvedValueOnce(page([]))
     const getDetail = vi.fn().mockRejectedValueOnce(new Error('detail failed'))

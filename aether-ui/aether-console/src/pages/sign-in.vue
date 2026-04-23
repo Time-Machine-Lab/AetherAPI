@@ -32,7 +32,9 @@ const { loginName, password, isSubmitting, errorCode, handleSignIn } = useSignIn
         <CardContent class="p-6 sm:p-8 lg:p-10">
           <Badge variant="outline">{{ t('console.signIn.eyebrow') }}</Badge>
           <p class="console-kicker mt-6">{{ t('console.signIn.eyebrow') }}</p>
-          <h1 class="console-display mt-4 max-w-3xl text-5xl font-semibold leading-[1.05] md:text-6xl">
+          <h1
+            class="console-display mt-4 max-w-3xl text-5xl font-semibold leading-[1.05] md:text-6xl"
+          >
             {{ t('console.signIn.title') }}
           </h1>
           <p class="mt-5 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
@@ -40,7 +42,9 @@ const { loginName, password, isSubmitting, errorCode, handleSignIn } = useSignIn
           </p>
 
           <div class="mt-8 rounded-[24px] bg-secondary px-5 py-5">
-            <p class="text-base font-medium text-foreground">{{ t('console.signIn.helperTitle') }}</p>
+            <p class="text-base font-medium text-foreground">
+              {{ t('console.signIn.helperTitle') }}
+            </p>
             <p class="mt-2 text-sm leading-6 text-muted-foreground">
               {{ t('console.signIn.helperDescription') }}
             </p>
@@ -60,7 +64,11 @@ const { loginName, password, isSubmitting, errorCode, handleSignIn } = useSignIn
         </CardContent>
 
         <div class="relative min-h-[320px] border-t border-border lg:border-t-0 lg:border-l">
-          <img :src="heroImage" alt="Console preview" class="absolute inset-0 size-full object-cover" />
+          <img
+            :src="heroImage"
+            alt="Console preview"
+            class="absolute inset-0 size-full object-cover"
+          />
           <div
             class="absolute inset-0 bg-[linear-gradient(180deg,rgba(34,34,34,0.08),rgba(34,34,34,0.64))]"
           />
@@ -80,11 +88,22 @@ const { loginName, password, isSubmitting, errorCode, handleSignIn } = useSignIn
         <form class="space-y-5" @submit.prevent="handleSignIn">
           <div class="space-y-2">
             <Label for="login-name">{{ t('console.signIn.loginNameLabel') }}</Label>
-            <Input id="login-name" v-model="loginName" autocomplete="username" :disabled="isSubmitting" />
+            <Input
+              id="login-name"
+              v-model="loginName"
+              autocomplete="username"
+              :disabled="isSubmitting"
+            />
           </div>
           <div class="space-y-2">
             <Label for="password">{{ t('console.signIn.passwordLabel') }}</Label>
-            <Input id="password" v-model="password" type="password" autocomplete="current-password" :disabled="isSubmitting" />
+            <Input
+              id="password"
+              v-model="password"
+              type="password"
+              autocomplete="current-password"
+              :disabled="isSubmitting"
+            />
           </div>
           <p
             v-if="errorCode"

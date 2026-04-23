@@ -33,7 +33,8 @@ interface WorkspaceCatalogDeps {
   autoLoad?: boolean
 }
 
-type WorkspaceCatalogOptions = Partial<Omit<WorkspaceCatalogDeps, 't'>> & Pick<WorkspaceCatalogDeps, 't'>
+type WorkspaceCatalogOptions = Partial<Omit<WorkspaceCatalogDeps, 't'>> &
+  Pick<WorkspaceCatalogDeps, 't'>
 
 function buildDeps(options: WorkspaceCatalogOptions): WorkspaceCatalogDeps {
   return {
@@ -139,7 +140,12 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     assetError.value = ''
     try {
       currentAsset.value = await deps.registerAsset(registerForm.value)
-      registerForm.value = { apiCode: '', displayName: '', assetType: 'STANDARD_API', categoryCode: '' }
+      registerForm.value = {
+        apiCode: '',
+        displayName: '',
+        assetType: 'STANDARD_API',
+        categoryCode: '',
+      }
     } catch {
       assetError.value = deps.t('console.workspace.registerFailed')
     } finally {

@@ -103,7 +103,9 @@ async function handleSignOut() {
     <div class="grid min-h-screen lg:grid-cols-[248px_minmax(0,1fr)]">
       <aside class="border-r border-[rgb(34_34_34_/_0.06)] bg-white">
         <div class="flex h-18 items-center gap-3 border-b border-[rgb(34_34_34_/_0.06)] px-5">
-          <div class="flex size-10 items-center justify-center rounded-full bg-secondary text-foreground">
+          <div
+            class="flex size-10 items-center justify-center rounded-full bg-secondary text-foreground"
+          >
             <Menu class="size-4" />
           </div>
           <RouterLink :to="{ name: 'console-home' }" class="flex items-center gap-3">
@@ -116,7 +118,9 @@ async function handleSignOut() {
         </div>
 
         <div class="px-4 py-5">
-          <div class="mb-6 rounded-[20px] border border-[rgb(34_34_34_/_0.04)] bg-white p-4 shadow-console">
+          <div
+            class="mb-6 rounded-[20px] border border-[rgb(34_34_34_/_0.04)] bg-white p-4 shadow-console"
+          >
             <div class="flex items-center gap-3">
               <div
                 class="flex size-11 items-center justify-center rounded-full bg-secondary text-foreground"
@@ -136,7 +140,9 @@ async function handleSignOut() {
 
           <div class="space-y-6">
             <section v-for="group in consoleSidebarGroups" :key="group.id">
-              <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+              <p
+                class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground"
+              >
                 {{ t(group.titleKey) }}
               </p>
               <div class="space-y-1.5">
@@ -162,7 +168,9 @@ async function handleSignOut() {
       </aside>
 
       <div class="min-w-0">
-        <header class="sticky top-0 z-20 border-b border-[rgb(34_34_34_/_0.06)] bg-white/92 backdrop-blur-md">
+        <header
+          class="sticky top-0 z-20 border-b border-[rgb(34_34_34_/_0.06)] bg-white/92 backdrop-blur-md"
+        >
           <div class="px-4 py-4 sm:px-6">
             <div class="flex flex-wrap items-center justify-between gap-4">
               <div class="min-w-0">
@@ -213,7 +221,9 @@ async function handleSignOut() {
                 <component
                   :is="notice.tone === 'success' ? Rocket : Info"
                   class="size-4 shrink-0"
-                  :class="notice.tone === 'success' ? 'text-primary' : 'text-[var(--palette-text-legal)]'"
+                  :class="
+                    notice.tone === 'success' ? 'text-primary' : 'text-[var(--palette-text-legal)]'
+                  "
                 />
                 <span>{{ t(notice.labelKey) }}</span>
               </div>

@@ -26,15 +26,10 @@ const httpHarness = vi.hoisted(() => {
         }),
       },
       response: {
-        use: vi.fn(
-          (
-            _onFulfilled: unknown,
-            onRejected: typeof responseRejected,
-          ) => {
-            responseRejected = onRejected
-            return 0
-          },
-        ),
+        use: vi.fn((_onFulfilled: unknown, onRejected: typeof responseRejected) => {
+          responseRejected = onRejected
+          return 0
+        }),
       },
     },
   })

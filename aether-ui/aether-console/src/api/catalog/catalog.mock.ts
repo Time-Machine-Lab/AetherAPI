@@ -1,14 +1,38 @@
 import type { AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
-import type { CategoryDto, AssetDto, DiscoveryAssetDto, DiscoveryAssetDetailDto, PageDto } from './catalog.dto'
+import type {
+  CategoryDto,
+  AssetDto,
+  DiscoveryAssetDto,
+  DiscoveryAssetDetailDto,
+  PageDto,
+} from './catalog.dto'
 import { credentialMockRoutes } from '@/api/credential/credential.mock'
 import { apiCallLogMockRoutes } from '@/api/api-call-log/api-call-log.mock'
 
 // ── Seed data ────────────────────────────────────────────────
 
 const categories: CategoryDto[] = [
-  { categoryCode: 'cat-ai', name: 'AI 接口', status: 'ENABLED', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
-  { categoryCode: 'cat-search', name: '搜索增强', status: 'ENABLED', createdAt: '2026-01-02T00:00:00Z', updatedAt: '2026-01-02T00:00:00Z' },
-  { categoryCode: 'cat-data', name: '数据服务', status: 'DISABLED', createdAt: '2026-01-03T00:00:00Z', updatedAt: '2026-01-03T00:00:00Z' },
+  {
+    categoryCode: 'cat-ai',
+    name: 'AI 接口',
+    status: 'ENABLED',
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+  },
+  {
+    categoryCode: 'cat-search',
+    name: '搜索增强',
+    status: 'ENABLED',
+    createdAt: '2026-01-02T00:00:00Z',
+    updatedAt: '2026-01-02T00:00:00Z',
+  },
+  {
+    categoryCode: 'cat-data',
+    name: '数据服务',
+    status: 'DISABLED',
+    createdAt: '2026-01-03T00:00:00Z',
+    updatedAt: '2026-01-03T00:00:00Z',
+  },
 ]
 
 const assets: AssetDto[] = [
@@ -20,7 +44,12 @@ const assets: AssetDto[] = [
     status: 'ENABLED',
     description: '通用推理与工具调用旗舰模型。',
     authScheme: 'Bearer Token',
-    aiProfile: { provider: 'DeepSeek', model: 'deepseek-v3', streaming: true, tags: ['reasoning', 'tool-call'] },
+    aiProfile: {
+      provider: 'DeepSeek',
+      model: 'deepseek-v3',
+      streaming: true,
+      tags: ['reasoning', 'tool-call'],
+    },
   },
   {
     apiCode: 'kimi-k2',
@@ -59,11 +88,16 @@ function page<T>(items: T[], params: Record<string, string>): PageDto<T> {
   const size = Number(params.pageSize ?? 20)
   const keyword = (params.keyword ?? '').toLowerCase()
   const filtered = keyword
-    ? (items as Record<string, unknown>[]).filter((item) =>
+    ? ((items as Record<string, unknown>[]).filter((item) =>
         Object.values(item).some((v) => String(v).toLowerCase().includes(keyword)),
-      ) as T[]
+      ) as T[])
     : items
-  return { items: filtered.slice((p - 1) * size, p * size), total: filtered.length, page: p, pageSize: size }
+  return {
+    items: filtered.slice((p - 1) * size, p * size),
+    total: filtered.length,
+    page: p,
+    pageSize: size,
+  }
 }
 
 function ok<T>(data: T): AxiosResponse<T> {
@@ -77,13 +111,19 @@ function ok<T>(data: T): AxiosResponse<T> {
 }
 
 function notFound(): never {
-  const err = Object.assign(new Error('Not Found'), { response: { status: 404, data: { message: 'Not Found' } } })
+  const err = Object.assign(new Error('Not Found'), {
+    response: { status: 404, data: { message: 'Not Found' } },
+  })
   throw err
 }
 
 // ── Route table ──────────────────────────────────────────────
 
-type MockHandler = (params: Record<string, string>, body?: unknown, match?: RegExpMatchArray) => AxiosResponse
+type MockHandler = (
+  params: Record<string, string>,
+  body?: unknown,
+  match?: RegExpMatchArray,
+) => AxiosResponse
 
 const routes: { method: string; pattern: RegExp; handler: MockHandler }[] = [
   // Discovery
@@ -93,7 +133,13 @@ const routes: { method: string; pattern: RegExp; handler: MockHandler }[] = [
     handler: (params) => {
       const list: DiscoveryAssetDto[] = assets
         .filter((a) => a.status === 'ENABLED')
-        .map((a) => ({ apiCode: a.apiCode, displayName: a.displayName, assetType: a.assetType, categoryCode: a.categoryCode, categoryName: categories.find((c) => c.categoryCode === a.categoryCode)?.name }))
+        .map((a) => ({
+          apiCode: a.apiCode,
+          displayName: a.displayName,
+          assetType: a.assetType,
+          categoryCode: a.categoryCode,
+          categoryName: categories.find((c) => c.categoryCode === a.categoryCode)?.name,
+        }))
       return ok(page(list, params))
     },
   },
@@ -112,7 +158,12 @@ const routes: { method: string; pattern: RegExp; handler: MockHandler }[] = [
         description: asset.description,
         authScheme: asset.authScheme,
         methods: asset.assetType === 'AI_API' ? ['POST /chat/completions'] : ['GET', 'POST'],
-        requestTemplate: asset.assetType === 'AI_API' ? '{"model":"' + asset.aiProfile?.model + '","messages":[{"role":"user","content":"Hello"}]}' : undefined,
+        requestTemplate:
+          asset.assetType === 'AI_API'
+            ? '{"model":"' +
+              asset.aiProfile?.model +
+              '","messages":[{"role":"user","content":"Hello"}]}'
+            : undefined,
         exampleSnapshot: '{"code":0,"data":{}}',
         aiProfile: asset.aiProfile,
       }
@@ -130,7 +181,13 @@ const routes: { method: string; pattern: RegExp; handler: MockHandler }[] = [
     pattern: /^\/api\/v1\/categories$/,
     handler: (_, body) => {
       const b = body as { name: string }
-      const cat: CategoryDto = { categoryCode: `cat-${Date.now()}`, name: b.name, status: 'ENABLED', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+      const cat: CategoryDto = {
+        categoryCode: `cat-${Date.now()}`,
+        name: b.name,
+        status: 'ENABLED',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
       categories.unshift(cat)
       return ok(cat)
     },
@@ -249,9 +306,12 @@ export function mockAdapter(config: AxiosRequestConfig): Promise<AxiosResponse> 
     if (route.method !== method) continue
     const match = url.match(route.pattern)
     if (!match) continue
-    const body = config.data != null
-      ? (typeof config.data === 'string' ? JSON.parse(config.data) : config.data)
-      : undefined
+    const body =
+      config.data != null
+        ? typeof config.data === 'string'
+          ? JSON.parse(config.data)
+          : config.data
+        : undefined
     return Promise.resolve(route.handler(params, body, match))
   }
 

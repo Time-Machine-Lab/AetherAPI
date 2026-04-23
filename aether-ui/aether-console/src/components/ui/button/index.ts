@@ -16,8 +16,7 @@ export const buttonVariants = cva(
           'bg-secondary text-secondary-foreground shadow-none hover:bg-[color-mix(in_srgb,var(--secondary)_88%,white)]',
         ghost:
           'bg-transparent text-foreground shadow-none hover:bg-secondary hover:text-foreground',
-        destructive:
-          'bg-destructive text-white shadow-console hover:brightness-105',
+        destructive: 'bg-destructive text-white shadow-console hover:brightness-105',
         link: 'rounded-none bg-transparent px-0 text-foreground underline-offset-4 hover:underline',
       },
       size: {

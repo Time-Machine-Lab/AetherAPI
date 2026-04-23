@@ -22,8 +22,7 @@ interface CredentialWorkspaceDeps {
   autoLoad?: boolean
 }
 
-type CredentialWorkspaceOptions =
-  Partial<Omit<CredentialWorkspaceDeps, 't'>> &
+type CredentialWorkspaceOptions = Partial<Omit<CredentialWorkspaceDeps, 't'>> &
   Pick<CredentialWorkspaceDeps, 't'>
 
 function buildDeps(options: CredentialWorkspaceOptions): CredentialWorkspaceDeps {

@@ -98,7 +98,13 @@ export async function invokeUnifiedAccess(
           traceId: parsed.traceId,
           apiCode: parsed.apiCode,
         }
-        return { kind: 'platform-failure', status, contentType: ct, platformFailure: failure, rawHeaders }
+        return {
+          kind: 'platform-failure',
+          status,
+          contentType: ct,
+          platformFailure: failure,
+          rawHeaders,
+        }
       }
       // Non-failure JSON
       return { kind: 'json', status, contentType: ct, jsonBody: parsed, rawHeaders }
