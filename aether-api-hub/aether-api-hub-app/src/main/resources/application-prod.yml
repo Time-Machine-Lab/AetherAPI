@@ -8,7 +8,7 @@ spring:
   datasource:
     url: 'ENC(1HCKsbVZGPHdG7yJCAbhfqD19yfFzOuplfI4IBW79vRG+n7w6/Mynfa8qtL33a/42WcCGVC0PEYA3lvzb97N49m9gjkZiWeHsQd2ncfhVID3/+oCi3B72oit7HZiug6nDQHmBEtzJ0+BO+SKLGkSxkNLxR6NN9ouRPFzyqzvxL2jkUhYMF7Vf+uT6k2QhJIeNdSv8S6SsUq+Z4v9uCKhSYlIwiurh6/UVwl9E3BDE1s=)'
     username: 'ENC(6AogQsJmwjHYwYKvlubtYk3i6QYrl507)'
-    password: 'ENC(wSAF2MCPb/1eIyYShFL4T9ZpMWZh47mfsnRbLcCZKoo=)'
+    password: 'ENC(iIo8nIJZagvEldC/o3bhnOE26G0p9l6S2GabQuVotDajqZpxKZwA9g==)'
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 mybatis-plus:
