@@ -1,49 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import type { RouteRecordName } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
 import heroImage from '@/assets/hero.png'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { appConfig } from '@/app/app-config'
 import { consoleWorkspacePanels } from '@/features/console/console-shell'
-import { useConsoleAuth } from '@/composables/useConsoleAuth'
-import type { NormalizedHttpError } from '@/api/http'
+import { useSignInForm } from '@/composables/useSignInForm'
 
-const { signIn } = useConsoleAuth()
-const route = useRoute()
-const router = useRouter()
 const { t } = useI18n()
-
-const loginName = ref('')
-const password = ref('')
-const isSubmitting = ref(false)
-const errorCode = ref<string | null>(null)
-
-async function handleSignIn() {
-  isSubmitting.value = true
-  errorCode.value = null
-
-  try {
-    await signIn(loginName.value, password.value)
-
-    const redirectName =
-      typeof route.query.redirectName === 'string'
-        ? (route.query.redirectName as RouteRecordName)
-        : (appConfig.protectedHomeRouteName as RouteRecordName)
-
-    await router.push({ name: redirectName })
-  } catch (err) {
-    const httpError = err as NormalizedHttpError
-    errorCode.value = httpError.code ?? 'UNKNOWN'
-  } finally {
-    isSubmitting.value = false
-  }
-}
+const { loginName, password, isSubmitting, errorCode, handleSignIn } = useSignInForm()
 </script>
 
 <route lang="json5">
