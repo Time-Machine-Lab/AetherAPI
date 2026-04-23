@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/aether_api_hub?useUnicode=true&characterEncoding=utf-8&serverTimezone=UTC&useSSL=false
-    username: root
-    password: root
+    url: 'ENC(OmyfqXXUfD/8Y3P2mEAKHfDIydjrs/NP0PLH+qYkFpjGOyFs/IF8XyU8+zORnSlLz/76u3kzMZB1h9eDcehj0Oy4fe+h8e3+WHGxctI9lQM6p+v1FF7rorOc/naBfV/Yjg3w+I4grvXgN5vc+5V5QMbWxql3hNQ/BXTUv9STCinscArOHibBTw==)'
+    username: 'ENC(6AogQsJmwjHYwYKvlubtYk3i6QYrl507)'
+    password: 'ENC(iIo8nIJZagvEldC/o3bhnOE26G0p9l6S2GabQuVotDajqZpxKZwA9g==)'
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 mybatis-plus:

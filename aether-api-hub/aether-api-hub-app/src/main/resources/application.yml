@@ -7,6 +7,6 @@ spring:
   application:
     name: aether-api-hub
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+    active: ${ACTIVE:dev}
 
 

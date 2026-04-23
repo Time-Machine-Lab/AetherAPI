@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:mysql://172.17.0.5:3306/aether_api_hub?useUnicode=true&characterEncoding=utf-8&serverTimezone=UTC&useSSL=false
-    username: root
-    password: genius_serve_0704
+    url: 'ENC(OmyfqXXUfD/8Y3P2mEAKHfDIydjrs/NP0PLH+qYkFpjGOyFs/IF8XyU8+zORnSlLz/76u3kzMZB1h9eDcehj0Oy4fe+h8e3+WHGxctI9lQM6p+v1FF7rorOc/naBfV/Yjg3w+I4grvXgN5vc+5V5QMbWxql3hNQ/BXTUv9STCinscArOHibBTw==)'
+    username: 'ENC(6AogQsJmwjHYwYKvlubtYk3i6QYrl507)'
+    password: 'ENC(iIo8nIJZagvEldC/o3bhnOE26G0p9l6S2GabQuVotDajqZpxKZwA9g==)'
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 mybatis-plus:
@@ -25,12 +25,11 @@ logging:
 aether:
   console:
     session-auth:
-      user-id: ${AETHER_CONSOLE_AUTH_USER_ID:console-operator}
-      login-name: ${AETHER_CONSOLE_AUTH_LOGIN_NAME:console@aetherapi.local}
-      password: ${AETHER_CONSOLE_AUTH_PASSWORD:change-me-console-password}
-      display-name: ${AETHER_CONSOLE_AUTH_DISPLAY_NAME:Aether Console Operator}
-      email: ${AETHER_CONSOLE_AUTH_EMAIL:console@aetherapi.local}
-      role: ${AETHER_CONSOLE_AUTH_ROLE:OWNER}
-      token-secret: ${AETHER_CONSOLE_AUTH_TOKEN_SECRET:change-me-console-session-secret}
+      user-id: 'ENC(KK6klTq56ESUZAARF6fz8odrAtwb1Yp7GJXkBTko22g=)'
+      login-name: 'ENC(QVqXO9aWFlBtlDowf7i2koCYwnOOuhpA5JT18BTr2PE=)'
+      password: 'ENC(j3LOSrQBkQ4zgnlZWBzbvUdNKYcF/JdJ/FuXmCN6cWUQxvIXEWuZgHqqCtGdSV1i)'
+      display-name: 'ENC(VgNfun4JpBufA7Wv4Sxmn6h68eL4alqM2sf9ZZEP+Cc=)'
+      email: 'ENC(FUGKdyVhklhVYiAt8t6JpsLpgyb1jgn5GEmFlnYK4ys=)'
+      role: 'ENC(PiIoH5E5sQS3nhF7CAR+Bg==)'
+      token-secret: 'ENC(048VjhmuI9iRWYpehkSn92n5d+damCmbgax/FUa9FgcYAq5GVKVkXfSC6Qqj8IBOPBHQCH+omMuzPmuROty9oA==)'
       token-ttl-seconds: ${AETHER_CONSOLE_AUTH_TOKEN_TTL_SECONDS:43200}
-
