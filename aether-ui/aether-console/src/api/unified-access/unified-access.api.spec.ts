@@ -20,7 +20,7 @@ vi.mock('axios', () => ({
 
 vi.mock('@/utils/env', () => ({
   env: {
-    apiBaseUrl: '/api/v1',
+    apiBaseUrl: '/api',
     requestTimeoutMs: 12000,
   },
 }))

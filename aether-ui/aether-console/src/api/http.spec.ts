@@ -67,7 +67,7 @@ vi.mock('@/api/catalog/catalog.mock', () => ({
 
 vi.mock('@/utils/env', () => ({
   env: {
-    apiBaseUrl: '/api/v1',
+    apiBaseUrl: '/api',
     requestTimeoutMs: 12000,
   },
 }))

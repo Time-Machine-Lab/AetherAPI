@@ -25,11 +25,11 @@ function mapSession(dto: ConsoleSignInRespDto): ConsoleSession {
 }
 
 export async function signInConsole(body: ConsoleSignInReqDto): Promise<ConsoleSession> {
-  const { data } = await http.post<ConsoleSignInRespDto>('/console/auth/sign-in', body)
+  const { data } = await http.post<ConsoleSignInRespDto>('/v1/console/auth/sign-in', body)
   return mapSession(data)
 }
 
 export async function getCurrentConsoleSession(): Promise<ConsoleCurrentUser> {
-  const { data } = await http.get<ConsoleCurrentSessionRespDto>('/console/auth/current-session')
+  const { data } = await http.get<ConsoleCurrentSessionRespDto>('/v1/console/auth/current-session')
   return mapCurrentUser(data.currentUser)
 }

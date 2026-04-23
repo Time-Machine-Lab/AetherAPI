@@ -56,7 +56,7 @@ docker run -d \
   <docker-username>/aether-console:aether-console-v1.0.0
 ```
 
-The frontend keeps `VITE_API_BASE_URL=/api/v1`. Browser requests to `/api/v1/**` stay same-origin and Nginx forwards `/api/**` to `AETHER_BACKEND_UPSTREAM`.
+The frontend keeps `VITE_API_BASE_URL=/api`, and API files include the version segment in request paths. Browser requests to `/api/v1/**` stay same-origin and Nginx forwards `/api/**` to `AETHER_BACKEND_UPSTREAM`.
 
 The backend service must be reachable from the Nginx container on port `8090`. The default upstream is `http://61.184.13.101:8090`. If the backend process listens elsewhere, set the `AETHER_BACKEND_UPSTREAM` variable to a reachable `http://...:8090` address before releasing `aether-console`.
 

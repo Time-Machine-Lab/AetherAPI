@@ -84,7 +84,7 @@ jobs:
           file: ${{ env.APP_DIR }}/Dockerfile
           push: true
           build-args: |
-            VITE_API_BASE_URL=/api/v1
+            VITE_API_BASE_URL=/api
           tags: |
             ${{ steps.image.outputs.image }}:${{ steps.image.outputs.tag }}
             ${{ steps.image.outputs.image }}:latest-console
