@@ -4,7 +4,8 @@ FROM eclipse-temurin:17-jre
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo 'Asia/Shanghai' > /etc/timezone
 ENV TZ=Asia/Shanghai
 
-COPY *.jar /model-master.jar
+# 构建上下文内需仅含一个可执行 fat JAR（与 CI 中 cp ./target/*.jar 一致）
+COPY *.jar /aether-api.jar
 
 ARG SERVER_PORT
 ARG ACTIVE
