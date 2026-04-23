@@ -20,7 +20,7 @@ RUN pnpm build
 
 FROM nginx:1.27-alpine AS runtime
 
-ENV AETHER_BACKEND_UPSTREAM=http://host.docker.internal:8090
+ENV AETHER_BACKEND_UPSTREAM=http://61.184.13.101:8090
 
 COPY deploy/nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html

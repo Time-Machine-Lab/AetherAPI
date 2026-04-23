@@ -97,7 +97,7 @@ jobs:
     env:
       AETHER_CONSOLE_IMAGE: ${{ secrets.DOCKER_USERNAME }}/aether-console:${{ github.ref_name }}
       AETHER_CONSOLE_CONTAINER_NAME: ${{ vars.AETHER_CONSOLE_CONTAINER_NAME || 'aether-console' }}
-      AETHER_BACKEND_UPSTREAM: ${{ vars.AETHER_BACKEND_UPSTREAM || 'http://host.docker.internal:8090' }}
+      AETHER_BACKEND_UPSTREAM: ${{ vars.AETHER_BACKEND_UPSTREAM || 'http://61.184.13.101:8090' }}
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
     steps:

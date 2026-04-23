@@ -52,15 +52,15 @@ docker run -d \
   --restart unless-stopped \
   --add-host=host.docker.internal:host-gateway \
   -p 8888:8888 \
-  -e AETHER_BACKEND_UPSTREAM=http://host.docker.internal:8090 \
+  -e AETHER_BACKEND_UPSTREAM=http://61.184.13.101:8090 \
   <docker-username>/aether-console:aether-console-v1.0.0
 ```
 
 The frontend keeps `VITE_API_BASE_URL=/api/v1`. Browser requests to `/api/v1/**` stay same-origin and Nginx forwards `/api/**` to `AETHER_BACKEND_UPSTREAM`.
 
-The backend service must be reachable from the Nginx container on port `8090`. If the backend process still listens on another port, map or expose it as `8090` in the deployment environment before releasing `aether-console`.
+The backend service must be reachable from the Nginx container on port `8090`. The default upstream is `http://61.184.13.101:8090`. If the backend process listens elsewhere, set the `AETHER_BACKEND_UPSTREAM` variable to a reachable `http://...:8090` address before releasing `aether-console`.
 
-On Linux Docker hosts, `host.docker.internal` is not always available by default. The release workflow adds `--add-host=host.docker.internal:host-gateway` when starting the container so the default upstream can resolve to the Docker host. If the backend runs in another Docker network or on another host, set the `AETHER_BACKEND_UPSTREAM` variable to that reachable `http://...:8090` address instead.
+The release workflow still adds `--add-host=host.docker.internal:host-gateway` when starting the container so deployments can override `AETHER_BACKEND_UPSTREAM` to `http://host.docker.internal:8090` on Linux Docker hosts when needed.
 
 ## Required GitHub Secrets
 
@@ -78,10 +78,10 @@ Configure these repository, environment, or organization secrets before pushing 
 
 ## Optional GitHub Variables
 
-| Name                            | Default                            | Purpose                                                    |
-| ------------------------------- | ---------------------------------- | ---------------------------------------------------------- |
-| `AETHER_CONSOLE_CONTAINER_NAME` | `aether-console`                   | Docker container name on the target server.                |
-| `AETHER_BACKEND_UPSTREAM`       | `http://host.docker.internal:8090` | Backend upstream used by Nginx. Must point to port `8090`. |
+| Name                            | Default                     | Purpose                                                    |
+| ------------------------------- | --------------------------- | ---------------------------------------------------------- |
+| `AETHER_CONSOLE_CONTAINER_NAME` | `aether-console`            | Docker container name on the target server.                |
+| `AETHER_BACKEND_UPSTREAM`       | `http://61.184.13.101:8090` | Backend upstream used by Nginx. Must point to port `8090`. |
 
 ## First Deployment Checklist
 
@@ -104,7 +104,7 @@ Configure these repository, environment, or organization secrets before pushing 
    docker run --rm \
      --add-host=host.docker.internal:host-gateway \
      curlimages/curl:8.11.1 \
-     -I http://host.docker.internal:8090/api/v1/console/auth/current-session || true
+     -I http://61.184.13.101:8090/api/v1/console/auth/current-session || true
    ```
 
 5. After deployment, verify the frontend and proxy:
@@ -130,7 +130,7 @@ docker run -d \
   --restart unless-stopped \
   --add-host=host.docker.internal:host-gateway \
   -p 8888:8888 \
-  -e AETHER_BACKEND_UPSTREAM=http://host.docker.internal:8090 \
+  -e AETHER_BACKEND_UPSTREAM=http://61.184.13.101:8090 \
   "$IMAGE"
 ```
 
@@ -144,7 +144,7 @@ docker run --rm -d \
   --name aether-console-local \
   --add-host=host.docker.internal:host-gateway \
   -p 8888:8888 \
-  -e AETHER_BACKEND_UPSTREAM=http://host.docker.internal:8090 \
+  -e AETHER_BACKEND_UPSTREAM=http://61.184.13.101:8090 \
   aether-console:local
 docker exec aether-console-local nginx -t
 curl -I http://localhost:8888/
