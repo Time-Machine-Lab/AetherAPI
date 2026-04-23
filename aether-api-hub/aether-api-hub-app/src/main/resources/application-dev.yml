@@ -1,0 +1,37 @@
+server:
+  port: 8090
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/aether_api_hub?useUnicode=true&characterEncoding=utf-8&serverTimezone=UTC&useSSL=false
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: assign_uuid
+      logic-delete-field: isDeleted
+      logic-delete-value: true
+      logic-not-delete-value: false
+
+logging:
+  level:
+    io.github.timemachinelab: DEBUG
+    com.baomidou.mybatisplus: INFO
+
+aether:
+  console:
+    session-auth:
+      user-id: ENC(KK6klTq56ESUZAARF6fz8odrAtwb1Yp7GJXkBTko22g=)
+      login-name: ENC(QVqXO9aWFlBtlDowf7i2koCYwnOOuhpA5JT18BTr2PE=)
+      password: ENC(j3LOSrQBkQ4zgnlZWBzbvUdNKYcF/JdJ/FuXmCN6cWUQxvIXEWuZgHqqCtGdSV1i)
+      display-name: ENC(VgNfun4JpBufA7Wv4Sxmn6h68eL4alqM2sf9ZZEP+Cc=)
+      email: ENC(FUGKdyVhklhVYiAt8t6JpsLpgyb1jgn5GEmFlnYK4ys=)
+      role: ENC(PiIoH5E5sQS3nhF7CAR+Bg==)
+      token-secret: ENC(048VjhmuI9iRWYpehkSn92n5d+damCmbgax/FUa9FgcYAq5GVKVkXfSC6Qqj8IBOPBHQCH+omMuzPmuROty9oA==)
+      token-ttl-seconds: ${AETHER_CONSOLE_AUTH_TOKEN_TTL_SECONDS:43200}

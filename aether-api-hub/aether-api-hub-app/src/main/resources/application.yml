@@ -1,39 +1,12 @@
 server:
-  port: 8080
+  port: 8090
 
 spring:
+  config:
+    import: classpath:you-cant-see-that.yml
   application:
     name: aether-api-hub
-  datasource:
-    url: jdbc:mysql://localhost:3306/aether_api_hub?useUnicode=true&characterEncoding=utf-8&serverTimezone=UTC&useSSL=false
-    username: root
-    password: root
-    driver-class-name: com.mysql.cj.jdbc.Driver
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
 
-mybatis-plus:
-  configuration:
-    map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-  global-config:
-    db-config:
-      id-type: assign_uuid
-      logic-delete-field: isDeleted
-      logic-delete-value: true
-      logic-not-delete-value: false
 
-logging:
-  level:
-    io.github.timemachinelab: DEBUG
-    com.baomidou.mybatisplus: INFO
-
-aether:
-  console:
-    session-auth:
-      user-id: ${AETHER_CONSOLE_AUTH_USER_ID:console-operator}
-      login-name: ${AETHER_CONSOLE_AUTH_LOGIN_NAME:console@aetherapi.local}
-      password: ${AETHER_CONSOLE_AUTH_PASSWORD:change-me-console-password}
-      display-name: ${AETHER_CONSOLE_AUTH_DISPLAY_NAME:Aether Console Operator}
-      email: ${AETHER_CONSOLE_AUTH_EMAIL:console@aetherapi.local}
-      role: ${AETHER_CONSOLE_AUTH_ROLE:OWNER}
-      token-secret: ${AETHER_CONSOLE_AUTH_TOKEN_SECRET:change-me-console-session-secret}
-      token-ttl-seconds: ${AETHER_CONSOLE_AUTH_TOKEN_TTL_SECONDS:43200}

@@ -5,3 +5,4 @@
 **/dist/
 **/coverage/
 **/*.tsbuildinfo
+/aether-api-hub/aether-api-hub-app/src/main/resources/you-cant-see-that.yml

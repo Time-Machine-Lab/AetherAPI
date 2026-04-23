@@ -1,0 +1,148 @@
+name: 多模块项目部署 [CI|CD]流
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Checkout Auto Label
+        run: |
+          commit_message="${{ github.event.head_commit.message }}"
+          if [[ "$commit_message" == *"<Auto>"* ]]; then
+            echo "Commit message contains <Auto>. Proceeding with the workflow."
+          else
+            echo "Commit message does not contain <Auto>. Skipping the workflow."
+            exit 78 
+          fi
+
+      - name: Get Commit Info
+        id: extract
+        run: |
+          # 使用commit message作为信息源
+          commit_message="${{ github.event.head_commit.message }}"
+          echo "Commit Message: $commit_message"
+          
+          # 默认可执行 Spring Boot 模块（相对仓库根目录）；commit 中 -m: 可覆盖路径
+          module="aether-api-hub/aether-api-hub-app"
+          version=""
+          skip=""
+          env=""
+          docker_env=""
+          run_port=""
+          
+          if [[ "$commit_message" =~ -v:([^\ ]*) ]]; then
+          version="${BASH_REMATCH[1]}"
+          fi
+          
+          if [[ "$commit_message" =~ -skip:([^\ ]*) ]]; then
+          skip="${BASH_REMATCH[1]}"
+          fi
+          
+          if [[ "$commit_message" =~ -env:([^\ ]*) ]]; then
+          env="${BASH_REMATCH[1]}"
+          fi
+          
+          if [[ "$commit_message" =~ -m:([^\ ]*) ]] && [[ -n "${BASH_REMATCH[1]}" ]]; then
+          module="${BASH_REMATCH[1]}"
+          fi
+
+          # Docker 镜像仓库名一般不能带多级路径，用目录最后一段作为镜像名
+          image_name="${module##*/}"
+          
+          if [[ "$commit_message" =~ -rp:([^\ ]*) ]]; then
+          run_port="${BASH_REMATCH[1]}"
+          fi
+          
+          if [[ "$commit_message" =~ -de:\<([^>]+)\> ]]; then
+          docker_env="${BASH_REMATCH[1]}"
+          fi
+          
+          echo "Module: $module"
+          echo "Image name: $image_name"
+          echo "Version: $version"
+          echo "Skip: $skip"
+          echo "Env: $env"
+          echo "Run_Port: $run_port"
+          echo "Docker_Env: $docker_env"
+          
+          echo "MODULE=$module" >> $GITHUB_ENV
+          echo "IMAGE_NAME=$image_name" >> $GITHUB_ENV
+          echo "VERSION=$version" >> $GITHUB_ENV
+          echo "SKIP=$skip" >> $GITHUB_ENV
+          echo "ENV=$env" >> $GITHUB_ENV
+          echo "RUN_PORT=$run_port" >> $GITHUB_ENV
+          echo "DOCKER_ENV=$docker_env" >> $GITHUB_ENV
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build with Maven
+        if: ${{ env.SKIP != 'image'}}
+        env:
+          JASYPT_ALGO: ${{ secrets.JASYPT_ALGO }}
+          JASYPT_PWD: ${{ secrets.JASYPT_PWD }}
+        run: |
+          cd ${{ env.MODULE }}
+
+          echo "jasypt:" > src/main/resources/you-cant-see-that.yml
+          echo "  encryptor:" >> src/main/resources/you-cant-see-that.yml
+          echo "    algorithm: $JASYPT_ALGO" >> src/main/resources/you-cant-see-that.yml
+          echo "    password:  $JASYPT_PWD" >> src/main/resources/you-cant-see-that.yml
+
+          cd ..
+
+          mvn package -Dmaven.test.skip=true
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and Push Docker Images
+        if: ${{ env.SKIP != 'image'}}
+        env:
+          DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PWD }}
+        run: |
+          echo "Module Name: $MODULE"
+          
+          cd ${{ env.MODULE }}
+
+          mkdir docker
+          cp ./Dockerfile ./docker
+          cp ./target/*.jar ./docker
+          cd docker
+          docker build -t $DOCKER_REPO/$IMAGE_NAME:$VERSION .
+          
+          docker push $DOCKER_REPO/$IMAGE_NAME:$VERSION
+
+      - name: Connect Server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.AETHER_CONSOLE_DEPLOY_HOST }}
+          username: ${{ secrets.AETHER_CONSOLE_DEPLOY_USER }}
+          key: ${{ secrets.AETHER_CONSOLE_DEPLOY_SSH_KEY }}
+          port: ${{ secrets.AETHER_CONSOLE_DEPLOY_PORT }}
+          script: |
+            docker pull ${{ secrets.DOCKER_REPO }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+            if [ "${{ env.RUN_PORT }}" != "" ]; then
+              stop_docker_name=$(docker ps --filter "expose=${{ env.RUN_PORT }}" --format "{{.Names}}")
+              if [ "$stop_docker_name" != "" ]; then
+                 docker stop $stop_docker_name
+              fi
+              docker rm ${{ env.IMAGE_NAME }}-${{ env.VERSION }}
+              docker run -p ${{env.RUN_PORT}}:${{env.RUN_PORT}} --name ${{ env.IMAGE_NAME }}-${{ env.VERSION }} -v /tml/data/logs:/app/logs ${{env.DOCKER_ENV}} -d ${{ secrets.DOCKER_REPO }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+            fi
