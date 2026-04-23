@@ -1,59 +1,25 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
 import { Search, MousePointerClick } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
-import { getDiscoveryAssetDetail, listDiscoveryAssets } from '@/api/catalog/discovery.api'
-import type { DiscoveryAsset, DiscoveryAssetDetail } from '@/api/catalog/catalog.types'
-import { getAiCapabilityLabels, pushRecentAsset } from '@/features/catalog/catalog-helpers'
+import { getAiCapabilityLabels } from '@/features/catalog/catalog-helpers'
+import { useCatalogDiscovery } from '@/composables/useCatalogDiscovery'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 
 const { t } = useI18n()
-
-const keyword = ref('')
-const assets = ref<DiscoveryAsset[]>([])
-const listError = ref(false)
-const listLoading = ref(false)
-
-const selectedAsset = ref<DiscoveryAsset | null>(null)
-const detail = ref<DiscoveryAssetDetail | null>(null)
-const detailLoading = ref(false)
-const detailError = ref(false)
-
-async function loadList() {
-  listLoading.value = true
-  listError.value = false
-  try {
-    const result = await listDiscoveryAssets({ keyword: keyword.value || undefined })
-    assets.value = result.items
-  } catch {
-    listError.value = true
-  } finally {
-    listLoading.value = false
-  }
-}
-
-async function selectAsset(asset: DiscoveryAsset) {
-  selectedAsset.value = asset
-  detail.value = null
-  detailError.value = false
-  detailLoading.value = true
-  pushRecentAsset(asset)
-  try {
-    detail.value = await getDiscoveryAssetDetail(asset.apiCode)
-  } catch {
-    detailError.value = true
-  } finally {
-    detailLoading.value = false
-  }
-}
-
-let debounceTimer: ReturnType<typeof setTimeout>
-watch(keyword, () => {
-  clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(loadList, 300)
-})
+const {
+  keyword,
+  assets,
+  listError,
+  listLoading,
+  selectedAsset,
+  detail,
+  detailLoading,
+  detailError,
+  loadList,
+  selectAsset,
+} = useCatalogDiscovery()
 
 loadList()
 </script>

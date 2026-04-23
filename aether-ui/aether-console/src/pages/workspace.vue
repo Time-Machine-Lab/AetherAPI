@@ -1,24 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
-import {
-  listCategories,
-  createCategory,
-  renameCategory,
-  enableCategory,
-  disableCategory,
-} from '@/api/catalog/category.api'
-import {
-  getAsset,
-  registerAsset,
-  enableAsset,
-  disableAsset,
-  bindAiProfile,
-} from '@/api/catalog/asset.api'
-import type { ApiCategory, ApiAsset } from '@/api/catalog/catalog.types'
-import type { RegisterAssetBody, BindAiProfileBody } from '@/api/catalog/catalog.dto'
-import { getRecentAssets } from '@/features/catalog/catalog-helpers'
+import { useWorkspaceCatalog } from '@/composables/useWorkspaceCatalog'
 import CredentialWorkspace from '@/features/credential/CredentialWorkspace.vue'
 import ApiCallLogWorkspace from '@/features/api-call-log/ApiCallLogWorkspace.vue'
 import { Button } from '@/components/ui/button'
@@ -33,121 +17,32 @@ const isCredentialsSection = computed(() => route.hash === '#credentials')
 const isApiCallLogsSection = computed(() => route.hash === '#api-call-logs')
 
 // ── Categories ──────────────────────────────────────────────
-const categories = ref<ApiCategory[]>([])
-const catLoading = ref(false)
-const catError = ref(false)
-const newCatName = ref('')
-const renamingCat = ref<string | null>(null)
-const renameValue = ref('')
-
-async function loadCategories() {
-  catLoading.value = true
-  catError.value = false
-  try {
-    const result = await listCategories()
-    categories.value = result.items
-  } catch {
-    catError.value = true
-  } finally {
-    catLoading.value = false
-  }
-}
-
-async function handleCreateCategory() {
-  if (!newCatName.value.trim()) return
-  const cat = await createCategory({ name: newCatName.value.trim() })
-  categories.value.unshift(cat)
-  newCatName.value = ''
-}
-
-async function handleRenameCategory(code: string) {
-  if (!renameValue.value.trim()) return
-  const updated = await renameCategory(code, { name: renameValue.value.trim() })
-  const idx = categories.value.findIndex((c) => c.categoryCode === code)
-  if (idx !== -1) categories.value[idx] = updated
-  renamingCat.value = null
-}
-
-async function handleToggleCategory(cat: ApiCategory) {
-  const updated =
-    cat.status === 'ENABLED' ? await disableCategory(cat.categoryCode) : await enableCategory(cat.categoryCode)
-  const idx = categories.value.findIndex((c) => c.categoryCode === cat.categoryCode)
-  if (idx !== -1) categories.value[idx] = updated
-}
-
+const {
+  categories,
+  catLoading,
+  catError,
+  newCatName,
+  renamingCat,
+  renameValue,
+  handleCreateCategory,
+  handleRenameCategory,
+  handleToggleCategory,
+  assetCodeInput,
+  currentAsset,
+  assetLoading,
+  assetError,
+  registerForm,
+  aiProfileForm,
+  aiTagInput,
+  handleLoadAsset,
+  handleRegisterAsset,
+  handleToggleAsset,
+  handleBindAiProfile,
+  addAiTag,
+  recentAssets,
+} = useWorkspaceCatalog({ t })
 // ── Asset management ─────────────────────────────────────────
-const assetCodeInput = ref('')
-const currentAsset = ref<ApiAsset | null>(null)
-const assetLoading = ref(false)
-const assetError = ref('')
-
-const registerForm = ref<RegisterAssetBody>({
-  apiCode: '',
-  displayName: '',
-  assetType: 'STANDARD_API',
-  categoryCode: '',
-})
-
-const aiProfileForm = ref<BindAiProfileBody>({
-  provider: '',
-  model: '',
-  streaming: false,
-  tags: [],
-})
-const aiTagInput = ref('')
-
-async function handleLoadAsset() {
-  if (!assetCodeInput.value.trim()) return
-  assetLoading.value = true
-  assetError.value = ''
-  try {
-    currentAsset.value = await getAsset(assetCodeInput.value.trim())
-  } catch {
-    assetError.value = t('console.workspace.assetNotFound')
-  } finally {
-    assetLoading.value = false
-  }
-}
-
-async function handleRegisterAsset() {
-  assetLoading.value = true
-  assetError.value = ''
-  try {
-    currentAsset.value = await registerAsset(registerForm.value)
-    registerForm.value = { apiCode: '', displayName: '', assetType: 'STANDARD_API', categoryCode: '' }
-  } catch {
-    assetError.value = t('console.workspace.registerFailed')
-  } finally {
-    assetLoading.value = false
-  }
-}
-
-async function handleToggleAsset() {
-  if (!currentAsset.value) return
-  const updated =
-    currentAsset.value.status === 'ENABLED'
-      ? await disableAsset(currentAsset.value.apiCode)
-      : await enableAsset(currentAsset.value.apiCode)
-  currentAsset.value = updated
-}
-
-async function handleBindAiProfile() {
-  if (!currentAsset.value) return
-  currentAsset.value = await bindAiProfile(currentAsset.value.apiCode, aiProfileForm.value)
-}
-
-function addAiTag() {
-  const tag = aiTagInput.value.trim()
-  if (tag && !aiProfileForm.value.tags.includes(tag)) {
-    aiProfileForm.value.tags.push(tag)
-  }
-  aiTagInput.value = ''
-}
-
 // ── Recent assets ─────────────────────────────────────────────
-const recentAssets = ref(getRecentAssets())
-
-onMounted(loadCategories)
 </script>
 
 <route lang="json5">
