@@ -1,9 +1,3 @@
-# 密文需与 you-cant-see-that.yml 中 Jasypt 主密钥一致；ENC 值用单引号避免 + / 等被 YAML 误解析
-# 角色项使用 operator-role（不再使用 key `role`，避免与 Spring 配置绑定保留名冲突）
-# 更新明文后请重新运行 EncodingUtil#printEncForApplicationProd
-server:
-  port: ${SERVER_PORT:8080}
-
 spring:
   datasource:
     url: 'ENC(1HCKsbVZGPHdG7yJCAbhfqD19yfFzOuplfI4IBW79vRG+n7w6/Mynfa8qtL33a/42WcCGVC0PEYA3lvzb97N49m9gjkZiWeHsQd2ncfhVID3/+oCi3B72oit7HZiug6nDQHmBEtzJ0+BO+SKLGkSxkNLxR6NN9ouRPFzyqzvxL2jkUhYMF7Vf+uT6k2QhJIeNdSv8S6SsUq+Z4v9uCKhSYlIwiurh6/UVwl9E3BDE1s=)'
