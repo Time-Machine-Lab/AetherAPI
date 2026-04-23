@@ -52,7 +52,8 @@ export default {
       metaTitle: 'API Market',
       kicker: 'API Hub',
       title: 'API Market',
-      description: 'Browse published API assets. Select a card to view details, auth scheme, and request examples.',
+      description:
+        'Browse published API assets. Select a card to view details, auth scheme, and request examples.',
       searchPlaceholder: 'Search by name or API code',
       loading: 'Loading…',
       empty: 'No APIs match your search',
@@ -69,7 +70,8 @@ export default {
       metaTitle: 'Console Sign In',
       eyebrow: 'Operator Console',
       title: 'Enter the operator console',
-      description: 'Sign in with your console account to manage API assets, call logs, and credentials.',
+      description:
+        'Sign in with your console account to manage API assets, call logs, and credentials.',
       note: 'Console session is only used for console API authentication, independent of Unified Access API Keys.',
       formTitle: 'Sign in',
       formDescription: 'Enter your console login name and password to continue.',
@@ -81,8 +83,10 @@ export default {
       helperDescription:
         'The full-screen shell, sidebar navigation, and working surfaces are already in place.',
       errors: {
-        CONSOLE_SIGN_IN_CREDENTIALS_INVALID: 'Invalid login name or password. Please check and try again.',
-        CONSOLE_SIGN_IN_REQUEST_INVALID: 'Invalid request parameters. Please check the login name and password format.',
+        CONSOLE_SIGN_IN_CREDENTIALS_INVALID:
+          'Invalid login name or password. Please check and try again.',
+        CONSOLE_SIGN_IN_REQUEST_INVALID:
+          'Invalid request parameters. Please check the login name and password format.',
         UNKNOWN: 'Sign in failed. Please try again later.',
       },
       sessionExpired: 'Your session has expired. Please sign in again.',
@@ -90,7 +94,8 @@ export default {
     workspace: {
       metaTitle: 'API Asset Management',
       title: 'API Asset Management',
-      description: 'Manage API categories and assets — register new APIs, bind AI profiles, or look up existing assets.',
+      description:
+        'Manage API categories and assets — register new APIs, bind AI profiles, or look up existing assets.',
       categoryTitle: 'Category Management',
       categoryDescription: 'Create, rename, enable, or disable API categories.',
       categoryNamePlaceholder: 'Category name',
@@ -127,7 +132,8 @@ export default {
     },
     credentials: {
       title: 'My API Keys',
-      description: 'Create and manage your API Keys. Keys are used to authenticate API requests on your behalf.',
+      description:
+        'Create and manage your API Keys. Keys are used to authenticate API requests on your behalf.',
       listTitle: 'API Keys',
       listDescription: 'All API Keys associated with your account.',
       listEmpty: 'No API Keys yet. Create one to get started.',
@@ -160,15 +166,20 @@ export default {
       issuedDismiss: 'I have saved my key',
       copy: 'Copy',
       copied: 'Copied',
-      plaintextReminder: 'Full API Key is only shown once at creation. Subsequent views display the masked version only.',
+      plaintextReminder:
+        'Full API Key is only shown once at creation. Subsequent views display the masked version only.',
       guidanceTitle: 'About API Keys',
-      guidanceModel: 'API Keys are managed per user. Each key is associated with your account and authenticates requests on your behalf.',
-      guidanceConsumer: 'You do not need to create or manage a separate consumer identity — the system handles this automatically when you create an API Key.',
-      guidanceDocs: 'For detailed integration guides and request examples, refer to the official documentation section.',
+      guidanceModel:
+        'API Keys are managed per user. Each key is associated with your account and authenticates requests on your behalf.',
+      guidanceConsumer:
+        'You do not need to create or manage a separate consumer identity — the system handles this automatically when you create an API Key.',
+      guidanceDocs:
+        'For detailed integration guides and request examples, refer to the official documentation section.',
     },
     apiCallLogs: {
       title: 'API Call Logs',
-      description: 'Review API call records for the current account, with filters by target API and invocation time.',
+      description:
+        'Review API call records for the current account, with filters by target API and invocation time.',
       filterTitle: 'Filters',
       filterDescription: 'Filter by target API code and invocation time range.',
       filterTargetApiPlaceholder: 'Filter by targetApiCode',
@@ -220,8 +231,10 @@ export default {
     playground: {
       metaTitle: 'Unified Access Playground',
       title: 'Playground',
-      description: 'Call enabled API assets through the Unified Access entry. Select a target API, enter your API Key, and inspect the response.',
-      securityNotice: 'API Key is a sensitive credential shown in full only once at creation. This page does not persist your key — it will be lost on refresh or close.',
+      description:
+        'Call enabled API assets through the Unified Access entry. Select a target API, enter your API Key, and inspect the response.',
+      securityNotice:
+        'API Key is a sensitive credential shown in full only once at creation. This page does not persist your key — it will be lost on refresh or close.',
       targetApi: 'Target API',
       browseDiscovery: 'Browse API Market',
       hideDiscovery: 'Hide API list',
@@ -235,10 +248,12 @@ export default {
       streamingSupported: 'Streaming supported',
       fieldMethod: 'HTTP Method',
       fieldApiKey: 'API Key',
-      apiKeyHint: 'Unified Access authenticates via X-Aether-Api-Key header, independent of the console session.',
+      apiKeyHint:
+        'Unified Access authenticates via X-Aether-Api-Key header, independent of the console session.',
       apiKeyPlaceholder: 'Enter your API Key',
       fieldRequestBody: 'Request Body',
-      requestBodyHint: 'The body will be sent with the Content-Type specified (defaults to application/json).',
+      requestBodyHint:
+        'The body will be sent with the Content-Type specified (defaults to application/json).',
       requestBodyPlaceholder: 'Enter JSON request body',
       fieldExtraHeaders: 'Extra Headers (optional)',
       extraHeadersHint: 'Enter additional headers as a JSON object.',
@@ -255,19 +270,27 @@ export default {
       download: 'Download File',
       rawHeaders: 'View raw response headers',
       failureExplain: {
-        INVALID_API_CODE: 'The API Code is invalid or does not match the required format. Please verify the API Code.',
-        INVALID_CREDENTIAL: 'The API Key is invalid, disabled, or the associated consumer context is unavailable. Please check your key status.',
-        TARGET_NOT_FOUND: 'No enabled target API could be resolved for this API Code. Verify the API exists and is enabled.',
-        TARGET_UNAVAILABLE: 'The target API exists but is currently unavailable, possibly under maintenance or temporarily disabled.',
+        INVALID_API_CODE:
+          'The API Code is invalid or does not match the required format. Please verify the API Code.',
+        INVALID_CREDENTIAL:
+          'The API Key is invalid, disabled, or the associated consumer context is unavailable. Please check your key status.',
+        TARGET_NOT_FOUND:
+          'No enabled target API could be resolved for this API Code. Verify the API exists and is enabled.',
+        TARGET_UNAVAILABLE:
+          'The target API exists but is currently unavailable, possibly under maintenance or temporarily disabled.',
       },
-      guidanceCompactHint: 'Click "Usage Guide" above for Unified Access documentation and failure type reference.',
+      guidanceCompactHint:
+        'Click "Usage Guide" above for Unified Access documentation and failure type reference.',
       guidanceTitle: 'Unified Access Guide',
       guidanceAuthTitle: 'Request Authentication',
-      guidanceAuthBody: 'Unified Access authenticates via the X-Aether-Api-Key header, completely independent of the console login session (Bearer Token). Create a key under "My API Keys" first.',
+      guidanceAuthBody:
+        'Unified Access authenticates via the X-Aether-Api-Key header, completely independent of the console login session (Bearer Token). Create a key under "My API Keys" first.',
       guidancePassthroughTitle: 'Response Passthrough',
-      guidancePassthroughBody: 'Successful responses come directly from the upstream API without TML-SDK Result wrapping. Inspect raw responses when debugging upstream behaviour.',
+      guidancePassthroughBody:
+        'Successful responses come directly from the upstream API without TML-SDK Result wrapping. Inspect raw responses when debugging upstream behaviour.',
       guidanceStreamingTitle: 'Streaming',
-      guidanceStreamingBody: 'The selected target API supports streaming. Actual responses may arrive via a streaming protocol. The playground currently displays the full completed response.',
+      guidanceStreamingBody:
+        'The selected target API supports streaming. Actual responses may arrive via a streaming protocol. The playground currently displays the full completed response.',
       failureReferenceTitle: 'Failure Type Reference',
       selectedAssetTitle: 'Selected Asset Details',
       fieldDisplayName: 'Display name',

@@ -2,7 +2,10 @@ import { ref, computed } from 'vue'
 import { invokeUnifiedAccess } from '@/api/unified-access/unified-access.api'
 import { listDiscoveryAssets, getDiscoveryAssetDetail } from '@/api/catalog/discovery.api'
 import type { DiscoveryAsset, DiscoveryAssetDetail } from '@/api/catalog/catalog.types'
-import type { UnifiedAccessMethod, UnifiedAccessResult } from '@/api/unified-access/unified-access.types'
+import type {
+  UnifiedAccessMethod,
+  UnifiedAccessResult,
+} from '@/api/unified-access/unified-access.types'
 
 export function useUnifiedAccessPlayground() {
   // ── Form state ──────────────────────────────────────────
@@ -27,7 +30,9 @@ export function useUnifiedAccessPlayground() {
 
   // ── Computed ────────────────────────────────────────────
   const methodSupportsBody = computed(() => !['GET', 'DELETE'].includes(method.value))
-  const canInvoke = computed(() => apiCode.value.trim().length > 0 && apiKey.value.trim().length > 0)
+  const canInvoke = computed(
+    () => apiCode.value.trim().length > 0 && apiKey.value.trim().length > 0,
+  )
 
   // ── Discovery helpers ───────────────────────────────────
   async function loadDiscoveryAssets() {

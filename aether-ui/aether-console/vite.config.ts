@@ -46,6 +46,6 @@ export default defineConfig({
         // rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
-    allowedHosts:['ai.cybernomads.cn']
+    allowedHosts: ['ai.cybernomads.cn'],
   },
 })

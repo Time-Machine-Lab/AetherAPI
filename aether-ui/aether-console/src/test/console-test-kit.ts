@@ -15,9 +15,7 @@ export function createConsoleCurrentUser(
   }
 }
 
-export function createConsoleSession(
-  overrides: Partial<ConsoleSession> = {},
-): ConsoleSession {
+export function createConsoleSession(overrides: Partial<ConsoleSession> = {}): ConsoleSession {
   return {
     accessToken: 'console-access-token',
     expiresAt: '2026-04-22T12:00:00Z',
@@ -26,9 +24,7 @@ export function createConsoleSession(
   }
 }
 
-export function createHttpError(
-  overrides: Partial<NormalizedHttpError> = {},
-): NormalizedHttpError {
+export function createHttpError(overrides: Partial<NormalizedHttpError> = {}): NormalizedHttpError {
   return {
     status: 500,
     code: 'INTERNAL_ERROR',

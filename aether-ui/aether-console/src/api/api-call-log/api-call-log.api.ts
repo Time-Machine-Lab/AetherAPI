@@ -27,7 +27,9 @@ function mapApiCallLogError(dto: ApiCallLogErrorDto | null): ApiCallLogError | n
   }
 }
 
-function mapApiCallLogAiExtension(dto: ApiCallLogAiExtensionDto | null): ApiCallLogAiExtension | null {
+function mapApiCallLogAiExtension(
+  dto: ApiCallLogAiExtensionDto | null,
+): ApiCallLogAiExtension | null {
   if (!dto) {
     return null
   }

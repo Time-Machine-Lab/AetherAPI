@@ -9,6 +9,7 @@ The typography uses Airbnb Cereal VF — a custom variable font that's warm and 
 What distinguishes Airbnb is its palette-based token system (`--palette-*`) and multi-layered shadow approach. The primary card shadow uses a three-layer stack (`rgba(0,0,0,0.02) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 6px, rgba(0,0,0,0.1) 0px 4px 8px`) that creates a subtle, warm lift. Combined with generous border-radius (8px–32px), circular navigation controls (50%), and a category pill bar with horizontal scrolling, the interface feels tactile and inviting — designed for browsing, not commanding.
 
 **Key Characteristics:**
+
 - Pure white canvas with Rausch Red (`#ff385c`) as singular brand accent
 - Airbnb Cereal VF — custom variable font with warm, rounded terminals
 - Palette-based token system (`--palette-*`) for systematic color management
@@ -22,16 +23,19 @@ What distinguishes Airbnb is its palette-based token system (`--palette-*`) and 
 ## 2. Color Palette & Roles
 
 ### Primary Brand
+
 - **Rausch Red** (`#ff385c`): `--palette-bg-primary-core`, primary CTA, brand accent, active states
 - **Deep Rausch** (`#e00b41`): `--palette-bg-tertiary-core`, pressed/dark variant of brand red
 - **Error Red** (`#c13515`): `--palette-text-primary-error`, error text on light
 - **Error Dark** (`#b32505`): `--palette-text-secondary-error-hover`, error hover
 
 ### Premium Tiers
+
 - **Luxe Purple** (`#460479`): `--palette-bg-primary-luxe`, Airbnb Luxe tier branding
 - **Plus Magenta** (`#92174d`): `--palette-bg-primary-plus`, Airbnb Plus tier branding
 
 ### Text Scale
+
 - **Near Black** (`#222222`): `--palette-text-primary`, primary text — warm, not cold
 - **Focused Gray** (`#3f3f3f`): `--palette-text-focused`, focused state text
 - **Secondary Gray** (`#6a6a6a`): Secondary text, descriptions
@@ -39,11 +43,13 @@ What distinguishes Airbnb is its palette-based token system (`--palette-*`) and 
 - **Link Disabled** (`#929292`): `--palette-text-link-disabled`, disabled links
 
 ### Interactive
+
 - **Legal Blue** (`#428bff`): `--palette-text-legal`, legal links, informational
 - **Border Gray** (`#c1c1c1`): Border color for cards and dividers
 - **Light Surface** (`#f2f2f2`): Circular navigation buttons, secondary surfaces
 
 ### Surface & Shadows
+
 - **Pure White** (`#ffffff`): Page background, card surfaces
 - **Card Shadow** (`rgba(0,0,0,0.02) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 6px, rgba(0,0,0,0.1) 0px 4px 8px`): Three-layer warm lift
 - **Hover Shadow** (`rgba(0,0,0,0.08) 0px 4px 12px`): Button hover elevation
@@ -51,30 +57,32 @@ What distinguishes Airbnb is its palette-based token system (`--palette-*`) and 
 ## 3. Typography Rules
 
 ### Font Family
+
 - **Primary**: `Airbnb Cereal VF`, fallbacks: `Circular, -apple-system, system-ui, Roboto, Helvetica Neue`
 - **OpenType Features**: `"salt"` (stylistic alternates) on specific caption elements
 
 ### Hierarchy
 
-| Role | Font | Size | Weight | Line Height | Letter Spacing | Notes |
-|------|------|------|--------|-------------|----------------|-------|
-| Section Heading | Airbnb Cereal VF | 28px (1.75rem) | 700 | 1.43 | normal | Primary headings |
-| Card Heading | Airbnb Cereal VF | 22px (1.38rem) | 600 | 1.18 (tight) | -0.44px | Category/card titles |
-| Card Heading Medium | Airbnb Cereal VF | 22px (1.38rem) | 500 | 1.18 (tight) | -0.44px | Lighter variant |
-| Sub-heading | Airbnb Cereal VF | 21px (1.31rem) | 700 | 1.43 | normal | Bold sub-headings |
-| Feature Title | Airbnb Cereal VF | 20px (1.25rem) | 600 | 1.20 (tight) | -0.18px | Feature headings |
-| UI Medium | Airbnb Cereal VF | 16px (1.00rem) | 500 | 1.25 (tight) | normal | Nav, emphasized text |
-| UI Semibold | Airbnb Cereal VF | 16px (1.00rem) | 600 | 1.25 (tight) | normal | Strong emphasis |
-| Button | Airbnb Cereal VF | 16px (1.00rem) | 500 | 1.25 (tight) | normal | Button labels |
-| Body / Link | Airbnb Cereal VF | 14px (0.88rem) | 400 | 1.43 | normal | Standard body |
-| Body Medium | Airbnb Cereal VF | 14px (0.88rem) | 500 | 1.29 (tight) | normal | Medium body |
-| Caption Salt | Airbnb Cereal VF | 14px (0.88rem) | 600 | 1.43 | normal | `"salt"` feature |
-| Small | Airbnb Cereal VF | 13px (0.81rem) | 400 | 1.23 (tight) | normal | Descriptions |
-| Tag | Airbnb Cereal VF | 12px (0.75rem) | 400–700 | 1.33 | normal | Tags, prices |
-| Badge | Airbnb Cereal VF | 11px (0.69rem) | 600 | 1.18 (tight) | normal | `"salt"` feature |
-| Micro Uppercase | Airbnb Cereal VF | 8px (0.50rem) | 700 | 1.25 (tight) | 0.32px | `text-transform: uppercase` |
+| Role                | Font             | Size           | Weight  | Line Height  | Letter Spacing | Notes                       |
+| ------------------- | ---------------- | -------------- | ------- | ------------ | -------------- | --------------------------- |
+| Section Heading     | Airbnb Cereal VF | 28px (1.75rem) | 700     | 1.43         | normal         | Primary headings            |
+| Card Heading        | Airbnb Cereal VF | 22px (1.38rem) | 600     | 1.18 (tight) | -0.44px        | Category/card titles        |
+| Card Heading Medium | Airbnb Cereal VF | 22px (1.38rem) | 500     | 1.18 (tight) | -0.44px        | Lighter variant             |
+| Sub-heading         | Airbnb Cereal VF | 21px (1.31rem) | 700     | 1.43         | normal         | Bold sub-headings           |
+| Feature Title       | Airbnb Cereal VF | 20px (1.25rem) | 600     | 1.20 (tight) | -0.18px        | Feature headings            |
+| UI Medium           | Airbnb Cereal VF | 16px (1.00rem) | 500     | 1.25 (tight) | normal         | Nav, emphasized text        |
+| UI Semibold         | Airbnb Cereal VF | 16px (1.00rem) | 600     | 1.25 (tight) | normal         | Strong emphasis             |
+| Button              | Airbnb Cereal VF | 16px (1.00rem) | 500     | 1.25 (tight) | normal         | Button labels               |
+| Body / Link         | Airbnb Cereal VF | 14px (0.88rem) | 400     | 1.43         | normal         | Standard body               |
+| Body Medium         | Airbnb Cereal VF | 14px (0.88rem) | 500     | 1.29 (tight) | normal         | Medium body                 |
+| Caption Salt        | Airbnb Cereal VF | 14px (0.88rem) | 600     | 1.43         | normal         | `"salt"` feature            |
+| Small               | Airbnb Cereal VF | 13px (0.81rem) | 400     | 1.23 (tight) | normal         | Descriptions                |
+| Tag                 | Airbnb Cereal VF | 12px (0.75rem) | 400–700 | 1.33         | normal         | Tags, prices                |
+| Badge               | Airbnb Cereal VF | 11px (0.69rem) | 600     | 1.18 (tight) | normal         | `"salt"` feature            |
+| Micro Uppercase     | Airbnb Cereal VF | 8px (0.50rem)  | 700     | 1.25 (tight) | 0.32px         | `text-transform: uppercase` |
 
 ### Principles
+
 - **Warm weight range**: 500–700 dominate. No weight 300 or 400 for headings — Airbnb's type is always at least medium weight, creating a warm, confident voice.
 - **Negative tracking on headings**: -0.18px to -0.44px letter-spacing on display creates intimate, cozy headings rather than cold, compressed ones.
 - **"salt" OpenType feature**: Stylistic alternates on specific UI elements (badges, captions) create subtle glyph variations that add visual interest.
@@ -85,6 +93,7 @@ What distinguishes Airbnb is its palette-based token system (`--palette-*`) and 
 ### Buttons
 
 **Primary Dark**
+
 - Background: `#222222` (near-black, not pure black)
 - Text: `#ffffff`
 - Padding: 0px 24px
@@ -93,6 +102,7 @@ What distinguishes Airbnb is its palette-based token system (`--palette-*`) and 
 - Focus: `0 0 0 2px var(--palette-grey1000)` ring + scale(0.92)
 
 **Circular Nav**
+
 - Background: `#f2f2f2`
 - Text: `#222222`
 - Radius: 50% (circle)
@@ -101,6 +111,7 @@ What distinguishes Airbnb is its palette-based token system (`--palette-*`) and 
 - Focus: scale(0.92) shrink animation
 
 ### Cards & Containers
+
 - Background: `#ffffff`
 - Radius: 14px (badges), 20px (cards/buttons), 32px (large)
 - Shadow: `rgba(0,0,0,0.02) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 6px, rgba(0,0,0,0.1) 0px 4px 8px` (three-layer)
@@ -108,11 +119,13 @@ What distinguishes Airbnb is its palette-based token system (`--palette-*`) and 
 - Carousel controls: circular 50% buttons
 
 ### Inputs
+
 - Search: `#222222` text
 - Focus: `var(--palette-bg-primary-error)` background tint + `0 0 0 2px` ring
 - Radius: depends on context (search bar uses pill-like rounding)
 
 ### Navigation
+
 - White sticky header with search bar centered
 - Airbnb logo (Rausch Red) left-aligned
 - Category filter pills: horizontal scroll below search
@@ -120,6 +133,7 @@ What distinguishes Airbnb is its palette-based token system (`--palette-*`) and 
 - "Become a Host" text link, avatar/menu right-aligned
 
 ### Image Treatment
+
 - Listing photography fills card top with generous height
 - Image carousel with dot indicators
 - Heart/wishlist icon overlay on images
@@ -128,21 +142,25 @@ What distinguishes Airbnb is its palette-based token system (`--palette-*`) and 
 ## 5. Layout Principles
 
 ### Spacing System
+
 - Base unit: 8px
 - Scale: 2px, 3px, 4px, 6px, 8px, 10px, 11px, 12px, 15px, 16px, 22px, 24px, 32px
 
 ### Grid & Container
+
 - Full-width header with centered search
 - Category pill bar: horizontal scrollable row
 - Listing grid: responsive multi-column (3–5 columns on desktop)
 - Full-width footer with link columns
 
 ### Whitespace Philosophy
+
 - **Travel-magazine spacing**: Generous vertical padding between sections creates a leisurely browsing pace — you're meant to scroll slowly, like browsing a magazine.
 - **Photography density**: Listing cards are packed relatively tightly, but each image is large enough to feel immersive.
 - **Search bar prominence**: The search bar gets maximum vertical space in the header — finding your destination is the primary action.
 
 ### Border Radius Scale
+
 - Subtle (4px): Small links
 - Standard (8px): Buttons, tabs, search elements
 - Badge (14px): Status badges, labels
@@ -152,18 +170,19 @@ What distinguishes Airbnb is its palette-based token system (`--palette-*`) and 
 
 ## 6. Depth & Elevation
 
-| Level | Treatment | Use |
-|-------|-----------|-----|
-| Flat (Level 0) | No shadow | Page background, text blocks |
-| Card (Level 1) | `rgba(0,0,0,0.02) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 6px, rgba(0,0,0,0.1) 0px 4px 8px` | Listing cards, search bar |
-| Hover (Level 2) | `rgba(0,0,0,0.08) 0px 4px 12px` | Button hover, interactive lift |
-| Active Focus (Level 3) | `rgb(255,255,255) 0px 0px 0px 4px` + focus ring | Active/focused elements |
+| Level                  | Treatment                                                                                     | Use                            |
+| ---------------------- | --------------------------------------------------------------------------------------------- | ------------------------------ |
+| Flat (Level 0)         | No shadow                                                                                     | Page background, text blocks   |
+| Card (Level 1)         | `rgba(0,0,0,0.02) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 6px, rgba(0,0,0,0.1) 0px 4px 8px` | Listing cards, search bar      |
+| Hover (Level 2)        | `rgba(0,0,0,0.08) 0px 4px 12px`                                                               | Button hover, interactive lift |
+| Active Focus (Level 3) | `rgb(255,255,255) 0px 0px 0px 4px` + focus ring                                               | Active/focused elements        |
 
 **Shadow Philosophy**: Airbnb's three-layer shadow system creates a warm, natural lift. Layer 1 (`0px 0px 0px 1px` at 0.02 opacity) is an ultra-subtle border. Layer 2 (`0px 2px 6px` at 0.04) provides soft ambient shadow. Layer 3 (`0px 4px 8px` at 0.1) adds the primary lift. This graduated approach creates shadows that feel like natural light rather than CSS effects.
 
 ## 7. Do's and Don'ts
 
 ### Do
+
 - Use `#222222` (warm near-black) for text — never pure `#000000`
 - Apply Rausch Red (`#ff385c`) only for primary CTAs and brand moments — it's the singular accent
 - Use Airbnb Cereal VF at weight 500–700 — the warm weight range is intentional
@@ -174,6 +193,7 @@ What distinguishes Airbnb is its palette-based token system (`--palette-*`) and 
 - Use circular (50%) buttons for carousel/navigation controls
 
 ### Don't
+
 - Don't use pure black (`#000000`) for text — always `#222222` (warm)
 - Don't apply Rausch Red to backgrounds or large surfaces — it's an accent only
 - Don't use thin font weights (300, 400) for headings — 500 minimum
@@ -185,26 +205,29 @@ What distinguishes Airbnb is its palette-based token system (`--palette-*`) and 
 ## 8. Responsive Behavior
 
 ### Breakpoints
-| Name | Width | Key Changes |
-|------|-------|-------------|
-| Mobile Small | <375px | Single column, compact search |
-| Mobile | 375–550px | Standard mobile listing grid |
-| Tablet Small | 550–744px | 2-column listings |
-| Tablet | 744–950px | Search bar expansion |
-| Desktop Small | 950–1128px | 3-column listings |
-| Desktop | 1128–1440px | 4-column grid, full header |
-| Large Desktop | 1440–1920px | 5-column grid |
-| Ultra-wide | >1920px | Maximum grid width |
 
-*Note: Airbnb has 61 detected breakpoints — one of the most granular responsive systems observed, reflecting their obsession with layout at every possible screen size.*
+| Name          | Width       | Key Changes                   |
+| ------------- | ----------- | ----------------------------- |
+| Mobile Small  | <375px      | Single column, compact search |
+| Mobile        | 375–550px   | Standard mobile listing grid  |
+| Tablet Small  | 550–744px   | 2-column listings             |
+| Tablet        | 744–950px   | Search bar expansion          |
+| Desktop Small | 950–1128px  | 3-column listings             |
+| Desktop       | 1128–1440px | 4-column grid, full header    |
+| Large Desktop | 1440–1920px | 5-column grid                 |
+| Ultra-wide    | >1920px     | Maximum grid width            |
+
+_Note: Airbnb has 61 detected breakpoints — one of the most granular responsive systems observed, reflecting their obsession with layout at every possible screen size._
 
 ### Touch Targets
+
 - Circular nav buttons: adequate 50% radius sizing
 - Listing cards: full-card tap target on mobile
 - Search bar: prominently sized for thumb interaction
 - Category pills: horizontally scrollable with generous padding
 
 ### Collapsing Strategy
+
 - Listing grid: 5 → 4 → 3 → 2 → 1 columns
 - Search: expanded bar → compact bar → overlay
 - Category pills: horizontal scroll at all sizes
@@ -212,6 +235,7 @@ What distinguishes Airbnb is its palette-based token system (`--palette-*`) and 
 - Map: side panel → overlay/toggle
 
 ### Image Behavior
+
 - Listing photos: carousel with swipe on mobile
 - Responsive image sizing with aspect ratio maintained
 - Heart overlay positioned consistently across sizes
@@ -220,6 +244,7 @@ What distinguishes Airbnb is its palette-based token system (`--palette-*`) and 
 ## 9. Agent Prompt Guide
 
 ### Quick Color Reference
+
 - Background: Pure White (`#ffffff`)
 - Text: Near Black (`#222222`)
 - Brand accent: Rausch Red (`#ff385c`)
@@ -230,6 +255,7 @@ What distinguishes Airbnb is its palette-based token system (`--palette-*`) and 
 - Button surface: `#f2f2f2`
 
 ### Example Component Prompts
+
 - "Create a listing card: white background, 20px radius. Three-layer shadow: rgba(0,0,0,0.02) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 6px, rgba(0,0,0,0.1) 0px 4px 8px. Photo area on top (16:10 ratio), details below: 16px Airbnb Cereal VF weight 600 title, 14px weight 400 description in #6a6a6a."
 - "Design search bar: white background, full card shadow, 32px radius on container. Search text at 14px Cereal VF weight 400. Red search button (#ff385c, 50% radius, white icon)."
 - "Build category pill bar: horizontal scrollable row. Each pill: 14px Cereal VF weight 600, #222222 text, bottom border on active. Circular prev/next arrows (#f2f2f2 bg, 50% radius)."
@@ -237,6 +263,7 @@ What distinguishes Airbnb is its palette-based token system (`--palette-*`) and 
 - "Design a heart/wishlist button: transparent background, 50% radius, white heart icon with dark shadow outline."
 
 ### Iteration Guide
+
 1. Start with white — the photography provides all the color
 2. Rausch Red (#ff385c) is the singular accent — use sparingly for CTAs only
 3. Near-black (#222222) for text — the warmth matters
@@ -253,13 +280,13 @@ This section defines component semantics, page-level hierarchy, and interaction 
 
 Every visible element in the console belongs to exactly one of five semantic roles. The roles determine fill, border, elevation, and interaction affordance:
 
-| Role | Purpose | Fill | Border | Elevation | Interaction Cue |
-|------|---------|------|--------|-----------|-----------------|
-| **Action** | Clickable operations (create, save, toggle, rename, sign-out) | Solid fill or transparent | 1 px `rgb(34 34 34 / 0.08)` for outline; none for primary | `shadow-console` on outline; none on ghost | Hover: lift / color shift; Focus: `ring-2 ring-ring/20`; Active: `scale-[0.98]`; Disabled: `opacity-50 pointer-events-none` |
-| **Status** | Read-only state labels (Enabled / Disabled, AI / API type) | Tinted background — `color-mix(in srgb, <role-color> 10%, white)` | None (`border-transparent`) | None | No hover/focus affordance; cursor remains default |
-| **Notice** | System feedback or announcements (banners, alerts) | Full-width tinted strip — info: `color-mix(in srgb, var(--palette-text-legal) 6%, white)`; success: `color-mix(in srgb, var(--primary) 6%, white)` | Bottom 2 px accent line: info `var(--palette-text-legal)`, success `var(--primary)` | None (flat) | Non-interactive; icon slot left, dismiss slot right (optional) |
-| **Field** | Data-entry surfaces (inputs, selects, inline-edit) | `bg-white` | 1 px `rgb(34 34 34 / 0.08)` default; `border-primary` on focus | None | Focus: `ring-2 ring-primary/15` + subtle primary bg tint; Disabled: `bg-muted opacity-60`; Min height: `h-9` (compact) / `h-11` (standard) |
-| **Surface** | Passive containers (cards, panels, sections, detail panes) | `bg-white` | 1 px `rgb(34 34 34 / 0.04)` | `shadow-console` | Selected: `ring-2 ring-primary/30`; Hover (if clickable): `shadow-console-hover` |
+| Role        | Purpose                                                       | Fill                                                                                                                                               | Border                                                                              | Elevation                                  | Interaction Cue                                                                                                                            |
+| ----------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Action**  | Clickable operations (create, save, toggle, rename, sign-out) | Solid fill or transparent                                                                                                                          | 1 px `rgb(34 34 34 / 0.08)` for outline; none for primary                           | `shadow-console` on outline; none on ghost | Hover: lift / color shift; Focus: `ring-2 ring-ring/20`; Active: `scale-[0.98]`; Disabled: `opacity-50 pointer-events-none`                |
+| **Status**  | Read-only state labels (Enabled / Disabled, AI / API type)    | Tinted background — `color-mix(in srgb, <role-color> 10%, white)`                                                                                  | None (`border-transparent`)                                                         | None                                       | No hover/focus affordance; cursor remains default                                                                                          |
+| **Notice**  | System feedback or announcements (banners, alerts)            | Full-width tinted strip — info: `color-mix(in srgb, var(--palette-text-legal) 6%, white)`; success: `color-mix(in srgb, var(--primary) 6%, white)` | Bottom 2 px accent line: info `var(--palette-text-legal)`, success `var(--primary)` | None (flat)                                | Non-interactive; icon slot left, dismiss slot right (optional)                                                                             |
+| **Field**   | Data-entry surfaces (inputs, selects, inline-edit)            | `bg-white`                                                                                                                                         | 1 px `rgb(34 34 34 / 0.08)` default; `border-primary` on focus                      | None                                       | Focus: `ring-2 ring-primary/15` + subtle primary bg tint; Disabled: `bg-muted opacity-60`; Min height: `h-9` (compact) / `h-11` (standard) |
+| **Surface** | Passive containers (cards, panels, sections, detail panes)    | `bg-white`                                                                                                                                         | 1 px `rgb(34 34 34 / 0.04)`                                                         | `shadow-console`                           | Selected: `ring-2 ring-primary/30`; Hover (if clickable): `shadow-console-hover`                                                           |
 
 #### Key Differentiation Rules
 
@@ -272,6 +299,7 @@ Every visible element in the console belongs to exactly one of five semantic rol
 The console uses a **dedicated notice banner** (not a reused pill/badge) for system-level messages displayed below the shell header.
 
 **Structure:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │ [icon]  Notice text content                   [dismiss?] │
@@ -280,6 +308,7 @@ The console uses a **dedicated notice banner** (not a reused pill/badge) for sys
 ```
 
 **Styling:**
+
 - Container: full width of header content area, `rounded-[14px]`, `px-4 py-3`
 - Background: tone-dependent tinted fill (see role table)
 - Bottom accent: `border-b-2` with tone color
@@ -290,14 +319,14 @@ The console uses a **dedicated notice banner** (not a reused pill/badge) for sys
 
 ### 10.3 Shell Search vs. Page Search Hierarchy
 
-| Attribute | Shell Search (header) | Page Search (in-content) |
-|-----------|-----------------------|--------------------------|
-| **Visual weight** | Subordinate — blends into header | Primary — the page's main filter action |
-| **Container** | No shadow, `bg-secondary` tinted, `rounded-full` | `shadow-console`, `bg-white`, `rounded-full` |
-| **Border** | `border-transparent` | `border-transparent` (shadow provides edge) |
-| **Width** | Fixed `w-[280px]` | Responsive `max-w-sm` minimum |
-| **Icon** | None — placeholder text only | `Search` icon in `left-4` position |
-| **Focus** | Subtle `ring-1 ring-ring/10` | Standard field focus (`ring-2 ring-primary/15` + tint) |
+| Attribute         | Shell Search (header)                            | Page Search (in-content)                               |
+| ----------------- | ------------------------------------------------ | ------------------------------------------------------ |
+| **Visual weight** | Subordinate — blends into header                 | Primary — the page's main filter action                |
+| **Container**     | No shadow, `bg-secondary` tinted, `rounded-full` | `shadow-console`, `bg-white`, `rounded-full`           |
+| **Border**        | `border-transparent`                             | `border-transparent` (shadow provides edge)            |
+| **Width**         | Fixed `w-[280px]`                                | Responsive `max-w-sm` minimum                          |
+| **Icon**          | None — placeholder text only                     | `Search` icon in `left-4` position                     |
+| **Focus**         | Subtle `ring-1 ring-ring/10`                     | Standard field focus (`ring-2 ring-primary/15` + tint) |
 
 **Rationale:** The shell search is a global jump/quick-find utility; it must not compete with the page's primary browsing or query control.
 
@@ -326,38 +355,40 @@ The console uses a **dedicated notice banner** (not a reused pill/badge) for sys
 
 All workspace management panels (category management, asset management, recent assets) observe a shared alignment grid:
 
-| Token | Value | Applies to |
-|-------|-------|------------|
-| **Row height (standard)** | `min-h-[44px]` (`h-11`) | Category rows, asset snapshot header, recent-asset rows |
-| **Row height (compact)** | `min-h-[36px]` (`h-9`) | Inline rename input + adjacent action buttons |
-| **Row inner padding** | `px-4 py-3` | All list-item rows |
-| **Action button size** | `size="xs"` (`h-8 rounded-full px-3`) | Row-level actions (rename, enable, disable, save, cancel) |
-| **Input min height** | `h-9` | Inline rename input (never below this) |
-| **Create row** | Input `flex-1` + Button `size="sm"` | Category create, asset lookup rows |
-| **Section gap** | `gap-5` | Between workspace cards |
+| Token                     | Value                                 | Applies to                                                |
+| ------------------------- | ------------------------------------- | --------------------------------------------------------- |
+| **Row height (standard)** | `min-h-[44px]` (`h-11`)               | Category rows, asset snapshot header, recent-asset rows   |
+| **Row height (compact)**  | `min-h-[36px]` (`h-9`)                | Inline rename input + adjacent action buttons             |
+| **Row inner padding**     | `px-4 py-3`                           | All list-item rows                                        |
+| **Action button size**    | `size="xs"` (`h-8 rounded-full px-3`) | Row-level actions (rename, enable, disable, save, cancel) |
+| **Input min height**      | `h-9`                                 | Inline rename input (never below this)                    |
+| **Create row**            | Input `flex-1` + Button `size="sm"`   | Category create, asset lookup rows                        |
+| **Section gap**           | `gap-5`                               | Between workspace cards                                   |
 
 #### Inline Rename Rules
+
 - When rename mode activates, the input replaces the text display but keeps `h-9` minimum height.
 - Adjacent save/cancel buttons use `size="xs"` to stay within the row rhythm.
 - The row container does NOT change its padding or background during rename mode.
 
 ### 10.6 State Feedback Inventory
 
-| State | Visual Treatment |
-|-------|-----------------|
-| **Empty** | Centered `text-sm text-muted-foreground` message, `py-6` (workspace) or `py-16` (marketplace) |
-| **Loading** | Same layout as empty, with `text-muted-foreground` loading message |
-| **Error** | Same layout as empty, with `text-destructive` error message |
-| **Selected (card)** | `ring-2 ring-primary/30` on the surface |
-| **Hover (clickable surface)** | `shadow-console-hover` transition |
-| **Focus (field)** | `border-primary ring-2 ring-primary/15` + `bg-[color-mix(in srgb, var(--primary) 4%, white)]` |
-| **Disabled (action)** | `opacity-50 pointer-events-none` |
-| **Disabled (field)** | `bg-muted opacity-60 pointer-events-none cursor-not-allowed` |
-| **Active (action)** | `scale-[0.98]` press feedback |
+| State                         | Visual Treatment                                                                              |
+| ----------------------------- | --------------------------------------------------------------------------------------------- |
+| **Empty**                     | Centered `text-sm text-muted-foreground` message, `py-6` (workspace) or `py-16` (marketplace) |
+| **Loading**                   | Same layout as empty, with `text-muted-foreground` loading message                            |
+| **Error**                     | Same layout as empty, with `text-destructive` error message                                   |
+| **Selected (card)**           | `ring-2 ring-primary/30` on the surface                                                       |
+| **Hover (clickable surface)** | `shadow-console-hover` transition                                                             |
+| **Focus (field)**             | `border-primary ring-2 ring-primary/15` + `bg-[color-mix(in srgb, var(--primary) 4%, white)]` |
+| **Disabled (action)**         | `opacity-50 pointer-events-none`                                                              |
+| **Disabled (field)**          | `bg-muted opacity-60 pointer-events-none cursor-not-allowed`                                  |
+| **Active (action)**           | `scale-[0.98]` press feedback                                                                 |
 
 ### 10.7 Console-Specific Do's and Don'ts
 
 #### Do
+
 - Use the semantic role table to classify every new element before choosing its variant
 - Use the dedicated notice banner for system-level messages — never reuse badge or pill
 - Keep shell search visually subordinate to page-level search
@@ -366,6 +397,7 @@ All workspace management panels (category management, asset management, recent a
 - Align category rows, asset rows, and recent-asset rows to the same baseline grid
 
 #### Don't
+
 - Don't apply `shadow-console` to status badges — shadows imply interactivity
 - Don't use `rounded-full` on notice banners — banners use `rounded-[14px]`
 - Don't let the shell search container use `shadow-console` — use `bg-secondary` instead

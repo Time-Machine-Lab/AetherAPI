@@ -1,9 +1,5 @@
 import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios'
-import type {
-  ApiCallLogDetailDto,
-  ApiCallLogDto,
-  ApiCallLogPageDto,
-} from './api-call-log.dto'
+import type { ApiCallLogDetailDto, ApiCallLogDto, ApiCallLogPageDto } from './api-call-log.dto'
 
 const apiCallLogs: ApiCallLogDetailDto[] = [
   {
@@ -144,7 +140,9 @@ export const apiCallLogMockRoutes: { method: string; pattern: RegExp; handler: M
       }
       filtered = filterByDateRange(filtered, invocationStartAt, invocationEndAt)
 
-      filtered.sort((left, right) => Date.parse(right.invocationTime) - Date.parse(left.invocationTime))
+      filtered.sort(
+        (left, right) => Date.parse(right.invocationTime) - Date.parse(left.invocationTime),
+      )
 
       const startIndex = (page - 1) * size
       const pageItems = filtered.slice(startIndex, startIndex + size)

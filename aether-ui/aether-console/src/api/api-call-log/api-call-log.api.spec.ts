@@ -7,10 +7,7 @@ vi.mock('@/api/http', () => ({
 }))
 
 import { http } from '@/api/http'
-import {
-  getCurrentUserApiCallLogDetail,
-  listCurrentUserApiCallLogs,
-} from './api-call-log.api'
+import { getCurrentUserApiCallLogDetail, listCurrentUserApiCallLogs } from './api-call-log.api'
 
 const mockedGet = vi.mocked(http.get)
 

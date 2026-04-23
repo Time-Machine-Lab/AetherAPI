@@ -4,10 +4,7 @@ import {
   listCurrentUserApiCallLogs,
 } from '@/api/api-call-log/api-call-log.api'
 import type { ListCurrentUserApiCallLogsParams } from '@/api/api-call-log/api-call-log.dto'
-import type {
-  ApiCallLogDetail,
-  ApiCallLogItem,
-} from '@/api/api-call-log/api-call-log.types'
+import type { ApiCallLogDetail, ApiCallLogItem } from '@/api/api-call-log/api-call-log.types'
 
 interface ApiCallLogWorkspaceDeps {
   t: (key: string) => string
@@ -16,8 +13,7 @@ interface ApiCallLogWorkspaceDeps {
   autoLoad?: boolean
 }
 
-type ApiCallLogWorkspaceOptions =
-  Partial<Omit<ApiCallLogWorkspaceDeps, 't'>> &
+type ApiCallLogWorkspaceOptions = Partial<Omit<ApiCallLogWorkspaceDeps, 't'>> &
   Pick<ApiCallLogWorkspaceDeps, 't'>
 
 function buildDeps(options: ApiCallLogWorkspaceOptions): ApiCallLogWorkspaceDeps {

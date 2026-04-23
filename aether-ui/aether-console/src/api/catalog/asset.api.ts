@@ -1,10 +1,5 @@
 import { http } from '@/api/http'
-import type {
-  AssetDto,
-  BindAiProfileBody,
-  RegisterAssetBody,
-  ReviseAssetBody,
-} from './catalog.dto'
+import type { AssetDto, BindAiProfileBody, RegisterAssetBody, ReviseAssetBody } from './catalog.dto'
 import type { ApiAsset } from './catalog.types'
 
 function mapAsset(dto: AssetDto): ApiAsset {

@@ -6,13 +6,16 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Info, ShieldCheck, Zap, ArrowRightLeft, X } from 'lucide-vue-next'
 
-withDefaults(defineProps<{
-  selectedAssetDetail?: DiscoveryAssetDetail | null
-  compact?: boolean
-}>(), {
-  selectedAssetDetail: null,
-  compact: false,
-})
+withDefaults(
+  defineProps<{
+    selectedAssetDetail?: DiscoveryAssetDetail | null
+    compact?: boolean
+  }>(),
+  {
+    selectedAssetDetail: null,
+    compact: false,
+  },
+)
 
 defineEmits<{
   close: []
@@ -47,7 +50,9 @@ const { t } = useI18n()
         <div class="flex items-start gap-3">
           <ShieldCheck class="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
           <div>
-            <p class="font-medium text-foreground">{{ t('console.playground.guidanceAuthTitle') }}</p>
+            <p class="font-medium text-foreground">
+              {{ t('console.playground.guidanceAuthTitle') }}
+            </p>
             <p>{{ t('console.playground.guidanceAuthBody') }}</p>
           </div>
         </div>
@@ -56,7 +61,9 @@ const { t } = useI18n()
         <div class="flex items-start gap-3">
           <ArrowRightLeft class="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
           <div>
-            <p class="font-medium text-foreground">{{ t('console.playground.guidancePassthroughTitle') }}</p>
+            <p class="font-medium text-foreground">
+              {{ t('console.playground.guidancePassthroughTitle') }}
+            </p>
             <p>{{ t('console.playground.guidancePassthroughBody') }}</p>
           </div>
         </div>
@@ -65,7 +72,9 @@ const { t } = useI18n()
         <div v-if="selectedAssetDetail?.aiProfile?.streaming" class="flex items-start gap-3">
           <Zap class="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
           <div>
-            <p class="font-medium text-foreground">{{ t('console.playground.guidanceStreamingTitle') }}</p>
+            <p class="font-medium text-foreground">
+              {{ t('console.playground.guidanceStreamingTitle') }}
+            </p>
             <p>{{ t('console.playground.guidanceStreamingBody') }}</p>
           </div>
         </div>
@@ -80,19 +89,27 @@ const { t } = useI18n()
       <CardContent class="space-y-3">
         <div class="flex items-start gap-3">
           <Badge class="shrink-0 bg-amber-50 text-amber-700 text-xs">INVALID_API_CODE</Badge>
-          <p class="text-sm text-muted-foreground">{{ t('console.playground.failureExplain.INVALID_API_CODE') }}</p>
+          <p class="text-sm text-muted-foreground">
+            {{ t('console.playground.failureExplain.INVALID_API_CODE') }}
+          </p>
         </div>
         <div class="flex items-start gap-3">
           <Badge class="shrink-0 bg-red-50 text-red-700 text-xs">INVALID_CREDENTIAL</Badge>
-          <p class="text-sm text-muted-foreground">{{ t('console.playground.failureExplain.INVALID_CREDENTIAL') }}</p>
+          <p class="text-sm text-muted-foreground">
+            {{ t('console.playground.failureExplain.INVALID_CREDENTIAL') }}
+          </p>
         </div>
         <div class="flex items-start gap-3">
           <Badge class="shrink-0 bg-orange-50 text-orange-700 text-xs">TARGET_NOT_FOUND</Badge>
-          <p class="text-sm text-muted-foreground">{{ t('console.playground.failureExplain.TARGET_NOT_FOUND') }}</p>
+          <p class="text-sm text-muted-foreground">
+            {{ t('console.playground.failureExplain.TARGET_NOT_FOUND') }}
+          </p>
         </div>
         <div class="flex items-start gap-3">
           <Badge class="shrink-0 bg-slate-50 text-slate-700 text-xs">TARGET_UNAVAILABLE</Badge>
-          <p class="text-sm text-muted-foreground">{{ t('console.playground.failureExplain.TARGET_UNAVAILABLE') }}</p>
+          <p class="text-sm text-muted-foreground">
+            {{ t('console.playground.failureExplain.TARGET_UNAVAILABLE') }}
+          </p>
         </div>
       </CardContent>
     </Card>
@@ -112,18 +129,34 @@ const { t } = useI18n()
           <span class="text-foreground">{{ selectedAssetDetail.displayName }}</span>
         </div>
         <div v-if="selectedAssetDetail.methods?.length" class="flex justify-between">
-          <span class="text-muted-foreground">{{ t('console.playground.fieldRecommendedMethods') }}</span>
+          <span class="text-muted-foreground">{{
+            t('console.playground.fieldRecommendedMethods')
+          }}</span>
           <div class="flex gap-1">
-            <Badge v-for="m in selectedAssetDetail.methods" :key="m" variant="outline" class="text-xs">{{ m }}</Badge>
+            <Badge
+              v-for="m in selectedAssetDetail.methods"
+              :key="m"
+              variant="outline"
+              class="text-xs"
+              >{{ m }}</Badge
+            >
           </div>
         </div>
         <div v-if="selectedAssetDetail.aiProfile" class="flex justify-between">
           <span class="text-muted-foreground">{{ t('console.playground.fieldModel') }}</span>
-          <span class="text-foreground">{{ selectedAssetDetail.aiProfile.provider }} / {{ selectedAssetDetail.aiProfile.model }}</span>
+          <span class="text-foreground"
+            >{{ selectedAssetDetail.aiProfile.provider }} /
+            {{ selectedAssetDetail.aiProfile.model }}</span
+          >
         </div>
         <div v-if="selectedAssetDetail.requestTemplate" class="mt-3">
-          <p class="mb-1 text-muted-foreground">{{ t('console.playground.fieldRequestTemplate') }}</p>
-          <pre class="max-h-[200px] overflow-auto rounded-[8px] border border-[rgb(34_34_34_/_0.06)] bg-muted/40 p-3 font-mono text-xs leading-5 text-foreground">{{ selectedAssetDetail.requestTemplate }}</pre>
+          <p class="mb-1 text-muted-foreground">
+            {{ t('console.playground.fieldRequestTemplate') }}
+          </p>
+          <pre
+            class="max-h-[200px] overflow-auto rounded-[8px] border border-[rgb(34_34_34_/_0.06)] bg-muted/40 p-3 font-mono text-xs leading-5 text-foreground"
+            >{{ selectedAssetDetail.requestTemplate }}</pre
+          >
         </div>
       </CardContent>
     </Card>

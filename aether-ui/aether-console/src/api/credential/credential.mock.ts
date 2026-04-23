@@ -128,7 +128,11 @@ export const credentialMockRoutes: { method: string; pattern: RegExp; handler: M
     method: 'POST',
     pattern: /^\/api\/v1\/current-user\/api-keys$/,
     handler: (_, body) => {
-      const b = body as { credentialName: string; credentialDescription?: string; expireAt?: string }
+      const b = body as {
+        credentialName: string
+        credentialDescription?: string
+        expireAt?: string
+      }
       counter++
       const id = `mock-${Date.now()}-${counter}`
       const now = new Date().toISOString()

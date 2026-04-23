@@ -299,7 +299,9 @@ onMounted(loadApiKeys)
             }}</code>
             <Button size="xs" variant="outline" @click="handleCopyPlaintext">
               <Copy class="size-3.5" />
-              <span>{{ plaintextCopied ? t('console.credentials.copied') : t('console.credentials.copy') }}</span>
+              <span>{{
+                plaintextCopied ? t('console.credentials.copied') : t('console.credentials.copy')
+              }}</span>
             </Button>
           </div>
           <div class="flex items-center gap-2 text-xs text-muted-foreground">
@@ -388,7 +390,10 @@ onMounted(loadApiKeys)
           <div v-else-if="listError" class="py-6 text-center text-sm text-destructive">
             {{ t('console.credentials.listError') }}
           </div>
-          <div v-else-if="apiKeys.length === 0" class="py-6 text-center text-sm text-muted-foreground">
+          <div
+            v-else-if="apiKeys.length === 0"
+            class="py-6 text-center text-sm text-muted-foreground"
+          >
             {{ t('console.credentials.listEmpty') }}
           </div>
           <div v-else class="space-y-2">
@@ -406,7 +411,13 @@ onMounted(loadApiKeys)
             >
               <span
                 class="absolute left-3 top-3 bottom-3 w-[3px] rounded-full"
-                :class="key.status === 'ENABLED' ? 'bg-primary' : key.status === 'DISABLED' ? 'bg-muted-foreground/25' : 'bg-destructive/40'"
+                :class="
+                  key.status === 'ENABLED'
+                    ? 'bg-primary'
+                    : key.status === 'DISABLED'
+                      ? 'bg-muted-foreground/25'
+                      : 'bg-destructive/40'
+                "
               />
               <KeyRound class="size-4 shrink-0 text-muted-foreground" />
               <div class="min-w-0 flex-1">
@@ -436,41 +447,63 @@ onMounted(loadApiKeys)
               <!-- Key info -->
               <div class="space-y-3">
                 <div>
-                  <p class="text-xs text-muted-foreground">{{ t('console.credentials.fieldName') }}</p>
-                  <p class="text-sm font-medium text-foreground">{{ selectedKey.credentialName }}</p>
+                  <p class="text-xs text-muted-foreground">
+                    {{ t('console.credentials.fieldName') }}
+                  </p>
+                  <p class="text-sm font-medium text-foreground">
+                    {{ selectedKey.credentialName }}
+                  </p>
                 </div>
                 <div v-if="selectedKey.credentialDescription">
-                  <p class="text-xs text-muted-foreground">{{ t('console.credentials.fieldDescription') }}</p>
+                  <p class="text-xs text-muted-foreground">
+                    {{ t('console.credentials.fieldDescription') }}
+                  </p>
                   <p class="text-sm text-foreground">{{ selectedKey.credentialDescription }}</p>
                 </div>
                 <div>
-                  <p class="text-xs text-muted-foreground">{{ t('console.credentials.fieldMaskedKey') }}</p>
+                  <p class="text-xs text-muted-foreground">
+                    {{ t('console.credentials.fieldMaskedKey') }}
+                  </p>
                   <p class="text-sm font-mono text-foreground">{{ selectedKey.maskedKey }}</p>
                 </div>
                 <div>
-                  <p class="text-xs text-muted-foreground">{{ t('console.credentials.fieldStatus') }}</p>
+                  <p class="text-xs text-muted-foreground">
+                    {{ t('console.credentials.fieldStatus') }}
+                  </p>
                   <Badge :variant="statusBadgeVariant(selectedKey.status)" class="text-[11px]">
                     {{ statusLabel(selectedKey.status) }}
                   </Badge>
                 </div>
                 <div>
-                  <p class="text-xs text-muted-foreground">{{ t('console.credentials.fieldCreatedAt') }}</p>
+                  <p class="text-xs text-muted-foreground">
+                    {{ t('console.credentials.fieldCreatedAt') }}
+                  </p>
                   <p class="text-sm text-foreground">{{ formatDateTime(selectedKey.createdAt) }}</p>
                 </div>
                 <div>
-                  <p class="text-xs text-muted-foreground">{{ t('console.credentials.fieldExpireAt') }}</p>
+                  <p class="text-xs text-muted-foreground">
+                    {{ t('console.credentials.fieldExpireAt') }}
+                  </p>
                   <p class="text-sm text-foreground">
-                    {{ selectedKey.expireAt ? formatDateTime(selectedKey.expireAt) : t('console.credentials.neverExpires') }}
+                    {{
+                      selectedKey.expireAt
+                        ? formatDateTime(selectedKey.expireAt)
+                        : t('console.credentials.neverExpires')
+                    }}
                   </p>
                 </div>
                 <div v-if="selectedKey.revokedAt">
-                  <p class="text-xs text-muted-foreground">{{ t('console.credentials.fieldRevokedAt') }}</p>
+                  <p class="text-xs text-muted-foreground">
+                    {{ t('console.credentials.fieldRevokedAt') }}
+                  </p>
                   <p class="text-sm text-foreground">{{ formatDateTime(selectedKey.revokedAt) }}</p>
                 </div>
               </div>
 
               <!-- Last used snapshot -->
-              <div class="rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-secondary/60 p-4 space-y-2">
+              <div
+                class="rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-secondary/60 p-4 space-y-2"
+              >
                 <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {{ t('console.credentials.lastUsedTitle') }}
                 </p>
@@ -479,10 +512,17 @@ onMounted(loadApiKeys)
                     <Clock class="size-3.5 text-muted-foreground" />
                     <span>{{ formatDateTime(selectedKey.lastUsedSnapshot.lastUsedAt) }}</span>
                   </div>
-                  <div v-if="selectedKey.lastUsedSnapshot.lastUsedChannel" class="text-xs text-muted-foreground">
-                    {{ t('console.credentials.lastUsedChannel') }}: {{ selectedKey.lastUsedSnapshot.lastUsedChannel }}
+                  <div
+                    v-if="selectedKey.lastUsedSnapshot.lastUsedChannel"
+                    class="text-xs text-muted-foreground"
+                  >
+                    {{ t('console.credentials.lastUsedChannel') }}:
+                    {{ selectedKey.lastUsedSnapshot.lastUsedChannel }}
                   </div>
-                  <div v-if="selectedKey.lastUsedSnapshot.lastUsedResult" class="flex items-center gap-1 text-xs">
+                  <div
+                    v-if="selectedKey.lastUsedSnapshot.lastUsedResult"
+                    class="flex items-center gap-1 text-xs"
+                  >
                     <CheckCircle2
                       v-if="selectedKey.lastUsedSnapshot.lastUsedResult === 'SUCCESS'"
                       class="size-3.5 text-primary"

@@ -188,17 +188,8 @@ describe('credential api', () => {
     expect(enabled.status).toBe('ENABLED')
     expect(disabled.status).toBe('DISABLED')
     expect(revoked.status).toBe('REVOKED')
-    expect(mockedPatch).toHaveBeenNthCalledWith(
-      1,
-      'v1/current-user/api-keys/cred-1/enable',
-    )
-    expect(mockedPatch).toHaveBeenNthCalledWith(
-      2,
-      'v1/current-user/api-keys/cred-1/disable',
-    )
-    expect(mockedPatch).toHaveBeenNthCalledWith(
-      3,
-      'v1/current-user/api-keys/cred-1/revoke',
-    )
+    expect(mockedPatch).toHaveBeenNthCalledWith(1, 'v1/current-user/api-keys/cred-1/enable')
+    expect(mockedPatch).toHaveBeenNthCalledWith(2, 'v1/current-user/api-keys/cred-1/disable')
+    expect(mockedPatch).toHaveBeenNthCalledWith(3, 'v1/current-user/api-keys/cred-1/revoke')
   })
 })

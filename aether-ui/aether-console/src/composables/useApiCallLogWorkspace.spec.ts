@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { useApiCallLogWorkspace } from './useApiCallLogWorkspace'
-import type {
-  ApiCallLogDetail,
-  ApiCallLogItem,
-} from '@/api/api-call-log/api-call-log.types'
+import type { ApiCallLogDetail, ApiCallLogItem } from '@/api/api-call-log/api-call-log.types'
 import type { PageResult } from '@/api/catalog/catalog.types'
 
 vi.mock('@/api/api-call-log/api-call-log.api', () => ({
@@ -118,7 +115,8 @@ describe('useApiCallLogWorkspace', () => {
   })
 
   it('separates list failures from detail failures and supports reset', async () => {
-    const listLogs = vi.fn()
+    const listLogs = vi
+      .fn()
       .mockRejectedValueOnce(new Error('list failed'))
       .mockResolvedValueOnce(page([]))
     const getDetail = vi.fn().mockRejectedValueOnce(new Error('detail failed'))

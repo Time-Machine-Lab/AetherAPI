@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createConsoleCurrentUser, createConsoleSession, createHttpError } from '@/test/console-test-kit'
+import {
+  createConsoleCurrentUser,
+  createConsoleSession,
+  createHttpError,
+} from '@/test/console-test-kit'
 
 vi.mock('@/api/http', () => ({
   http: {
