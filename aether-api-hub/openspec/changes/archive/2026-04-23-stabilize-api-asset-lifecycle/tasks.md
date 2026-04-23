@@ -1,7 +1,7 @@
 ## 1. 契约与复现
 
 - [x] 1.1 阅读 `docs/spec/Aether API HUB 后端代码开发规范文档.md`、`docs/api/api-asset-management.yaml`、`docs/sql/api-asset.sql` 与资产领域设计，确认本变更不新增接口。
-- [ ] 1.2 复现 B1：创建分类、注册草稿资产、执行 `PUT /assets/{apiCode}`，记录真实异常栈与返回体。
+- [x] 1.2 复现 B1：创建分类、注册草稿资产、执行 `PUT /assets/{apiCode}`，记录真实异常栈与返回体。
 
 ## 2. 资产生命周期修复
 

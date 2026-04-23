@@ -1,7 +1,7 @@
 ## 1. 契约与复现
 
 - [x] 1.1 阅读 `docs/api/unified-access.yaml`、`docs/api/api-call-log.yaml`、`docs/sql/api_call_log.sql` 与后端开发规范。
-- [ ] 1.2 复现 B2/B4：使用有效 API Key 调用 `/access/unknown-api`，记录响应、异常栈和日志表写入情况。
+- [x] 1.2 复现 B2/B4：使用有效 API Key 调用 `/access/unknown-api`，记录响应、异常栈和日志表写入情况。
 
 ## 2. Unified Access 失败分类修复
 
