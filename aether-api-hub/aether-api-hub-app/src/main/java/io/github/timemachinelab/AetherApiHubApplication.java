@@ -15,3 +15,4 @@ public class AetherApiHubApplication {
         SpringApplication.run(AetherApiHubApplication.class, args);
     }
 }
+
