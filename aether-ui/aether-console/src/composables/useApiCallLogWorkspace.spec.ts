@@ -57,8 +57,8 @@ describe('useApiCallLogWorkspace', () => {
 
     expect(listLogs).toHaveBeenCalledWith({
       targetApiCode: 'weather-api',
-      invocationStartAt: '2026-04-23T01:00:00.000Z',
-      invocationEndAt: '2026-04-23T02:00:00.000Z',
+      invocationStartAt: new Date('2026-04-23T09:00').toISOString(),
+      invocationEndAt: new Date('2026-04-23T10:00').toISOString(),
       page: 1,
       size: 20,
     })
