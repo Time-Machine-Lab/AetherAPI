@@ -11,3 +11,5 @@ Common scripts:
 - `pnpm dev`
 - `pnpm test`
 - `pnpm build`
+
+Release and deployment notes are documented in `RELEASE.md`.
