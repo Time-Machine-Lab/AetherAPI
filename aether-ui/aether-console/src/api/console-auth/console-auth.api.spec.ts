@@ -42,7 +42,7 @@ describe('console auth api', () => {
       password: 'change-me-console-password',
     })
 
-    expect(mockedPost).toHaveBeenCalledWith('/v1/console/auth/sign-in', {
+    expect(mockedPost).toHaveBeenCalledWith('/console/auth/sign-in', {
       loginName: session.currentUser.loginName,
       password: 'change-me-console-password',
     })
@@ -93,7 +93,7 @@ describe('console auth api', () => {
 
     const result = await getCurrentConsoleSession()
 
-    expect(mockedGet).toHaveBeenCalledWith('/v1/console/auth/current-session')
+    expect(mockedGet).toHaveBeenCalledWith('/console/auth/current-session')
     expect(result).toEqual(currentUser)
   })
 
