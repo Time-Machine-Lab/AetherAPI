@@ -50,6 +50,7 @@ The container listens on port `8888`.
 docker run -d \
   --name aether-console \
   --restart unless-stopped \
+  --add-host=host.docker.internal:host-gateway \
   -p 8888:8888 \
   -e AETHER_BACKEND_UPSTREAM=http://host.docker.internal:8090 \
   <docker-username>/aether-console:aether-console-v1.0.0
@@ -58,6 +59,8 @@ docker run -d \
 The frontend keeps `VITE_API_BASE_URL=/api/v1`. Browser requests to `/api/v1/**` stay same-origin and Nginx forwards `/api/**` to `AETHER_BACKEND_UPSTREAM`.
 
 The backend service must be reachable from the Nginx container on port `8090`. If the backend process still listens on another port, map or expose it as `8090` in the deployment environment before releasing `aether-console`.
+
+On Linux Docker hosts, `host.docker.internal` is not always available by default. The release workflow adds `--add-host=host.docker.internal:host-gateway` when starting the container so the default upstream can resolve to the Docker host. If the backend runs in another Docker network or on another host, set the `AETHER_BACKEND_UPSTREAM` variable to that reachable `http://...:8090` address instead.
 
 ## Required GitHub Secrets
 
@@ -95,10 +98,13 @@ Configure these repository, environment, or organization secrets before pushing 
    docker ps --format '{{.Ports}}' | grep 8888 || true
    ```
 
-4. Confirm the backend upstream is reachable from the server or Docker network:
+4. Confirm the backend upstream is reachable from the Docker network:
 
    ```bash
-   curl -I http://host.docker.internal:8090/api/v1/console/auth/current-session || true
+   docker run --rm \
+     --add-host=host.docker.internal:host-gateway \
+     curlimages/curl:8.11.1 \
+     -I http://host.docker.internal:8090/api/v1/console/auth/current-session || true
    ```
 
 5. After deployment, verify the frontend and proxy:
@@ -122,6 +128,7 @@ docker rm -f aether-console 2>/dev/null || true
 docker run -d \
   --name aether-console \
   --restart unless-stopped \
+  --add-host=host.docker.internal:host-gateway \
   -p 8888:8888 \
   -e AETHER_BACKEND_UPSTREAM=http://host.docker.internal:8090 \
   "$IMAGE"
@@ -135,6 +142,7 @@ Use these commands to validate the image locally before pushing a release tag:
 docker build -t aether-console:local .
 docker run --rm -d \
   --name aether-console-local \
+  --add-host=host.docker.internal:host-gateway \
   -p 8888:8888 \
   -e AETHER_BACKEND_UPSTREAM=http://host.docker.internal:8090 \
   aether-console:local
