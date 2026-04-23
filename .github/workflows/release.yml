@@ -55,7 +55,7 @@ jobs:
           fi
 
           # Docker 镜像仓库名一般不能带多级路径，用目录最后一段作为镜像名
-          image_name="${module##*/}"
+          image_name="aether-api"
           
           if [[ "$commit_message" =~ -rp:([^\ ]*) ]]; then
           run_port="${BASH_REMATCH[1]}"

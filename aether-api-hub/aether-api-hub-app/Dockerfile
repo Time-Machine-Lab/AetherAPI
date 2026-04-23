@@ -1,0 +1,41 @@
+FROM eclipse-temurin:17-jre
+
+# 设置时区为上海
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo 'Asia/Shanghai' > /etc/timezone
+ENV TZ=Asia/Shanghai
+
+COPY *.jar /model-master.jar
+
+ARG SERVER_PORT
+ARG ACTIVE
+ARG UNIQUE_ID
+ARG JASYPT_PASSWORD
+
+ARG MYSQL_ADDR
+ARG MYSQL_USERNAME
+ARG MYSQL_PASSWORD
+
+ARG REDIS_ADDR
+ARG REDIS_PORT
+ARG REDIS_PWD
+
+ARG NACOS_SERVER_ADDR
+ARG NACOS_SERVER_USER
+ARG NACOS_SERVER_PASSWORD
+
+ARG MQ_ADDR
+ARG MQ_PORT
+ARG MQ_USERNAME
+ARG MQ_PWD
+
+ENV SERVER_PORT=${SERVER_PORT}
+ENV UNIQUE_ID=${UNIQUE_ID}
+ENV JASYPT_PASSWORD=${JASYPT_PASSWORD}
+ENV ACTIVE=${ACTIVE}
+
+EXPOSE ${SERVER_PORT}
+
+ENTRYPOINT ["java","-jar","/aether-api.jar"]
+
+#1.0.1版本上线 <Auto> -m:model-master-app -v:1.0.1 -rp:8080 -de:<-e ACTIVE=prod -e SERVER_PORT=8080>
+
