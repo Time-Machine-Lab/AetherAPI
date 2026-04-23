@@ -1,1 +1,2 @@
 [AetherAPI-260423][prod][1.0.0] <Auto> -v:1.0.0 -rp:8090 -de:<-e ACTIVE=prod -e SERVER_PORT=8090>
+[AetherAPI-260423][prod][1.0.1] <Auto> -v:1.0.1 -rp:8090 -de:<-e ACTIVE=prod -e SERVER_PORT=8090>
