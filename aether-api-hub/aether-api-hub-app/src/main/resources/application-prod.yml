@@ -1,13 +1,14 @@
-# 密文由 tests 中 EncodingUtil + 与 you-cant-see-that.yml 相同主密钥生成；部署时通过 JASYPT_ENCRYPTOR_PASSWORD 与工具类中明文一致才能解密
-# 更新明文后请重新运行 EncodingUtil#printEncForApplicationProd 并替换下方 ENC 值
+# 密文需与 you-cant-see-that.yml 中 Jasypt 主密钥一致；ENC 值用单引号避免 + / 等被 YAML 误解析
+# 角色项使用 operator-role（不再使用 key `role`，避免与 Spring 配置绑定保留名冲突）
+# 更新明文后请重新运行 EncodingUtil#printEncForApplicationProd
 server:
   port: ${SERVER_PORT:8080}
 
 spring:
   datasource:
-    url: ENC(5u+GSJshiRUIvoV1VY415qY8mt/zB8J8v6eXs/lmy1ZrqFndzPFHYULJm9WuuH+y2WkhQEZsJaOHQaDnQl2xi47DZkRNBe0+2jdLGazvqvMHPyL8XR2P0s8ResRuAJ4u16mwdnhG2JnbGFnopgY63+sY8o4XXFUH9lPGvWtk3fw=)
-    username: ENC(2/EpgymqVUm6P8XfYehnaA==)
-    password: ENC(bvrWc4UfGKQxrkbmO9LQvsCghb+Eh+XoJIH3Rb9gpg7Xq4bttqfGzQ==)
+    url: 'ENC(5u+GSJshiRUIvoV1VY415qY8mt/zB8J8v6eXs/lmy1ZrqFndzPFHYULJm9WuuH+y2WkhQEZsJaOHQaDnQl2xi47DZkRNBe0+2jdLGazvqvMHPyL8XR2P0s8ResRuAJ4u16mwdnhG2JnbGFnopgY63+sY8o4XXFUH9lPGvWtk3fw=)'
+    username: 'ENC(2/EpgymqVUm6P8XfYehnaA==)'
+    password: 'ENC(bvrWc4UfGKQxrkbmO9LQvsCghb+Eh+XoJIH3Rb9gpg7Xq4bttqfGzQ==)'
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 mybatis-plus:
@@ -30,11 +31,11 @@ logging:
 aether:
   console:
     session-auth:
-      user-id: ENC(KK6klTq56ESUZAARF6fz8odrAtwb1Yp7GJXkBTko22g=)
-      login-name: ENC(QVqXO9aWFlBtlDowf7i2koCYwnOOuhpA5JT18BTr2PE=)
-      password: ENC(j3LOSrQBkQ4zgnlZWBzbvUdNKYcF/JdJ/FuXmCN6cWUQxvIXEWuZgHqqCtGdSV1i)
-      display-name: ENC(VgNfun4JpBufA7Wv4Sxmn6h68eL4alqM2sf9ZZEP+Cc=)
-      email: ENC(FUGKdyVhklhVYiAt8t6JpsLpgyb1jgn5GEmFlnYK4ys=)
-      role: ENC(PiIoH5E5sQS3nhF7CAR+Bg==)
-      token-secret: ENC(048VjhmuI9iRWYpehkSn92n5d+damCmbgax/FUa9FgcYAq5GVKVkXfSC6Qqj8IBOPBHQCH+omMuzPmuROty9oA==)
+      user-id: 'ENC(KK6klTq56ESUZAARF6fz8odrAtwb1Yp7GJXkBTko22g=)'
+      login-name: 'ENC(QVqXO9aWFlBtlDowf7i2koCYwnOOuhpA5JT18BTr2PE=)'
+      password: 'ENC(j3LOSrQBkQ4zgnlZWBzbvUdNKYcF/JdJ/FuXmCN6cWUQxvIXEWuZgHqqCtGdSV1i)'
+      display-name: 'ENC(VgNfun4JpBufA7Wv4Sxmn6h68eL4alqM2sf9ZZEP+Cc=)'
+      email: 'ENC(FUGKdyVhklhVYiAt8t6JpsLpgyb1jgn5GEmFlnYK4ys=)'
+      role: 'ENC(PiIoH5E5sQS3nhF7CAR+Bg==)'
+      token-secret: 'ENC(048VjhmuI9iRWYpehkSn92n5d+damCmbgax/FUa9FgcYAq5GVKVkXfSC6Qqj8IBOPBHQCH+omMuzPmuROty9oA==)'
       token-ttl-seconds: ${AETHER_CONSOLE_AUTH_TOKEN_TTL_SECONDS:43200}

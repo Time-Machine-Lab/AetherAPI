@@ -12,6 +12,7 @@ public class ConsoleSessionAuthProperties implements ConsoleSessionSettingsPort 
     private String password;
     private String displayName;
     private String email;
+    /** YAML 键名使用 {@code operator-role}，避免与 Spring 绑定中的保留名 {@code role} 冲突。 */
     private String role;
     private String tokenSecret;
     private long tokenTtlSeconds;

@@ -37,6 +37,3 @@ ENV ACTIVE=${ACTIVE}
 EXPOSE ${SERVER_PORT}
 
 ENTRYPOINT ["java","-jar","/aether-api.jar"]
-
-#1.0.1版本上线 <Auto> -m:model-master-app -v:1.0.1 -rp:8080 -de:<-e ACTIVE=prod -e SERVER_PORT=8080>
-
