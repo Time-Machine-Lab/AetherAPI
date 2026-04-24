@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import { useWorkspaceCatalog } from './useWorkspaceCatalog'
-import type { ApiAsset, ApiAssetSummary, ApiCategory, PageResult } from '@/api/catalog/catalog.types'
+import type {
+  ApiAsset,
+  ApiAssetSummary,
+  ApiCategory,
+  PageResult,
+} from '@/api/catalog/catalog.types'
 
 vi.mock('@/api/catalog/category.api', () => ({
   listCategories: vi.fn(),
@@ -267,9 +272,7 @@ describe('useWorkspaceCatalog', () => {
       t,
       autoLoad: false,
       listAssets: vi.fn().mockResolvedValueOnce({
-        items: Array.from({ length: 20 }, (_, i) =>
-          assetSummary({ apiCode: `api-${i}` }),
-        ),
+        items: Array.from({ length: 20 }, (_, i) => assetSummary({ apiCode: `api-${i}` })),
         total: 45,
         page: 1,
         pageSize: 20,

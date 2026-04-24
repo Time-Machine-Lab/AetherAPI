@@ -43,7 +43,6 @@ const {
   assetListItems,
   assetListTotal,
   assetListPage,
-  assetListPageSize,
   assetListLoading,
   assetListError,
   assetListFilterKeyword,
@@ -229,7 +228,12 @@ function openRecentAsset(apiCode: string) {
             </div>
             <!-- Empty state -->
             <div
-              v-else-if="assetListItems.length === 0 && assetListTotal === 0 && assetListPage === 1 && !assetListLoading"
+              v-else-if="
+                assetListItems.length === 0 &&
+                assetListTotal === 0 &&
+                assetListPage === 1 &&
+                !assetListLoading
+              "
               class="py-6 text-center text-sm text-muted-foreground"
             >
               {{ t('console.workspace.assetListEmpty') }}

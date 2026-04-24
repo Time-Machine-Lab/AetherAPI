@@ -14,8 +14,12 @@ import {
   listAssets,
   registerAsset,
 } from '@/api/catalog/asset.api'
-import type { ApiAsset, ApiAssetSummary, ApiCategory, PageResult } from '@/api/catalog/catalog.types'
-import type { BindAiProfileBody, ListAssetsQuery, RegisterAssetBody } from '@/api/catalog/catalog.dto'
+import type { ApiAsset, ApiAssetSummary, ApiCategory } from '@/api/catalog/catalog.types'
+import type {
+  BindAiProfileBody,
+  ListAssetsQuery,
+  RegisterAssetBody,
+} from '@/api/catalog/catalog.dto'
 import { getRecentAssets } from '@/features/catalog/catalog-helpers'
 
 interface WorkspaceCatalogDeps {
@@ -106,9 +110,13 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
       const query: ListAssetsQuery = {
         page,
         size: assetListPageSize,
-        ...(assetListFilterKeyword.value.trim() && { keyword: assetListFilterKeyword.value.trim() }),
+        ...(assetListFilterKeyword.value.trim() && {
+          keyword: assetListFilterKeyword.value.trim(),
+        }),
         ...(assetListFilterStatus.value && { status: assetListFilterStatus.value }),
-        ...(assetListFilterCategory.value.trim() && { categoryCode: assetListFilterCategory.value.trim() }),
+        ...(assetListFilterCategory.value.trim() && {
+          categoryCode: assetListFilterCategory.value.trim(),
+        }),
       }
       const result = await deps.listAssets(query)
       assetListItems.value = result.items

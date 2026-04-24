@@ -130,7 +130,8 @@ export default {
       loading: 'Loading…',
       loadError: 'Failed to load',
       assetListTitle: 'API Asset List',
-      assetListDescription: 'Browse and filter all registered API assets. Select a row to load asset detail.',
+      assetListDescription:
+        'Browse and filter all registered API assets. Select a row to load asset detail.',
       assetListFilterKeyword: 'Search by name or apiCode',
       assetListFilterStatus: 'Status',
       assetListFilterAll: 'All statuses',
