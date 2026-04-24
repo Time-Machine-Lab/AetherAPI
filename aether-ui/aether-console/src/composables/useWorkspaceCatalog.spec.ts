@@ -19,6 +19,7 @@ vi.mock('@/api/catalog/asset.api', () => ({
   getAsset: vi.fn(),
   listAssets: vi.fn(),
   registerAsset: vi.fn(),
+  reviseAsset: vi.fn(),
   enableAsset: vi.fn(),
   disableAsset: vi.fn(),
   bindAiProfile: vi.fn(),
@@ -46,6 +47,9 @@ function asset(overrides: Partial<ApiAsset> = {}): ApiAsset {
     assetType: 'STANDARD_API',
     categoryCode: 'tools',
     status: 'DRAFT',
+    requestMethod: 'GET',
+    upstreamUrl: 'https://upstream.example.com/weather',
+    authScheme: 'NONE',
     ...overrides,
   }
 }
@@ -238,10 +242,12 @@ describe('useWorkspaceCatalog', () => {
   })
 
   it('list selection hydrates currentAsset via getAsset', async () => {
+    const onAssetSelected = vi.fn()
     const selectedAsset = asset({ apiCode: 'weather-api', status: 'ENABLED' })
     const workspace = useWorkspaceCatalog({
       t,
       autoLoad: false,
+      onAssetSelected,
       getAsset: vi.fn().mockResolvedValueOnce(selectedAsset),
       getRecentAssets: vi.fn().mockReturnValue([]),
     })
@@ -250,7 +256,10 @@ describe('useWorkspaceCatalog', () => {
 
     expect(workspace.currentAsset.value?.apiCode).toBe('weather-api')
     expect(workspace.currentAsset.value?.status).toBe('ENABLED')
+    expect(workspace.assetConfigForm.value.requestMethod).toBe('GET')
+    expect(workspace.assetConfigForm.value.upstreamUrl).toBe('https://upstream.example.com/weather')
     expect(workspace.assetError.value).toBe('')
+    expect(onAssetSelected).toHaveBeenCalledWith(selectedAsset)
   })
 
   it('list selection failure maps to existing assetNotFound i18n key', async () => {
@@ -282,5 +291,42 @@ describe('useWorkspaceCatalog', () => {
 
     await workspace.handleListAssets(1)
     expect(workspace.assetListTotalPages()).toBe(3)
+  })
+
+  it('saves edited asset config through reviseAsset and updates current asset', async () => {
+    const revisedAsset = asset({
+      status: 'ENABLED',
+      requestMethod: 'POST',
+      upstreamUrl: 'https://upstream.example.com/weather/v2',
+    })
+    const reviseAsset = vi.fn().mockResolvedValueOnce(revisedAsset)
+    const workspace = useWorkspaceCatalog({
+      t,
+      autoLoad: false,
+      getAsset: vi.fn().mockResolvedValueOnce(asset()),
+      reviseAsset,
+      getRecentAssets: vi.fn().mockReturnValue([]),
+    })
+
+    await workspace.handleListSelectAsset('weather-api')
+    workspace.assetConfigForm.value.requestMethod = 'POST'
+    workspace.assetConfigForm.value.upstreamUrl = 'https://upstream.example.com/weather/v2'
+
+    await workspace.handleSaveAssetConfig()
+
+    expect(reviseAsset).toHaveBeenCalledWith('weather-api', {
+      displayName: 'Weather API',
+      categoryCode: 'tools',
+      requestMethod: 'POST',
+      upstreamUrl: 'https://upstream.example.com/weather/v2',
+      authScheme: 'NONE',
+      requestTemplate: null,
+      requestExample: null,
+      responseExample: null,
+    })
+    expect(workspace.currentAsset.value?.requestMethod).toBe('POST')
+    expect(workspace.currentAsset.value?.upstreamUrl).toBe(
+      'https://upstream.example.com/weather/v2',
+    )
   })
 })

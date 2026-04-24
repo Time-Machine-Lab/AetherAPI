@@ -13,10 +13,16 @@ export interface ApiAsset {
   apiCode: string
   displayName: string
   assetType: AssetType
-  categoryCode: string
+  categoryCode: string | null
   status: AssetStatus
   description?: string
+  requestMethod?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+  upstreamUrl?: string
   authScheme?: string
+  authConfig?: string
+  requestTemplate?: string
+  requestExample?: string
+  responseExample?: string
   aiProfile?: AiProfile
 }
 

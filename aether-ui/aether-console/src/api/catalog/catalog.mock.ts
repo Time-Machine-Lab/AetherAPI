@@ -38,12 +38,15 @@ const categories: CategoryDto[] = [
 const assets: AssetDto[] = [
   {
     apiCode: 'deepseek-v3',
+    assetName: 'DeepSeek V3',
     displayName: 'DeepSeek V3',
     assetType: 'AI_API',
     categoryCode: 'cat-ai',
     status: 'ENABLED',
+    requestMethod: 'POST',
+    upstreamUrl: 'https://upstream.example.com/deepseek/chat',
     description: '通用推理与工具调用旗舰模型。',
-    authScheme: 'Bearer Token',
+    authScheme: 'HEADER_TOKEN',
     aiProfile: {
       provider: 'DeepSeek',
       model: 'deepseek-v3',
@@ -53,31 +56,40 @@ const assets: AssetDto[] = [
   },
   {
     apiCode: 'kimi-k2',
+    assetName: 'Kimi K2',
     displayName: 'Kimi K2',
     assetType: 'AI_API',
     categoryCode: 'cat-ai',
     status: 'ENABLED',
+    requestMethod: 'POST',
+    upstreamUrl: 'https://upstream.example.com/kimi/chat',
     description: '长上下文与 Agent 场景旗舰模型。',
-    authScheme: 'Bearer Token',
+    authScheme: 'HEADER_TOKEN',
     aiProfile: { provider: 'Moonshot', model: 'kimi-k2', streaming: true, tags: ['reasoning'] },
   },
   {
     apiCode: 'baidu-search',
+    assetName: 'Baidu Search API',
     displayName: 'Baidu Search API',
     assetType: 'STANDARD_API',
     categoryCode: 'cat-search',
     status: 'ENABLED',
+    requestMethod: 'GET',
+    upstreamUrl: 'https://upstream.example.com/search',
     description: '联网检索与引用增强接口。',
-    authScheme: 'API Key',
+    authScheme: 'QUERY_TOKEN',
   },
   {
     apiCode: 'weather-api',
+    assetName: 'Weather Data API',
     displayName: 'Weather Data API',
     assetType: 'STANDARD_API',
     categoryCode: 'cat-data',
     status: 'DISABLED',
+    requestMethod: 'GET',
+    upstreamUrl: 'https://upstream.example.com/weather',
     description: '实时天气与预报数据服务。',
-    authScheme: 'API Key',
+    authScheme: 'QUERY_TOKEN',
   },
 ]
 
@@ -85,7 +97,7 @@ const assets: AssetDto[] = [
 
 function page<T>(items: T[], params: Record<string, string>): PageDto<T> {
   const p = Number(params.page ?? 1)
-  const size = Number(params.pageSize ?? 20)
+  const size = Number(params.size ?? params.pageSize ?? 20)
   const keyword = (params.keyword ?? '').toLowerCase()
   const filtered = keyword
     ? ((items as Record<string, unknown>[]).filter((item) =>
@@ -135,9 +147,9 @@ const routes: { method: string; pattern: RegExp; handler: MockHandler }[] = [
         .filter((a) => a.status === 'ENABLED')
         .map((a) => ({
           apiCode: a.apiCode,
-          displayName: a.displayName,
+          displayName: a.assetName ?? a.displayName ?? a.apiCode,
           assetType: a.assetType,
-          categoryCode: a.categoryCode,
+          categoryCode: a.categoryCode ?? '',
           categoryName: categories.find((c) => c.categoryCode === a.categoryCode)?.name,
         }))
       return ok(page(list, params))
@@ -151,9 +163,9 @@ const routes: { method: string; pattern: RegExp; handler: MockHandler }[] = [
       if (!asset) notFound()
       const detail: DiscoveryAssetDetailDto = {
         apiCode: asset.apiCode,
-        displayName: asset.displayName,
+        displayName: asset.assetName ?? asset.displayName ?? asset.apiCode,
         assetType: asset.assetType,
-        categoryCode: asset.categoryCode,
+        categoryCode: asset.categoryCode ?? '',
         categoryName: categories.find((c) => c.categoryCode === asset.categoryCode)?.name,
         description: asset.description,
         authScheme: asset.authScheme,
@@ -244,7 +256,7 @@ const routes: { method: string; pattern: RegExp; handler: MockHandler }[] = [
     },
   },
   {
-    method: 'PATCH',
+    method: 'PUT',
     pattern: /^\/api\/v1\/assets\/(.+)$/,
     handler: (_, body, match) => {
       const asset = assets.find((a) => a.apiCode === match![1])
@@ -254,7 +266,7 @@ const routes: { method: string; pattern: RegExp; handler: MockHandler }[] = [
     },
   },
   {
-    method: 'POST',
+    method: 'PATCH',
     pattern: /^\/api\/v1\/assets\/(.+)\/enable$/,
     handler: (_, __, match) => {
       const asset = assets.find((a) => a.apiCode === match![1])
@@ -264,7 +276,7 @@ const routes: { method: string; pattern: RegExp; handler: MockHandler }[] = [
     },
   },
   {
-    method: 'POST',
+    method: 'PATCH',
     pattern: /^\/api\/v1\/assets\/(.+)\/disable$/,
     handler: (_, __, match) => {
       const asset = assets.find((a) => a.apiCode === match![1])

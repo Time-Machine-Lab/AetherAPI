@@ -13,12 +13,14 @@ import {
   getAsset,
   listAssets,
   registerAsset,
+  reviseAsset,
 } from '@/api/catalog/asset.api'
 import type { ApiAsset, ApiAssetSummary, ApiCategory } from '@/api/catalog/catalog.types'
 import type {
   BindAiProfileBody,
   ListAssetsQuery,
   RegisterAssetBody,
+  ReviseAssetBody,
 } from '@/api/catalog/catalog.dto'
 import { getRecentAssets } from '@/features/catalog/catalog-helpers'
 
@@ -32,10 +34,12 @@ interface WorkspaceCatalogDeps {
   getAsset: typeof getAsset
   listAssets: typeof listAssets
   registerAsset: typeof registerAsset
+  reviseAsset: typeof reviseAsset
   enableAsset: typeof enableAsset
   disableAsset: typeof disableAsset
   bindAiProfile: typeof bindAiProfile
   getRecentAssets: typeof getRecentAssets
+  onAssetSelected?: (asset: ApiAsset) => void | Promise<void>
   autoLoad?: boolean
 }
 
@@ -52,6 +56,7 @@ function buildDeps(options: WorkspaceCatalogOptions): WorkspaceCatalogDeps {
     getAsset,
     listAssets,
     registerAsset,
+    reviseAsset,
     enableAsset,
     disableAsset,
     bindAiProfile,
@@ -89,6 +94,25 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     streaming: false,
     tags: [],
   })
+  const assetConfigForm = ref<{
+    displayName: string
+    categoryCode: string
+    requestMethod: NonNullable<ReviseAssetBody['requestMethod']> | ''
+    upstreamUrl: string
+    authScheme: string
+    requestTemplate: string
+    requestExample: string
+    responseExample: string
+  }>({
+    displayName: '',
+    categoryCode: '',
+    requestMethod: '',
+    upstreamUrl: '',
+    authScheme: '',
+    requestTemplate: '',
+    requestExample: '',
+    responseExample: '',
+  })
   const aiTagInput = ref('')
   const recentAssets = ref(deps.getRecentAssets())
 
@@ -102,6 +126,27 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
   const assetListFilterKeyword = ref('')
   const assetListFilterStatus = ref<ListAssetsQuery['status'] | ''>('')
   const assetListFilterCategory = ref('')
+
+  function syncAssetConfigForm(asset: ApiAsset | null) {
+    assetConfigForm.value = {
+      displayName: asset?.displayName ?? '',
+      categoryCode: asset?.categoryCode ?? '',
+      requestMethod: asset?.requestMethod ?? '',
+      upstreamUrl: asset?.upstreamUrl ?? '',
+      authScheme: asset?.authScheme ?? '',
+      requestTemplate: asset?.requestTemplate ?? '',
+      requestExample: asset?.requestExample ?? '',
+      responseExample: asset?.responseExample ?? '',
+    }
+  }
+
+  async function setCurrentAsset(asset: ApiAsset, notifySelection = false) {
+    currentAsset.value = asset
+    syncAssetConfigForm(asset)
+    if (notifySelection) {
+      await deps.onAssetSelected?.(asset)
+    }
+  }
 
   async function handleListAssets(page = 1) {
     assetListLoading.value = true
@@ -133,7 +178,7 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     assetLoading.value = true
     assetError.value = ''
     try {
-      currentAsset.value = await deps.getAsset(apiCode)
+      await setCurrentAsset(await deps.getAsset(apiCode), true)
     } catch {
       assetError.value = deps.t('console.workspace.assetNotFound')
     } finally {
@@ -187,7 +232,7 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     assetLoading.value = true
     assetError.value = ''
     try {
-      currentAsset.value = await deps.getAsset(assetCodeInput.value.trim())
+      await setCurrentAsset(await deps.getAsset(assetCodeInput.value.trim()), true)
     } catch {
       assetError.value = deps.t('console.workspace.assetNotFound')
     } finally {
@@ -199,7 +244,7 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     assetLoading.value = true
     assetError.value = ''
     try {
-      currentAsset.value = await deps.registerAsset(registerForm.value)
+      await setCurrentAsset(await deps.registerAsset(registerForm.value), true)
       registerForm.value = {
         apiCode: '',
         displayName: '',
@@ -219,12 +264,41 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
       currentAsset.value.status === 'ENABLED'
         ? await deps.disableAsset(currentAsset.value.apiCode)
         : await deps.enableAsset(currentAsset.value.apiCode)
-    currentAsset.value = updated
+    await setCurrentAsset(updated)
   }
 
   async function handleBindAiProfile() {
     if (!currentAsset.value) return
-    currentAsset.value = await deps.bindAiProfile(currentAsset.value.apiCode, aiProfileForm.value)
+    await setCurrentAsset(await deps.bindAiProfile(currentAsset.value.apiCode, aiProfileForm.value))
+  }
+
+  function normalizeOptionalText(value: string) {
+    const trimmed = value.trim()
+    return trimmed ? trimmed : null
+  }
+
+  async function handleSaveAssetConfig() {
+    if (!currentAsset.value) return
+    assetLoading.value = true
+    assetError.value = ''
+    try {
+      await setCurrentAsset(
+        await deps.reviseAsset(currentAsset.value.apiCode, {
+          displayName: normalizeOptionalText(assetConfigForm.value.displayName),
+          categoryCode: normalizeOptionalText(assetConfigForm.value.categoryCode),
+          requestMethod: assetConfigForm.value.requestMethod || null,
+          upstreamUrl: normalizeOptionalText(assetConfigForm.value.upstreamUrl),
+          authScheme: assetConfigForm.value.authScheme || null,
+          requestTemplate: normalizeOptionalText(assetConfigForm.value.requestTemplate),
+          requestExample: normalizeOptionalText(assetConfigForm.value.requestExample),
+          responseExample: normalizeOptionalText(assetConfigForm.value.responseExample),
+        }),
+      )
+    } catch {
+      assetError.value = deps.t('console.workspace.assetConfigSaveFailed')
+    } finally {
+      assetLoading.value = false
+    }
   }
 
   function addAiTag() {
@@ -255,10 +329,12 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     assetLoading,
     assetError,
     registerForm,
+    assetConfigForm,
     aiProfileForm,
     aiTagInput,
     handleLoadAsset,
     handleRegisterAsset,
+    handleSaveAssetConfig,
     handleToggleAsset,
     handleBindAiProfile,
     addAiTag,

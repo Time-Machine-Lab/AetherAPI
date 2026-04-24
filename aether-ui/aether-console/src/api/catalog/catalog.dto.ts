@@ -32,13 +32,26 @@ export interface CategoryDto {
 
 export interface AssetDto {
   apiCode: string
-  displayName: string
+  assetName?: string | null
+  displayName?: string | null
   assetType: 'AI_API' | 'STANDARD_API'
-  categoryCode: string
+  categoryCode: string | null
   status: 'DRAFT' | 'ENABLED' | 'DISABLED'
   description?: string
+  requestMethod?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | null
+  upstreamUrl?: string | null
   authScheme?: string
+  authConfig?: string | null
+  requestTemplate?: string | null
+  requestExample?: string | null
+  responseExample?: string | null
   aiProfile?: AiProfileDto
+  aiCapabilityProfile?: {
+    provider: string
+    model: string
+    streamingSupported: boolean
+    capabilityTags: string[]
+  } | null
 }
 
 export interface PageDto<T> {
@@ -58,10 +71,15 @@ export interface RegisterAssetBody {
 }
 
 export interface ReviseAssetBody {
-  displayName?: string
-  categoryCode?: string
-  description?: string
-  authScheme?: string
+  displayName?: string | null
+  categoryCode?: string | null
+  description?: string | null
+  requestMethod?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | null
+  upstreamUrl?: string | null
+  authScheme?: string | null
+  requestTemplate?: string | null
+  requestExample?: string | null
+  responseExample?: string | null
 }
 
 export interface BindAiProfileBody {

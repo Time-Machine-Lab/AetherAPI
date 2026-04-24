@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { useWorkspaceCatalog } from '@/composables/useWorkspaceCatalog'
@@ -12,9 +12,18 @@ import { Badge } from '@/components/ui/badge'
 
 const { t } = useI18n()
 const route = useRoute()
+const assetDetailCardRef = ref<HTMLElement | null>(null)
 
 const isCredentialsSection = computed(() => route.hash === '#credentials')
 const isApiCallLogsSection = computed(() => route.hash === '#api-call-logs')
+
+async function focusAssetDetailCard() {
+  await nextTick()
+  assetDetailCardRef.value?.scrollIntoView({
+    behavior: 'smooth',
+    block: 'start',
+  })
+}
 
 // ── Categories ──────────────────────────────────────────────────────────────────────────────────
 const {
@@ -32,10 +41,12 @@ const {
   assetLoading,
   assetError,
   registerForm,
+  assetConfigForm,
   aiProfileForm,
   aiTagInput,
   handleLoadAsset,
   handleRegisterAsset,
+  handleSaveAssetConfig,
   handleToggleAsset,
   handleBindAiProfile,
   addAiTag,
@@ -50,7 +61,7 @@ const {
   handleListAssets,
   handleListSelectAsset,
   assetListTotalPages,
-} = useWorkspaceCatalog({ t })
+} = useWorkspaceCatalog({ t, onAssetSelected: focusAssetDetailCard })
 // ── Asset management ────────────────────────────────────────────────────────────────────────────
 // ── Recent assets ───────────────────────────────────────────────────────────────────────────────
 function startRenameCategory(categoryCode: string, categoryName: string) {
@@ -365,7 +376,11 @@ function openRecentAsset(apiCode: string) {
             <p v-if="assetError" class="text-sm text-destructive">{{ assetError }}</p>
 
             <!-- Current asset snapshot -->
-            <div v-if="currentAsset" class="space-y-3 rounded-[14px] border px-4 py-4">
+            <div
+              v-if="currentAsset"
+              ref="assetDetailCardRef"
+              class="space-y-3 rounded-[14px] border px-4 py-4"
+            >
               <div class="flex min-h-[44px] items-start justify-between gap-3">
                 <div>
                   <p class="font-semibold text-foreground">{{ currentAsset.displayName }}</p>
@@ -388,6 +403,70 @@ function openRecentAsset(apiCode: string) {
                       : t('console.workspace.enable')
                   }}
                 </Button>
+              </div>
+
+              <div class="space-y-3 rounded-[14px] bg-secondary/60 p-4">
+                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {{ t('console.workspace.assetConfigTitle') }}
+                </p>
+                <div class="grid gap-3 md:grid-cols-2">
+                  <Input
+                    v-model="assetConfigForm.displayName"
+                    :placeholder="t('console.workspace.fieldDisplayName')"
+                  />
+                  <Input
+                    v-model="assetConfigForm.categoryCode"
+                    :placeholder="t('console.workspace.fieldCategoryCode')"
+                  />
+                  <select
+                    v-model="assetConfigForm.requestMethod"
+                    class="h-11 w-full cursor-pointer appearance-none rounded-[8px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                  >
+                    <option value="">
+                      {{ t('console.workspace.fieldRequestMethodPlaceholder') }}
+                    </option>
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="PATCH">PATCH</option>
+                    <option value="DELETE">DELETE</option>
+                  </select>
+                  <Input
+                    v-model="assetConfigForm.upstreamUrl"
+                    :placeholder="t('console.workspace.fieldUpstreamUrl')"
+                  />
+                  <select
+                    v-model="assetConfigForm.authScheme"
+                    class="h-11 w-full cursor-pointer appearance-none rounded-[8px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                  >
+                    <option value="">
+                      {{ t('console.workspace.fieldAuthSchemePlaceholder') }}
+                    </option>
+                    <option value="NONE">NONE</option>
+                    <option value="HEADER_TOKEN">HEADER_TOKEN</option>
+                    <option value="QUERY_TOKEN">QUERY_TOKEN</option>
+                  </select>
+                </div>
+                <textarea
+                  v-model="assetConfigForm.requestTemplate"
+                  :placeholder="t('console.workspace.fieldRequestTemplate')"
+                  class="min-h-[96px] w-full rounded-[12px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                />
+                <textarea
+                  v-model="assetConfigForm.requestExample"
+                  :placeholder="t('console.workspace.fieldRequestExample')"
+                  class="min-h-[96px] w-full rounded-[12px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                />
+                <textarea
+                  v-model="assetConfigForm.responseExample"
+                  :placeholder="t('console.workspace.fieldResponseExample')"
+                  class="min-h-[96px] w-full rounded-[12px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                />
+                <div class="flex justify-end">
+                  <Button size="sm" :disabled="assetLoading" @click="handleSaveAssetConfig">
+                    {{ t('console.workspace.assetConfigSave') }}
+                  </Button>
+                </div>
               </div>
 
               <!-- AI profile form 鈥?only for AI_API -->
