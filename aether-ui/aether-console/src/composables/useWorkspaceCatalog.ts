@@ -11,10 +11,11 @@ import {
   disableAsset,
   enableAsset,
   getAsset,
+  listAssets,
   registerAsset,
 } from '@/api/catalog/asset.api'
-import type { ApiAsset, ApiCategory } from '@/api/catalog/catalog.types'
-import type { BindAiProfileBody, RegisterAssetBody } from '@/api/catalog/catalog.dto'
+import type { ApiAsset, ApiAssetSummary, ApiCategory, PageResult } from '@/api/catalog/catalog.types'
+import type { BindAiProfileBody, ListAssetsQuery, RegisterAssetBody } from '@/api/catalog/catalog.dto'
 import { getRecentAssets } from '@/features/catalog/catalog-helpers'
 
 interface WorkspaceCatalogDeps {
@@ -25,6 +26,7 @@ interface WorkspaceCatalogDeps {
   enableCategory: typeof enableCategory
   disableCategory: typeof disableCategory
   getAsset: typeof getAsset
+  listAssets: typeof listAssets
   registerAsset: typeof registerAsset
   enableAsset: typeof enableAsset
   disableAsset: typeof disableAsset
@@ -44,6 +46,7 @@ function buildDeps(options: WorkspaceCatalogOptions): WorkspaceCatalogDeps {
     enableCategory,
     disableCategory,
     getAsset,
+    listAssets,
     registerAsset,
     enableAsset,
     disableAsset,
@@ -84,6 +87,55 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
   })
   const aiTagInput = ref('')
   const recentAssets = ref(deps.getRecentAssets())
+
+  // ── Asset list ──────────────────────────────────────────────────────────────
+  const assetListItems = ref<ApiAssetSummary[]>([])
+  const assetListTotal = ref(0)
+  const assetListPage = ref(1)
+  const assetListPageSize = 20
+  const assetListLoading = ref(false)
+  const assetListError = ref(false)
+  const assetListFilterKeyword = ref('')
+  const assetListFilterStatus = ref<ListAssetsQuery['status'] | ''>('')
+  const assetListFilterCategory = ref('')
+
+  async function handleListAssets(page = 1) {
+    assetListLoading.value = true
+    assetListError.value = false
+    try {
+      const query: ListAssetsQuery = {
+        page,
+        size: assetListPageSize,
+        ...(assetListFilterKeyword.value.trim() && { keyword: assetListFilterKeyword.value.trim() }),
+        ...(assetListFilterStatus.value && { status: assetListFilterStatus.value }),
+        ...(assetListFilterCategory.value.trim() && { categoryCode: assetListFilterCategory.value.trim() }),
+      }
+      const result = await deps.listAssets(query)
+      assetListItems.value = result.items
+      assetListTotal.value = result.total
+      assetListPage.value = result.page
+    } catch {
+      assetListError.value = true
+    } finally {
+      assetListLoading.value = false
+    }
+  }
+
+  async function handleListSelectAsset(apiCode: string) {
+    assetLoading.value = true
+    assetError.value = ''
+    try {
+      currentAsset.value = await deps.getAsset(apiCode)
+    } catch {
+      assetError.value = deps.t('console.workspace.assetNotFound')
+    } finally {
+      assetLoading.value = false
+    }
+  }
+
+  function assetListTotalPages() {
+    return Math.max(1, Math.ceil(assetListTotal.value / assetListPageSize))
+  }
 
   async function loadCategories() {
     catLoading.value = true
@@ -203,5 +255,17 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     handleBindAiProfile,
     addAiTag,
     recentAssets,
+    assetListItems,
+    assetListTotal,
+    assetListPage,
+    assetListPageSize,
+    assetListLoading,
+    assetListError,
+    assetListFilterKeyword,
+    assetListFilterStatus,
+    assetListFilterCategory,
+    handleListAssets,
+    handleListSelectAsset,
+    assetListTotalPages,
   }
 }

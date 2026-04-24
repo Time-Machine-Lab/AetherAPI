@@ -1,6 +1,14 @@
 import { http } from '@/api/http'
-import type { AssetDto, BindAiProfileBody, RegisterAssetBody, ReviseAssetBody } from './catalog.dto'
-import type { ApiAsset } from './catalog.types'
+import type {
+  AssetDto,
+  AssetPageDto,
+  AssetSummaryDto,
+  BindAiProfileBody,
+  ListAssetsQuery,
+  RegisterAssetBody,
+  ReviseAssetBody,
+} from './catalog.dto'
+import type { ApiAsset, ApiAssetSummary, PageResult } from './catalog.types'
 
 function mapAsset(dto: AssetDto): ApiAsset {
   return {
@@ -15,9 +23,31 @@ function mapAsset(dto: AssetDto): ApiAsset {
   }
 }
 
+function mapAssetSummary(dto: AssetSummaryDto): ApiAssetSummary {
+  return {
+    apiCode: dto.apiCode,
+    assetName: dto.assetName,
+    assetType: dto.assetType,
+    categoryCode: dto.categoryCode,
+    categoryName: dto.categoryName,
+    status: dto.status,
+    updatedAt: dto.updatedAt,
+  }
+}
+
 export async function registerAsset(body: RegisterAssetBody): Promise<ApiAsset> {
   const { data } = await http.post<AssetDto>('v1/assets', body)
   return mapAsset(data)
+}
+
+export async function listAssets(query?: ListAssetsQuery): Promise<PageResult<ApiAssetSummary>> {
+  const { data } = await http.get<AssetPageDto>('v1/assets', { params: query })
+  return {
+    items: data.items.map(mapAssetSummary),
+    total: data.total,
+    page: data.page,
+    pageSize: data.size,
+  }
 }
 
 export async function getAsset(apiCode: string): Promise<ApiAsset> {

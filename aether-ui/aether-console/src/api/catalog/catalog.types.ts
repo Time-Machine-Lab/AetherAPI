@@ -51,3 +51,13 @@ export interface PageResult<T> {
   page: number
   pageSize: number
 }
+
+export interface ApiAssetSummary {
+  apiCode: string
+  assetName: string | null
+  assetType: AssetType
+  categoryCode: string | null
+  categoryName: string | null
+  status: AssetStatus
+  updatedAt: string
+}

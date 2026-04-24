@@ -78,3 +78,28 @@ export interface CreateCategoryBody {
 export interface RenameCategoryBody {
   name: string
 }
+
+export interface ListAssetsQuery {
+  status?: 'DRAFT' | 'ENABLED' | 'DISABLED'
+  categoryCode?: string
+  keyword?: string
+  page?: number
+  size?: number
+}
+
+export interface AssetSummaryDto {
+  apiCode: string
+  assetName: string | null
+  assetType: 'AI_API' | 'STANDARD_API'
+  categoryCode: string | null
+  categoryName: string | null
+  status: 'DRAFT' | 'ENABLED' | 'DISABLED'
+  updatedAt: string
+}
+
+export interface AssetPageDto {
+  items: AssetSummaryDto[]
+  page: number
+  size: number
+  total: number
+}

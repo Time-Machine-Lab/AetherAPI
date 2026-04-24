@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { useWorkspaceCatalog } from './useWorkspaceCatalog'
-import type { ApiAsset, ApiCategory, PageResult } from '@/api/catalog/catalog.types'
+import type { ApiAsset, ApiAssetSummary, ApiCategory, PageResult } from '@/api/catalog/catalog.types'
 
 vi.mock('@/api/catalog/category.api', () => ({
   listCategories: vi.fn(),
@@ -12,6 +12,7 @@ vi.mock('@/api/catalog/category.api', () => ({
 
 vi.mock('@/api/catalog/asset.api', () => ({
   getAsset: vi.fn(),
+  listAssets: vi.fn(),
   registerAsset: vi.fn(),
   enableAsset: vi.fn(),
   disableAsset: vi.fn(),
@@ -40,6 +41,19 @@ function asset(overrides: Partial<ApiAsset> = {}): ApiAsset {
     assetType: 'STANDARD_API',
     categoryCode: 'tools',
     status: 'DRAFT',
+    ...overrides,
+  }
+}
+
+function assetSummary(overrides: Partial<ApiAssetSummary> = {}): ApiAssetSummary {
+  return {
+    apiCode: 'weather-api',
+    assetName: 'Weather API',
+    assetType: 'STANDARD_API',
+    categoryCode: 'tools',
+    categoryName: 'Tools',
+    status: 'DRAFT',
+    updatedAt: '2026-04-24T00:00:00Z',
     ...overrides,
   }
 }
@@ -149,5 +163,121 @@ describe('useWorkspaceCatalog', () => {
 
     await workspace.handleRegisterAsset()
     expect(workspace.assetError.value).toBe('console.workspace.registerFailed')
+  })
+
+  it('loads asset list with filter and paging state', async () => {
+    const summaries = [
+      assetSummary({ apiCode: 'api-a', assetName: 'API A', status: 'ENABLED' }),
+      assetSummary({ apiCode: 'api-b', assetName: 'API B', status: 'DRAFT' }),
+    ]
+    const listPage: PageResult<ApiAssetSummary> = {
+      items: summaries,
+      total: 2,
+      page: 1,
+      pageSize: 20,
+    }
+    const workspace = useWorkspaceCatalog({
+      t,
+      autoLoad: false,
+      listAssets: vi.fn().mockResolvedValueOnce(listPage),
+      getRecentAssets: vi.fn().mockReturnValue([]),
+    })
+
+    await workspace.handleListAssets(1)
+
+    expect(workspace.assetListItems.value).toHaveLength(2)
+    expect(workspace.assetListItems.value[0].apiCode).toBe('api-a')
+    expect(workspace.assetListTotal.value).toBe(2)
+    expect(workspace.assetListPage.value).toBe(1)
+    expect(workspace.assetListLoading.value).toBe(false)
+    expect(workspace.assetListError.value).toBe(false)
+  })
+
+  it('passes filter fields to listAssets and reflects them in state', async () => {
+    const listFn = vi.fn().mockResolvedValueOnce({
+      items: [assetSummary({ apiCode: 'ai-api-1', status: 'ENABLED' })],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+    } satisfies PageResult<ApiAssetSummary>)
+    const workspace = useWorkspaceCatalog({
+      t,
+      autoLoad: false,
+      listAssets: listFn,
+      getRecentAssets: vi.fn().mockReturnValue([]),
+    })
+
+    workspace.assetListFilterKeyword.value = 'weather'
+    workspace.assetListFilterStatus.value = 'ENABLED'
+    await workspace.handleListAssets(1)
+
+    expect(listFn).toHaveBeenCalledWith(
+      expect.objectContaining({ keyword: 'weather', status: 'ENABLED', page: 1 }),
+    )
+    expect(workspace.assetListItems.value[0].apiCode).toBe('ai-api-1')
+  })
+
+  it('exposes list load failure in assetListError without throwing', async () => {
+    const workspace = useWorkspaceCatalog({
+      t,
+      autoLoad: false,
+      listAssets: vi.fn().mockRejectedValueOnce(new Error('network error')),
+      getRecentAssets: vi.fn().mockReturnValue([]),
+    })
+
+    await workspace.handleListAssets(1)
+
+    expect(workspace.assetListError.value).toBe(true)
+    expect(workspace.assetListLoading.value).toBe(false)
+    expect(workspace.assetListItems.value).toHaveLength(0)
+  })
+
+  it('list selection hydrates currentAsset via getAsset', async () => {
+    const selectedAsset = asset({ apiCode: 'weather-api', status: 'ENABLED' })
+    const workspace = useWorkspaceCatalog({
+      t,
+      autoLoad: false,
+      getAsset: vi.fn().mockResolvedValueOnce(selectedAsset),
+      getRecentAssets: vi.fn().mockReturnValue([]),
+    })
+
+    await workspace.handleListSelectAsset('weather-api')
+
+    expect(workspace.currentAsset.value?.apiCode).toBe('weather-api')
+    expect(workspace.currentAsset.value?.status).toBe('ENABLED')
+    expect(workspace.assetError.value).toBe('')
+  })
+
+  it('list selection failure maps to existing assetNotFound i18n key', async () => {
+    const workspace = useWorkspaceCatalog({
+      t,
+      autoLoad: false,
+      getAsset: vi.fn().mockRejectedValueOnce(new Error('not found')),
+      getRecentAssets: vi.fn().mockReturnValue([]),
+    })
+
+    await workspace.handleListSelectAsset('ghost-api')
+
+    expect(workspace.currentAsset.value).toBeNull()
+    expect(workspace.assetError.value).toBe('console.workspace.assetNotFound')
+  })
+
+  it('assetListTotalPages returns correct page count', async () => {
+    const workspace = useWorkspaceCatalog({
+      t,
+      autoLoad: false,
+      listAssets: vi.fn().mockResolvedValueOnce({
+        items: Array.from({ length: 20 }, (_, i) =>
+          assetSummary({ apiCode: `api-${i}` }),
+        ),
+        total: 45,
+        page: 1,
+        pageSize: 20,
+      } satisfies PageResult<ApiAssetSummary>),
+      getRecentAssets: vi.fn().mockReturnValue([]),
+    })
+
+    await workspace.handleListAssets(1)
+    expect(workspace.assetListTotalPages()).toBe(3)
   })
 })

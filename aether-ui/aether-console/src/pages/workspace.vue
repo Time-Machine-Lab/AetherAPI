@@ -16,7 +16,7 @@ const route = useRoute()
 const isCredentialsSection = computed(() => route.hash === '#credentials')
 const isApiCallLogsSection = computed(() => route.hash === '#api-call-logs')
 
-// 鈹€鈹€ Categories 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ── Categories ──────────────────────────────────────────────────────────────────────────────────
 const {
   categories,
   catLoading,
@@ -40,9 +40,20 @@ const {
   handleBindAiProfile,
   addAiTag,
   recentAssets,
+  assetListItems,
+  assetListTotal,
+  assetListPage,
+  assetListPageSize,
+  assetListLoading,
+  assetListError,
+  assetListFilterKeyword,
+  assetListFilterStatus,
+  handleListAssets,
+  handleListSelectAsset,
+  assetListTotalPages,
 } = useWorkspaceCatalog({ t })
-// 鈹€鈹€ Asset management 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
-// 鈹€鈹€ Recent assets 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ── Asset management ────────────────────────────────────────────────────────────────────────────
+// ── Recent assets ───────────────────────────────────────────────────────────────────────────────
 function startRenameCategory(categoryCode: string, categoryName: string) {
   renamingCat.value = categoryCode
   renameValue.value = categoryName
@@ -179,6 +190,121 @@ function openRecentAsset(apiCode: string) {
 
       <!-- Asset management -->
       <div id="catalog-manage" class="space-y-5">
+        <!-- Asset list browse -->
+        <Card class="scroll-mt-24">
+          <CardHeader>
+            <CardTitle>{{ t('console.workspace.assetListTitle') }}</CardTitle>
+            <CardDescription>{{ t('console.workspace.assetListDescription') }}</CardDescription>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <!-- Filters -->
+            <div class="flex flex-wrap gap-2">
+              <Input
+                v-model="assetListFilterKeyword"
+                :placeholder="t('console.workspace.assetListFilterKeyword')"
+                class="flex-1 min-w-[140px]"
+                @keydown.enter.prevent="handleListAssets(1)"
+              />
+              <select
+                v-model="assetListFilterStatus"
+                class="h-11 cursor-pointer appearance-none rounded-[8px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+              >
+                <option value="">{{ t('console.workspace.assetListFilterAll') }}</option>
+                <option value="DRAFT">DRAFT</option>
+                <option value="ENABLED">ENABLED</option>
+                <option value="DISABLED">DISABLED</option>
+              </select>
+              <Button size="sm" :disabled="assetListLoading" @click="handleListAssets(1)">
+                {{ t('console.workspace.assetListSearch') }}
+              </Button>
+            </div>
+
+            <!-- Loading state -->
+            <div v-if="assetListLoading" class="py-6 text-center text-sm text-muted-foreground">
+              {{ t('console.workspace.loading') }}
+            </div>
+            <!-- Error state -->
+            <div v-else-if="assetListError" class="py-6 text-center text-sm text-destructive">
+              {{ t('console.workspace.assetListError') }}
+            </div>
+            <!-- Empty state -->
+            <div
+              v-else-if="assetListItems.length === 0 && assetListTotal === 0 && assetListPage === 1 && !assetListLoading"
+              class="py-6 text-center text-sm text-muted-foreground"
+            >
+              {{ t('console.workspace.assetListEmpty') }}
+            </div>
+            <!-- List rows -->
+            <div v-else-if="assetListItems.length > 0" class="space-y-2">
+              <button
+                v-for="item in assetListItems"
+                :key="item.apiCode"
+                type="button"
+                class="group flex min-h-[44px] w-full cursor-pointer items-center gap-3 rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-white px-4 py-3 text-left shadow-console transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-console-hover active:scale-[0.995]"
+                :disabled="assetLoading"
+                @click="handleListSelectAsset(item.apiCode)"
+              >
+                <span
+                  class="absolute left-3 top-3 bottom-3 hidden w-[3px] rounded-full"
+                  :class="item.status === 'ENABLED' ? 'bg-primary' : 'bg-muted-foreground/25'"
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-medium text-foreground">
+                    {{ item.assetName ?? item.apiCode }}
+                  </p>
+                  <p class="text-xs text-muted-foreground">{{ item.apiCode }}</p>
+                </div>
+                <Badge
+                  :variant="item.status === 'ENABLED' ? 'status-enabled' : 'status-disabled'"
+                  class="shrink-0 text-[11px]"
+                >
+                  {{
+                    item.status === 'ENABLED'
+                      ? t('console.workspace.enabled')
+                      : item.status === 'DRAFT'
+                        ? 'DRAFT'
+                        : t('console.workspace.disabled')
+                  }}
+                </Badge>
+                <span
+                  class="shrink-0 text-muted-foreground/40 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-foreground/60"
+                  >&gt;</span
+                >
+              </button>
+
+              <!-- Pagination -->
+              <div class="flex items-center justify-between pt-2 text-xs text-muted-foreground">
+                <span>{{
+                  t('console.workspace.assetListPageSummary', {
+                    page: assetListPage,
+                    totalPages: assetListTotalPages(),
+                    total: assetListTotal,
+                  })
+                }}</span>
+                <div class="flex gap-1">
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    :disabled="assetListPage <= 1 || assetListLoading"
+                    @click="handleListAssets(assetListPage - 1)"
+                  >
+                    {{ t('console.workspace.assetListPrev') }}
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    :disabled="assetListPage >= assetListTotalPages() || assetListLoading"
+                    @click="handleListAssets(assetListPage + 1)"
+                  >
+                    {{ t('console.workspace.assetListNext') }}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- Asset detail card (code lookup + register form + current asset detail) -->
         <Card class="scroll-mt-24">
           <CardHeader>
             <CardTitle>{{ t('console.workspace.assetTitle') }}</CardTitle>
