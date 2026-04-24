@@ -58,6 +58,8 @@ export default [
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       'vue/block-lang': ['error', { script: { lang: 'ts' } }],
+      'vue/html-closing-bracket-newline': 'off',
+      'vue/html-indent': 'off',
       'vue/html-self-closing': 'off',
       'vue/max-attributes-per-line': 'off',
       'vue/multiline-html-element-content-newline': 'off',

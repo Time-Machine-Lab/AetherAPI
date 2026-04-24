@@ -240,14 +240,21 @@ function openRecentAsset(apiCode: string) {
           <CardContent class="space-y-4">
             <!-- Load existing asset -->
             <div class="space-y-1">
-              <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.assetCodePlaceholder') }}</label>
+              <label class="text-xs font-medium text-muted-foreground">{{
+                t('console.workspace.assetCodePlaceholder')
+              }}</label>
               <div class="flex gap-2">
                 <Input
                   v-model="assetCodeInput"
                   :placeholder="t('console.workspace.assetCodePlaceholder')"
                   class="flex-1"
                 />
-                <Button size="sm" variant="outline" :disabled="assetLoading" @click="handleLoadAsset">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  :disabled="assetLoading"
+                  @click="handleLoadAsset"
+                >
                   {{ t('console.workspace.assetLoad') }}
                 </Button>
               </div>
@@ -262,14 +269,18 @@ function openRecentAsset(apiCode: string) {
               </p>
               <div class="grid gap-3 sm:grid-cols-2">
                 <div class="space-y-1">
-                  <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldApiCode') }}</label>
+                  <label class="text-xs font-medium text-muted-foreground">{{
+                    t('console.workspace.fieldApiCode')
+                  }}</label>
                   <Input
                     v-model="registerForm.apiCode"
                     :placeholder="t('console.workspace.fieldApiCode')"
                   />
                 </div>
                 <div class="space-y-1">
-                  <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldCategoryCode') }}</label>
+                  <label class="text-xs font-medium text-muted-foreground">{{
+                    t('console.workspace.fieldCategoryCode')
+                  }}</label>
                   <Input
                     v-model="registerForm.categoryCode"
                     :placeholder="t('console.workspace.fieldCategoryCode')"
@@ -277,14 +288,18 @@ function openRecentAsset(apiCode: string) {
                 </div>
               </div>
               <div class="space-y-1">
-                <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldDisplayName') }}</label>
+                <label class="text-xs font-medium text-muted-foreground">{{
+                  t('console.workspace.fieldDisplayName')
+                }}</label>
                 <Input
                   v-model="registerForm.displayName"
                   :placeholder="t('console.workspace.fieldDisplayName')"
                 />
               </div>
               <div class="space-y-1">
-                <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldAssetType') }}</label>
+                <label class="text-xs font-medium text-muted-foreground">{{
+                  t('console.workspace.fieldAssetType')
+                }}</label>
                 <select
                   v-model="registerForm.assetType"
                   class="h-11 w-full cursor-pointer appearance-none rounded-[8px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:bg-[color-mix(in_srgb,var(--primary)_4%,white)] focus-visible:ring-2 focus-visible:ring-primary/15"
@@ -338,21 +353,27 @@ function openRecentAsset(apiCode: string) {
                 </p>
                 <div class="grid gap-3 md:grid-cols-2">
                   <div class="space-y-1">
-                    <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldDisplayName') }}</label>
+                    <label class="text-xs font-medium text-muted-foreground">{{
+                      t('console.workspace.fieldDisplayName')
+                    }}</label>
                     <Input
                       v-model="assetConfigForm.displayName"
                       :placeholder="t('console.workspace.fieldDisplayName')"
                     />
                   </div>
                   <div class="space-y-1">
-                    <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldCategoryCode') }}</label>
+                    <label class="text-xs font-medium text-muted-foreground">{{
+                      t('console.workspace.fieldCategoryCode')
+                    }}</label>
                     <Input
                       v-model="assetConfigForm.categoryCode"
                       :placeholder="t('console.workspace.fieldCategoryCode')"
                     />
                   </div>
                   <div class="space-y-1">
-                    <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldRequestMethodPlaceholder') }}</label>
+                    <label class="text-xs font-medium text-muted-foreground">{{
+                      t('console.workspace.fieldRequestMethodPlaceholder')
+                    }}</label>
                     <select
                       v-model="assetConfigForm.requestMethod"
                       class="h-11 w-full cursor-pointer appearance-none rounded-[8px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
@@ -368,14 +389,18 @@ function openRecentAsset(apiCode: string) {
                     </select>
                   </div>
                   <div class="space-y-1">
-                    <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldUpstreamUrl') }}</label>
+                    <label class="text-xs font-medium text-muted-foreground">{{
+                      t('console.workspace.fieldUpstreamUrl')
+                    }}</label>
                     <Input
                       v-model="assetConfigForm.upstreamUrl"
                       :placeholder="t('console.workspace.fieldUpstreamUrl')"
                     />
                   </div>
                   <div class="space-y-1 md:col-span-2">
-                    <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldAuthSchemePlaceholder') }}</label>
+                    <label class="text-xs font-medium text-muted-foreground">{{
+                      t('console.workspace.fieldAuthSchemePlaceholder')
+                    }}</label>
                     <select
                       v-model="assetConfigForm.authScheme"
                       class="h-11 w-full cursor-pointer appearance-none rounded-[8px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
@@ -390,7 +415,9 @@ function openRecentAsset(apiCode: string) {
                   </div>
                 </div>
                 <div class="space-y-1">
-                  <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldRequestTemplate') }}</label>
+                  <label class="text-xs font-medium text-muted-foreground">{{
+                    t('console.workspace.fieldRequestTemplate')
+                  }}</label>
                   <textarea
                     v-model="assetConfigForm.requestTemplate"
                     :placeholder="t('console.workspace.fieldRequestTemplate')"
@@ -398,7 +425,9 @@ function openRecentAsset(apiCode: string) {
                   />
                 </div>
                 <div class="space-y-1">
-                  <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldRequestExample') }}</label>
+                  <label class="text-xs font-medium text-muted-foreground">{{
+                    t('console.workspace.fieldRequestExample')
+                  }}</label>
                   <textarea
                     v-model="assetConfigForm.requestExample"
                     :placeholder="t('console.workspace.fieldRequestExample')"
@@ -406,7 +435,9 @@ function openRecentAsset(apiCode: string) {
                   />
                 </div>
                 <div class="space-y-1">
-                  <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldResponseExample') }}</label>
+                  <label class="text-xs font-medium text-muted-foreground">{{
+                    t('console.workspace.fieldResponseExample')
+                  }}</label>
                   <textarea
                     v-model="assetConfigForm.responseExample"
                     :placeholder="t('console.workspace.fieldResponseExample')"
@@ -429,14 +460,18 @@ function openRecentAsset(apiCode: string) {
                   {{ t('console.workspace.aiProfileTitle') }}
                 </p>
                 <div class="space-y-1">
-                  <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldProvider') }}</label>
+                  <label class="text-xs font-medium text-muted-foreground">{{
+                    t('console.workspace.fieldProvider')
+                  }}</label>
                   <Input
                     v-model="aiProfileForm.provider"
                     :placeholder="t('console.workspace.fieldProvider')"
                   />
                 </div>
                 <div class="space-y-1">
-                  <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldModel') }}</label>
+                  <label class="text-xs font-medium text-muted-foreground">{{
+                    t('console.workspace.fieldModel')
+                  }}</label>
                   <Input
                     v-model="aiProfileForm.model"
                     :placeholder="t('console.workspace.fieldModel')"

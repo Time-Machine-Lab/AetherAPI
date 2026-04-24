@@ -202,9 +202,7 @@ loadList()
                   </div>
                 </div>
                 <div v-if="detail.requestTemplate">
-                  <p
-                    class="mb-2 text-xs font-semibold uppercase tracking-wide text-primary/70"
-                  >
+                  <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-primary/70">
                     {{ t('console.home.requestTemplate') }}
                   </p>
                   <pre
@@ -212,12 +210,8 @@ loadList()
                     >{{ detail.requestTemplate }}</pre
                   >
                 </div>
-                <div
-                  v-if="detail.exampleSnapshot?.requestExample"
-                >
-                  <p
-                    class="mb-2 text-xs font-semibold uppercase tracking-wide text-primary/70"
-                  >
+                <div v-if="detail.exampleSnapshot?.requestExample">
+                  <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-primary/70">
                     {{ t('console.home.requestExample') }}
                   </p>
                   <pre
@@ -225,12 +219,8 @@ loadList()
                     >{{ detail.exampleSnapshot.requestExample }}</pre
                   >
                 </div>
-                <div
-                  v-if="detail.exampleSnapshot?.responseExample"
-                >
-                  <p
-                    class="mb-2 text-xs font-semibold uppercase tracking-wide text-primary/70"
-                  >
+                <div v-if="detail.exampleSnapshot?.responseExample">
+                  <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-primary/70">
                     {{ t('console.home.responseExample') }}
                   </p>
                   <pre

@@ -133,11 +133,7 @@ const { t } = useI18n()
             t('console.playground.fieldRecommendedMethods')
           }}</span>
           <div class="flex gap-1">
-            <Badge
-              variant="outline"
-              class="text-xs"
-              >{{ selectedAssetDetail.requestMethod }}</Badge
-            >
+            <Badge variant="outline" class="text-xs">{{ selectedAssetDetail.requestMethod }}</Badge>
           </div>
         </div>
         <div v-if="selectedAssetDetail.aiProfile" class="flex justify-between">

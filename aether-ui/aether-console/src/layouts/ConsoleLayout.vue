@@ -104,10 +104,18 @@ async function handleSignOut() {
   <div v-else class="min-h-screen bg-background">
     <div
       class="grid min-h-screen transition-[grid-template-columns] duration-200"
-      :class="sidebarCollapsed ? 'lg:grid-cols-[64px_minmax(0,1fr)]' : 'lg:grid-cols-[248px_minmax(0,1fr)]'"
+      :class="
+        sidebarCollapsed
+          ? 'lg:grid-cols-[64px_minmax(0,1fr)]'
+          : 'lg:grid-cols-[248px_minmax(0,1fr)]'
+      "
     >
-      <aside class="sticky top-0 flex h-screen flex-col overflow-y-auto border-r border-[rgb(34_34_34_/_0.06)] bg-white">
-        <div class="flex h-18 shrink-0 items-center gap-3 border-b border-[rgb(34_34_34_/_0.06)] px-3">
+      <aside
+        class="sticky top-0 flex h-screen flex-col overflow-y-auto border-r border-[rgb(34_34_34_/_0.06)] bg-white"
+      >
+        <div
+          class="flex h-18 shrink-0 items-center gap-3 border-b border-[rgb(34_34_34_/_0.06)] px-3"
+        >
           <button
             type="button"
             class="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground transition-colors hover:bg-[rgb(34_34_34_/_0.08)]"
@@ -181,8 +189,12 @@ async function handleSignOut() {
                   :title="sidebarCollapsed ? t(item.labelKey) : undefined"
                 >
                   <component :is="iconMap[item.id]" class="size-4 shrink-0" />
-                  <span v-if="!sidebarCollapsed" class="min-w-0 flex-1 truncate font-medium">{{ t(item.labelKey) }}</span>
-                  <Badge v-if="!sidebarCollapsed && item.badge" variant="outline">{{ item.badge }}</Badge>
+                  <span v-if="!sidebarCollapsed" class="min-w-0 flex-1 truncate font-medium">{{
+                    t(item.labelKey)
+                  }}</span>
+                  <Badge v-if="!sidebarCollapsed && item.badge" variant="outline">{{
+                    item.badge
+                  }}</Badge>
                 </RouterLink>
               </div>
             </section>
