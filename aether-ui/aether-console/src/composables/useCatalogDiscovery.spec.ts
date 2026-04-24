@@ -23,8 +23,8 @@ function createDetail(overrides: Partial<DiscoveryAssetDetail> = {}): DiscoveryA
   return {
     ...createDiscoveryAsset(),
     authScheme: 'NONE',
-    methods: ['GET'],
-    exampleSnapshot: '{"city":"Shanghai"}',
+    requestMethod: 'GET',
+    exampleSnapshot: { requestExample: '{"city":"Shanghai"}' },
     ...overrides,
   }
 }

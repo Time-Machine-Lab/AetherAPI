@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import {
   Activity,
   BookOpen,
+  ChevronLeft,
+  ChevronRight,
   CreditCard,
   Info,
   KeyRound,
   LayoutList,
   LogOut,
-  Menu,
   Package,
   Play,
   Rocket,
@@ -41,6 +42,8 @@ const { signOut } = useConsoleAuth()
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
+
+const sidebarCollapsed = ref(false)
 
 const isSignInScreen = computed(() => route.name === appConfig.signInRouteName)
 
@@ -99,30 +102,41 @@ async function handleSignOut() {
   </div>
 
   <div v-else class="min-h-screen bg-background">
-    <div class="grid min-h-screen lg:grid-cols-[248px_minmax(0,1fr)]">
-      <aside class="border-r border-[rgb(34_34_34_/_0.06)] bg-white">
-        <div class="flex h-18 items-center gap-3 border-b border-[rgb(34_34_34_/_0.06)] px-5">
-          <div
-            class="flex size-10 items-center justify-center rounded-full bg-secondary text-foreground"
+    <div
+      class="grid min-h-screen transition-[grid-template-columns] duration-200"
+      :class="sidebarCollapsed ? 'lg:grid-cols-[64px_minmax(0,1fr)]' : 'lg:grid-cols-[248px_minmax(0,1fr)]'"
+    >
+      <aside class="sticky top-0 flex h-screen flex-col overflow-y-auto border-r border-[rgb(34_34_34_/_0.06)] bg-white">
+        <div class="flex h-18 shrink-0 items-center gap-3 border-b border-[rgb(34_34_34_/_0.06)] px-3">
+          <button
+            type="button"
+            class="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground transition-colors hover:bg-[rgb(34_34_34_/_0.08)]"
+            @click="sidebarCollapsed = !sidebarCollapsed"
           >
-            <Menu class="size-4" />
-          </div>
-          <RouterLink :to="{ name: 'console-home' }" class="flex items-center gap-3">
-            <BrandMarkIcon class="h-9 w-9" />
-            <div>
+            <ChevronLeft v-if="!sidebarCollapsed" class="size-4" />
+            <ChevronRight v-else class="size-4" />
+          </button>
+          <RouterLink
+            v-if="!sidebarCollapsed"
+            :to="{ name: 'console-home' }"
+            class="flex items-center gap-3 overflow-hidden"
+          >
+            <BrandMarkIcon class="h-9 w-9 shrink-0" />
+            <div class="min-w-0">
               <p class="text-sm font-semibold text-foreground">AetherAPI</p>
               <p class="text-xs text-muted-foreground">{{ t('app.subtitle') }}</p>
             </div>
           </RouterLink>
         </div>
 
-        <div class="px-4 py-5">
+        <div class="flex-1 overflow-y-auto px-3 py-5">
           <div
+            v-if="!sidebarCollapsed"
             class="mb-6 rounded-[20px] border border-[rgb(34_34_34_/_0.04)] bg-white p-4 shadow-console"
           >
             <div class="flex items-center gap-3">
               <div
-                class="flex size-11 items-center justify-center rounded-full bg-secondary text-foreground"
+                class="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground"
               >
                 <UserRound class="size-4" />
               </div>
@@ -136,10 +150,18 @@ async function handleSignOut() {
               </div>
             </div>
           </div>
+          <div v-else class="mb-6 flex justify-center">
+            <div
+              class="flex size-11 items-center justify-center rounded-full bg-secondary text-foreground"
+            >
+              <UserRound class="size-4" />
+            </div>
+          </div>
 
           <div class="space-y-6">
             <section v-for="group in consoleSidebarGroups" :key="group.id">
               <p
+                v-if="!sidebarCollapsed"
                 class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground"
               >
                 {{ t(group.titleKey) }}
@@ -149,16 +171,18 @@ async function handleSignOut() {
                   v-for="item in group.items"
                   :key="item.id"
                   :to="{ name: item.routeName, hash: item.hash }"
-                  class="flex items-center gap-3 rounded-[14px] px-3 py-3 text-sm transition-colors"
-                  :class="
+                  class="flex items-center rounded-[14px] px-3 py-3 text-sm transition-colors"
+                  :class="[
+                    sidebarCollapsed ? 'justify-center' : 'gap-3',
                     activeNavId === item.id
                       ? 'bg-[color-mix(in_srgb,var(--primary)_9%,white)] text-foreground shadow-console'
-                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                  "
+                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+                  ]"
+                  :title="sidebarCollapsed ? t(item.labelKey) : undefined"
                 >
                   <component :is="iconMap[item.id]" class="size-4 shrink-0" />
-                  <span class="min-w-0 flex-1 truncate font-medium">{{ t(item.labelKey) }}</span>
-                  <Badge v-if="item.badge" variant="outline">{{ item.badge }}</Badge>
+                  <span v-if="!sidebarCollapsed" class="min-w-0 flex-1 truncate font-medium">{{ t(item.labelKey) }}</span>
+                  <Badge v-if="!sidebarCollapsed && item.badge" variant="outline">{{ item.badge }}</Badge>
                 </RouterLink>
               </div>
             </section>

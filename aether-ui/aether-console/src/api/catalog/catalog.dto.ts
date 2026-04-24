@@ -1,9 +1,13 @@
+export interface DiscoveryCategoryDto {
+  categoryCode?: string | null
+  categoryName?: string | null
+}
+
 export interface DiscoveryAssetDto {
   apiCode: string
-  displayName: string
+  assetName?: string | null
   assetType: 'AI_API' | 'STANDARD_API'
-  categoryCode: string
-  categoryName?: string
+  category?: DiscoveryCategoryDto | null
 }
 
 export interface AiProfileDto {
@@ -13,13 +17,25 @@ export interface AiProfileDto {
   tags: string[]
 }
 
+export interface DiscoveryExampleSnapshotDto {
+  requestExample?: string | null
+  responseExample?: string | null
+}
+
+export interface DiscoveryAiCapabilityProfileDto {
+  provider: string
+  model: string
+  streamingSupported: boolean
+  capabilityTags: string[]
+}
+
 export interface DiscoveryAssetDetailDto extends DiscoveryAssetDto {
   description?: string
-  authScheme?: string
-  methods?: string[]
-  requestTemplate?: string
-  exampleSnapshot?: string
-  aiProfile?: AiProfileDto
+  authScheme?: 'NONE' | 'HEADER_TOKEN' | 'QUERY_TOKEN' | null
+  requestMethod?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | null
+  requestTemplate?: string | null
+  exampleSnapshot?: DiscoveryExampleSnapshotDto | null
+  aiCapabilityProfile?: DiscoveryAiCapabilityProfileDto | null
 }
 
 export interface CategoryDto {

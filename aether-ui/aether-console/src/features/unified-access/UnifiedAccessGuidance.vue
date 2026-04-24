@@ -128,17 +128,15 @@ const { t } = useI18n()
           <span class="text-muted-foreground">{{ t('console.playground.fieldDisplayName') }}</span>
           <span class="text-foreground">{{ selectedAssetDetail.displayName }}</span>
         </div>
-        <div v-if="selectedAssetDetail.methods?.length" class="flex justify-between">
+        <div v-if="selectedAssetDetail.requestMethod" class="flex justify-between">
           <span class="text-muted-foreground">{{
             t('console.playground.fieldRecommendedMethods')
           }}</span>
           <div class="flex gap-1">
             <Badge
-              v-for="m in selectedAssetDetail.methods"
-              :key="m"
               variant="outline"
               class="text-xs"
-              >{{ m }}</Badge
+              >{{ selectedAssetDetail.requestMethod }}</Badge
             >
           </div>
         </div>

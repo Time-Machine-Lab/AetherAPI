@@ -31,8 +31,8 @@ function asset(overrides: Partial<DiscoveryAsset> = {}): DiscoveryAsset {
 function detail(overrides: Partial<DiscoveryAssetDetail> = {}): DiscoveryAssetDetail {
   return {
     ...asset(),
-    methods: ['GET'],
-    exampleSnapshot: '{"city":"Shanghai"}',
+    requestMethod: 'GET',
+    exampleSnapshot: { requestExample: '{"city":"Shanghai"}' },
     authScheme: 'NONE',
     ...overrides,
   }
@@ -63,7 +63,7 @@ describe('useUnifiedAccessPlayground', () => {
       page: 1,
       pageSize: 200,
     })
-    mockedGetDiscoveryAssetDetail.mockResolvedValueOnce(detail({ methods: ['POST'] }))
+    mockedGetDiscoveryAssetDetail.mockResolvedValueOnce(detail({ requestMethod: 'POST' }))
     const playground = useUnifiedAccessPlayground()
 
     await playground.loadDiscoveryAssets()

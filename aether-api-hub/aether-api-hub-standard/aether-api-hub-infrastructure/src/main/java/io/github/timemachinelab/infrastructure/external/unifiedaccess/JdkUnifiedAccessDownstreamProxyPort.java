@@ -61,15 +61,24 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
     public UnifiedAccessProxyResponseModel forward(UnifiedAccessInvocationModel invocation) {
         Objects.requireNonNull(invocation, "Unified access invocation must not be null");
 
-        HttpRequest request = buildRequest(invocation);
-        boolean streaming = invocation.getTargetApi().isStreamingSupported();
         try {
+            HttpRequest request = buildRequest(invocation);
+            boolean streaming = invocation.getTargetApi().isStreamingSupported();
             if (streaming) {
                 HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
                 return toStreamingOutcome(response);
             }
             HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
             return toByteArrayOutcome(response);
+        } catch (IllegalArgumentException ex) {
+            return UnifiedAccessProxyResponseModel.upstreamFailure(
+                    502,
+                    Map.of(),
+                    transportFailurePayload(invocation, ex).getBytes(StandardCharsets.UTF_8),
+                    JSON_CONTENT_TYPE,
+                    false,
+                    ex.getMessage()
+            );
         } catch (HttpTimeoutException ex) {
             return UnifiedAccessProxyResponseModel.upstreamTimeout(
                     504,

@@ -54,11 +54,11 @@ export function useUnifiedAccessPlayground() {
     try {
       const detail = await getDiscoveryAssetDetail(asset.apiCode)
       selectedAssetDetail.value = detail
-      if (detail.methods?.length) {
-        method.value = detail.methods[0] as UnifiedAccessMethod
+      if (detail.requestMethod) {
+        method.value = detail.requestMethod as UnifiedAccessMethod
       }
-      if (detail.exampleSnapshot) {
-        requestBody.value = detail.exampleSnapshot
+      if (detail.exampleSnapshot?.requestExample) {
+        requestBody.value = detail.exampleSnapshot.requestExample
       }
     } catch {
       selectedAssetDetail.value = null

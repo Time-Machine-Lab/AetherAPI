@@ -22,10 +22,9 @@ describe('discovery api', () => {
         items: [
           {
             apiCode: 'chat-completions',
-            displayName: 'Chat Completions',
+            assetName: 'Chat Completions',
             assetType: 'AI_API',
-            categoryCode: 'ai',
-            categoryName: 'AI',
+            category: { categoryCode: 'ai', categoryName: 'AI' },
           },
         ],
         page: 1,
@@ -69,20 +68,19 @@ describe('discovery api', () => {
     mockedGet.mockResolvedValueOnce({
       data: {
         apiCode: 'chat-completions',
-        displayName: 'Chat Completions',
+        assetName: 'Chat Completions',
         assetType: 'AI_API',
-        categoryCode: 'ai',
-        categoryName: 'AI',
+        category: { categoryCode: 'ai', categoryName: 'AI' },
         description: 'LLM chat completion endpoint',
-        authScheme: 'X-Aether-Api-Key',
-        methods: ['POST'],
+        authScheme: 'HEADER_TOKEN',
+        requestMethod: 'POST',
         requestTemplate: '{"model":"gpt-4.1"}',
-        exampleSnapshot: '{"messages":[]}',
-        aiProfile: {
+        exampleSnapshot: { requestExample: '{"messages":[]}' },
+        aiCapabilityProfile: {
           provider: 'OpenAI',
           model: 'gpt-4.1',
-          streaming: true,
-          tags: ['chat', 'llm'],
+          streamingSupported: true,
+          capabilityTags: ['chat', 'llm'],
         },
       },
     })
@@ -91,6 +89,6 @@ describe('discovery api', () => {
 
     expect(mockedGet).toHaveBeenCalledWith('v1/discovery/assets/chat-completions')
     expect(result.aiProfile?.provider).toBe('OpenAI')
-    expect(result.methods).toEqual(['POST'])
+    expect(result.requestMethod).toBe('POST')
   })
 })

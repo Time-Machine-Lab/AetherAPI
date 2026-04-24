@@ -5,10 +5,10 @@ import type { DiscoveryAsset, DiscoveryAssetDetail, PageResult } from './catalog
 function mapAsset(dto: DiscoveryAssetDto): DiscoveryAsset {
   return {
     apiCode: dto.apiCode,
-    displayName: dto.displayName,
+    displayName: dto.assetName ?? dto.apiCode,
     assetType: dto.assetType,
-    categoryCode: dto.categoryCode,
-    categoryName: dto.categoryName,
+    categoryCode: dto.category?.categoryCode ?? '',
+    categoryName: dto.category?.categoryName ?? undefined,
   }
 }
 
@@ -16,11 +16,23 @@ function mapAssetDetail(dto: DiscoveryAssetDetailDto): DiscoveryAssetDetail {
   return {
     ...mapAsset(dto),
     description: dto.description,
-    authScheme: dto.authScheme,
-    methods: dto.methods,
-    requestTemplate: dto.requestTemplate,
-    exampleSnapshot: dto.exampleSnapshot,
-    aiProfile: dto.aiProfile,
+    authScheme: dto.authScheme ?? undefined,
+    requestMethod: dto.requestMethod ?? undefined,
+    requestTemplate: dto.requestTemplate ?? undefined,
+    exampleSnapshot: dto.exampleSnapshot
+      ? {
+          requestExample: dto.exampleSnapshot.requestExample ?? undefined,
+          responseExample: dto.exampleSnapshot.responseExample ?? undefined,
+        }
+      : undefined,
+    aiProfile: dto.aiCapabilityProfile
+      ? {
+          provider: dto.aiCapabilityProfile.provider,
+          model: dto.aiCapabilityProfile.model,
+          streaming: dto.aiCapabilityProfile.streamingSupported,
+          tags: dto.aiCapabilityProfile.capabilityTags,
+        }
+      : undefined,
   }
 }
 

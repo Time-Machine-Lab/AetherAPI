@@ -147,10 +147,12 @@ const routes: { method: string; pattern: RegExp; handler: MockHandler }[] = [
         .filter((a) => a.status === 'ENABLED')
         .map((a) => ({
           apiCode: a.apiCode,
-          displayName: a.assetName ?? a.displayName ?? a.apiCode,
+          assetName: a.assetName ?? a.displayName ?? null,
           assetType: a.assetType,
-          categoryCode: a.categoryCode ?? '',
-          categoryName: categories.find((c) => c.categoryCode === a.categoryCode)?.name,
+          category: {
+            categoryCode: a.categoryCode ?? null,
+            categoryName: categories.find((c) => c.categoryCode === a.categoryCode)?.name ?? null,
+          },
         }))
       return ok(page(list, params))
     },
@@ -163,21 +165,30 @@ const routes: { method: string; pattern: RegExp; handler: MockHandler }[] = [
       if (!asset) notFound()
       const detail: DiscoveryAssetDetailDto = {
         apiCode: asset.apiCode,
-        displayName: asset.assetName ?? asset.displayName ?? asset.apiCode,
+        assetName: asset.assetName ?? asset.displayName ?? null,
         assetType: asset.assetType,
-        categoryCode: asset.categoryCode ?? '',
-        categoryName: categories.find((c) => c.categoryCode === asset.categoryCode)?.name,
+        category: {
+          categoryCode: asset.categoryCode ?? null,
+          categoryName: categories.find((c) => c.categoryCode === asset.categoryCode)?.name ?? null,
+        },
         description: asset.description,
-        authScheme: asset.authScheme,
-        methods: asset.assetType === 'AI_API' ? ['POST /chat/completions'] : ['GET', 'POST'],
+        authScheme: (asset.authScheme as 'NONE' | 'HEADER_TOKEN' | 'QUERY_TOKEN' | null) ?? null,
+        requestMethod: asset.assetType === 'AI_API' ? 'POST' : 'GET',
         requestTemplate:
           asset.assetType === 'AI_API'
             ? '{"model":"' +
               asset.aiProfile?.model +
               '","messages":[{"role":"user","content":"Hello"}]}'
             : undefined,
-        exampleSnapshot: '{"code":0,"data":{}}',
-        aiProfile: asset.aiProfile,
+        exampleSnapshot: { requestExample: '{"code":0,"data":{}}' },
+        aiCapabilityProfile: asset.aiProfile
+          ? {
+              provider: asset.aiProfile.provider,
+              model: asset.aiProfile.model,
+              streamingSupported: asset.aiProfile.streaming,
+              capabilityTags: asset.aiProfile.tags,
+            }
+          : null,
       }
       return ok(detail)
     },

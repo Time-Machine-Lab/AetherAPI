@@ -101,9 +101,13 @@ loadList()
                 </Badge>
               </div>
               <p class="mt-1 text-xs text-muted-foreground">{{ asset.apiCode }}</p>
-              <p v-if="asset.categoryName" class="mt-3 text-xs text-muted-foreground">
-                {{ asset.categoryName }}
-              </p>
+              <div v-if="asset.categoryName" class="mt-3 flex flex-wrap items-center gap-2">
+                <span
+                  class="rounded-[8px] border border-[rgb(34_34_34_/_0.06)] bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground"
+                >
+                  {{ asset.categoryName }}
+                </span>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -140,27 +144,43 @@ loadList()
                 {{ t('console.home.detailError') }}
               </div>
               <div v-else-if="detail" :key="detail.apiCode" class="space-y-5 text-sm">
-                <div>
-                  <p class="font-semibold text-foreground">{{ detail.displayName }}</p>
-                  <p class="mt-1 text-xs text-muted-foreground">{{ detail.apiCode }}</p>
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0">
+                    <p class="font-semibold text-foreground">{{ detail.displayName }}</p>
+                    <p class="mt-1 text-xs text-muted-foreground">{{ detail.apiCode }}</p>
+                  </div>
+                  <Badge
+                    :variant="detail.assetType === 'AI_API' ? 'type-ai' : 'type-api'"
+                    class="shrink-0 text-[11px]"
+                  >
+                    {{ detail.assetType === 'AI_API' ? 'AI' : 'API' }}
+                  </Badge>
                 </div>
                 <p v-if="detail.description" class="leading-6 text-muted-foreground">
                   {{ detail.description }}
                 </p>
-                <div class="rounded-[14px] bg-secondary px-4 py-3">
-                  <p class="text-xs text-muted-foreground">{{ t('console.home.authScheme') }}</p>
-                  <p class="mt-1 font-medium text-foreground">
-                    {{ detail.authScheme ?? t('console.home.noAuth') }}
-                  </p>
-                </div>
-                <div v-if="detail.methods?.length" class="flex flex-wrap gap-2">
-                  <span
-                    v-for="method in detail.methods"
-                    :key="method"
-                    class="rounded-[8px] border border-[rgb(34_34_34_/_0.08)] bg-white px-2.5 py-1 text-[11px] font-mono font-medium text-foreground shadow-console"
-                  >
-                    {{ method }}
-                  </span>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="rounded-[14px] bg-secondary px-4 py-3">
+                    <p class="text-xs text-muted-foreground">{{ t('console.home.authScheme') }}</p>
+                    <p class="mt-1 font-medium text-foreground">
+                      {{ detail.authScheme ?? t('console.home.noAuth') }}
+                    </p>
+                  </div>
+                  <div v-if="detail.requestMethod" class="rounded-[14px] bg-secondary px-4 py-3">
+                    <p class="text-xs text-muted-foreground">
+                      {{ t('console.home.requestMethod') }}
+                    </p>
+                    <p
+                      class="mt-1 font-mono font-bold"
+                      :class="{
+                        'text-[var(--palette-text-legal)]': detail.requestMethod === 'GET',
+                        'text-primary': ['POST', 'PUT', 'PATCH'].includes(detail.requestMethod),
+                        'text-destructive': detail.requestMethod === 'DELETE',
+                      }"
+                    >
+                      {{ detail.requestMethod }}
+                    </p>
+                  </div>
                 </div>
                 <div v-if="detail.assetType === 'AI_API' && detail.aiProfile" class="space-y-2">
                   <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -181,15 +201,41 @@ loadList()
                     </div>
                   </div>
                 </div>
-                <div v-if="detail.exampleSnapshot">
+                <div v-if="detail.requestTemplate">
                   <p
-                    class="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                    class="mb-2 text-xs font-semibold uppercase tracking-wide text-primary/70"
                   >
-                    {{ t('console.home.exampleSnapshot') }}
+                    {{ t('console.home.requestTemplate') }}
                   </p>
                   <pre
                     class="overflow-x-auto rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-[#fafafa] px-4 py-3 text-xs leading-5 text-foreground"
-                    >{{ detail.exampleSnapshot }}</pre
+                    >{{ detail.requestTemplate }}</pre
+                  >
+                </div>
+                <div
+                  v-if="detail.exampleSnapshot?.requestExample"
+                >
+                  <p
+                    class="mb-2 text-xs font-semibold uppercase tracking-wide text-primary/70"
+                  >
+                    {{ t('console.home.requestExample') }}
+                  </p>
+                  <pre
+                    class="overflow-x-auto rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-[#fafafa] px-4 py-3 text-xs leading-5 text-foreground"
+                    >{{ detail.exampleSnapshot.requestExample }}</pre
+                  >
+                </div>
+                <div
+                  v-if="detail.exampleSnapshot?.responseExample"
+                >
+                  <p
+                    class="mb-2 text-xs font-semibold uppercase tracking-wide text-primary/70"
+                  >
+                    {{ t('console.home.responseExample') }}
+                  </p>
+                  <pre
+                    class="overflow-x-auto rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-[#fafafa] px-4 py-3 text-xs leading-5 text-foreground"
+                    >{{ detail.exampleSnapshot.responseExample }}</pre
                   >
                 </div>
               </div>

@@ -239,15 +239,18 @@ function openRecentAsset(apiCode: string) {
           </CardHeader>
           <CardContent class="space-y-4">
             <!-- Load existing asset -->
-            <div class="flex gap-2">
-              <Input
-                v-model="assetCodeInput"
-                :placeholder="t('console.workspace.assetCodePlaceholder')"
-                class="flex-1"
-              />
-              <Button size="sm" variant="outline" :disabled="assetLoading" @click="handleLoadAsset">
-                {{ t('console.workspace.assetLoad') }}
-              </Button>
+            <div class="space-y-1">
+              <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.assetCodePlaceholder') }}</label>
+              <div class="flex gap-2">
+                <Input
+                  v-model="assetCodeInput"
+                  :placeholder="t('console.workspace.assetCodePlaceholder')"
+                  class="flex-1"
+                />
+                <Button size="sm" variant="outline" :disabled="assetLoading" @click="handleLoadAsset">
+                  {{ t('console.workspace.assetLoad') }}
+                </Button>
+              </div>
             </div>
 
             <!-- Register new asset -->
@@ -258,26 +261,38 @@ function openRecentAsset(apiCode: string) {
                 {{ t('console.workspace.registerTitle') }}
               </p>
               <div class="grid gap-3 sm:grid-cols-2">
+                <div class="space-y-1">
+                  <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldApiCode') }}</label>
+                  <Input
+                    v-model="registerForm.apiCode"
+                    :placeholder="t('console.workspace.fieldApiCode')"
+                  />
+                </div>
+                <div class="space-y-1">
+                  <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldCategoryCode') }}</label>
+                  <Input
+                    v-model="registerForm.categoryCode"
+                    :placeholder="t('console.workspace.fieldCategoryCode')"
+                  />
+                </div>
+              </div>
+              <div class="space-y-1">
+                <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldDisplayName') }}</label>
                 <Input
-                  v-model="registerForm.apiCode"
-                  :placeholder="t('console.workspace.fieldApiCode')"
-                />
-                <Input
-                  v-model="registerForm.categoryCode"
-                  :placeholder="t('console.workspace.fieldCategoryCode')"
+                  v-model="registerForm.displayName"
+                  :placeholder="t('console.workspace.fieldDisplayName')"
                 />
               </div>
-              <Input
-                v-model="registerForm.displayName"
-                :placeholder="t('console.workspace.fieldDisplayName')"
-              />
-              <select
-                v-model="registerForm.assetType"
-                class="h-11 w-full cursor-pointer appearance-none rounded-[8px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:bg-[color-mix(in_srgb,var(--primary)_4%,white)] focus-visible:ring-2 focus-visible:ring-primary/15"
-              >
-                <option value="STANDARD_API">STANDARD_API</option>
-                <option value="AI_API">AI_API</option>
-              </select>
+              <div class="space-y-1">
+                <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldAssetType') }}</label>
+                <select
+                  v-model="registerForm.assetType"
+                  class="h-11 w-full cursor-pointer appearance-none rounded-[8px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:bg-[color-mix(in_srgb,var(--primary)_4%,white)] focus-visible:ring-2 focus-visible:ring-primary/15"
+                >
+                  <option value="STANDARD_API">STANDARD_API</option>
+                  <option value="AI_API">AI_API</option>
+                </select>
+              </div>
               <div class="flex justify-end pt-1">
                 <Button size="sm" :disabled="assetLoading" @click="handleRegisterAsset">
                   {{ t('console.workspace.registerAction') }}
@@ -322,58 +337,82 @@ function openRecentAsset(apiCode: string) {
                   {{ t('console.workspace.assetConfigTitle') }}
                 </p>
                 <div class="grid gap-3 md:grid-cols-2">
-                  <Input
-                    v-model="assetConfigForm.displayName"
-                    :placeholder="t('console.workspace.fieldDisplayName')"
-                  />
-                  <Input
-                    v-model="assetConfigForm.categoryCode"
-                    :placeholder="t('console.workspace.fieldCategoryCode')"
-                  />
-                  <select
-                    v-model="assetConfigForm.requestMethod"
-                    class="h-11 w-full cursor-pointer appearance-none rounded-[8px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
-                  >
-                    <option value="">
-                      {{ t('console.workspace.fieldRequestMethodPlaceholder') }}
-                    </option>
-                    <option value="GET">GET</option>
-                    <option value="POST">POST</option>
-                    <option value="PUT">PUT</option>
-                    <option value="PATCH">PATCH</option>
-                    <option value="DELETE">DELETE</option>
-                  </select>
-                  <Input
-                    v-model="assetConfigForm.upstreamUrl"
-                    :placeholder="t('console.workspace.fieldUpstreamUrl')"
-                  />
-                  <select
-                    v-model="assetConfigForm.authScheme"
-                    class="h-11 w-full cursor-pointer appearance-none rounded-[8px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
-                  >
-                    <option value="">
-                      {{ t('console.workspace.fieldAuthSchemePlaceholder') }}
-                    </option>
-                    <option value="NONE">NONE</option>
-                    <option value="HEADER_TOKEN">HEADER_TOKEN</option>
-                    <option value="QUERY_TOKEN">QUERY_TOKEN</option>
-                  </select>
+                  <div class="space-y-1">
+                    <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldDisplayName') }}</label>
+                    <Input
+                      v-model="assetConfigForm.displayName"
+                      :placeholder="t('console.workspace.fieldDisplayName')"
+                    />
+                  </div>
+                  <div class="space-y-1">
+                    <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldCategoryCode') }}</label>
+                    <Input
+                      v-model="assetConfigForm.categoryCode"
+                      :placeholder="t('console.workspace.fieldCategoryCode')"
+                    />
+                  </div>
+                  <div class="space-y-1">
+                    <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldRequestMethodPlaceholder') }}</label>
+                    <select
+                      v-model="assetConfigForm.requestMethod"
+                      class="h-11 w-full cursor-pointer appearance-none rounded-[8px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                    >
+                      <option value="">
+                        {{ t('console.workspace.fieldRequestMethodPlaceholder') }}
+                      </option>
+                      <option value="GET">GET</option>
+                      <option value="POST">POST</option>
+                      <option value="PUT">PUT</option>
+                      <option value="PATCH">PATCH</option>
+                      <option value="DELETE">DELETE</option>
+                    </select>
+                  </div>
+                  <div class="space-y-1">
+                    <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldUpstreamUrl') }}</label>
+                    <Input
+                      v-model="assetConfigForm.upstreamUrl"
+                      :placeholder="t('console.workspace.fieldUpstreamUrl')"
+                    />
+                  </div>
+                  <div class="space-y-1 md:col-span-2">
+                    <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldAuthSchemePlaceholder') }}</label>
+                    <select
+                      v-model="assetConfigForm.authScheme"
+                      class="h-11 w-full cursor-pointer appearance-none rounded-[8px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                    >
+                      <option value="">
+                        {{ t('console.workspace.fieldAuthSchemePlaceholder') }}
+                      </option>
+                      <option value="NONE">NONE</option>
+                      <option value="HEADER_TOKEN">HEADER_TOKEN</option>
+                      <option value="QUERY_TOKEN">QUERY_TOKEN</option>
+                    </select>
+                  </div>
                 </div>
-                <textarea
-                  v-model="assetConfigForm.requestTemplate"
-                  :placeholder="t('console.workspace.fieldRequestTemplate')"
-                  class="min-h-[96px] w-full rounded-[12px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
-                />
-                <textarea
-                  v-model="assetConfigForm.requestExample"
-                  :placeholder="t('console.workspace.fieldRequestExample')"
-                  class="min-h-[96px] w-full rounded-[12px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
-                />
-                <textarea
-                  v-model="assetConfigForm.responseExample"
-                  :placeholder="t('console.workspace.fieldResponseExample')"
-                  class="min-h-[96px] w-full rounded-[12px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
-                />
+                <div class="space-y-1">
+                  <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldRequestTemplate') }}</label>
+                  <textarea
+                    v-model="assetConfigForm.requestTemplate"
+                    :placeholder="t('console.workspace.fieldRequestTemplate')"
+                    class="min-h-[96px] w-full rounded-[12px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                  />
+                </div>
+                <div class="space-y-1">
+                  <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldRequestExample') }}</label>
+                  <textarea
+                    v-model="assetConfigForm.requestExample"
+                    :placeholder="t('console.workspace.fieldRequestExample')"
+                    class="min-h-[96px] w-full rounded-[12px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                  />
+                </div>
+                <div class="space-y-1">
+                  <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldResponseExample') }}</label>
+                  <textarea
+                    v-model="assetConfigForm.responseExample"
+                    :placeholder="t('console.workspace.fieldResponseExample')"
+                    class="min-h-[96px] w-full rounded-[12px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                  />
+                </div>
                 <div class="flex justify-end">
                   <Button size="sm" :disabled="assetLoading" @click="handleSaveAssetConfig">
                     {{ t('console.workspace.assetConfigSave') }}
@@ -381,7 +420,7 @@ function openRecentAsset(apiCode: string) {
                 </div>
               </div>
 
-              <!-- AI profile form 鈥?only for AI_API -->
+              <!-- AI profile form — only for AI_API -->
               <div
                 v-if="currentAsset.assetType === 'AI_API'"
                 class="space-y-2 rounded-[14px] bg-secondary p-4"
@@ -389,14 +428,20 @@ function openRecentAsset(apiCode: string) {
                 <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {{ t('console.workspace.aiProfileTitle') }}
                 </p>
-                <Input
-                  v-model="aiProfileForm.provider"
-                  :placeholder="t('console.workspace.fieldProvider')"
-                />
-                <Input
-                  v-model="aiProfileForm.model"
-                  :placeholder="t('console.workspace.fieldModel')"
-                />
+                <div class="space-y-1">
+                  <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldProvider') }}</label>
+                  <Input
+                    v-model="aiProfileForm.provider"
+                    :placeholder="t('console.workspace.fieldProvider')"
+                  />
+                </div>
+                <div class="space-y-1">
+                  <label class="text-xs font-medium text-muted-foreground">{{ t('console.workspace.fieldModel') }}</label>
+                  <Input
+                    v-model="aiProfileForm.model"
+                    :placeholder="t('console.workspace.fieldModel')"
+                  />
+                </div>
                 <label class="flex items-center gap-2 text-sm">
                   <input v-model="aiProfileForm.streaming" type="checkbox" />
                   {{ t('console.workspace.fieldStreaming') }}

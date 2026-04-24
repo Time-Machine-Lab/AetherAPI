@@ -42,12 +42,17 @@ export interface DiscoveryAsset {
   categoryName?: string
 }
 
+export interface DiscoveryExampleSnapshot {
+  requestExample?: string
+  responseExample?: string
+}
+
 export interface DiscoveryAssetDetail extends DiscoveryAsset {
   description?: string
   authScheme?: string
-  methods?: string[]
+  requestMethod?: string
   requestTemplate?: string
-  exampleSnapshot?: string
+  exampleSnapshot?: DiscoveryExampleSnapshot
   aiProfile?: AiProfile
 }
 

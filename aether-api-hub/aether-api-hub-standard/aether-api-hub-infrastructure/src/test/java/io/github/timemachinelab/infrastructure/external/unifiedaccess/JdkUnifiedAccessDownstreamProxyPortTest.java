@@ -152,6 +152,21 @@ class JdkUnifiedAccessDownstreamProxyPortTest {
         }
     }
 
+    @Test
+    @DisplayName("forward should classify invalid upstream uri as execution failure")
+    void shouldClassifyInvalidUpstreamUriAsExecutionFailure() {
+        JdkUnifiedAccessDownstreamProxyPort proxyPort = new JdkUnifiedAccessDownstreamProxyPort(HttpClient.newHttpClient());
+
+        UnifiedAccessProxyResponseModel response = proxyPort.forward(invocation("upstream.example.com/v1/chat-completions", false));
+
+        assertEquals(UnifiedAccessExecutionOutcomeType.UPSTREAM_FAILURE, response.getOutcomeType());
+        assertEquals(502, response.getStatusCode());
+        assertEquals("application/json", response.getContentType());
+        String body = new String(response.getResponseBody(), StandardCharsets.UTF_8);
+        assertTrue(body.contains("UPSTREAM_EXECUTION_FAILURE"));
+        assertTrue(body.contains("URI with undefined scheme"));
+    }
+
     private void startServer(ExchangeHandler handler) throws IOException {
         server = HttpServer.create(new InetSocketAddress(0), 0);
         server.createContext("/", exchange -> {
