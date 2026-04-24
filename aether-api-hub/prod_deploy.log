@@ -3,3 +3,4 @@
 [AetherAPI-260423][prod][1.0.2] <Auto> -v:1.0.2 -rp:8090 -de:<-e ACTIVE=prod -e SERVER_PORT=8090>
 [AetherAPI-260423][prod][1.0.3] <Auto> -v:1.0.3 -rp:8090 -de:<-e ACTIVE=prod -e SERVER_PORT=8090>
 [AetherAPI-260424][prod][1.0.4] <Auto> -v:1.0.4 -rp:8090 -de:<-e ACTIVE=prod -e SERVER_PORT=8090>
+[AetherAPI-260424][prod][1.1.2] <Auto> -v:1.1.2 -rp:8090 -de:<-e ACTIVE=prod -e SERVER_PORT=8090>
