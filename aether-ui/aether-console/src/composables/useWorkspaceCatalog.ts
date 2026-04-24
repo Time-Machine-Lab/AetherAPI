@@ -310,7 +310,10 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
   }
 
   if (deps.autoLoad) {
-    onMounted(loadCategories)
+    onMounted(() => {
+      void loadCategories()
+      void handleListAssets(1)
+    })
   }
 
   return {

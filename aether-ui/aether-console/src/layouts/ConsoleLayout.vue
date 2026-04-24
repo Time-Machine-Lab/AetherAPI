@@ -29,6 +29,7 @@ import {
   consoleNotices,
   consoleSidebarGroups,
   consoleTopUtilities,
+  normalizeConsoleWorkspaceNavId,
   type ConsoleNavId,
 } from '@/features/console/console-shell'
 import { useAuthStore } from '@/stores/useAuthStore'
@@ -65,10 +66,8 @@ const activeNavId = computed<ConsoleNavId>(() => {
     return 'unified-access-playground'
   }
 
-  const hashId = route.hash.replace('#', '') as ConsoleNavId
-
-  if (hashId) {
-    return hashId
+  if (route.name === 'console-workspace') {
+    return normalizeConsoleWorkspaceNavId(route.hash)
   }
 
   return 'catalog-manage'

@@ -1,16 +1,13 @@
 export type ConsoleRouteName = 'console-home' | 'console-workspace' | 'console-playground'
 
-export type ConsoleNavId =
+export type ConsoleVisibleNavId =
   | 'catalog-browse'
   | 'catalog-manage'
-  | 'category-manage'
   | 'unified-access-playground'
   | 'credentials'
   | 'api-call-logs'
-  | 'usage'
-  | 'orders'
-  | 'billing'
-  | 'docs'
+export type ConsoleHiddenNavId = 'category-manage' | 'usage' | 'orders' | 'billing' | 'docs'
+export type ConsoleNavId = ConsoleVisibleNavId | ConsoleHiddenNavId
 
 export interface ConsoleSidebarItem {
   id: ConsoleNavId
@@ -44,6 +41,34 @@ export interface ConsoleWorkspacePanel {
   descriptionKey: string
 }
 
+export const hiddenConsoleNavIds = [
+  'category-manage',
+  'usage',
+  'orders',
+  'billing',
+  'docs',
+] as const
+
+const visibleConsoleWorkspaceNavIds = ['catalog-manage', 'credentials', 'api-call-logs'] as const
+
+export const defaultConsoleWorkspaceHash = '#catalog-manage'
+
+export function isHiddenConsoleNavId(navId: string): navId is ConsoleHiddenNavId {
+  return hiddenConsoleNavIds.includes(navId as ConsoleHiddenNavId)
+}
+
+export function normalizeConsoleWorkspaceNavId(hash: string): ConsoleVisibleNavId {
+  const navId = hash.replace('#', '')
+
+  if (
+    visibleConsoleWorkspaceNavIds.includes(navId as (typeof visibleConsoleWorkspaceNavIds)[number])
+  ) {
+    return navId as ConsoleVisibleNavId
+  }
+
+  return 'catalog-manage'
+}
+
 export const consoleSidebarGroups: ConsoleSidebarGroup[] = [
   {
     id: 'api-catalog',
@@ -59,12 +84,6 @@ export const consoleSidebarGroups: ConsoleSidebarGroup[] = [
         labelKey: 'console.navigation.catalogManage',
         routeName: 'console-workspace',
         hash: '#catalog-manage',
-      },
-      {
-        id: 'category-manage',
-        labelKey: 'console.navigation.categoryManage',
-        routeName: 'console-workspace',
-        hash: '#category-manage',
       },
     ],
   },
@@ -95,30 +114,6 @@ export const consoleSidebarGroups: ConsoleSidebarGroup[] = [
         routeName: 'console-workspace',
         hash: '#api-call-logs',
       },
-      {
-        id: 'usage',
-        labelKey: 'console.navigation.usage',
-        routeName: 'console-workspace',
-        hash: '#usage',
-      },
-      {
-        id: 'orders',
-        labelKey: 'console.navigation.orders',
-        routeName: 'console-workspace',
-        hash: '#orders',
-      },
-      {
-        id: 'billing',
-        labelKey: 'console.navigation.billing',
-        routeName: 'console-workspace',
-        hash: '#billing',
-      },
-      {
-        id: 'docs',
-        labelKey: 'console.navigation.docs',
-        routeName: 'console-workspace',
-        hash: '#docs',
-      },
     ],
   },
 ]
@@ -126,9 +121,7 @@ export const consoleSidebarGroups: ConsoleSidebarGroup[] = [
 export const consoleTopUtilities: ConsoleTopUtility[] = [
   { id: 'new', labelKey: 'console.topbar.new' },
   { id: 'messages', labelKey: 'console.topbar.messages', badge: '2' },
-  { id: 'docs', labelKey: 'console.topbar.docs' },
   { id: 'workorder', labelKey: 'console.topbar.workorder' },
-  { id: 'usage', labelKey: 'console.topbar.usage' },
 ]
 
 export const consoleNotices: ConsoleNotice[] = [
@@ -140,11 +133,6 @@ export const consoleNotices: ConsoleNotice[] = [
 ]
 
 export const consoleWorkspacePanels: ConsoleWorkspacePanel[] = [
-  {
-    id: 'category-manage',
-    titleKey: 'console.workspace.categoryTitle',
-    descriptionKey: 'console.workspace.categoryDescription',
-  },
   {
     id: 'asset-manage',
     titleKey: 'console.workspace.assetTitle',

@@ -1,10 +1,11 @@
 ﻿<script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useWorkspaceCatalog } from '@/composables/useWorkspaceCatalog'
 import CredentialWorkspace from '@/features/credential/CredentialWorkspace.vue'
 import ApiCallLogWorkspace from '@/features/api-call-log/ApiCallLogWorkspace.vue'
+import { defaultConsoleWorkspaceHash, isHiddenConsoleNavId } from '@/features/console/console-shell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -12,10 +13,32 @@ import { Badge } from '@/components/ui/badge'
 
 const { t } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const assetDetailCardRef = ref<HTMLElement | null>(null)
 
 const isCredentialsSection = computed(() => route.hash === '#credentials')
 const isApiCallLogsSection = computed(() => route.hash === '#api-call-logs')
+
+watch(
+  () => route.hash,
+  async (hash) => {
+    if (!hash) {
+      return
+    }
+
+    const hashId = hash.replace('#', '')
+
+    if (!isHiddenConsoleNavId(hashId)) {
+      return
+    }
+
+    await router.replace({
+      name: 'console-workspace',
+      hash: defaultConsoleWorkspaceHash,
+    })
+  },
+  { immediate: true },
+)
 
 async function focusAssetDetailCard() {
   await nextTick()
@@ -25,17 +48,8 @@ async function focusAssetDetailCard() {
   })
 }
 
-// ── Categories ──────────────────────────────────────────────────────────────────────────────────
+// ── Asset workspace state ───────────────────────────────────────────────────────────────────────
 const {
-  categories,
-  catLoading,
-  catError,
-  newCatName,
-  renamingCat,
-  renameValue,
-  handleCreateCategory,
-  handleRenameCategory,
-  handleToggleCategory,
   assetCodeInput,
   currentAsset,
   assetLoading,
@@ -62,12 +76,6 @@ const {
   handleListSelectAsset,
   assetListTotalPages,
 } = useWorkspaceCatalog({ t, onAssetSelected: focusAssetDetailCard })
-// ── Asset management ────────────────────────────────────────────────────────────────────────────
-// ── Recent assets ───────────────────────────────────────────────────────────────────────────────
-function startRenameCategory(categoryCode: string, categoryName: string) {
-  renamingCat.value = categoryCode
-  renameValue.value = categoryName
-}
 
 function openRecentAsset(apiCode: string) {
   assetCodeInput.value = apiCode
@@ -102,102 +110,6 @@ function openRecentAsset(apiCode: string) {
     </section>
 
     <div class="grid gap-5 2xl:grid-cols-2">
-      <!-- Category management -->
-      <Card id="category-manage" class="scroll-mt-24">
-        <CardHeader>
-          <CardTitle>{{ t('console.workspace.categoryTitle') }}</CardTitle>
-          <CardDescription>{{ t('console.workspace.categoryDescription') }}</CardDescription>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="flex gap-2">
-            <Input
-              v-model="newCatName"
-              :placeholder="t('console.workspace.categoryNamePlaceholder')"
-              class="flex-1"
-            />
-            <Button size="sm" @click="handleCreateCategory">{{
-              t('console.workspace.categoryCreate')
-            }}</Button>
-          </div>
-
-          <div v-if="catLoading" class="py-6 text-center text-sm text-muted-foreground">
-            {{ t('console.workspace.loading') }}
-          </div>
-          <div v-else-if="catError" class="py-6 text-center text-sm text-destructive">
-            {{ t('console.workspace.loadError') }}
-          </div>
-          <div
-            v-else-if="categories.length === 0"
-            class="py-6 text-center text-sm text-muted-foreground"
-          >
-            {{ t('console.workspace.categoryEmpty') }}
-          </div>
-          <div v-else class="space-y-2">
-            <div
-              v-for="cat in categories"
-              :key="cat.categoryCode"
-              class="relative flex min-h-[44px] items-center gap-3 rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-white py-3 pl-7 pr-4 shadow-console transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-console-hover"
-            >
-              <span
-                class="absolute left-3 top-3 bottom-3 w-[3px] rounded-full"
-                :class="cat.status === 'ENABLED' ? 'bg-primary' : 'bg-muted-foreground/25'"
-              />
-              <div class="min-w-0 flex-1">
-                <template v-if="renamingCat === cat.categoryCode">
-                  <div class="flex items-center gap-2">
-                    <Input v-model="renameValue" class="h-9 flex-1 text-sm" />
-                    <Button
-                      size="xs"
-                      variant="outline"
-                      @click="handleRenameCategory(cat.categoryCode)"
-                    >
-                      {{ t('console.workspace.save') }}
-                    </Button>
-                    <Button size="xs" variant="ghost" @click="renamingCat = null">
-                      {{ t('console.workspace.cancel') }}
-                    </Button>
-                  </div>
-                </template>
-                <template v-else>
-                  <p class="truncate text-sm font-medium text-foreground">{{ cat.name }}</p>
-                  <p class="text-xs text-muted-foreground">{{ cat.categoryCode }}</p>
-                </template>
-              </div>
-              <Badge
-                :variant="cat.status === 'ENABLED' ? 'status-enabled' : 'status-disabled'"
-                class="shrink-0 text-[11px]"
-              >
-                {{
-                  cat.status === 'ENABLED'
-                    ? t('console.workspace.enabled')
-                    : t('console.workspace.disabled')
-                }}
-              </Badge>
-              <div class="flex shrink-0 gap-1">
-                <Button
-                  size="xs"
-                  variant="outline"
-                  @click="startRenameCategory(cat.categoryCode, cat.name)"
-                >
-                  {{ t('console.workspace.rename') }}
-                </Button>
-                <Button
-                  size="xs"
-                  :variant="cat.status === 'ENABLED' ? 'outline' : 'default'"
-                  @click="handleToggleCategory(cat)"
-                >
-                  {{
-                    cat.status === 'ENABLED'
-                      ? t('console.workspace.disable')
-                      : t('console.workspace.enable')
-                  }}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       <!-- Asset management -->
       <div id="catalog-manage" class="space-y-5">
         <!-- Asset list browse -->
