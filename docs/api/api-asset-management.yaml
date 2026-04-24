@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: |
     API Catalog 资产生命周期管理接口。
-    提供资产草稿注册、配置修订、启用、停用、AI 能力档案绑定与详情查询能力。
+    提供资产草稿注册、管理侧分页列表、配置修订、启用、停用、AI 能力档案绑定与详情查询能力。
     API Code 在创建后保持不可变更；启用前会校验分类有效性、访问配置完整性以及 AI 资产的能力档案。
 servers:
   - url: /api/v1
@@ -16,6 +16,69 @@ tags:
 
 paths:
   /assets:
+    get:
+      summary: 分页查询管理侧 API 资产列表
+      operationId: listAssets
+      tags:
+        - Assets
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: 资产状态过滤条件
+          schema:
+            type: string
+            enum:
+              - DRAFT
+              - ENABLED
+              - DISABLED
+        - name: categoryCode
+          in: query
+          required: false
+          description: 分类编码过滤条件
+          schema:
+            type: string
+            maxLength: 64
+        - name: keyword
+          in: query
+          required: false
+          description: 关键字过滤条件，匹配 apiCode 或 assetName
+          schema:
+            type: string
+            maxLength: 128
+        - name: page
+          in: query
+          required: false
+          description: 页码，从 1 开始
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: size
+          in: query
+          required: false
+          description: 每页条数，取值范围 1-100
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: 成功返回资产分页结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiAssetPageResp'
+        '400':
+          description: 请求参数校验失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+              example:
+                code: ASSET_INVALID_QUERY
+                message: Invalid asset list query parameters
     post:
       summary: 注册新的 API 资产草稿
       operationId: registerAsset
@@ -363,6 +426,60 @@ components:
           items:
             type: string
           description: 能力标签列表
+
+    ApiAssetSummaryResp:
+      type: object
+      properties:
+        apiCode:
+          type: string
+          description: 资产业务编码(API Code)
+        assetName:
+          type: string
+          nullable: true
+          description: 资产展示名称
+        assetType:
+          type: string
+          enum:
+            - STANDARD_API
+            - AI_API
+          description: 资产类型
+        categoryCode:
+          type: string
+          nullable: true
+          description: 分类编码
+        categoryName:
+          type: string
+          nullable: true
+          description: 分类名称
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - ENABLED
+            - DISABLED
+          description: 资产状态
+        updatedAt:
+          type: string
+          format: date-time
+          description: 最近更新时间
+
+    ApiAssetPageResp:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApiAssetSummaryResp'
+        page:
+          type: integer
+          description: 当前页码
+        size:
+          type: integer
+          description: 当前页大小
+        total:
+          type: integer
+          format: int64
+          description: 总记录数
 
     ApiAssetResp:
       type: object

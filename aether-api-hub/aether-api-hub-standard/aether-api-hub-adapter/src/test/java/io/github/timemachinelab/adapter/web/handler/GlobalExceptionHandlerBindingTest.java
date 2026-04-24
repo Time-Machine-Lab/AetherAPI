@@ -3,6 +3,7 @@ package io.github.timemachinelab.adapter.web.handler;
 import io.github.timemachinelab.api.error.CatalogErrorCodes;
 import io.github.timemachinelab.api.error.ConsumerAuthErrorCodes;
 import io.github.timemachinelab.api.error.ObservabilityErrorCodes;
+import io.github.timemachinelab.api.req.ListApiAssetReq;
 import io.github.timemachinelab.api.req.ListApiCallLogReq;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
@@ -86,6 +87,18 @@ class GlobalExceptionHandlerBindingTest {
 
         assertEquals(ObservabilityErrorCodes.API_CALL_LOG_INVALID_QUERY, body.get("code"));
         assertEquals("Invalid API call log request parameters", body.get("message"));
+    }
+
+    @Test
+    void bindExceptionUsesAssetListQueryCodeForManagementList() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/assets");
+        BindException ex = new BindException(new ListApiAssetReq(), "listApiAssetReq");
+        ex.rejectValue("page", "Min", "Page must be greater than or equal to 1");
+
+        Map<String, String> body = handler.handleFrameworkBindingException(ex, request).getBody();
+
+        assertEquals(CatalogErrorCodes.ASSET_INVALID_QUERY, body.get("code"));
+        assertEquals("Invalid asset list query parameters", body.get("message"));
     }
 
     @SuppressWarnings("unused")

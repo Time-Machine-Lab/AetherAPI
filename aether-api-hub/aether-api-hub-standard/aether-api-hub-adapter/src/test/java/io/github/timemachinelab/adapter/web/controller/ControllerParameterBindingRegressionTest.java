@@ -6,6 +6,7 @@ import io.github.timemachinelab.adapter.web.delegate.ApiCredentialWebDelegate;
 import io.github.timemachinelab.adapter.web.delegate.CatalogDiscoveryWebDelegate;
 import io.github.timemachinelab.adapter.web.delegate.CategoryWebDelegate;
 import io.github.timemachinelab.adapter.web.delegate.UnifiedAccessWebDelegate;
+import io.github.timemachinelab.api.req.ListApiAssetReq;
 import io.github.timemachinelab.api.req.ListApiCallLogReq;
 import org.springframework.http.ResponseEntity;
 import org.junit.jupiter.api.Test;
@@ -61,6 +62,22 @@ class ControllerParameterBindingRegressionTest {
                 .andExpect(status().isOk());
 
         verify(delegate).getAssetByCode("deepseek-v3");
+    }
+
+    @Test
+    void assetListBindsQueryParameters() throws Exception {
+        ApiAssetWebDelegate delegate = mock(ApiAssetWebDelegate.class);
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new ApiAssetController(delegate)).build();
+
+        mockMvc.perform(get("/api/v1/assets")
+                        .param("status", "ENABLED")
+                        .param("categoryCode", "tools")
+                        .param("keyword", "chat")
+                        .param("page", "2")
+                        .param("size", "10"))
+                .andExpect(status().isOk());
+
+        verify(delegate).listAssets(argThat(this::matchesAssetListQuery));
     }
 
     @Test
@@ -127,5 +144,14 @@ class ControllerParameterBindingRegressionTest {
                 && "2026-04-19T12:00:00Z".equals(req.getInvocationEndAt())
                 && req.getPage() == 3
                 && req.getSize() == 15;
+    }
+
+    private boolean matchesAssetListQuery(ListApiAssetReq req) {
+        return req != null
+                && "ENABLED".equals(req.getStatus())
+                && "tools".equals(req.getCategoryCode())
+                && "chat".equals(req.getKeyword())
+                && req.getPage() == 2
+                && req.getSize() == 10;
     }
 }

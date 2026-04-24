@@ -149,6 +149,9 @@ public class GlobalExceptionHandler {
         if (isFrameworkBindingIllegalArgumentException(ex)) {
             return buildFrameworkBindingErrorResponse(request.getRequestURI());
         }
+        if (isAssetListQueryIllegalArgument(ex.getMessage(), request.getRequestURI())) {
+            return buildAssetListQueryErrorResponse();
+        }
 
         Map<String, String> body = new HashMap<>();
         body.put("code", mapIllegalArgumentCode(ex.getMessage()));
@@ -183,6 +186,9 @@ public class GlobalExceptionHandler {
             body.put("code", ConsumerAuthErrorCodes.API_CREDENTIAL_INVALID);
         } else if (objectName != null && objectName.toLowerCase().contains("apicalllog")) {
             body.put("code", ObservabilityErrorCodes.API_CALL_LOG_INVALID_QUERY);
+        } else if (objectName != null && objectName.toLowerCase().contains("listapiasset")) {
+            body.put("code", CatalogErrorCodes.ASSET_INVALID_QUERY);
+            message = "Invalid asset list query parameters";
         } else {
             body.put("code", CatalogErrorCodes.CATEGORY_NAME_INVALID);
         }
@@ -324,6 +330,9 @@ public class GlobalExceptionHandler {
 
     private String resolveFrameworkBindingCode(String requestUri) {
         if (requestUri != null) {
+            if (isAssetListQueryRequest(requestUri)) {
+                return CatalogErrorCodes.ASSET_INVALID_QUERY;
+            }
             if (requestUri.startsWith("/api/v1/console/auth")) {
                 return ConsoleSessionAuthErrorCodes.CONSOLE_SIGN_IN_REQUEST_INVALID;
             }
@@ -333,7 +342,7 @@ public class GlobalExceptionHandler {
             if (requestUri.startsWith("/api/v1/current-user/api-call-logs")) {
                 return ObservabilityErrorCodes.API_CALL_LOG_INVALID_QUERY;
             }
-            if (requestUri.startsWith("/api/v1/assets") || requestUri.startsWith("/api/v1/discovery/assets")) {
+            if (requestUri.startsWith("/api/v1/assets/") || requestUri.startsWith("/api/v1/discovery/assets")) {
                 return CatalogErrorCodes.API_CODE_INVALID;
             }
         }
@@ -342,6 +351,9 @@ public class GlobalExceptionHandler {
 
     private String resolveFrameworkBindingMessage(String requestUri) {
         if (requestUri != null) {
+            if (isAssetListQueryRequest(requestUri)) {
+                return "Invalid asset list query parameters";
+            }
             if (requestUri.startsWith("/api/v1/console/auth")) {
                 return "Invalid console sign-in request parameters";
             }
@@ -351,10 +363,30 @@ public class GlobalExceptionHandler {
             if (requestUri.startsWith("/api/v1/current-user/api-call-logs")) {
                 return "Invalid API call log request parameters";
             }
-            if (requestUri.startsWith("/api/v1/assets") || requestUri.startsWith("/api/v1/discovery/assets")) {
+            if (requestUri.startsWith("/api/v1/assets/") || requestUri.startsWith("/api/v1/discovery/assets")) {
                 return "Invalid asset request parameters";
             }
         }
         return "Invalid category request parameters";
+    }
+
+    private boolean isAssetListQueryRequest(String requestUri) {
+        return "/api/v1/assets".equals(requestUri) || "/api/v1/assets/".equals(requestUri);
+    }
+
+    private boolean isAssetListQueryIllegalArgument(String message, String requestUri) {
+        if (!isAssetListQueryRequest(requestUri) || message == null) {
+            return false;
+        }
+        return message.contains("Asset status filter")
+                || message.contains("CategoryCode")
+                || message.contains("category code");
+    }
+
+    private ResponseEntity<Map<String, String>> buildAssetListQueryErrorResponse() {
+        Map<String, String> body = new HashMap<>();
+        body.put("code", CatalogErrorCodes.ASSET_INVALID_QUERY);
+        body.put("message", "Invalid asset list query parameters");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 }

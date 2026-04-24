@@ -9,8 +9,12 @@ import io.github.timemachinelab.domain.catalog.model.CategoryValidityChecker;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 import io.github.timemachinelab.service.application.ApiAssetApplicationService;
 import io.github.timemachinelab.service.model.ApiAssetModel;
+import io.github.timemachinelab.service.model.ApiAssetPageResult;
+import io.github.timemachinelab.service.model.ApiAssetSummaryModel;
+import io.github.timemachinelab.service.model.ListApiAssetQuery;
 import io.github.timemachinelab.service.model.RegisterApiAssetCommand;
 import io.github.timemachinelab.service.model.ReviseApiAssetCommand;
+import io.github.timemachinelab.service.port.out.ApiAssetQueryPort;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,6 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -34,7 +39,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * API 资产应用服务测试。
+ * API asset application service tests.
  */
 @ExtendWith(MockitoExtension.class)
 class ApiAssetApplicationServiceTest {
@@ -45,19 +50,69 @@ class ApiAssetApplicationServiceTest {
     @Mock
     private CategoryValidityChecker categoryValidityChecker;
 
+    @Mock
+    private ApiAssetQueryPort apiAssetQueryPort;
+
     private ApiAssetApplicationService service;
 
     @BeforeEach
     void setUp() {
-        service = new ApiAssetApplicationService(apiAssetRepositoryPort, categoryValidityChecker);
+        service = new ApiAssetApplicationService(apiAssetRepositoryPort, apiAssetQueryPort, categoryValidityChecker);
     }
 
     @Nested
-    @DisplayName("注册资产")
+    @DisplayName("asset list")
+    class ListAssetTests {
+
+        @Test
+        @DisplayName("should normalize paging and filters for list query")
+        void shouldNormalizePagingAndFiltersForListQuery() {
+            when(apiAssetQueryPort.findPage("ENABLED", "tools", "chat", 1, 100)).thenReturn(List.of(
+                    new ApiAssetSummaryModel(
+                            "chat-completion",
+                            "Chat Completion",
+                            "AI_API",
+                            "tools",
+                            "Tools",
+                            "ENABLED",
+                            "2026-04-24T08:00:00Z")
+            ));
+            when(apiAssetQueryPort.count("ENABLED", "tools", "chat")).thenReturn(1L);
+
+            ApiAssetPageResult result = service.listAssets(new ListApiAssetQuery(
+                    " enabled ",
+                    " Tools ",
+                    "  chat  ",
+                    0,
+                    500
+            ));
+
+            assertEquals(1, result.getPage());
+            assertEquals(100, result.getSize());
+            assertEquals(1L, result.getTotal());
+            assertEquals("chat-completion", result.getItems().get(0).getApiCode());
+            verify(apiAssetQueryPort).findPage("ENABLED", "tools", "chat", 1, 100);
+            verify(apiAssetQueryPort).count("ENABLED", "tools", "chat");
+        }
+
+        @Test
+        @DisplayName("should reject invalid category code filter")
+        void shouldRejectInvalidCategoryCodeFilter() {
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> service.listAssets(new ListApiAssetQuery(null, "tools--invalid", null, 1, 20))
+            );
+
+            assertTrue(exception.getMessage().contains("CategoryCode"));
+        }
+    }
+
+    @Nested
+    @DisplayName("register asset")
     class RegisterAssetTests {
 
         @Test
-        @DisplayName("API Code 重复时应拒绝注册")
+        @DisplayName("should reject duplicate api code")
         void shouldRejectDuplicateApiCode() {
             when(apiAssetRepositoryPort.existsByCode(any(ApiCode.class))).thenReturn(true);
 
@@ -71,7 +126,7 @@ class ApiAssetApplicationServiceTest {
         }
 
         @Test
-        @DisplayName("应成功注册草稿资产")
+        @DisplayName("should register draft asset")
         void shouldRegisterDraftAsset() {
             when(apiAssetRepositoryPort.existsByCode(any(ApiCode.class))).thenReturn(false);
             doNothing().when(apiAssetRepositoryPort).save(any(ApiAssetAggregate.class));
@@ -86,11 +141,11 @@ class ApiAssetApplicationServiceTest {
     }
 
     @Nested
-    @DisplayName("资产生命周期")
+    @DisplayName("asset lifecycle")
     class AssetLifecycleTests {
 
         @Test
-        @DisplayName("应支持草稿注册、修订、启用和停用闭环")
+        @DisplayName("should support register revise enable and disable flow")
         void shouldRegisterReviseEnableAndDisableAsset() {
             ApiAssetApplicationService lifecycleService = lifecycleService(categoryRef -> true);
 
@@ -115,7 +170,7 @@ class ApiAssetApplicationServiceTest {
         }
 
         @Test
-        @DisplayName("应支持按契约合并部分修订字段")
+        @DisplayName("should merge partial revision fields")
         void shouldMergePartialRevisionFields() {
             ApiAssetApplicationService lifecycleService = lifecycleService(categoryRef -> true);
             lifecycleService.registerAsset(
@@ -155,7 +210,7 @@ class ApiAssetApplicationServiceTest {
         }
 
         @Test
-        @DisplayName("启用配置不完整资产时应返回业务异常")
+        @DisplayName("should reject enable when asset is incomplete")
         void shouldRejectEnableWhenAssetIsIncomplete() {
             ApiAssetApplicationService lifecycleService = lifecycleService(categoryRef -> true);
             lifecycleService.registerAsset(
@@ -170,7 +225,7 @@ class ApiAssetApplicationServiceTest {
         }
 
         @Test
-        @DisplayName("修订不存在资产时应返回业务异常")
+        @DisplayName("should return business error when revision target is missing")
         void shouldReturnBusinessErrorWhenRevisionTargetMissing() {
             ApiAssetApplicationService lifecycleService = lifecycleService(categoryRef -> true);
 
@@ -184,7 +239,8 @@ class ApiAssetApplicationServiceTest {
     }
 
     private ApiAssetApplicationService lifecycleService(CategoryValidityChecker categoryValidityChecker) {
-        return new ApiAssetApplicationService(new InMemoryApiAssetRepository(), categoryValidityChecker);
+        InMemoryApiAssetRepository repository = new InMemoryApiAssetRepository();
+        return new ApiAssetApplicationService(repository, new InMemoryApiAssetQueryPort(repository), categoryValidityChecker);
     }
 
     private ReviseApiAssetCommand completeRevisionCommand(String apiCode) {
@@ -235,6 +291,49 @@ class ApiAssetApplicationServiceTest {
         @Override
         public void save(ApiAssetAggregate aggregate) {
             assets.put(aggregate.getCode().getValue(), aggregate);
+        }
+    }
+
+    private static final class InMemoryApiAssetQueryPort implements ApiAssetQueryPort {
+
+        private final InMemoryApiAssetRepository repository;
+
+        private InMemoryApiAssetQueryPort(InMemoryApiAssetRepository repository) {
+            this.repository = repository;
+        }
+
+        @Override
+        public List<ApiAssetSummaryModel> findPage(String status, String categoryCode, String keyword, int page, int size) {
+            return filtered(status, categoryCode, keyword).stream()
+                    .skip((long) Math.max(0, page - 1) * size)
+                    .limit(size)
+                    .map(aggregate -> new ApiAssetSummaryModel(
+                            aggregate.getCode().getValue(),
+                            aggregate.getName(),
+                            aggregate.getType().name(),
+                            aggregate.getCategoryRef() == null ? null : aggregate.getCategoryRef().getCode(),
+                            null,
+                            aggregate.getStatus().name(),
+                            aggregate.getUpdatedAt().toString()))
+                    .toList();
+        }
+
+        @Override
+        public long count(String status, String categoryCode, String keyword) {
+            return filtered(status, categoryCode, keyword).size();
+        }
+
+        private List<ApiAssetAggregate> filtered(String status, String categoryCode, String keyword) {
+            String normalizedKeyword = keyword == null ? null : keyword.toLowerCase();
+            return repository.assets.values().stream()
+                    .filter(asset -> status == null || asset.getStatus().name().equals(status))
+                    .filter(asset -> categoryCode == null
+                            || (asset.getCategoryRef() != null && categoryCode.equals(asset.getCategoryRef().getCode())))
+                    .filter(asset -> normalizedKeyword == null
+                            || asset.getCode().getValue().contains(normalizedKeyword)
+                            || (asset.getName() != null && asset.getName().toLowerCase().contains(normalizedKeyword)))
+                    .sorted((left, right) -> right.getUpdatedAt().compareTo(left.getUpdatedAt()))
+                    .toList();
         }
     }
 }

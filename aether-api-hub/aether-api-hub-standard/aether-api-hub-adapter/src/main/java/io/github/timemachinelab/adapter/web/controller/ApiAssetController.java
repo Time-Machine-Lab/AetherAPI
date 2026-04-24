@@ -2,8 +2,10 @@ package io.github.timemachinelab.adapter.web.controller;
 
 import io.github.timemachinelab.adapter.web.delegate.ApiAssetWebDelegate;
 import io.github.timemachinelab.api.req.AttachAiCapabilityProfileReq;
+import io.github.timemachinelab.api.req.ListApiAssetReq;
 import io.github.timemachinelab.api.req.RegisterApiAssetReq;
 import io.github.timemachinelab.api.req.ReviseApiAssetReq;
+import io.github.timemachinelab.api.resp.ApiAssetPageResp;
 import io.github.timemachinelab.api.resp.ApiAssetResp;
 import io.github.timemachinelab.common.annotation.AutoResp;
 import jakarta.validation.Valid;
@@ -28,6 +30,11 @@ public class ApiAssetController {
 
     public ApiAssetController(ApiAssetWebDelegate delegate) {
         this.delegate = delegate;
+    }
+
+    @GetMapping
+    public ApiAssetPageResp listAssets(@Valid ListApiAssetReq req) {
+        return delegate.listAssets(req);
     }
 
     @PostMapping

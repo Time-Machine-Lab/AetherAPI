@@ -2,8 +2,6 @@ server:
   port: ${SERVER_PORT:8090}
 
 spring:
-  config:
-    import: classpath:you-cant-see-that.yml
   application:
     name: aether-api-hub
   profiles:

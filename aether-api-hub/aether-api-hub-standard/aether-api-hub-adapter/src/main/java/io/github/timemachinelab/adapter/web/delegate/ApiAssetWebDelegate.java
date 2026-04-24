@@ -1,16 +1,22 @@
 package io.github.timemachinelab.adapter.web.delegate;
 
 import io.github.timemachinelab.api.req.AttachAiCapabilityProfileReq;
+import io.github.timemachinelab.api.req.ListApiAssetReq;
 import io.github.timemachinelab.api.req.RegisterApiAssetReq;
 import io.github.timemachinelab.api.req.ReviseApiAssetReq;
 import io.github.timemachinelab.api.resp.AiCapabilityProfileResp;
+import io.github.timemachinelab.api.resp.ApiAssetPageResp;
 import io.github.timemachinelab.api.resp.ApiAssetResp;
+import io.github.timemachinelab.api.resp.ApiAssetSummaryResp;
 import io.github.timemachinelab.domain.catalog.model.AssetStatus;
 import io.github.timemachinelab.domain.catalog.model.AssetType;
 import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 import io.github.timemachinelab.service.model.ApiAssetModel;
+import io.github.timemachinelab.service.model.ApiAssetPageResult;
+import io.github.timemachinelab.service.model.ApiAssetSummaryModel;
 import io.github.timemachinelab.service.model.AttachAiCapabilityProfileCommand;
+import io.github.timemachinelab.service.model.ListApiAssetQuery;
 import io.github.timemachinelab.service.model.RegisterApiAssetCommand;
 import io.github.timemachinelab.service.model.ReviseApiAssetCommand;
 import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
@@ -26,6 +32,22 @@ public class ApiAssetWebDelegate {
 
     public ApiAssetWebDelegate(ApiAssetUseCase apiAssetUseCase) {
         this.apiAssetUseCase = apiAssetUseCase;
+    }
+
+    public ApiAssetPageResp listAssets(ListApiAssetReq req) {
+        ApiAssetPageResult result = apiAssetUseCase.listAssets(new ListApiAssetQuery(
+                req.getStatus(),
+                req.getCategoryCode(),
+                req.getKeyword(),
+                req.getPage(),
+                req.getSize()
+        ));
+        return new ApiAssetPageResp(
+                result.getItems().stream().map(this::toSummaryResp).toList(),
+                result.getPage(),
+                result.getSize(),
+                result.getTotal()
+        );
     }
 
     public ApiAssetResp registerAsset(RegisterApiAssetReq req) {
@@ -84,6 +106,18 @@ public class ApiAssetWebDelegate {
 
     public ApiAssetResp getAssetByCode(String apiCode) {
         return toResp(apiAssetUseCase.getAssetByCode(apiCode));
+    }
+
+    private ApiAssetSummaryResp toSummaryResp(ApiAssetSummaryModel model) {
+        return new ApiAssetSummaryResp(
+                model.getApiCode(),
+                model.getAssetName(),
+                AssetType.valueOf(model.getAssetType()),
+                model.getCategoryCode(),
+                model.getCategoryName(),
+                AssetStatus.valueOf(model.getStatus()),
+                model.getUpdatedAt()
+        );
     }
 
     private ApiAssetResp toResp(ApiAssetModel model) {

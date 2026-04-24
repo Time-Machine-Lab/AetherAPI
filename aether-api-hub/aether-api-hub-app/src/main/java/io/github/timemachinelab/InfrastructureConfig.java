@@ -35,6 +35,7 @@ import io.github.timemachinelab.service.port.in.UnifiedAccessUseCase;
 import io.github.timemachinelab.service.port.out.ApiCallLogRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiCredentialRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
+import io.github.timemachinelab.service.port.out.ApiAssetQueryPort;
 import io.github.timemachinelab.service.port.out.ApiCallLogQueryPort;
 import io.github.timemachinelab.service.port.out.CatalogDiscoveryQueryPort;
 import io.github.timemachinelab.service.port.out.CategoryRepositoryPort;
@@ -85,8 +86,10 @@ public class InfrastructureConfig {
 
     @Bean
     public ApiAssetUseCase apiAssetUseCase(
-            ApiAssetRepositoryPort apiAssetRepositoryPort, CategoryValidityChecker categoryValidityChecker) {
-        return new ApiAssetApplicationService(apiAssetRepositoryPort, categoryValidityChecker);
+            ApiAssetRepositoryPort apiAssetRepositoryPort,
+            ApiAssetQueryPort apiAssetQueryPort,
+            CategoryValidityChecker categoryValidityChecker) {
+        return new ApiAssetApplicationService(apiAssetRepositoryPort, apiAssetQueryPort, categoryValidityChecker);
     }
 
     @Bean

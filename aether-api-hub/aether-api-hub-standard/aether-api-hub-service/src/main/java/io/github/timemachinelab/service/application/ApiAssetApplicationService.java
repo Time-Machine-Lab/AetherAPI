@@ -4,6 +4,7 @@ import io.github.timemachinelab.domain.catalog.model.AiCapabilityProfile;
 import io.github.timemachinelab.domain.catalog.model.ApiAssetAggregate;
 import io.github.timemachinelab.domain.catalog.model.ApiCode;
 import io.github.timemachinelab.domain.catalog.model.AssetDomainException;
+import io.github.timemachinelab.domain.catalog.model.AssetStatus;
 import io.github.timemachinelab.domain.catalog.model.AssetId;
 import io.github.timemachinelab.domain.catalog.model.AssetType;
 import io.github.timemachinelab.domain.catalog.model.AuthScheme;
@@ -13,14 +14,18 @@ import io.github.timemachinelab.domain.catalog.model.ExampleSnapshot;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 import io.github.timemachinelab.domain.catalog.model.UpstreamEndpointConfig;
 import io.github.timemachinelab.service.model.ApiAssetModel;
+import io.github.timemachinelab.service.model.ApiAssetPageResult;
 import io.github.timemachinelab.service.model.AttachAiCapabilityProfileCommand;
+import io.github.timemachinelab.service.model.ListApiAssetQuery;
 import io.github.timemachinelab.service.model.RegisterApiAssetCommand;
 import io.github.timemachinelab.service.model.ReviseApiAssetCommand;
 import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
+import io.github.timemachinelab.service.port.out.ApiAssetQueryPort;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * API 资产管理应用服务。
@@ -28,12 +33,31 @@ import java.util.List;
 public class ApiAssetApplicationService implements ApiAssetUseCase {
 
     private final ApiAssetRepositoryPort apiAssetRepositoryPort;
+    private final ApiAssetQueryPort apiAssetQueryPort;
     private final CategoryValidityChecker categoryValidityChecker;
 
     public ApiAssetApplicationService(
-            ApiAssetRepositoryPort apiAssetRepositoryPort, CategoryValidityChecker categoryValidityChecker) {
+            ApiAssetRepositoryPort apiAssetRepositoryPort,
+            ApiAssetQueryPort apiAssetQueryPort,
+            CategoryValidityChecker categoryValidityChecker) {
         this.apiAssetRepositoryPort = apiAssetRepositoryPort;
+        this.apiAssetQueryPort = apiAssetQueryPort;
         this.categoryValidityChecker = categoryValidityChecker;
+    }
+
+    @Override
+    public ApiAssetPageResult listAssets(ListApiAssetQuery query) {
+        int page = Math.max(1, query.getPage());
+        int size = Math.max(1, Math.min(query.getSize(), 100));
+        String status = normalizeStatus(query.getStatus());
+        String categoryCode = normalizeCategoryCode(query.getCategoryCode());
+        String keyword = normalizeKeyword(query.getKeyword());
+        return new ApiAssetPageResult(
+                apiAssetQueryPort.findPage(status, categoryCode, keyword, page, size),
+                page,
+                size,
+                apiAssetQueryPort.count(status, categoryCode, keyword)
+        );
     }
 
     @Override
@@ -117,6 +141,29 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
     private ApiAssetAggregate loadAggregate(ApiCode code) {
         return apiAssetRepositoryPort.findByCode(code)
                 .orElseThrow(() -> new AssetDomainException("Asset not found: " + code.getValue()));
+    }
+
+    private String normalizeStatus(String rawStatus) {
+        if (rawStatus == null || rawStatus.isBlank()) {
+            return null;
+        }
+        try {
+            return AssetStatus.valueOf(rawStatus.trim().toUpperCase(Locale.ROOT)).name();
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Asset status filter must be one of DRAFT, ENABLED, DISABLED");
+        }
+    }
+
+    private String normalizeCategoryCode(String rawCategoryCode) {
+        CategoryRef categoryRef = CategoryRef.of(rawCategoryCode);
+        return categoryRef == null ? null : categoryRef.getCode();
+    }
+
+    private String normalizeKeyword(String rawKeyword) {
+        if (rawKeyword == null || rawKeyword.isBlank()) {
+            return null;
+        }
+        return rawKeyword.trim();
     }
 
     private UpstreamEndpointConfig mergeUpstreamConfig(ApiAssetAggregate aggregate, ReviseApiAssetCommand command) {

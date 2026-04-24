@@ -22,6 +22,7 @@ public final class CatalogErrorCodes {
     public static final String ASSET_NOT_FOUND = "ASSET_NOT_FOUND";
     public static final String API_CODE_ALREADY_EXISTS = "API_CODE_ALREADY_EXISTS";
     public static final String API_CODE_INVALID = "API_CODE_INVALID";
+    public static final String ASSET_INVALID_QUERY = "ASSET_INVALID_QUERY";
     public static final String ASSET_ALREADY_ENABLED = "ASSET_ALREADY_ENABLED";
     public static final String ASSET_ALREADY_DISABLED = "ASSET_ALREADY_DISABLED";
     public static final String ASSET_ACTIVATION_INCOMPLETE = "ASSET_ACTIVATION_INCOMPLETE";

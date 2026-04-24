@@ -36,4 +36,4 @@ ENV ACTIVE=${ACTIVE}
 
 EXPOSE ${SERVER_PORT}
 
-ENTRYPOINT ["java","-jar","/aether-api.jar"]
+ENTRYPOINT ["sh","-c","exec java ${JAVA_OPTS} -Dspring.config.import=optional:classpath:you-cant-see-that.yml ${ACTIVE:+-Dspring.profiles.active=${ACTIVE}} ${JASYPT_PASSWORD:+-Djasypt.encryptor.password=${JASYPT_PASSWORD}} -jar /aether-api.jar"]
