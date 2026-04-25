@@ -5,10 +5,12 @@ import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 
 /**
- * 修订 API 资产命令。
+ * Revise API asset command.
  */
 public class ReviseApiAssetCommand {
 
+    private final String ownerUserId;
+    private final String publisherDisplayName;
     private final String apiCode;
     private final String assetName;
     private final boolean assetNameSet;
@@ -32,6 +34,8 @@ public class ReviseApiAssetCommand {
     private final boolean responseExampleSet;
 
     public ReviseApiAssetCommand(
+            String ownerUserId,
+            String publisherDisplayName,
             String apiCode,
             String assetName,
             boolean assetNameSet,
@@ -53,6 +57,8 @@ public class ReviseApiAssetCommand {
             boolean requestExampleSet,
             String responseExample,
             boolean responseExampleSet) {
+        this.ownerUserId = ownerUserId;
+        this.publisherDisplayName = publisherDisplayName;
         this.apiCode = apiCode;
         this.assetName = assetName;
         this.assetNameSet = assetNameSet;
@@ -74,6 +80,14 @@ public class ReviseApiAssetCommand {
         this.requestExampleSet = requestExampleSet;
         this.responseExample = responseExample;
         this.responseExampleSet = responseExampleSet;
+    }
+
+    public String getOwnerUserId() {
+        return ownerUserId;
+    }
+
+    public String getPublisherDisplayName() {
+        return publisherDisplayName;
     }
 
     public String getApiCode() {
@@ -160,4 +174,3 @@ public class ReviseApiAssetCommand {
         return responseExampleSet;
     }
 }
-

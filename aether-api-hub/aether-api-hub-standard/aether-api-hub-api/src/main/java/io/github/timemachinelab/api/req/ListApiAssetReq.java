@@ -6,13 +6,13 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * Management asset list request.
+ * Current-user asset workspace list request.
  */
 public class ListApiAssetReq {
 
     @Pattern(
-            regexp = "^$|DRAFT|ENABLED|DISABLED$",
-            message = "Status must be one of DRAFT, ENABLED, DISABLED")
+            regexp = "^$|DRAFT|PUBLISHED|UNPUBLISHED$",
+            message = "Status must be one of DRAFT, PUBLISHED, UNPUBLISHED")
     private String status;
 
     @Size(max = 64, message = "Category code must be less than or equal to 64 characters")

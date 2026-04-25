@@ -23,7 +23,7 @@ import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
 import org.springframework.stereotype.Component;
 
 /**
- * API 资产 Web Delegate。
+ * API asset web delegate.
  */
 @Component
 public class ApiAssetWebDelegate {
@@ -34,8 +34,9 @@ public class ApiAssetWebDelegate {
         this.apiAssetUseCase = apiAssetUseCase;
     }
 
-    public ApiAssetPageResp listAssets(ListApiAssetReq req) {
+    public ApiAssetPageResp listAssets(String currentUserId, ListApiAssetReq req) {
         ApiAssetPageResult result = apiAssetUseCase.listAssets(new ListApiAssetQuery(
+                currentUserId,
                 req.getStatus(),
                 req.getCategoryCode(),
                 req.getKeyword(),
@@ -50,14 +51,25 @@ public class ApiAssetWebDelegate {
         );
     }
 
-    public ApiAssetResp registerAsset(RegisterApiAssetReq req) {
+    public ApiAssetResp registerAsset(String currentUserId, String publisherDisplayName, RegisterApiAssetReq req) {
         ApiAssetModel model = apiAssetUseCase.registerAsset(
-                new RegisterApiAssetCommand(req.getApiCode(), req.getAssetType(), req.getAssetName()));
+                new RegisterApiAssetCommand(
+                        currentUserId,
+                        publisherDisplayName,
+                        req.getApiCode(),
+                        req.getAssetType(),
+                        req.getAssetName()));
         return toResp(model);
     }
 
-    public ApiAssetResp reviseAsset(String apiCode, ReviseApiAssetReq req) {
+    public ApiAssetResp reviseAsset(
+            String currentUserId,
+            String publisherDisplayName,
+            String apiCode,
+            ReviseApiAssetReq req) {
         ApiAssetModel model = apiAssetUseCase.reviseAsset(new ReviseApiAssetCommand(
+                currentUserId,
+                publisherDisplayName,
                 apiCode,
                 req.getAssetName(),
                 req.isAssetNameSet(),
@@ -83,17 +95,27 @@ public class ApiAssetWebDelegate {
         return toResp(model);
     }
 
-    public ApiAssetResp enableAsset(String apiCode) {
-        return toResp(apiAssetUseCase.enableAsset(apiCode));
+    public ApiAssetResp publishAsset(String currentUserId, String publisherDisplayName, String apiCode) {
+        return toResp(apiAssetUseCase.publishAsset(currentUserId, publisherDisplayName, apiCode));
     }
 
-    public ApiAssetResp disableAsset(String apiCode) {
-        return toResp(apiAssetUseCase.disableAsset(apiCode));
+    public ApiAssetResp unpublishAsset(String currentUserId, String apiCode) {
+        return toResp(apiAssetUseCase.unpublishAsset(currentUserId, apiCode));
     }
 
-    public ApiAssetResp attachAiCapabilityProfile(String apiCode, AttachAiCapabilityProfileReq req) {
+    public ApiAssetResp deleteAsset(String currentUserId, String apiCode) {
+        return toResp(apiAssetUseCase.deleteAsset(currentUserId, apiCode));
+    }
+
+    public ApiAssetResp attachAiCapabilityProfile(
+            String currentUserId,
+            String publisherDisplayName,
+            String apiCode,
+            AttachAiCapabilityProfileReq req) {
         ApiAssetModel model = apiAssetUseCase.attachAiCapabilityProfile(
                 new AttachAiCapabilityProfileCommand(
+                        currentUserId,
+                        publisherDisplayName,
                         apiCode,
                         req.getProvider(),
                         req.getModel(),
@@ -104,8 +126,8 @@ public class ApiAssetWebDelegate {
         return toResp(model);
     }
 
-    public ApiAssetResp getAssetByCode(String apiCode) {
-        return toResp(apiAssetUseCase.getAssetByCode(apiCode));
+    public ApiAssetResp getAssetByCode(String currentUserId, String apiCode) {
+        return toResp(apiAssetUseCase.getAssetByCode(currentUserId, apiCode));
     }
 
     private ApiAssetSummaryResp toSummaryResp(ApiAssetSummaryModel model) {
@@ -116,6 +138,8 @@ public class ApiAssetWebDelegate {
                 model.getCategoryCode(),
                 model.getCategoryName(),
                 AssetStatus.valueOf(model.getStatus()),
+                model.getPublisherDisplayName(),
+                model.getPublishedAt(),
                 model.getUpdatedAt()
         );
     }
@@ -128,6 +152,8 @@ public class ApiAssetWebDelegate {
                 AssetType.valueOf(model.getAssetType()),
                 model.getCategoryCode(),
                 AssetStatus.valueOf(model.getStatus()),
+                model.getPublisherDisplayName(),
+                model.getPublishedAt(),
                 model.getRequestMethod() == null ? null : RequestMethod.valueOf(model.getRequestMethod()),
                 model.getUpstreamUrl(),
                 model.getAuthScheme() == null ? null : AuthScheme.valueOf(model.getAuthScheme()),
@@ -143,9 +169,9 @@ public class ApiAssetWebDelegate {
                                 model.getAiStreamingSupported(),
                                 model.getAiCapabilityTags()
                         ),
+                model.isDeleted(),
                 model.getCreatedAt(),
                 model.getUpdatedAt()
         );
     }
 }
-

@@ -4,8 +4,8 @@ import io.github.timemachinelab.domain.catalog.model.AiCapabilityProfile;
 import io.github.timemachinelab.domain.catalog.model.ApiAssetAggregate;
 import io.github.timemachinelab.domain.catalog.model.ApiCode;
 import io.github.timemachinelab.domain.catalog.model.AssetDomainException;
-import io.github.timemachinelab.domain.catalog.model.AssetStatus;
 import io.github.timemachinelab.domain.catalog.model.AssetId;
+import io.github.timemachinelab.domain.catalog.model.AssetStatus;
 import io.github.timemachinelab.domain.catalog.model.AssetType;
 import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.CategoryRef;
@@ -23,12 +23,13 @@ import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
 import io.github.timemachinelab.service.port.out.ApiAssetQueryPort;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
 
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
 /**
- * API 资产管理应用服务。
+ * API asset application service.
  */
 public class ApiAssetApplicationService implements ApiAssetUseCase {
 
@@ -49,14 +50,15 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
     public ApiAssetPageResult listAssets(ListApiAssetQuery query) {
         int page = Math.max(1, query.getPage());
         int size = Math.max(1, Math.min(query.getSize(), 100));
+        String ownerUserId = normalizeCurrentUserId(query.getCurrentUserId());
         String status = normalizeStatus(query.getStatus());
         String categoryCode = normalizeCategoryCode(query.getCategoryCode());
         String keyword = normalizeKeyword(query.getKeyword());
         return new ApiAssetPageResult(
-                apiAssetQueryPort.findPage(status, categoryCode, keyword, page, size),
+                apiAssetQueryPort.findPage(ownerUserId, status, categoryCode, keyword, page, size),
                 page,
                 size,
-                apiAssetQueryPort.count(status, categoryCode, keyword)
+                apiAssetQueryPort.count(ownerUserId, status, categoryCode, keyword)
         );
     }
 
@@ -74,6 +76,8 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
         ApiAssetAggregate aggregate = ApiAssetAggregate.registerDraft(
                 AssetId.generate(),
                 apiCode,
+                normalizeCurrentUserId(command.getOwnerUserId()),
+                normalizePublisherDisplayName(command.getPublisherDisplayName(), command.getOwnerUserId()),
                 assetType,
                 command.getAssetName()
         );
@@ -83,7 +87,7 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
 
     @Override
     public ApiAssetModel reviseAsset(ReviseApiAssetCommand command) {
-        ApiAssetAggregate aggregate = loadAggregate(ApiCode.of(command.getApiCode()));
+        ApiAssetAggregate aggregate = loadOwnedAggregate(command.getOwnerUserId(), ApiCode.of(command.getApiCode()));
 
         String assetName = command.isAssetNameSet() ? command.getAssetName() : aggregate.getName();
         AssetType assetType = command.isAssetTypeSet() && command.getAssetType() != null
@@ -98,49 +102,87 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
                 : aggregate.getRequestTemplate();
         ExampleSnapshot exampleSnapshot = mergeExamples(aggregate, command);
 
-        aggregate.revise(assetName, assetType, categoryRef, upstreamConfig, requestTemplate, exampleSnapshot);
+        aggregate.revise(
+                assetName,
+                assetType,
+                categoryRef,
+                upstreamConfig,
+                requestTemplate,
+                exampleSnapshot,
+                normalizePublisherDisplayName(command.getPublisherDisplayName(), command.getOwnerUserId())
+        );
         apiAssetRepositoryPort.save(aggregate);
         return toModel(aggregate);
     }
 
     @Override
-    public ApiAssetModel enableAsset(String apiCode) {
-        ApiAssetAggregate aggregate = loadAggregate(ApiCode.of(apiCode));
-        aggregate.enable(categoryValidityChecker);
+    public ApiAssetModel publishAsset(String currentUserId, String publisherDisplayName, String apiCode) {
+        ApiAssetAggregate aggregate = loadOwnedAggregate(currentUserId, ApiCode.of(apiCode));
+        aggregate.publish(
+                categoryValidityChecker,
+                normalizePublisherDisplayName(publisherDisplayName, currentUserId)
+        );
         apiAssetRepositoryPort.save(aggregate);
         return toModel(aggregate);
     }
 
     @Override
-    public ApiAssetModel disableAsset(String apiCode) {
-        ApiAssetAggregate aggregate = loadAggregate(ApiCode.of(apiCode));
-        aggregate.disable();
+    public ApiAssetModel unpublishAsset(String currentUserId, String apiCode) {
+        ApiAssetAggregate aggregate = loadOwnedAggregate(currentUserId, ApiCode.of(apiCode));
+        aggregate.unpublish();
         apiAssetRepositoryPort.save(aggregate);
         return toModel(aggregate);
     }
 
     @Override
     public ApiAssetModel attachAiCapabilityProfile(AttachAiCapabilityProfileCommand command) {
-        ApiAssetAggregate aggregate = loadAggregate(ApiCode.of(command.getApiCode()));
+        ApiAssetAggregate aggregate = loadOwnedAggregate(command.getOwnerUserId(), ApiCode.of(command.getApiCode()));
         AiCapabilityProfile profile = AiCapabilityProfile.of(
                 command.getProvider(),
                 command.getModel(),
                 command.isStreamingSupported(),
                 command.getCapabilityTags()
         );
-        aggregate.attachAiCapabilityProfile(profile);
+        aggregate.attachAiCapabilityProfile(
+                profile,
+                normalizePublisherDisplayName(command.getPublisherDisplayName(), command.getOwnerUserId())
+        );
         apiAssetRepositoryPort.save(aggregate);
         return toModel(aggregate);
     }
 
     @Override
-    public ApiAssetModel getAssetByCode(String apiCode) {
-        return toModel(loadAggregate(ApiCode.of(apiCode)));
+    public ApiAssetModel getAssetByCode(String currentUserId, String apiCode) {
+        return toModel(loadOwnedAggregate(currentUserId, ApiCode.of(apiCode)));
     }
 
-    private ApiAssetAggregate loadAggregate(ApiCode code) {
-        return apiAssetRepositoryPort.findByCode(code)
+    @Override
+    public ApiAssetModel deleteAsset(String currentUserId, String apiCode) {
+        ApiAssetAggregate aggregate = loadOwnedAggregate(currentUserId, ApiCode.of(apiCode));
+        aggregate.softDelete();
+        apiAssetRepositoryPort.save(aggregate);
+        return toModel(aggregate);
+    }
+
+    private ApiAssetAggregate loadOwnedAggregate(String currentUserId, ApiCode code) {
+        ApiAssetAggregate aggregate = apiAssetRepositoryPort.findByCode(code)
                 .orElseThrow(() -> new AssetDomainException("Asset not found: " + code.getValue()));
+        aggregate.assertOwnedBy(normalizeCurrentUserId(currentUserId));
+        return aggregate;
+    }
+
+    private String normalizeCurrentUserId(String currentUserId) {
+        if (currentUserId == null || currentUserId.isBlank()) {
+            throw new IllegalArgumentException("Current user id must not be blank");
+        }
+        return currentUserId.trim();
+    }
+
+    private String normalizePublisherDisplayName(String publisherDisplayName, String currentUserId) {
+        if (publisherDisplayName != null && !publisherDisplayName.isBlank()) {
+            return publisherDisplayName.trim();
+        }
+        return normalizeCurrentUserId(currentUserId);
     }
 
     private String normalizeStatus(String rawStatus) {
@@ -150,7 +192,7 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
         try {
             return AssetStatus.valueOf(rawStatus.trim().toUpperCase(Locale.ROOT)).name();
         } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("Asset status filter must be one of DRAFT, ENABLED, DISABLED");
+            throw new IllegalArgumentException("Asset status filter must be one of DRAFT, PUBLISHED, UNPUBLISHED");
         }
     }
 
@@ -214,6 +256,8 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
                 aggregate.getType().name(),
                 aggregate.getCategoryRef() == null ? null : aggregate.getCategoryRef().getCode(),
                 aggregate.getStatus().name(),
+                aggregate.getPublisherDisplayName(),
+                formatInstant(aggregate.getPublishedAt(), formatter),
                 aggregate.getUpstreamConfig() == null || aggregate.getUpstreamConfig().getRequestMethod() == null
                         ? null
                         : aggregate.getUpstreamConfig().getRequestMethod().name(),
@@ -229,8 +273,13 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
                 aggregate.getAiCapabilityProfile() == null ? null : aggregate.getAiCapabilityProfile().getModel(),
                 aggregate.getAiCapabilityProfile() == null ? null : aggregate.getAiCapabilityProfile().isStreamingSupported(),
                 aggregate.getAiCapabilityProfile() == null ? null : List.copyOf(aggregate.getAiCapabilityProfile().getCapabilityTags()),
+                aggregate.isDeleted(),
                 formatter.format(aggregate.getCreatedAt()),
                 formatter.format(aggregate.getUpdatedAt())
         );
+    }
+
+    private String formatInstant(Instant instant, DateTimeFormatter formatter) {
+        return instant == null ? null : formatter.format(instant);
     }
 }

@@ -5,9 +5,13 @@ import io.github.timemachinelab.service.model.CatalogDiscoveryAssetDetailModel;
 import io.github.timemachinelab.service.model.CatalogDiscoveryAssetSummaryModel;
 import io.github.timemachinelab.service.model.CatalogDiscoveryCategoryModel;
 import io.github.timemachinelab.service.model.CatalogDiscoveryExampleSnapshotModel;
+import io.github.timemachinelab.service.model.CatalogDiscoveryPublisherModel;
 import io.github.timemachinelab.service.port.out.CatalogDiscoveryQueryPort;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -21,6 +25,7 @@ import java.util.regex.Pattern;
 public class MybatisCatalogDiscoveryQueryPort implements CatalogDiscoveryQueryPort {
 
     private static final Pattern JSON_STRING_PATTERN = Pattern.compile("\"((?:\\\\.|[^\"])*)\"");
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ISO_INSTANT;
 
     private final CatalogDiscoveryMapper mapper;
 
@@ -31,7 +36,6 @@ public class MybatisCatalogDiscoveryQueryPort implements CatalogDiscoveryQueryPo
     @Override
     public List<CatalogDiscoveryAssetSummaryModel> listDiscoverableAssets() {
         return mapper.selectAssetSummaries().stream()
-                .filter(this::isEnabled)
                 .map(this::toSummaryModel)
                 .toList();
     }
@@ -39,14 +43,10 @@ public class MybatisCatalogDiscoveryQueryPort implements CatalogDiscoveryQueryPo
     @Override
     public Optional<CatalogDiscoveryAssetDetailModel> findDiscoverableAssetDetail(String apiCode) {
         CatalogDiscoveryAssetRecord record = mapper.selectAssetDetail(apiCode);
-        if (record == null || !isEnabled(record)) {
+        if (record == null) {
             return Optional.empty();
         }
         return Optional.of(toDetailModel(record));
-    }
-
-    private boolean isEnabled(CatalogDiscoveryAssetRecord record) {
-        return "ENABLED".equals(record.getStatus());
     }
 
     private CatalogDiscoveryAssetSummaryModel toSummaryModel(CatalogDiscoveryAssetRecord record) {
@@ -54,7 +54,9 @@ public class MybatisCatalogDiscoveryQueryPort implements CatalogDiscoveryQueryPo
                 record.getApiCode(),
                 record.getAssetName(),
                 record.getAssetType(),
-                toCategoryModel(record)
+                toCategoryModel(record),
+                toPublisherModel(record),
+                formatInstant(record.getPublishedAt())
         );
     }
 
@@ -64,6 +66,8 @@ public class MybatisCatalogDiscoveryQueryPort implements CatalogDiscoveryQueryPo
                 record.getAssetName(),
                 record.getAssetType(),
                 toCategoryModel(record),
+                toPublisherModel(record),
+                formatInstant(record.getPublishedAt()),
                 record.getRequestMethod(),
                 record.getAuthScheme(),
                 record.getRequestTemplate(),
@@ -77,6 +81,13 @@ public class MybatisCatalogDiscoveryQueryPort implements CatalogDiscoveryQueryPo
             return null;
         }
         return new CatalogDiscoveryCategoryModel(record.getCategoryCode(), record.getCategoryName());
+    }
+
+    private CatalogDiscoveryPublisherModel toPublisherModel(CatalogDiscoveryAssetRecord record) {
+        if (isBlank(record.getPublisherDisplayName())) {
+            return null;
+        }
+        return new CatalogDiscoveryPublisherModel(record.getPublisherDisplayName());
     }
 
     private CatalogDiscoveryExampleSnapshotModel toExampleSnapshotModel(CatalogDiscoveryAssetRecord record) {
@@ -111,6 +122,10 @@ public class MybatisCatalogDiscoveryQueryPort implements CatalogDiscoveryQueryPo
             result.add(matcher.group(1).replace("\\\"", "\"").replace("\\\\", "\\"));
         }
         return result;
+    }
+
+    private String formatInstant(LocalDateTime value) {
+        return value == null ? null : TIME_FORMATTER.withZone(ZoneOffset.UTC).format(value.toInstant(ZoneOffset.UTC));
     }
 
     private boolean isBlank(String value) {

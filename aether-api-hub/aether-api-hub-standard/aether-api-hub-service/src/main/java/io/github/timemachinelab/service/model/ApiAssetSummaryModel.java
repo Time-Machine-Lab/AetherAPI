@@ -11,6 +11,8 @@ public class ApiAssetSummaryModel {
     private final String categoryCode;
     private final String categoryName;
     private final String status;
+    private final String publisherDisplayName;
+    private final String publishedAt;
     private final String updatedAt;
 
     public ApiAssetSummaryModel(
@@ -20,6 +22,8 @@ public class ApiAssetSummaryModel {
             String categoryCode,
             String categoryName,
             String status,
+            String publisherDisplayName,
+            String publishedAt,
             String updatedAt) {
         this.apiCode = apiCode;
         this.assetName = assetName;
@@ -27,6 +31,8 @@ public class ApiAssetSummaryModel {
         this.categoryCode = categoryCode;
         this.categoryName = categoryName;
         this.status = status;
+        this.publisherDisplayName = publisherDisplayName;
+        this.publishedAt = publishedAt;
         this.updatedAt = updatedAt;
     }
 
@@ -52,6 +58,14 @@ public class ApiAssetSummaryModel {
 
     public String getStatus() {
         return status;
+    }
+
+    public String getPublisherDisplayName() {
+        return publisherDisplayName;
+    }
+
+    public String getPublishedAt() {
+        return publishedAt;
     }
 
     public String getUpdatedAt() {

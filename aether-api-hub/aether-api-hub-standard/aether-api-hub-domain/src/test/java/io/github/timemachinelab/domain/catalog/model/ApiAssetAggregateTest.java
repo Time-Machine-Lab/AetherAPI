@@ -7,88 +7,110 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * API 资产聚合测试。
- */
 class ApiAssetAggregateTest {
 
+    private static final String OWNER_USER_ID = "user-1";
+    private static final String PUBLISHER_DISPLAY_NAME = "Alice";
     private static final CategoryValidityChecker VALID_CATEGORY_CHECKER = categoryRef -> true;
     private static final CategoryValidityChecker INVALID_CATEGORY_CHECKER = categoryRef -> false;
 
     @Nested
-    @DisplayName("草稿修订")
+    @DisplayName("draft revision")
     class DraftRevisionTests {
 
         @Test
-        @DisplayName("应允许在无示例快照的情况下保存草稿")
+        @DisplayName("should save draft without examples")
         void shouldSaveDraftWithoutExamples() {
             ApiAssetAggregate aggregate = ApiAssetAggregate.registerDraft(
                     AssetId.generate(),
                     ApiCode.of("weather-forecast"),
+                    OWNER_USER_ID,
+                    PUBLISHER_DISPLAY_NAME,
                     AssetType.STANDARD_API,
                     null
             );
 
             aggregate.revise(
-                    "天气预报",
+                    "Weather Forecast",
                     AssetType.STANDARD_API,
-                    CategoryRef.of("llm"),
+                    CategoryRef.of("tools"),
                     UpstreamEndpointConfig.of(RequestMethod.POST, "https://example.com/api", AuthScheme.NONE, null),
                     "template",
-                    null
+                    null,
+                    "Alice Cooper"
             );
 
             assertEquals(AssetStatus.DRAFT, aggregate.getStatus());
             assertNull(aggregate.getExampleSnapshot());
-            assertEquals("天气预报", aggregate.getName());
+            assertEquals("Weather Forecast", aggregate.getName());
+            assertEquals("Alice Cooper", aggregate.getPublisherDisplayName());
+        }
+
+        @Test
+        @DisplayName("should reject access from another owner")
+        void shouldRejectAccessFromAnotherOwner() {
+            ApiAssetAggregate aggregate = configuredAggregate(AssetType.STANDARD_API, AssetStatus.DRAFT);
+
+            AssetDomainException exception = assertThrows(
+                    AssetDomainException.class,
+                    () -> aggregate.assertOwnedBy("user-2")
+            );
+
+            assertTrue(exception.getMessage().contains("not found"));
         }
     }
 
     @Nested
-    @DisplayName("启用校验")
-    class ActivationValidationTests {
+    @DisplayName("publish validation")
+    class PublishValidationTests {
 
         @Test
-        @DisplayName("缺少必填配置时应拒绝启用")
-        void shouldRejectEnableWhenConfigurationIncomplete() {
+        @DisplayName("should reject publish when configuration incomplete")
+        void shouldRejectPublishWhenConfigurationIncomplete() {
             ApiAssetAggregate aggregate = ApiAssetAggregate.registerDraft(
                     AssetId.generate(),
                     ApiCode.of("stock-price"),
+                    OWNER_USER_ID,
+                    PUBLISHER_DISPLAY_NAME,
                     AssetType.STANDARD_API,
-                    "股票价格"
+                    "Stock Price"
             );
 
             AssetDomainException exception = assertThrows(
                     AssetDomainException.class,
-                    () -> aggregate.enable(VALID_CATEGORY_CHECKER)
+                    () -> aggregate.publish(VALID_CATEGORY_CHECKER, PUBLISHER_DISPLAY_NAME)
             );
 
             assertTrue(exception.getMessage().contains("Category code"));
         }
 
         @Test
-        @DisplayName("分类无效时应拒绝启用")
-        void shouldRejectEnableWhenCategoryInvalid() {
-            ApiAssetAggregate aggregate = configuredAggregate(AssetType.STANDARD_API);
+        @DisplayName("should reject publish when category invalid")
+        void shouldRejectPublishWhenCategoryInvalid() {
+            ApiAssetAggregate aggregate = configuredAggregate(AssetType.STANDARD_API, AssetStatus.DRAFT);
 
             AssetDomainException exception = assertThrows(
                     AssetDomainException.class,
-                    () -> aggregate.enable(INVALID_CATEGORY_CHECKER)
+                    () -> aggregate.publish(INVALID_CATEGORY_CHECKER, PUBLISHER_DISPLAY_NAME)
             );
 
             assertTrue(exception.getMessage().contains("category"));
         }
 
         @Test
-        @DisplayName("AI 资产缺少能力档案时应拒绝启用")
-        void shouldRejectAiAssetEnableWithoutProfile() {
-            ApiAssetAggregate aggregate = configuredAggregate(AssetType.AI_API);
+        @DisplayName("should reject ai publish without profile")
+        void shouldRejectAiPublishWithoutProfile() {
+            ApiAssetAggregate aggregate = configuredAggregate(AssetType.AI_API, AssetStatus.DRAFT);
 
             AssetDomainException exception = assertThrows(
                     AssetDomainException.class,
-                    () -> aggregate.enable(VALID_CATEGORY_CHECKER)
+                    () -> aggregate.publish(VALID_CATEGORY_CHECKER, PUBLISHER_DISPLAY_NAME)
             );
 
             assertTrue(exception.getMessage().contains("AI capability profile"));
@@ -96,46 +118,51 @@ class ApiAssetAggregateTest {
     }
 
     @Nested
-    @DisplayName("AI 能力档案")
+    @DisplayName("ai profile")
     class AiCapabilityTests {
 
         @Test
-        @DisplayName("非 AI 资产不允许绑定 AI 能力档案")
+        @DisplayName("should reject profile for non ai asset")
         void shouldRejectProfileForNonAiAsset() {
-            ApiAssetAggregate aggregate = configuredAggregate(AssetType.STANDARD_API);
+            ApiAssetAggregate aggregate = configuredAggregate(AssetType.STANDARD_API, AssetStatus.DRAFT);
 
             AssetDomainException exception = assertThrows(
                     AssetDomainException.class,
-                    () -> aggregate.attachAiCapabilityProfile(AiCapabilityProfile.of(
-                            "OpenAI", "gpt-4.1", true, List.of("chat")))
+                    () -> aggregate.attachAiCapabilityProfile(
+                            AiCapabilityProfile.of("OpenAI", "gpt-4.1", true, List.of("chat")),
+                            PUBLISHER_DISPLAY_NAME
+                    )
             );
 
             assertTrue(exception.getMessage().contains("only allowed"));
         }
 
         @Test
-        @DisplayName("AI 资产绑定能力档案后可通过启用校验")
-        void shouldEnableAiAssetAfterAttachingProfile() {
-            ApiAssetAggregate aggregate = configuredAggregate(AssetType.AI_API);
-            aggregate.attachAiCapabilityProfile(AiCapabilityProfile.of(
-                    "OpenAI", "gpt-4.1", true, List.of("chat", "vision")));
+        @DisplayName("should publish ai asset after attaching profile")
+        void shouldPublishAiAssetAfterAttachingProfile() {
+            ApiAssetAggregate aggregate = configuredAggregate(AssetType.AI_API, AssetStatus.DRAFT);
+            aggregate.attachAiCapabilityProfile(
+                    AiCapabilityProfile.of("OpenAI", "gpt-4.1", true, List.of("chat", "vision")),
+                    "AI Alice"
+            );
 
-            aggregate.enable(VALID_CATEGORY_CHECKER);
+            aggregate.publish(VALID_CATEGORY_CHECKER, "AI Alice");
 
-            assertEquals(AssetStatus.ENABLED, aggregate.getStatus());
+            assertEquals(AssetStatus.PUBLISHED, aggregate.getStatus());
             assertNotNull(aggregate.getAiCapabilityProfile());
+            assertEquals("AI Alice", aggregate.getPublisherDisplayName());
+            assertNotNull(aggregate.getPublishedAt());
         }
     }
 
     @Nested
-    @DisplayName("关键配置再校验")
+    @DisplayName("republish and deletion")
     class RevalidationTests {
 
         @Test
-        @DisplayName("启用后修改关键配置应回退为草稿")
-        void shouldReturnToDraftAfterCriticalConfigChanged() {
-            ApiAssetAggregate aggregate = configuredAggregate(AssetType.STANDARD_API);
-            aggregate.enable(VALID_CATEGORY_CHECKER);
+        @DisplayName("should move published asset to unpublished after critical config change")
+        void shouldMovePublishedAssetToUnpublishedAfterCriticalConfigChanged() {
+            ApiAssetAggregate aggregate = configuredAggregate(AssetType.STANDARD_API, AssetStatus.PUBLISHED);
 
             aggregate.revise(
                     aggregate.getName(),
@@ -148,30 +175,58 @@ class ApiAssetAggregateTest {
                             null
                     ),
                     aggregate.getRequestTemplate(),
-                    aggregate.getExampleSnapshot()
+                    aggregate.getExampleSnapshot(),
+                    aggregate.getPublisherDisplayName()
             );
 
-            assertEquals(AssetStatus.DRAFT, aggregate.getStatus());
+            assertEquals(AssetStatus.UNPUBLISHED, aggregate.getStatus());
+            assertNull(aggregate.getPublishedAt());
+        }
+
+        @Test
+        @DisplayName("should unpublish published asset explicitly")
+        void shouldUnpublishPublishedAssetExplicitly() {
+            ApiAssetAggregate aggregate = configuredAggregate(AssetType.STANDARD_API, AssetStatus.PUBLISHED);
+
+            aggregate.unpublish();
+
+            assertEquals(AssetStatus.UNPUBLISHED, aggregate.getStatus());
+            assertNull(aggregate.getPublishedAt());
+        }
+
+        @Test
+        @DisplayName("should soft delete published asset as unpublished")
+        void shouldSoftDeletePublishedAssetAsUnpublished() {
+            ApiAssetAggregate aggregate = configuredAggregate(AssetType.STANDARD_API, AssetStatus.PUBLISHED);
+
+            aggregate.softDelete();
+
+            assertTrue(aggregate.isDeleted());
+            assertEquals(AssetStatus.UNPUBLISHED, aggregate.getStatus());
+            assertNull(aggregate.getPublishedAt());
         }
     }
 
-    private ApiAssetAggregate configuredAggregate(AssetType assetType) {
+    private ApiAssetAggregate configuredAggregate(AssetType assetType, AssetStatus status) {
+        Instant now = Instant.now();
         return ApiAssetAggregate.reconstitute(
                 AssetId.of("550e8400-e29b-41d4-a716-446655440000"),
                 ApiCode.of("demo-api"),
+                OWNER_USER_ID,
+                PUBLISHER_DISPLAY_NAME,
                 "Demo API",
                 assetType,
-                CategoryRef.of("llm"),
-                AssetStatus.DRAFT,
+                CategoryRef.of("tools"),
+                status,
+                status == AssetStatus.PUBLISHED ? now.minusSeconds(60) : null,
                 UpstreamEndpointConfig.of(RequestMethod.POST, "https://example.com/api", AuthScheme.NONE, null),
                 "template",
                 ExampleSnapshot.of("{\"city\":\"shanghai\"}", "{\"temp\":26}"),
                 null,
-                Instant.now(),
-                Instant.now(),
+                now.minusSeconds(120),
+                now.minusSeconds(60),
                 false,
                 0L
         );
     }
 }
-

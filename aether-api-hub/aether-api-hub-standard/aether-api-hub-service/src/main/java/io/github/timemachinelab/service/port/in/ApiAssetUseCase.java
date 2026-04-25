@@ -8,7 +8,7 @@ import io.github.timemachinelab.service.model.RegisterApiAssetCommand;
 import io.github.timemachinelab.service.model.ReviseApiAssetCommand;
 
 /**
- * API 资产管理用例入口。
+ * API asset use case.
  */
 public interface ApiAssetUseCase {
 
@@ -18,12 +18,13 @@ public interface ApiAssetUseCase {
 
     ApiAssetModel reviseAsset(ReviseApiAssetCommand command);
 
-    ApiAssetModel enableAsset(String apiCode);
+    ApiAssetModel publishAsset(String currentUserId, String publisherDisplayName, String apiCode);
 
-    ApiAssetModel disableAsset(String apiCode);
+    ApiAssetModel unpublishAsset(String currentUserId, String apiCode);
 
     ApiAssetModel attachAiCapabilityProfile(AttachAiCapabilityProfileCommand command);
 
-    ApiAssetModel getAssetByCode(String apiCode);
-}
+    ApiAssetModel getAssetByCode(String currentUserId, String apiCode);
 
+    ApiAssetModel deleteAsset(String currentUserId, String apiCode);
+}

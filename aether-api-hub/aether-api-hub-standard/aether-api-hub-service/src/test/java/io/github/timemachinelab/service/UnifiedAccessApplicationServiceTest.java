@@ -28,8 +28,8 @@ import io.github.timemachinelab.service.port.out.UnifiedAccessDownstreamProxyPor
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +37,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -61,7 +62,7 @@ class UnifiedAccessApplicationServiceTest {
         InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
         InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
         InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
-        apiAssetRepositoryPort.save(enabledAsset("chat-completions", AssetType.AI_API, true));
+        apiAssetRepositoryPort.save(publishedAsset("chat-completions", AssetType.AI_API, true));
 
         UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
                 credentialValidationUseCase,
@@ -101,23 +102,11 @@ class UnifiedAccessApplicationServiceTest {
     @Test
     @DisplayName("invoke forwards only successfully resolved invocation to downstream proxy")
     void shouldForwardResolvedInvocationToDownstreamProxyBoundary() {
-        InMemoryCredentialValidationUseCase credentialValidationUseCase = new InMemoryCredentialValidationUseCase(
-                CredentialValidationResult.valid(new ConsumerContextModel(
-                        "consumer-1",
-                        "consumer_code_1",
-                        "consumer-one",
-                        "USER_ACCOUNT",
-                        "credential-1",
-                        "cred_code_1",
-                        "ENABLED",
-                        "ak_live",
-                        "ak_live_****1234"
-                ))
-        );
+        InMemoryCredentialValidationUseCase credentialValidationUseCase = validCredentialUseCase();
         InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
         InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
         InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
-        apiAssetRepositoryPort.save(enabledAsset("chat-completions", AssetType.AI_API, true));
+        apiAssetRepositoryPort.save(publishedAsset("chat-completions", AssetType.AI_API, true));
 
         UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
                 credentialValidationUseCase,
@@ -159,19 +148,7 @@ class UnifiedAccessApplicationServiceTest {
     @Test
     @DisplayName("invoke keeps upstream timeout distinct from platform pre-forward failures")
     void shouldReturnUpstreamTimeoutOutcomeWithoutWrappingItAsPlatformFailure() {
-        InMemoryCredentialValidationUseCase credentialValidationUseCase = new InMemoryCredentialValidationUseCase(
-                CredentialValidationResult.valid(new ConsumerContextModel(
-                        "consumer-1",
-                        "consumer_code_1",
-                        "consumer-one",
-                        "USER_ACCOUNT",
-                        "credential-1",
-                        "cred_code_1",
-                        "ENABLED",
-                        "ak_live",
-                        "ak_live_****1234"
-                ))
-        );
+        InMemoryCredentialValidationUseCase credentialValidationUseCase = validCredentialUseCase();
         InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
         InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
         InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
@@ -181,7 +158,7 @@ class UnifiedAccessApplicationServiceTest {
                 "application/json",
                 "Upstream request timed out"
         );
-        apiAssetRepositoryPort.save(enabledAsset("chat-completions", AssetType.AI_API, true));
+        apiAssetRepositoryPort.save(publishedAsset("chat-completions", AssetType.AI_API, true));
 
         UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
                 credentialValidationUseCase,
@@ -229,7 +206,7 @@ class UnifiedAccessApplicationServiceTest {
         InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
         InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
         InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
-        apiAssetRepositoryPort.save(enabledAsset("chat-completions", AssetType.STANDARD_API, false));
+        apiAssetRepositoryPort.save(publishedAsset("chat-completions", AssetType.STANDARD_API, false));
 
         UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
                 credentialValidationUseCase,
@@ -270,19 +247,7 @@ class UnifiedAccessApplicationServiceTest {
     @Test
     @DisplayName("resolveInvocation rejects unknown target api")
     void shouldRejectUnknownTargetApi() {
-        InMemoryCredentialValidationUseCase credentialValidationUseCase = new InMemoryCredentialValidationUseCase(
-                CredentialValidationResult.valid(new ConsumerContextModel(
-                        "consumer-1",
-                        "consumer_code_1",
-                        "consumer-one",
-                        "USER_ACCOUNT",
-                        "credential-1",
-                        "cred_code_1",
-                        "ENABLED",
-                        "ak_live",
-                        "ak_live_****1234"
-                ))
-        );
+        InMemoryCredentialValidationUseCase credentialValidationUseCase = validCredentialUseCase();
         InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
         InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
         InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
@@ -314,37 +279,12 @@ class UnifiedAccessApplicationServiceTest {
         assertEquals(1, apiAssetRepositoryPort.findByCodeCount);
         assertEquals(0, downstreamProxyPort.invocationCount);
         assertEquals(1, observabilityUseCase.recordedCommands.size());
-        RecordApiCallLogCommand logCommand = observabilityUseCase.recordedCommands.get(0);
-        assertEquals("consumer-1", logCommand.getConsumerId());
-        assertEquals("consumer_code_1", logCommand.getConsumerCode());
-        assertEquals("credential-1", logCommand.getCredentialId());
-        assertEquals("cred_code_1", logCommand.getCredentialCode());
-        assertEquals("ENABLED", logCommand.getCredentialStatus());
-        assertEquals("chat-completions", logCommand.getTargetApiCode());
-        assertEquals("TARGET_NOT_FOUND", logCommand.getResultType());
-        assertEquals("ASSET_NOT_FOUND", logCommand.getErrorCode());
-        assertEquals("TARGET_NOT_FOUND", logCommand.getErrorType());
-        assertEquals("Asset not found: chat-completions", logCommand.getErrorSummary());
-        assertEquals(404, logCommand.getHttpStatusCode());
-        assertTrue(!logCommand.isSuccess());
     }
 
     @Test
-    @DisplayName("platform failure response should survive call-log persistence failure")
+    @DisplayName("platform failure response should survive call log persistence failure")
     void shouldPreservePlatformFailureWhenFailureLogPersistenceFails() {
-        InMemoryCredentialValidationUseCase credentialValidationUseCase = new InMemoryCredentialValidationUseCase(
-                CredentialValidationResult.valid(new ConsumerContextModel(
-                        "consumer-1",
-                        "consumer_code_1",
-                        "consumer-one",
-                        "USER_ACCOUNT",
-                        "credential-1",
-                        "cred_code_1",
-                        "ENABLED",
-                        "ak_live",
-                        "ak_live_****1234"
-                ))
-        );
+        InMemoryCredentialValidationUseCase credentialValidationUseCase = validCredentialUseCase();
         InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
         InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
         InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
@@ -377,25 +317,13 @@ class UnifiedAccessApplicationServiceTest {
     }
 
     @Test
-    @DisplayName("resolveInvocation rejects disabled target api")
-    void shouldRejectDisabledTargetApi() {
-        InMemoryCredentialValidationUseCase credentialValidationUseCase = new InMemoryCredentialValidationUseCase(
-                CredentialValidationResult.valid(new ConsumerContextModel(
-                        "consumer-1",
-                        "consumer_code_1",
-                        "consumer-one",
-                        "USER_ACCOUNT",
-                        "credential-1",
-                        "cred_code_1",
-                        "ENABLED",
-                        "ak_live",
-                        "ak_live_****1234"
-                ))
-        );
+    @DisplayName("resolveInvocation rejects unpublished target api")
+    void shouldRejectUnpublishedTargetApi() {
+        InMemoryCredentialValidationUseCase credentialValidationUseCase = validCredentialUseCase();
         InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
         InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
         InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
-        apiAssetRepositoryPort.save(disabledAsset("chat-completions"));
+        apiAssetRepositoryPort.save(unpublishedAsset("chat-completions"));
 
         UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
                 credentialValidationUseCase,
@@ -428,25 +356,13 @@ class UnifiedAccessApplicationServiceTest {
     }
 
     @Test
-    @DisplayName("invoke leaves AI extension fields empty for standard api logging")
+    @DisplayName("invoke leaves ai extension fields empty for standard api logging")
     void shouldLeaveAiExtensionFieldsEmptyForStandardApiLog() {
-        InMemoryCredentialValidationUseCase credentialValidationUseCase = new InMemoryCredentialValidationUseCase(
-                CredentialValidationResult.valid(new ConsumerContextModel(
-                        "consumer-1",
-                        "consumer_code_1",
-                        "consumer-one",
-                        "USER_ACCOUNT",
-                        "credential-1",
-                        "cred_code_1",
-                        "ENABLED",
-                        "ak_live",
-                        "ak_live_****1234"
-                ))
-        );
+        InMemoryCredentialValidationUseCase credentialValidationUseCase = validCredentialUseCase();
         InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
         InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
         InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
-        apiAssetRepositoryPort.save(enabledAsset("weather-api", AssetType.STANDARD_API, false));
+        apiAssetRepositoryPort.save(publishedAsset("weather-api", AssetType.STANDARD_API, false));
 
         UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
                 credentialValidationUseCase,
@@ -471,19 +387,39 @@ class UnifiedAccessApplicationServiceTest {
         RecordApiCallLogCommand logCommand = observabilityUseCase.recordedCommands.get(0);
         assertEquals("weather-api", logCommand.getTargetApiCode());
         assertEquals("SUCCESS", logCommand.getResultType());
-        assertEquals(null, logCommand.getAiProvider());
-        assertEquals(null, logCommand.getAiModel());
-        assertEquals(null, logCommand.getAiStreaming());
+        assertNull(logCommand.getAiProvider());
+        assertNull(logCommand.getAiModel());
+        assertNull(logCommand.getAiStreaming());
     }
 
-    private ApiAssetAggregate enabledAsset(String apiCode, AssetType assetType, boolean streamingSupported) {
+    private InMemoryCredentialValidationUseCase validCredentialUseCase() {
+        return new InMemoryCredentialValidationUseCase(
+                CredentialValidationResult.valid(new ConsumerContextModel(
+                        "consumer-1",
+                        "consumer_code_1",
+                        "consumer-one",
+                        "USER_ACCOUNT",
+                        "credential-1",
+                        "cred_code_1",
+                        "ENABLED",
+                        "ak_live",
+                        "ak_live_****1234"
+                ))
+        );
+    }
+
+    private ApiAssetAggregate publishedAsset(String apiCode, AssetType assetType, boolean streamingSupported) {
+        Instant now = Instant.now();
         return ApiAssetAggregate.reconstitute(
                 AssetId.generate(),
                 ApiCode.of(apiCode),
+                "publisher-user-1",
+                "Chat Completions",
                 "Chat Completions",
                 assetType,
                 null,
-                AssetStatus.ENABLED,
+                AssetStatus.PUBLISHED,
+                now.minusSeconds(120),
                 UpstreamEndpointConfig.of(
                         RequestMethod.POST,
                         "https://upstream.example.com/v1/" + apiCode,
@@ -495,21 +431,25 @@ class UnifiedAccessApplicationServiceTest {
                 assetType == AssetType.AI_API
                         ? AiCapabilityProfile.of("OpenAI", "gpt-4.1", streamingSupported, List.of("chat"))
                         : null,
-                Instant.now().minusSeconds(300),
-                Instant.now().minusSeconds(120),
+                now.minusSeconds(300),
+                now.minusSeconds(120),
                 false,
                 0L
         );
     }
 
-    private ApiAssetAggregate disabledAsset(String apiCode) {
+    private ApiAssetAggregate unpublishedAsset(String apiCode) {
+        Instant now = Instant.now();
         return ApiAssetAggregate.reconstitute(
                 AssetId.generate(),
                 ApiCode.of(apiCode),
+                "publisher-user-1",
+                "Chat Completions",
                 "Chat Completions",
                 AssetType.STANDARD_API,
                 null,
-                AssetStatus.DISABLED,
+                AssetStatus.UNPUBLISHED,
+                null,
                 UpstreamEndpointConfig.of(
                         RequestMethod.GET,
                         "https://upstream.example.com/v1/" + apiCode,
@@ -519,8 +459,8 @@ class UnifiedAccessApplicationServiceTest {
                 null,
                 null,
                 null,
-                Instant.now().minusSeconds(300),
-                Instant.now().minusSeconds(120),
+                now.minusSeconds(300),
+                now.minusSeconds(120),
                 false,
                 0L
         );

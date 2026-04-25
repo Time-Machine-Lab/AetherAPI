@@ -220,11 +220,11 @@ public class GlobalExceptionHandler {
         if (message.contains("already exists")) {
             return CatalogErrorCodes.API_CODE_ALREADY_EXISTS;
         }
-        if (message.contains("already enabled")) {
-            return CatalogErrorCodes.ASSET_ALREADY_ENABLED;
+        if (message.contains("already published")) {
+            return CatalogErrorCodes.ASSET_ALREADY_PUBLISHED;
         }
-        if (message.contains("already disabled")) {
-            return CatalogErrorCodes.ASSET_ALREADY_DISABLED;
+        if (message.contains("already unpublished") || message.contains("is not published")) {
+            return CatalogErrorCodes.ASSET_ALREADY_UNPUBLISHED;
         }
         if (message.contains("Referenced category is invalid")) {
             return CatalogErrorCodes.ASSET_CATEGORY_INVALID;
@@ -241,7 +241,7 @@ public class GlobalExceptionHandler {
         if (message.contains("not found")) {
             return CatalogErrorCodes.ASSET_NOT_FOUND;
         }
-        return CatalogErrorCodes.ASSET_ACTIVATION_INCOMPLETE;
+        return CatalogErrorCodes.ASSET_PUBLISH_INCOMPLETE;
     }
 
     private String mapConsumerAuthExceptionToCode(String message) {
@@ -342,7 +342,8 @@ public class GlobalExceptionHandler {
             if (requestUri.startsWith("/api/v1/current-user/api-call-logs")) {
                 return ObservabilityErrorCodes.API_CALL_LOG_INVALID_QUERY;
             }
-            if (requestUri.startsWith("/api/v1/assets/") || requestUri.startsWith("/api/v1/discovery/assets")) {
+            if (requestUri.startsWith("/api/v1/current-user/assets/")
+                    || requestUri.startsWith("/api/v1/discovery/assets")) {
                 return CatalogErrorCodes.API_CODE_INVALID;
             }
         }
@@ -363,7 +364,8 @@ public class GlobalExceptionHandler {
             if (requestUri.startsWith("/api/v1/current-user/api-call-logs")) {
                 return "Invalid API call log request parameters";
             }
-            if (requestUri.startsWith("/api/v1/assets/") || requestUri.startsWith("/api/v1/discovery/assets")) {
+            if (requestUri.startsWith("/api/v1/current-user/assets/")
+                    || requestUri.startsWith("/api/v1/discovery/assets")) {
                 return "Invalid asset request parameters";
             }
         }
@@ -371,7 +373,8 @@ public class GlobalExceptionHandler {
     }
 
     private boolean isAssetListQueryRequest(String requestUri) {
-        return "/api/v1/assets".equals(requestUri) || "/api/v1/assets/".equals(requestUri);
+        return "/api/v1/current-user/assets".equals(requestUri)
+                || "/api/v1/current-user/assets/".equals(requestUri);
     }
 
     private boolean isAssetListQueryIllegalArgument(String message, String requestUri) {

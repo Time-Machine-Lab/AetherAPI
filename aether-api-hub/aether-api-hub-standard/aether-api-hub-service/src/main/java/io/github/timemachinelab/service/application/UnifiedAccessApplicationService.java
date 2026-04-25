@@ -121,7 +121,7 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
     }
 
     private void ensureTargetAvailable(ApiAssetAggregate targetApi, String apiCode, ConsumerContextModel consumerContext) {
-        if (targetApi.getStatus() != AssetStatus.ENABLED) {
+        if (targetApi.getStatus() != AssetStatus.PUBLISHED) {
             throw platformFailure(
                     UnifiedAccessErrorCodes.TARGET_API_UNAVAILABLE,
                     "Target API is unavailable: " + apiCode,

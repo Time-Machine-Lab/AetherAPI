@@ -10,7 +10,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
- * MyBatis-backed asset management query port.
+ * MyBatis-backed asset workspace query port.
  */
 @Repository
 public class MybatisApiAssetQueryPort implements ApiAssetQueryPort {
@@ -24,16 +24,22 @@ public class MybatisApiAssetQueryPort implements ApiAssetQueryPort {
     }
 
     @Override
-    public List<ApiAssetSummaryModel> findPage(String status, String categoryCode, String keyword, int page, int size) {
-        return mapper.selectPage(status, categoryCode, keyword, size, Math.max(0, (page - 1) * size))
+    public List<ApiAssetSummaryModel> findPage(
+            String ownerUserId,
+            String status,
+            String categoryCode,
+            String keyword,
+            int page,
+            int size) {
+        return mapper.selectPage(ownerUserId, status, categoryCode, keyword, size, Math.max(0, (page - 1) * size))
                 .stream()
                 .map(this::toModel)
                 .toList();
     }
 
     @Override
-    public long count(String status, String categoryCode, String keyword) {
-        return mapper.count(status, categoryCode, keyword);
+    public long count(String ownerUserId, String status, String categoryCode, String keyword) {
+        return mapper.count(ownerUserId, status, categoryCode, keyword);
     }
 
     private ApiAssetSummaryModel toModel(ApiAssetManagementQueryRecord record) {
@@ -44,6 +50,8 @@ public class MybatisApiAssetQueryPort implements ApiAssetQueryPort {
                 record.getCategoryCode(),
                 record.getCategoryName(),
                 record.getStatus(),
+                record.getPublisherDisplayName(),
+                formatInstant(record.getPublishedAt()),
                 formatInstant(record.getUpdatedAt())
         );
     }

@@ -20,6 +20,12 @@ public class CatalogDiscoveryAssetSummaryResp {
     @JsonProperty("category")
     private CatalogDiscoveryCategoryResp category;
 
+    @JsonProperty("publisher")
+    private CatalogDiscoveryPublisherResp publisher;
+
+    @JsonProperty("publishedAt")
+    private String publishedAt;
+
     public CatalogDiscoveryAssetSummaryResp() {
     }
 
@@ -27,11 +33,15 @@ public class CatalogDiscoveryAssetSummaryResp {
             String apiCode,
             String assetName,
             AssetType assetType,
-            CatalogDiscoveryCategoryResp category) {
+            CatalogDiscoveryCategoryResp category,
+            CatalogDiscoveryPublisherResp publisher,
+            String publishedAt) {
         this.apiCode = apiCode;
         this.assetName = assetName;
         this.assetType = assetType;
         this.category = category;
+        this.publisher = publisher;
+        this.publishedAt = publishedAt;
     }
 
     public String getApiCode() {
@@ -64,5 +74,21 @@ public class CatalogDiscoveryAssetSummaryResp {
 
     public void setCategory(CatalogDiscoveryCategoryResp category) {
         this.category = category;
+    }
+
+    public CatalogDiscoveryPublisherResp getPublisher() {
+        return publisher;
+    }
+
+    public void setPublisher(CatalogDiscoveryPublisherResp publisher) {
+        this.publisher = publisher;
+    }
+
+    public String getPublishedAt() {
+        return publishedAt;
+    }
+
+    public void setPublishedAt(String publishedAt) {
+        this.publishedAt = publishedAt;
     }
 }

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,9 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
-/**
- * MyBatis catalog discovery query port tests.
- */
 @ExtendWith(MockitoExtension.class)
 class MybatisCatalogDiscoveryQueryPortTest {
 
@@ -36,27 +34,26 @@ class MybatisCatalogDiscoveryQueryPortTest {
     }
 
     @Test
-    @DisplayName("list should only return enabled assets")
-    void shouldReturnOnlyEnabledAssetsInList() {
+    @DisplayName("list should map published discovery assets with publisher summary")
+    void shouldMapPublishedDiscoveryAssetsWithPublisherSummary() {
         when(mapper.selectAssetSummaries()).thenReturn(List.of(
-                assetRecord("weather-forecast", "DRAFT", "STANDARD_API"),
-                assetRecord("chat-completion", "ENABLED", "AI_API"),
-                assetRecord("invoice-sync", "DISABLED", "STANDARD_API")
+                assetRecord("chat-completion", "PUBLISHED", "AI_API", "Alice"),
+                assetRecord("weather-forecast", "PUBLISHED", "STANDARD_API", "Bob")
         ));
 
         List<CatalogDiscoveryAssetSummaryModel> result = queryPort.listDiscoverableAssets();
 
-        assertEquals(1, result.size());
+        assertEquals(2, result.size());
         assertEquals("chat-completion", result.get(0).getApiCode());
         assertEquals("AI_API", result.get(0).getAssetType());
         assertEquals("tools", result.get(0).getCategory().getCategoryCode());
+        assertEquals("Alice", result.get(0).getPublisher().getDisplayName());
     }
 
     @Test
-    @DisplayName("detail should reject non-enabled assets")
-    void shouldRejectNonEnabledAssetDetail() {
-        when(mapper.selectAssetDetail("invoice-sync"))
-                .thenReturn(assetRecord("invoice-sync", "DISABLED", "STANDARD_API"));
+    @DisplayName("detail should return empty when mapper has no published asset")
+    void shouldReturnEmptyWhenMapperHasNoPublishedAsset() {
+        when(mapper.selectAssetDetail("invoice-sync")).thenReturn(null);
 
         Optional<CatalogDiscoveryAssetDetailModel> result = queryPort.findDiscoverableAssetDetail("invoice-sync");
 
@@ -66,7 +63,7 @@ class MybatisCatalogDiscoveryQueryPortTest {
     @Test
     @DisplayName("detail should remain readable when examples are absent")
     void shouldAllowDetailWithoutExampleSnapshot() {
-        CatalogDiscoveryAssetRecord record = assetRecord("weather-forecast", "ENABLED", "STANDARD_API");
+        CatalogDiscoveryAssetRecord record = assetRecord("weather-forecast", "PUBLISHED", "STANDARD_API", "Alice");
         record.setRequestExample(null);
         record.setResponseExample(null);
         when(mapper.selectAssetDetail("weather-forecast")).thenReturn(record);
@@ -76,12 +73,13 @@ class MybatisCatalogDiscoveryQueryPortTest {
         assertTrue(result.isPresent());
         assertNull(result.get().getExampleSnapshot());
         assertNull(result.get().getAiCapabilityProfile());
+        assertEquals("Alice", result.get().getPublisher().getDisplayName());
     }
 
     @Test
-    @DisplayName("detail should expose AI metadata for AI assets")
+    @DisplayName("detail should expose ai metadata for ai assets")
     void shouldExposeAiMetadataInDetail() {
-        CatalogDiscoveryAssetRecord record = assetRecord("chat-completion", "ENABLED", "AI_API");
+        CatalogDiscoveryAssetRecord record = assetRecord("chat-completion", "PUBLISHED", "AI_API", "Alice");
         record.setAiProvider("OpenAI");
         record.setAiModel("gpt-4.1");
         record.setAiStreamingSupported(true);
@@ -98,39 +96,16 @@ class MybatisCatalogDiscoveryQueryPortTest {
         assertFalse(result.get().getAiCapabilityProfile().getCapabilityTags().isEmpty());
     }
 
-    @Test
-    @DisplayName("revised enabled asset should appear in discovery and draft should remain hidden")
-    void shouldExposeEnabledRevisedAssetAndHideDraftAsset() {
-        CatalogDiscoveryAssetRecord enabled = assetRecord("weather-forecast", "ENABLED", "STANDARD_API");
-        enabled.setAssetName("天气预报");
-        enabled.setRequestMethod("GET");
-        enabled.setAuthScheme("NONE");
-        enabled.setRequestTemplate("template");
-        CatalogDiscoveryAssetRecord draft = assetRecord("draft-weather", "DRAFT", "STANDARD_API");
-
-        when(mapper.selectAssetSummaries()).thenReturn(List.of(enabled, draft));
-        when(mapper.selectAssetDetail("weather-forecast")).thenReturn(enabled);
-
-        List<CatalogDiscoveryAssetSummaryModel> list = queryPort.listDiscoverableAssets();
-        Optional<CatalogDiscoveryAssetDetailModel> detail =
-                queryPort.findDiscoverableAssetDetail("weather-forecast");
-
-        assertEquals(1, list.size());
-        assertEquals("weather-forecast", list.get(0).getApiCode());
-        assertTrue(detail.isPresent());
-        assertEquals("天气预报", detail.get().getAssetName());
-        assertEquals("GET", detail.get().getRequestMethod());
-        assertEquals("NONE", detail.get().getAuthScheme());
-    }
-
-    private CatalogDiscoveryAssetRecord assetRecord(String apiCode, String status, String assetType) {
+    private CatalogDiscoveryAssetRecord assetRecord(String apiCode, String status, String assetType, String publisher) {
         CatalogDiscoveryAssetRecord record = new CatalogDiscoveryAssetRecord();
         record.setApiCode(apiCode);
         record.setStatus(status);
         record.setAssetType(assetType);
         record.setAssetName("Asset " + apiCode);
         record.setCategoryCode("tools");
-        record.setCategoryName("工具服务");
+        record.setCategoryName("Tools");
+        record.setPublisherDisplayName(publisher);
+        record.setPublishedAt(LocalDateTime.of(2026, 4, 24, 8, 0));
         record.setRequestMethod("POST");
         record.setAuthScheme("HEADER_TOKEN");
         record.setRequestTemplate("template");

@@ -27,6 +27,12 @@ public class ApiAssetSummaryResp {
     @JsonProperty("status")
     private AssetStatus status;
 
+    @JsonProperty("publisherDisplayName")
+    private String publisherDisplayName;
+
+    @JsonProperty("publishedAt")
+    private String publishedAt;
+
     @JsonProperty("updatedAt")
     private String updatedAt;
 
@@ -40,6 +46,8 @@ public class ApiAssetSummaryResp {
             String categoryCode,
             String categoryName,
             AssetStatus status,
+            String publisherDisplayName,
+            String publishedAt,
             String updatedAt) {
         this.apiCode = apiCode;
         this.assetName = assetName;
@@ -47,6 +55,8 @@ public class ApiAssetSummaryResp {
         this.categoryCode = categoryCode;
         this.categoryName = categoryName;
         this.status = status;
+        this.publisherDisplayName = publisherDisplayName;
+        this.publishedAt = publishedAt;
         this.updatedAt = updatedAt;
     }
 
@@ -96,6 +106,22 @@ public class ApiAssetSummaryResp {
 
     public void setStatus(AssetStatus status) {
         this.status = status;
+    }
+
+    public String getPublisherDisplayName() {
+        return publisherDisplayName;
+    }
+
+    public void setPublisherDisplayName(String publisherDisplayName) {
+        this.publisherDisplayName = publisherDisplayName;
+    }
+
+    public String getPublishedAt() {
+        return publishedAt;
+    }
+
+    public void setPublishedAt(String publishedAt) {
+        this.publishedAt = publishedAt;
     }
 
     public String getUpdatedAt() {

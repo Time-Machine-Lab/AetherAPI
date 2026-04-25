@@ -13,6 +13,8 @@ public class ApiAssetManagementQueryRecord {
     private String categoryCode;
     private String categoryName;
     private String status;
+    private String publisherDisplayName;
+    private LocalDateTime publishedAt;
     private LocalDateTime updatedAt;
 
     public String getApiCode() {
@@ -61,6 +63,22 @@ public class ApiAssetManagementQueryRecord {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getPublisherDisplayName() {
+        return publisherDisplayName;
+    }
+
+    public void setPublisherDisplayName(String publisherDisplayName) {
+        this.publisherDisplayName = publisherDisplayName;
+    }
+
+    public LocalDateTime getPublishedAt() {
+        return publishedAt;
+    }
+
+    public void setPublishedAt(LocalDateTime publishedAt) {
+        this.publishedAt = publishedAt;
     }
 
     public LocalDateTime getUpdatedAt() {

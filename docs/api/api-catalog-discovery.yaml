@@ -1,29 +1,29 @@
 openapi: 3.0.3
 info:
-  title: API Catalog Discovery 浏览接口
+  title: API Catalog Discovery API
   version: 1.0.0
   description: |
-    API Catalog Discovery 只读浏览接口。
-    提供 API 市场场景使用的已启用资产列表与详情查询能力。
-    对外仅暴露可浏览字段，不返回上游地址、鉴权配置等写模型内部信息。
+    API 市场只读发现接口。
+    对应控制器：CatalogDiscoveryController.java
+    只返回已发布且未删除的资产，不暴露写模型内部敏感配置。
 servers:
   - url: /api/v1
-    description: API Catalog Discovery v1
+    description: Aether API Hub v1
 
 tags:
   - name: Discovery
-    description: API 市场浏览查询
+    description: API 市场发现
 
 paths:
   /discovery/assets:
     get:
-      summary: 查询已启用 API 资产列表
+      summary: 查询市场已发布资产列表
       operationId: listDiscoveryAssets
       tags:
         - Discovery
       responses:
         '200':
-          description: 成功返回已启用资产列表
+          description: 已发布资产列表
           content:
             application/json:
               schema:
@@ -31,7 +31,7 @@ paths:
 
   /discovery/assets/{apiCode}:
     get:
-      summary: 查询已启用 API 资产详情
+      summary: 查询市场已发布资产详情
       operationId: getDiscoveryAssetDetail
       tags:
         - Discovery
@@ -39,12 +39,11 @@ paths:
         - name: apiCode
           in: path
           required: true
-          description: 资产业务编码(API Code)
           schema:
             type: string
       responses:
         '200':
-          description: 成功返回资产详情
+          description: 已发布资产详情
           content:
             application/json:
               schema:
@@ -59,7 +58,7 @@ paths:
                 code: API_CODE_INVALID
                 message: Invalid asset request parameters
         '404':
-          description: 资产不存在或未处于启用状态
+          description: 资产不存在、未发布或已删除
           content:
             application/json:
               schema:
@@ -80,21 +79,23 @@ components:
       properties:
         apiCode:
           type: string
-          description: 资产业务编码(API Code)
           example: weather-forecast
         assetName:
           type: string
           nullable: true
-          description: 资产展示名称
-          example: 天气预报
         assetType:
           type: string
           enum:
             - STANDARD_API
             - AI_API
-          description: 资产类型
         category:
           $ref: '#/components/schemas/CatalogDiscoveryCategoryResp'
+        publisher:
+          $ref: '#/components/schemas/CatalogDiscoveryPublisherResp'
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
 
     CatalogDiscoveryCategoryResp:
       type: object
@@ -103,32 +104,39 @@ components:
         categoryCode:
           type: string
           nullable: true
-          description: 分类编码
-          example: tools
         categoryName:
           type: string
           nullable: true
-          description: 分类名称
-          example: 工具服务
+
+    CatalogDiscoveryPublisherResp:
+      type: object
+      nullable: true
+      properties:
+        displayName:
+          type: string
+          nullable: true
 
     CatalogDiscoveryAssetDetailResp:
       type: object
       properties:
         apiCode:
           type: string
-          description: 资产业务编码(API Code)
         assetName:
           type: string
           nullable: true
-          description: 资产展示名称
         assetType:
           type: string
           enum:
             - STANDARD_API
             - AI_API
-          description: 资产类型
         category:
           $ref: '#/components/schemas/CatalogDiscoveryCategoryResp'
+        publisher:
+          $ref: '#/components/schemas/CatalogDiscoveryPublisherResp'
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
         requestMethod:
           type: string
           enum:
@@ -138,7 +146,6 @@ components:
             - PATCH
             - DELETE
           nullable: true
-          description: 对外展示的调用方法摘要
         authScheme:
           type: string
           enum:
@@ -146,11 +153,9 @@ components:
             - HEADER_TOKEN
             - QUERY_TOKEN
           nullable: true
-          description: 对外展示的鉴权方式摘要
         requestTemplate:
           type: string
           nullable: true
-          description: 请求模板说明
         exampleSnapshot:
           $ref: '#/components/schemas/CatalogDiscoveryExampleSnapshotResp'
         aiCapabilityProfile:
@@ -163,11 +168,9 @@ components:
         requestExample:
           type: string
           nullable: true
-          description: 请求示例快照
         responseExample:
           type: string
           nullable: true
-          description: 响应示例快照
 
     CatalogDiscoveryAiCapabilityProfileResp:
       type: object
@@ -175,30 +178,19 @@ components:
       properties:
         provider:
           type: string
-          description: AI 服务提供商
-          example: OpenAI
         model:
           type: string
-          description: 模型标识
-          example: gpt-4.1
         streamingSupported:
           type: boolean
-          description: 是否支持流式输出
         capabilityTags:
           type: array
           items:
             type: string
-          description: 能力标签列表
-          example:
-            - chat
-            - reasoning
 
     ErrorResp:
       type: object
       properties:
         code:
           type: string
-          description: 错误码
         message:
           type: string
-          description: 错误信息

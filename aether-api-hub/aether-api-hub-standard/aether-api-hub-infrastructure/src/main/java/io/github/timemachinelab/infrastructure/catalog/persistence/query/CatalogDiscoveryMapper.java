@@ -19,13 +19,16 @@ public interface CatalogDiscoveryMapper {
             "  a.asset_name AS assetName,",
             "  a.asset_type AS assetType,",
             "  a.category_code AS categoryCode,",
-            "  c.category_name AS categoryName",
+            "  c.category_name AS categoryName,",
+            "  a.publisher_display_name AS publisherDisplayName,",
+            "  a.published_at AS publishedAt",
             "FROM api_asset a",
             "LEFT JOIN api_category c",
             "  ON c.category_code = a.category_code",
             " AND c.is_deleted = FALSE",
             "WHERE a.is_deleted = FALSE",
-            "ORDER BY a.created_at DESC"
+            "  AND a.status = 'PUBLISHED'",
+            "ORDER BY a.published_at DESC, a.created_at DESC"
     })
     List<CatalogDiscoveryAssetRecord> selectAssetSummaries();
 
@@ -37,6 +40,8 @@ public interface CatalogDiscoveryMapper {
             "  a.asset_type AS assetType,",
             "  a.category_code AS categoryCode,",
             "  c.category_name AS categoryName,",
+            "  a.publisher_display_name AS publisherDisplayName,",
+            "  a.published_at AS publishedAt,",
             "  a.request_method AS requestMethod,",
             "  a.auth_scheme AS authScheme,",
             "  a.request_template AS requestTemplate,",
@@ -51,6 +56,7 @@ public interface CatalogDiscoveryMapper {
             "  ON c.category_code = a.category_code",
             " AND c.is_deleted = FALSE",
             "WHERE a.is_deleted = FALSE",
+            "  AND a.status = 'PUBLISHED'",
             "  AND a.api_code = #{apiCode}",
             "LIMIT 1"
     })

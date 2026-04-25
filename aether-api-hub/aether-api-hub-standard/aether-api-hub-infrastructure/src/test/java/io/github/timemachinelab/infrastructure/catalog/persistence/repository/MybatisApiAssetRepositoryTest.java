@@ -29,9 +29,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * MyBatis API asset repository tests.
- */
 @ExtendWith(MockitoExtension.class)
 class MybatisApiAssetRepositoryTest {
 
@@ -46,7 +43,7 @@ class MybatisApiAssetRepositoryTest {
     }
 
     @Test
-    @DisplayName("update should use persisted optimistic-lock version")
+    @DisplayName("update should use persisted optimistic lock version")
     void shouldUsePersistedVersionWhenUpdatingExistingAsset() {
         ApiAssetDo existing = existingDo();
         when(mapper.selectByCodeIncludingDeleted("weather-forecast")).thenReturn(existing);
@@ -57,7 +54,9 @@ class MybatisApiAssetRepositoryTest {
         ArgumentCaptor<ApiAssetDo> captor = ArgumentCaptor.forClass(ApiAssetDo.class);
         verify(mapper).updateById(captor.capture());
         assertEquals(0L, captor.getValue().getVersion());
-        assertEquals("天气预报", captor.getValue().getAssetName());
+        assertEquals("user-1", captor.getValue().getOwnerUserId());
+        assertEquals("Alice", captor.getValue().getPublisherDisplayName());
+        assertEquals("Weather Forecast", captor.getValue().getAssetName());
         assertEquals("tools", captor.getValue().getCategoryCode());
         assertEquals("https://upstream.example.com/weather", captor.getValue().getUpstreamUrl());
     }
@@ -81,6 +80,8 @@ class MybatisApiAssetRepositoryTest {
         ApiAssetDo existing = new ApiAssetDo();
         existing.setId("550e8400-e29b-41d4-a716-446655440000");
         existing.setApiCode("weather-forecast");
+        existing.setOwnerUserId("user-1");
+        existing.setPublisherDisplayName("Alice");
         existing.setAssetName(null);
         existing.setAssetType("STANDARD_API");
         existing.setStatus("DRAFT");
@@ -96,10 +97,13 @@ class MybatisApiAssetRepositoryTest {
         return ApiAssetAggregate.reconstitute(
                 AssetId.of("550e8400-e29b-41d4-a716-446655440000"),
                 ApiCode.of("weather-forecast"),
-                "天气预报",
+                "user-1",
+                "Alice",
+                "Weather Forecast",
                 AssetType.STANDARD_API,
                 CategoryRef.of("tools"),
                 AssetStatus.DRAFT,
+                null,
                 UpstreamEndpointConfig.of(
                         RequestMethod.GET,
                         "https://upstream.example.com/weather",

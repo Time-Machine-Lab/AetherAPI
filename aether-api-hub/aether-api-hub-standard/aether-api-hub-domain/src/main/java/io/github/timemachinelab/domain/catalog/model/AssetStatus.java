@@ -1,11 +1,10 @@
 package io.github.timemachinelab.domain.catalog.model;
 
 /**
- * API 资产状态。
+ * API asset status.
  */
 public enum AssetStatus {
     DRAFT,
-    ENABLED,
-    DISABLED
+    PUBLISHED,
+    UNPUBLISHED
 }
-

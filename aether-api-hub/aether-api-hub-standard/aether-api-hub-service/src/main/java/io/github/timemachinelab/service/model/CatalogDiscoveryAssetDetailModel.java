@@ -9,6 +9,8 @@ public class CatalogDiscoveryAssetDetailModel {
     private final String assetName;
     private final String assetType;
     private final CatalogDiscoveryCategoryModel category;
+    private final CatalogDiscoveryPublisherModel publisher;
+    private final String publishedAt;
     private final String requestMethod;
     private final String authScheme;
     private final String requestTemplate;
@@ -20,6 +22,8 @@ public class CatalogDiscoveryAssetDetailModel {
             String assetName,
             String assetType,
             CatalogDiscoveryCategoryModel category,
+            CatalogDiscoveryPublisherModel publisher,
+            String publishedAt,
             String requestMethod,
             String authScheme,
             String requestTemplate,
@@ -29,6 +33,8 @@ public class CatalogDiscoveryAssetDetailModel {
         this.assetName = assetName;
         this.assetType = assetType;
         this.category = category;
+        this.publisher = publisher;
+        this.publishedAt = publishedAt;
         this.requestMethod = requestMethod;
         this.authScheme = authScheme;
         this.requestTemplate = requestTemplate;
@@ -50,6 +56,14 @@ public class CatalogDiscoveryAssetDetailModel {
 
     public CatalogDiscoveryCategoryModel getCategory() {
         return category;
+    }
+
+    public CatalogDiscoveryPublisherModel getPublisher() {
+        return publisher;
+    }
+
+    public String getPublishedAt() {
+        return publishedAt;
     }
 
     public String getRequestMethod() {

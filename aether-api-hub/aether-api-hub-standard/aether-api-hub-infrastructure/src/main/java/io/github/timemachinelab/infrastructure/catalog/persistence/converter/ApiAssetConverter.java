@@ -21,7 +21,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * API 资产转换器。
+ * API asset converter.
  */
 public final class ApiAssetConverter {
 
@@ -37,10 +37,13 @@ public final class ApiAssetConverter {
         return ApiAssetAggregate.reconstitute(
                 AssetId.of(source.getId()),
                 ApiCode.of(source.getApiCode()),
+                source.getOwnerUserId(),
+                source.getPublisherDisplayName(),
                 source.getAssetName(),
                 AssetType.valueOf(source.getAssetType()),
                 CategoryRef.of(source.getCategoryCode()),
                 AssetStatus.valueOf(source.getStatus()),
+                toInstant(source.getPublishedAt()),
                 UpstreamEndpointConfig.of(
                         source.getRequestMethod() == null ? null : RequestMethod.valueOf(source.getRequestMethod()),
                         source.getUpstreamUrl(),
@@ -76,10 +79,13 @@ public final class ApiAssetConverter {
     private static void updateAllFields(ApiAssetDo target, ApiAssetAggregate source) {
         target.setId(source.getId().getValue());
         target.setApiCode(source.getCode().getValue());
+        target.setOwnerUserId(source.getOwnerUserId());
+        target.setPublisherDisplayName(source.getPublisherDisplayName());
         target.setAssetName(source.getName());
         target.setAssetType(source.getType().name());
         target.setCategoryCode(source.getCategoryRef() == null ? null : source.getCategoryRef().getCode());
         target.setStatus(source.getStatus().name());
+        target.setPublishedAt(toLocalDateTime(source.getPublishedAt()));
         target.setRequestMethod(source.getUpstreamConfig() == null || source.getUpstreamConfig().getRequestMethod() == null
                 ? null
                 : source.getUpstreamConfig().getRequestMethod().name());
@@ -95,8 +101,8 @@ public final class ApiAssetConverter {
         target.setAiModel(source.getAiCapabilityProfile() == null ? null : source.getAiCapabilityProfile().getModel());
         target.setAiStreamingSupported(source.getAiCapabilityProfile() == null ? null : source.getAiCapabilityProfile().isStreamingSupported());
         target.setAiCapabilityTagsJson(source.getAiCapabilityProfile() == null ? null : serializeTags(source.getAiCapabilityProfile().getCapabilityTags()));
-        target.setCreatedAt(LocalDateTime.ofInstant(source.getCreatedAt(), ZoneOffset.UTC));
-        target.setUpdatedAt(LocalDateTime.ofInstant(source.getUpdatedAt(), ZoneOffset.UTC));
+        target.setCreatedAt(toLocalDateTime(source.getCreatedAt()));
+        target.setUpdatedAt(toLocalDateTime(source.getUpdatedAt()));
         target.setIsDeleted(source.isDeleted());
         target.setVersion(source.getVersion());
     }
@@ -118,7 +124,11 @@ public final class ApiAssetConverter {
     }
 
     private static java.time.Instant toInstant(LocalDateTime value) {
-        return value == null ? java.time.Instant.now() : value.toInstant(ZoneOffset.UTC);
+        return value == null ? null : value.toInstant(ZoneOffset.UTC);
+    }
+
+    private static LocalDateTime toLocalDateTime(java.time.Instant value) {
+        return value == null ? null : LocalDateTime.ofInstant(value, ZoneOffset.UTC);
     }
 
     private static String serializeTags(List<String> tags) {
@@ -147,4 +157,3 @@ public final class ApiAssetConverter {
         return result;
     }
 }
-

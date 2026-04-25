@@ -1,5 +1,7 @@
 package io.github.timemachinelab.infrastructure.catalog.persistence.query;
 
+import java.time.LocalDateTime;
+
 /**
  * Catalog discovery query record.
  */
@@ -11,6 +13,8 @@ public class CatalogDiscoveryAssetRecord {
     private String assetType;
     private String categoryCode;
     private String categoryName;
+    private String publisherDisplayName;
+    private LocalDateTime publishedAt;
     private String requestMethod;
     private String authScheme;
     private String requestTemplate;
@@ -67,6 +71,22 @@ public class CatalogDiscoveryAssetRecord {
 
     public void setCategoryName(String categoryName) {
         this.categoryName = categoryName;
+    }
+
+    public String getPublisherDisplayName() {
+        return publisherDisplayName;
+    }
+
+    public void setPublisherDisplayName(String publisherDisplayName) {
+        this.publisherDisplayName = publisherDisplayName;
+    }
+
+    public LocalDateTime getPublishedAt() {
+        return publishedAt;
+    }
+
+    public void setPublishedAt(LocalDateTime publishedAt) {
+        this.publishedAt = publishedAt;
     }
 
     public String getRequestMethod() {

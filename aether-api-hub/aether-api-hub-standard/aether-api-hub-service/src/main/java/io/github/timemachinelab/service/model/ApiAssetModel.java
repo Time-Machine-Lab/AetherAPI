@@ -3,7 +3,7 @@ package io.github.timemachinelab.service.model;
 import java.util.List;
 
 /**
- * API 资产应用层模型。
+ * API asset application model.
  */
 public class ApiAssetModel {
 
@@ -13,6 +13,8 @@ public class ApiAssetModel {
     private final String assetType;
     private final String categoryCode;
     private final String status;
+    private final String publisherDisplayName;
+    private final String publishedAt;
     private final String requestMethod;
     private final String upstreamUrl;
     private final String authScheme;
@@ -24,6 +26,7 @@ public class ApiAssetModel {
     private final String aiModel;
     private final Boolean aiStreamingSupported;
     private final List<String> aiCapabilityTags;
+    private final boolean deleted;
     private final String createdAt;
     private final String updatedAt;
 
@@ -34,6 +37,8 @@ public class ApiAssetModel {
             String assetType,
             String categoryCode,
             String status,
+            String publisherDisplayName,
+            String publishedAt,
             String requestMethod,
             String upstreamUrl,
             String authScheme,
@@ -45,6 +50,7 @@ public class ApiAssetModel {
             String aiModel,
             Boolean aiStreamingSupported,
             List<String> aiCapabilityTags,
+            boolean deleted,
             String createdAt,
             String updatedAt) {
         this.id = id;
@@ -53,6 +59,8 @@ public class ApiAssetModel {
         this.assetType = assetType;
         this.categoryCode = categoryCode;
         this.status = status;
+        this.publisherDisplayName = publisherDisplayName;
+        this.publishedAt = publishedAt;
         this.requestMethod = requestMethod;
         this.upstreamUrl = upstreamUrl;
         this.authScheme = authScheme;
@@ -64,6 +72,7 @@ public class ApiAssetModel {
         this.aiModel = aiModel;
         this.aiStreamingSupported = aiStreamingSupported;
         this.aiCapabilityTags = aiCapabilityTags;
+        this.deleted = deleted;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -90,6 +99,14 @@ public class ApiAssetModel {
 
     public String getStatus() {
         return status;
+    }
+
+    public String getPublisherDisplayName() {
+        return publisherDisplayName;
+    }
+
+    public String getPublishedAt() {
+        return publishedAt;
     }
 
     public String getRequestMethod() {
@@ -136,6 +153,10 @@ public class ApiAssetModel {
         return aiCapabilityTags;
     }
 
+    public boolean isDeleted() {
+        return deleted;
+    }
+
     public String getCreatedAt() {
         return createdAt;
     }
@@ -144,4 +165,3 @@ public class ApiAssetModel {
         return updatedAt;
     }
 }
-

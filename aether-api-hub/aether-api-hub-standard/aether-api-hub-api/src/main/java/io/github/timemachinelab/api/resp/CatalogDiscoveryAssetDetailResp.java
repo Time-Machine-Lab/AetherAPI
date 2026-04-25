@@ -22,6 +22,12 @@ public class CatalogDiscoveryAssetDetailResp {
     @JsonProperty("category")
     private CatalogDiscoveryCategoryResp category;
 
+    @JsonProperty("publisher")
+    private CatalogDiscoveryPublisherResp publisher;
+
+    @JsonProperty("publishedAt")
+    private String publishedAt;
+
     @JsonProperty("requestMethod")
     private RequestMethod requestMethod;
 
@@ -45,6 +51,8 @@ public class CatalogDiscoveryAssetDetailResp {
             String assetName,
             AssetType assetType,
             CatalogDiscoveryCategoryResp category,
+            CatalogDiscoveryPublisherResp publisher,
+            String publishedAt,
             RequestMethod requestMethod,
             AuthScheme authScheme,
             String requestTemplate,
@@ -54,6 +62,8 @@ public class CatalogDiscoveryAssetDetailResp {
         this.assetName = assetName;
         this.assetType = assetType;
         this.category = category;
+        this.publisher = publisher;
+        this.publishedAt = publishedAt;
         this.requestMethod = requestMethod;
         this.authScheme = authScheme;
         this.requestTemplate = requestTemplate;
@@ -91,6 +101,22 @@ public class CatalogDiscoveryAssetDetailResp {
 
     public void setCategory(CatalogDiscoveryCategoryResp category) {
         this.category = category;
+    }
+
+    public CatalogDiscoveryPublisherResp getPublisher() {
+        return publisher;
+    }
+
+    public void setPublisher(CatalogDiscoveryPublisherResp publisher) {
+        this.publisher = publisher;
+    }
+
+    public String getPublishedAt() {
+        return publishedAt;
+    }
+
+    public void setPublishedAt(String publishedAt) {
+        this.publishedAt = publishedAt;
     }
 
     public RequestMethod getRequestMethod() {

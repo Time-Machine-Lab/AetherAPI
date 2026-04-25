@@ -8,8 +8,9 @@ import io.github.timemachinelab.api.req.ListApiCallLogReq;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -64,7 +65,7 @@ class GlobalExceptionHandlerBindingTest {
 
     @Test
     void reflectionHintIsSanitizedForAssetRequests() {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/assets/deepseek-v3");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/current-user/assets/deepseek-v3");
         IllegalArgumentException ex = new IllegalArgumentException(
                 "Name for argument of type [java.lang.String] not specified, and parameter name information "
                         + "not available via reflection. Ensure that the compiler uses the '-parameters' flag.");
@@ -91,7 +92,7 @@ class GlobalExceptionHandlerBindingTest {
 
     @Test
     void bindExceptionUsesAssetListQueryCodeForManagementList() {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/assets");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/current-user/assets");
         BindException ex = new BindException(new ListApiAssetReq(), "listApiAssetReq");
         ex.rejectValue("page", "Min", "Page must be greater than or equal to 1");
 

@@ -8,12 +8,13 @@ import io.github.timemachinelab.adapter.web.delegate.CategoryWebDelegate;
 import io.github.timemachinelab.adapter.web.delegate.UnifiedAccessWebDelegate;
 import io.github.timemachinelab.api.req.ListApiAssetReq;
 import io.github.timemachinelab.api.req.ListApiCallLogReq;
-import org.springframework.http.ResponseEntity;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.security.Principal;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -58,10 +59,11 @@ class ControllerParameterBindingRegressionTest {
         ApiAssetWebDelegate delegate = mock(ApiAssetWebDelegate.class);
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new ApiAssetController(delegate)).build();
 
-        mockMvc.perform(get("/api/v1/assets/deepseek-v3"))
+        mockMvc.perform(get("/api/v1/current-user/assets/deepseek-v3")
+                        .principal(CURRENT_USER))
                 .andExpect(status().isOk());
 
-        verify(delegate).getAssetByCode("deepseek-v3");
+        verify(delegate).getAssetByCode("user-1", "deepseek-v3");
     }
 
     @Test
@@ -69,15 +71,16 @@ class ControllerParameterBindingRegressionTest {
         ApiAssetWebDelegate delegate = mock(ApiAssetWebDelegate.class);
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new ApiAssetController(delegate)).build();
 
-        mockMvc.perform(get("/api/v1/assets")
-                        .param("status", "ENABLED")
+        mockMvc.perform(get("/api/v1/current-user/assets")
+                        .principal(CURRENT_USER)
+                        .param("status", "PUBLISHED")
                         .param("categoryCode", "tools")
                         .param("keyword", "chat")
                         .param("page", "2")
                         .param("size", "10"))
                 .andExpect(status().isOk());
 
-        verify(delegate).listAssets(argThat(this::matchesAssetListQuery));
+        verify(delegate).listAssets(eq("user-1"), argThat(this::matchesAssetListQuery));
     }
 
     @Test
@@ -148,7 +151,7 @@ class ControllerParameterBindingRegressionTest {
 
     private boolean matchesAssetListQuery(ListApiAssetReq req) {
         return req != null
-                && "ENABLED".equals(req.getStatus())
+                && "PUBLISHED".equals(req.getStatus())
                 && "tools".equals(req.getCategoryCode())
                 && "chat".equals(req.getKeyword())
                 && req.getPage() == 2

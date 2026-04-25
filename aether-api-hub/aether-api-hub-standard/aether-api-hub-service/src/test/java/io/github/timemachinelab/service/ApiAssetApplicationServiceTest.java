@@ -33,16 +33,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * API asset application service tests.
- */
 @ExtendWith(MockitoExtension.class)
 class ApiAssetApplicationServiceTest {
+
+    private static final String CURRENT_USER_ID = "user-1";
+    private static final String PUBLISHER_DISPLAY_NAME = "alice";
 
     @Mock
     private ApiAssetRepositoryPort apiAssetRepositoryPort;
@@ -65,22 +64,25 @@ class ApiAssetApplicationServiceTest {
     class ListAssetTests {
 
         @Test
-        @DisplayName("should normalize paging and filters for list query")
-        void shouldNormalizePagingAndFiltersForListQuery() {
-            when(apiAssetQueryPort.findPage("ENABLED", "tools", "chat", 1, 100)).thenReturn(List.of(
+        @DisplayName("should normalize paging and filters for current user list query")
+        void shouldNormalizePagingAndFiltersForCurrentUserListQuery() {
+            when(apiAssetQueryPort.findPage(CURRENT_USER_ID, "PUBLISHED", "tools", "chat", 1, 100)).thenReturn(List.of(
                     new ApiAssetSummaryModel(
                             "chat-completion",
                             "Chat Completion",
                             "AI_API",
                             "tools",
                             "Tools",
-                            "ENABLED",
-                            "2026-04-24T08:00:00Z")
+                            "PUBLISHED",
+                            "alice",
+                            "2026-04-24T08:00:00Z",
+                            "2026-04-24T08:30:00Z")
             ));
-            when(apiAssetQueryPort.count("ENABLED", "tools", "chat")).thenReturn(1L);
+            when(apiAssetQueryPort.count(CURRENT_USER_ID, "PUBLISHED", "tools", "chat")).thenReturn(1L);
 
             ApiAssetPageResult result = service.listAssets(new ListApiAssetQuery(
-                    " enabled ",
+                    " user-1 ",
+                    " published ",
                     " Tools ",
                     "  chat  ",
                     0,
@@ -91,8 +93,8 @@ class ApiAssetApplicationServiceTest {
             assertEquals(100, result.getSize());
             assertEquals(1L, result.getTotal());
             assertEquals("chat-completion", result.getItems().get(0).getApiCode());
-            verify(apiAssetQueryPort).findPage("ENABLED", "tools", "chat", 1, 100);
-            verify(apiAssetQueryPort).count("ENABLED", "tools", "chat");
+            verify(apiAssetQueryPort).findPage(CURRENT_USER_ID, "PUBLISHED", "tools", "chat", 1, 100);
+            verify(apiAssetQueryPort).count(CURRENT_USER_ID, "PUBLISHED", "tools", "chat");
         }
 
         @Test
@@ -100,7 +102,7 @@ class ApiAssetApplicationServiceTest {
         void shouldRejectInvalidCategoryCodeFilter() {
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> service.listAssets(new ListApiAssetQuery(null, "tools--invalid", null, 1, 20))
+                    () -> service.listAssets(new ListApiAssetQuery(CURRENT_USER_ID, null, "tools--invalid", null, 1, 20))
             );
 
             assertTrue(exception.getMessage().contains("CategoryCode"));
@@ -118,7 +120,12 @@ class ApiAssetApplicationServiceTest {
 
             AssetDomainException exception = assertThrows(
                     AssetDomainException.class,
-                    () -> service.registerAsset(new RegisterApiAssetCommand("weather-forecast", AssetType.STANDARD_API, null))
+                    () -> service.registerAsset(new RegisterApiAssetCommand(
+                            CURRENT_USER_ID,
+                            PUBLISHER_DISPLAY_NAME,
+                            "weather-forecast",
+                            AssetType.STANDARD_API,
+                            null))
             );
 
             assertTrue(exception.getMessage().contains("already exists"));
@@ -129,13 +136,18 @@ class ApiAssetApplicationServiceTest {
         @DisplayName("should register draft asset")
         void shouldRegisterDraftAsset() {
             when(apiAssetRepositoryPort.existsByCode(any(ApiCode.class))).thenReturn(false);
-            doNothing().when(apiAssetRepositoryPort).save(any(ApiAssetAggregate.class));
 
-            ApiAssetModel result = service.registerAsset(
-                    new RegisterApiAssetCommand("weather-forecast", AssetType.STANDARD_API, "天气预报"));
+            ApiAssetModel result = service.registerAsset(new RegisterApiAssetCommand(
+                    CURRENT_USER_ID,
+                    PUBLISHER_DISPLAY_NAME,
+                    "weather-forecast",
+                    AssetType.STANDARD_API,
+                    "Weather Forecast"
+            ));
 
             assertEquals("weather-forecast", result.getApiCode());
             assertEquals("DRAFT", result.getStatus());
+            assertEquals(PUBLISHER_DISPLAY_NAME, result.getPublisherDisplayName());
             verify(apiAssetRepositoryPort).save(any(ApiAssetAggregate.class));
         }
     }
@@ -145,41 +157,52 @@ class ApiAssetApplicationServiceTest {
     class AssetLifecycleTests {
 
         @Test
-        @DisplayName("should support register revise enable and disable flow")
-        void shouldRegisterReviseEnableAndDisableAsset() {
+        @DisplayName("should support register revise publish and unpublish flow")
+        void shouldSupportRegisterRevisePublishAndUnpublishFlow() {
             ApiAssetApplicationService lifecycleService = lifecycleService(categoryRef -> true);
 
-            ApiAssetModel draft = lifecycleService.registerAsset(
-                    new RegisterApiAssetCommand("weather-forecast", AssetType.STANDARD_API, null));
+            ApiAssetModel draft = lifecycleService.registerAsset(new RegisterApiAssetCommand(
+                    CURRENT_USER_ID,
+                    PUBLISHER_DISPLAY_NAME,
+                    "weather-forecast",
+                    AssetType.STANDARD_API,
+                    null
+            ));
             assertEquals("DRAFT", draft.getStatus());
 
             ApiAssetModel revised = lifecycleService.reviseAsset(completeRevisionCommand("weather-forecast"));
-
-            assertEquals("天气预报", revised.getAssetName());
+            assertEquals("Weather Forecast", revised.getAssetName());
             assertEquals("tools", revised.getCategoryCode());
             assertEquals("GET", revised.getRequestMethod());
             assertEquals("https://upstream.example.com/weather", revised.getUpstreamUrl());
             assertEquals("NONE", revised.getAuthScheme());
             assertEquals("DRAFT", revised.getStatus());
 
-            ApiAssetModel enabled = lifecycleService.enableAsset("weather-forecast");
-            assertEquals("ENABLED", enabled.getStatus());
+            ApiAssetModel published = lifecycleService.publishAsset(CURRENT_USER_ID, PUBLISHER_DISPLAY_NAME, "weather-forecast");
+            assertEquals("PUBLISHED", published.getStatus());
 
-            ApiAssetModel disabled = lifecycleService.disableAsset("weather-forecast");
-            assertEquals("DISABLED", disabled.getStatus());
+            ApiAssetModel unpublished = lifecycleService.unpublishAsset(CURRENT_USER_ID, "weather-forecast");
+            assertEquals("UNPUBLISHED", unpublished.getStatus());
         }
 
         @Test
-        @DisplayName("should merge partial revision fields")
-        void shouldMergePartialRevisionFields() {
+        @DisplayName("should merge partial revision fields and require republish after critical change")
+        void shouldMergePartialRevisionFieldsAndRequireRepublishAfterCriticalChange() {
             ApiAssetApplicationService lifecycleService = lifecycleService(categoryRef -> true);
-            lifecycleService.registerAsset(
-                    new RegisterApiAssetCommand("weather-forecast", AssetType.STANDARD_API, "天气预报"));
+            lifecycleService.registerAsset(new RegisterApiAssetCommand(
+                    CURRENT_USER_ID,
+                    PUBLISHER_DISPLAY_NAME,
+                    "weather-forecast",
+                    AssetType.STANDARD_API,
+                    "Weather Forecast"));
             lifecycleService.reviseAsset(completeRevisionCommand("weather-forecast"));
+            lifecycleService.publishAsset(CURRENT_USER_ID, PUBLISHER_DISPLAY_NAME, "weather-forecast");
 
             ApiAssetModel revised = lifecycleService.reviseAsset(new ReviseApiAssetCommand(
+                    CURRENT_USER_ID,
+                    PUBLISHER_DISPLAY_NAME,
                     "weather-forecast",
-                    "新版天气预报",
+                    "New Weather Forecast",
                     true,
                     null,
                     false,
@@ -187,8 +210,8 @@ class ApiAssetApplicationServiceTest {
                     false,
                     null,
                     false,
-                    null,
-                    false,
+                    "https://upstream.example.com/weather-v2",
+                    true,
                     null,
                     false,
                     null,
@@ -201,52 +224,65 @@ class ApiAssetApplicationServiceTest {
                     false
             ));
 
-            assertEquals("新版天气预报", revised.getAssetName());
+            assertEquals("New Weather Forecast", revised.getAssetName());
             assertEquals("tools", revised.getCategoryCode());
             assertEquals("GET", revised.getRequestMethod());
-            assertEquals("https://upstream.example.com/weather", revised.getUpstreamUrl());
+            assertEquals("https://upstream.example.com/weather-v2", revised.getUpstreamUrl());
             assertEquals("{\"city\":\"Beijing\"}", revised.getRequestExample());
             assertEquals("{\"temperature\":26}", revised.getResponseExample());
+            assertEquals("UNPUBLISHED", revised.getStatus());
         }
 
         @Test
-        @DisplayName("should reject enable when asset is incomplete")
-        void shouldRejectEnableWhenAssetIsIncomplete() {
+        @DisplayName("should reject publish when asset is incomplete")
+        void shouldRejectPublishWhenAssetIsIncomplete() {
             ApiAssetApplicationService lifecycleService = lifecycleService(categoryRef -> true);
-            lifecycleService.registerAsset(
-                    new RegisterApiAssetCommand("weather-forecast", AssetType.STANDARD_API, "天气预报"));
+            lifecycleService.registerAsset(new RegisterApiAssetCommand(
+                    CURRENT_USER_ID,
+                    PUBLISHER_DISPLAY_NAME,
+                    "weather-forecast",
+                    AssetType.STANDARD_API,
+                    "Weather Forecast"));
 
             AssetDomainException exception = assertThrows(
                     AssetDomainException.class,
-                    () -> lifecycleService.enableAsset("weather-forecast")
+                    () -> lifecycleService.publishAsset(CURRENT_USER_ID, PUBLISHER_DISPLAY_NAME, "weather-forecast")
             );
 
             assertTrue(exception.getMessage().contains("Category code"));
         }
 
         @Test
-        @DisplayName("should return business error when revision target is missing")
-        void shouldReturnBusinessErrorWhenRevisionTargetMissing() {
+        @DisplayName("should enforce owner isolation")
+        void shouldEnforceOwnerIsolation() {
             ApiAssetApplicationService lifecycleService = lifecycleService(categoryRef -> true);
+            lifecycleService.registerAsset(new RegisterApiAssetCommand(
+                    CURRENT_USER_ID,
+                    PUBLISHER_DISPLAY_NAME,
+                    "weather-forecast",
+                    AssetType.STANDARD_API,
+                    "Weather Forecast"));
 
             AssetDomainException exception = assertThrows(
                     AssetDomainException.class,
-                    () -> lifecycleService.reviseAsset(completeRevisionCommand("missing-asset"))
+                    () -> lifecycleService.getAssetByCode("user-2", "weather-forecast")
             );
 
             assertTrue(exception.getMessage().contains("not found"));
         }
     }
 
-    private ApiAssetApplicationService lifecycleService(CategoryValidityChecker categoryValidityChecker) {
+    private ApiAssetApplicationService lifecycleService(CategoryValidityChecker validityChecker) {
         InMemoryApiAssetRepository repository = new InMemoryApiAssetRepository();
-        return new ApiAssetApplicationService(repository, new InMemoryApiAssetQueryPort(repository), categoryValidityChecker);
+        return new ApiAssetApplicationService(repository, new InMemoryApiAssetQueryPort(repository), validityChecker);
     }
 
     private ReviseApiAssetCommand completeRevisionCommand(String apiCode) {
         return new ReviseApiAssetCommand(
+                CURRENT_USER_ID,
+                PUBLISHER_DISPLAY_NAME,
                 apiCode,
-                "天气预报",
+                "Weather Forecast",
                 true,
                 AssetType.STANDARD_API,
                 true,
@@ -259,7 +295,7 @@ class ApiAssetApplicationServiceTest {
                 AuthScheme.NONE,
                 true,
                 null,
-                false,
+                true,
                 "template",
                 true,
                 "{\"city\":\"Shanghai\"}",
@@ -303,8 +339,14 @@ class ApiAssetApplicationServiceTest {
         }
 
         @Override
-        public List<ApiAssetSummaryModel> findPage(String status, String categoryCode, String keyword, int page, int size) {
-            return filtered(status, categoryCode, keyword).stream()
+        public List<ApiAssetSummaryModel> findPage(
+                String ownerUserId,
+                String status,
+                String categoryCode,
+                String keyword,
+                int page,
+                int size) {
+            return filtered(ownerUserId, status, categoryCode, keyword).stream()
                     .skip((long) Math.max(0, page - 1) * size)
                     .limit(size)
                     .map(aggregate -> new ApiAssetSummaryModel(
@@ -314,18 +356,21 @@ class ApiAssetApplicationServiceTest {
                             aggregate.getCategoryRef() == null ? null : aggregate.getCategoryRef().getCode(),
                             null,
                             aggregate.getStatus().name(),
+                            aggregate.getPublisherDisplayName(),
+                            aggregate.getPublishedAt() == null ? null : aggregate.getPublishedAt().toString(),
                             aggregate.getUpdatedAt().toString()))
                     .toList();
         }
 
         @Override
-        public long count(String status, String categoryCode, String keyword) {
-            return filtered(status, categoryCode, keyword).size();
+        public long count(String ownerUserId, String status, String categoryCode, String keyword) {
+            return filtered(ownerUserId, status, categoryCode, keyword).size();
         }
 
-        private List<ApiAssetAggregate> filtered(String status, String categoryCode, String keyword) {
+        private List<ApiAssetAggregate> filtered(String ownerUserId, String status, String categoryCode, String keyword) {
             String normalizedKeyword = keyword == null ? null : keyword.toLowerCase();
             return repository.assets.values().stream()
+                    .filter(asset -> ownerUserId.equals(asset.getOwnerUserId()))
                     .filter(asset -> status == null || asset.getStatus().name().equals(status))
                     .filter(asset -> categoryCode == null
                             || (asset.getCategoryRef() != null && categoryCode.equals(asset.getCategoryRef().getCode())))

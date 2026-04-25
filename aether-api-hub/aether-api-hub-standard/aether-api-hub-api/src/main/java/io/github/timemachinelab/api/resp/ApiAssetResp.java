@@ -7,7 +7,7 @@ import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 
 /**
- * API 资产响应。
+ * API asset response.
  */
 public class ApiAssetResp {
 
@@ -28,6 +28,12 @@ public class ApiAssetResp {
 
     @JsonProperty("status")
     private AssetStatus status;
+
+    @JsonProperty("publisherDisplayName")
+    private String publisherDisplayName;
+
+    @JsonProperty("publishedAt")
+    private String publishedAt;
 
     @JsonProperty("requestMethod")
     private RequestMethod requestMethod;
@@ -53,6 +59,9 @@ public class ApiAssetResp {
     @JsonProperty("aiCapabilityProfile")
     private AiCapabilityProfileResp aiCapabilityProfile;
 
+    @JsonProperty("deleted")
+    private boolean deleted;
+
     @JsonProperty("createdAt")
     private String createdAt;
 
@@ -69,6 +78,8 @@ public class ApiAssetResp {
             AssetType assetType,
             String categoryCode,
             AssetStatus status,
+            String publisherDisplayName,
+            String publishedAt,
             RequestMethod requestMethod,
             String upstreamUrl,
             AuthScheme authScheme,
@@ -77,6 +88,7 @@ public class ApiAssetResp {
             String requestExample,
             String responseExample,
             AiCapabilityProfileResp aiCapabilityProfile,
+            boolean deleted,
             String createdAt,
             String updatedAt) {
         this.id = id;
@@ -85,6 +97,8 @@ public class ApiAssetResp {
         this.assetType = assetType;
         this.categoryCode = categoryCode;
         this.status = status;
+        this.publisherDisplayName = publisherDisplayName;
+        this.publishedAt = publishedAt;
         this.requestMethod = requestMethod;
         this.upstreamUrl = upstreamUrl;
         this.authScheme = authScheme;
@@ -93,6 +107,7 @@ public class ApiAssetResp {
         this.requestExample = requestExample;
         this.responseExample = responseExample;
         this.aiCapabilityProfile = aiCapabilityProfile;
+        this.deleted = deleted;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -143,6 +158,22 @@ public class ApiAssetResp {
 
     public void setStatus(AssetStatus status) {
         this.status = status;
+    }
+
+    public String getPublisherDisplayName() {
+        return publisherDisplayName;
+    }
+
+    public void setPublisherDisplayName(String publisherDisplayName) {
+        this.publisherDisplayName = publisherDisplayName;
+    }
+
+    public String getPublishedAt() {
+        return publishedAt;
+    }
+
+    public void setPublishedAt(String publishedAt) {
+        this.publishedAt = publishedAt;
     }
 
     public RequestMethod getRequestMethod() {
@@ -207,6 +238,14 @@ public class ApiAssetResp {
 
     public void setAiCapabilityProfile(AiCapabilityProfileResp aiCapabilityProfile) {
         this.aiCapabilityProfile = aiCapabilityProfile;
+    }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
     }
 
     public String getCreatedAt() {

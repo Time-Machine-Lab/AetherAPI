@@ -7,12 +7,16 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.security.Principal;
+
 import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class ApiAssetControllerWebMvcTest {
+
+    private static final Principal CURRENT_USER = () -> "user-1";
 
     @Test
     @DisplayName("asset list should reject invalid paging parameters")
@@ -22,7 +26,8 @@ class ApiAssetControllerWebMvcTest {
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
 
-        mockMvc.perform(get("/api/v1/assets")
+        mockMvc.perform(get("/api/v1/current-user/assets")
+                        .principal(CURRENT_USER)
                         .param("page", "0")
                         .param("size", "101"))
                 .andExpect(status().isBadRequest())
@@ -38,7 +43,8 @@ class ApiAssetControllerWebMvcTest {
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
 
-        mockMvc.perform(get("/api/v1/assets")
+        mockMvc.perform(get("/api/v1/current-user/assets")
+                        .principal(CURRENT_USER)
                         .param("status", "ARCHIVED"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("ASSET_INVALID_QUERY"))

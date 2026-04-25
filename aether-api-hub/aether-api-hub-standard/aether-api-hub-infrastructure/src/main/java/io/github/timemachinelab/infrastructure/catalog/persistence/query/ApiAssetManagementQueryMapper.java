@@ -7,7 +7,7 @@ import org.apache.ibatis.annotations.Select;
 import java.util.List;
 
 /**
- * Asset management query mapper.
+ * Asset workspace query mapper.
  */
 @Mapper
 public interface ApiAssetManagementQueryMapper {
@@ -21,12 +21,15 @@ public interface ApiAssetManagementQueryMapper {
             "  a.category_code AS categoryCode,",
             "  c.category_name AS categoryName,",
             "  a.status AS status,",
+            "  a.publisher_display_name AS publisherDisplayName,",
+            "  a.published_at AS publishedAt,",
             "  a.updated_at AS updatedAt",
             "FROM api_asset a",
             "LEFT JOIN api_category c",
             "  ON c.category_code = a.category_code",
             " AND c.is_deleted = FALSE",
             "WHERE a.is_deleted = FALSE",
+            "  AND a.owner_user_id = #{ownerUserId}",
             "  <if test='status != null and status != \"\"'>",
             "    AND a.status = #{status}",
             "  </if>",
@@ -44,6 +47,7 @@ public interface ApiAssetManagementQueryMapper {
             "</script>"
     })
     List<ApiAssetManagementQueryRecord> selectPage(
+            @Param("ownerUserId") String ownerUserId,
             @Param("status") String status,
             @Param("categoryCode") String categoryCode,
             @Param("keyword") String keyword,
@@ -55,6 +59,7 @@ public interface ApiAssetManagementQueryMapper {
             "SELECT COUNT(1)",
             "FROM api_asset a",
             "WHERE a.is_deleted = FALSE",
+            "  AND a.owner_user_id = #{ownerUserId}",
             "  <if test='status != null and status != \"\"'>",
             "    AND a.status = #{status}",
             "  </if>",
@@ -70,6 +75,7 @@ public interface ApiAssetManagementQueryMapper {
             "</script>"
     })
     long count(
+            @Param("ownerUserId") String ownerUserId,
             @Param("status") String status,
             @Param("categoryCode") String categoryCode,
             @Param("keyword") String keyword);

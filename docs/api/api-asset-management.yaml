@@ -1,55 +1,54 @@
 openapi: 3.0.3
 info:
-  title: API Catalog 资产管理接口
+  title: API Asset Management API
   version: 1.0.0
   description: |
-    API Catalog 资产生命周期管理接口。
-    提供资产草稿注册、管理侧分页列表、配置修订、启用、停用、AI 能力档案绑定与详情查询能力。
-    API Code 在创建后保持不可变更；启用前会校验分类有效性、访问配置完整性以及 AI 资产的能力档案。
+    当前用户 API 资产工作台接口。
+    对应控制器：ApiAssetController.java
+    该接口族只服务当前登录用户自己的资产管理，不提供跨用户的全局管理能力。
 servers:
   - url: /api/v1
-    description: API Catalog v1
+    description: Aether API Hub v1
 
 tags:
-  - name: Assets
-    description: API 资产生命周期管理
+  - name: CurrentUserAssets
+    description: 当前用户资产工作台
 
 paths:
-  /assets:
+  /current-user/assets:
     get:
-      summary: 分页查询管理侧 API 资产列表
+      summary: 查询当前用户资产列表
       operationId: listAssets
       tags:
-        - Assets
+        - CurrentUserAssets
       parameters:
         - name: status
           in: query
           required: false
-          description: 资产状态过滤条件
+          description: 资产状态过滤
           schema:
             type: string
             enum:
               - DRAFT
-              - ENABLED
-              - DISABLED
+              - PUBLISHED
+              - UNPUBLISHED
         - name: categoryCode
           in: query
           required: false
-          description: 分类编码过滤条件
+          description: 分类编码过滤
           schema:
             type: string
             maxLength: 64
         - name: keyword
           in: query
           required: false
-          description: 关键字过滤条件，匹配 apiCode 或 assetName
+          description: 关键字过滤，匹配 apiCode 或 assetName
           schema:
             type: string
             maxLength: 128
         - name: page
           in: query
           required: false
-          description: 页码，从 1 开始
           schema:
             type: integer
             minimum: 1
@@ -57,7 +56,6 @@ paths:
         - name: size
           in: query
           required: false
-          description: 每页条数，取值范围 1-100
           schema:
             type: integer
             minimum: 1
@@ -65,13 +63,13 @@ paths:
             default: 20
       responses:
         '200':
-          description: 成功返回资产分页结果
+          description: 当前用户资产分页结果
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiAssetPageResp'
         '400':
-          description: 请求参数校验失败
+          description: 查询参数非法
           content:
             application/json:
               schema:
@@ -80,10 +78,10 @@ paths:
                 code: ASSET_INVALID_QUERY
                 message: Invalid asset list query parameters
     post:
-      summary: 注册新的 API 资产草稿
+      summary: 创建当前用户资产草稿
       operationId: registerAsset
       tags:
-        - Assets
+        - CurrentUserAssets
       requestBody:
         required: true
         content:
@@ -92,13 +90,13 @@ paths:
               $ref: '#/components/schemas/RegisterApiAssetReq'
       responses:
         '201':
-          description: 资产草稿注册成功
+          description: 资产草稿创建成功
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiAssetResp'
         '400':
-          description: 请求参数校验失败
+          description: 请求参数非法
           content:
             application/json:
               schema:
@@ -110,28 +108,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResp'
 
-  /assets/{apiCode}:
+  /current-user/assets/{apiCode}:
     get:
-      summary: 根据 API Code 查询资产详情
+      summary: 查询当前用户资产详情
       operationId: getAssetByCode
       tags:
-        - Assets
+        - CurrentUserAssets
       parameters:
         - name: apiCode
           in: path
           required: true
-          description: 资产业务编码(API Code)
           schema:
             type: string
       responses:
         '200':
-          description: 成功返回资产详情
+          description: 当前用户资产详情
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiAssetResp'
         '400':
-          description: Path parameter binding failed
+          description: 路径参数非法
           content:
             application/json:
               schema:
@@ -140,22 +137,20 @@ paths:
                 code: API_CODE_INVALID
                 message: Invalid asset request parameters
         '404':
-          description: 资产不存在
+          description: 资产不存在或不属于当前用户
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResp'
-
     put:
-      summary: 修订 API 资产草稿或已停用资产
+      summary: 修改当前用户资产
       operationId: reviseAsset
       tags:
-        - Assets
+        - CurrentUserAssets
       parameters:
         - name: apiCode
           in: path
           required: true
-          description: 资产业务编码(API Code)
           schema:
             type: string
       requestBody:
@@ -166,95 +161,116 @@ paths:
               $ref: '#/components/schemas/ReviseApiAssetReq'
       responses:
         '200':
-          description: 资产修订成功
+          description: 资产修改成功
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiAssetResp'
         '400':
-          description: 请求参数校验失败
+          description: 请求参数非法
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResp'
         '404':
-          description: 资产不存在
+          description: 资产不存在或不属于当前用户
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+    delete:
+      summary: 删除当前用户资产
+      operationId: deleteAsset
+      tags:
+        - CurrentUserAssets
+      parameters:
+        - name: apiCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 资产删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiAssetResp'
+        '404':
+          description: 资产不存在或不属于当前用户
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResp'
 
-  /assets/{apiCode}/enable:
+  /current-user/assets/{apiCode}/publish:
     patch:
-      summary: 启用指定资产
-      operationId: enableAsset
+      summary: 发布当前用户资产
+      operationId: publishAsset
       tags:
-        - Assets
+        - CurrentUserAssets
       parameters:
         - name: apiCode
           in: path
           required: true
-          description: 资产业务编码(API Code)
           schema:
             type: string
       responses:
         '200':
-          description: 资产启用成功
+          description: 发布成功
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiAssetResp'
         '400':
-          description: 启用前校验失败
+          description: 发布校验失败
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResp'
         '404':
-          description: 资产不存在
+          description: 资产不存在或不属于当前用户
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResp'
 
-  /assets/{apiCode}/disable:
+  /current-user/assets/{apiCode}/unpublish:
     patch:
-      summary: 停用指定资产
-      operationId: disableAsset
+      summary: 下架当前用户资产
+      operationId: unpublishAsset
       tags:
-        - Assets
+        - CurrentUserAssets
       parameters:
         - name: apiCode
           in: path
           required: true
-          description: 资产业务编码(API Code)
           schema:
             type: string
       responses:
         '200':
-          description: 资产停用成功
+          description: 下架成功
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiAssetResp'
         '404':
-          description: 资产不存在
+          description: 资产不存在或不属于当前用户
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResp'
 
-  /assets/{apiCode}/ai-profile:
+  /current-user/assets/{apiCode}/ai-profile:
     put:
-      summary: 绑定或更新 AI 能力档案
+      summary: 维护当前用户 AI 资产能力档案
       operationId: attachAiCapabilityProfile
       tags:
-        - Assets
+        - CurrentUserAssets
       parameters:
         - name: apiCode
           in: path
           required: true
-          description: 资产业务编码(API Code)
           schema:
             type: string
       requestBody:
@@ -265,19 +281,19 @@ paths:
               $ref: '#/components/schemas/AttachAiCapabilityProfileReq'
       responses:
         '200':
-          description: AI 能力档案绑定成功
+          description: AI 能力档案维护成功
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiAssetResp'
         '400':
-          description: 当前资产不支持 AI 能力档案或请求参数无效
+          description: 资产类型不支持或请求参数非法
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResp'
         '404':
-          description: 资产不存在
+          description: 资产不存在或不属于当前用户
           content:
             application/json:
               schema:
@@ -295,22 +311,18 @@ components:
           type: string
           minLength: 1
           maxLength: 64
-          description: 资产业务编码(API Code)，创建后不可变更
           example: weather-forecast
         assetType:
           type: string
           enum:
             - STANDARD_API
             - AI_API
-          description: 资产类型
-          example: STANDARD_API
         assetName:
           type: string
           minLength: 1
           maxLength: 128
           nullable: true
-          description: 资产展示名称，草稿阶段允许为空
-          example: 天气预报
+          example: Weather Forecast API
 
     ReviseApiAssetReq:
       type: object
@@ -320,19 +332,16 @@ components:
           minLength: 1
           maxLength: 128
           nullable: true
-          description: 资产展示名称
         assetType:
           type: string
           enum:
             - STANDARD_API
             - AI_API
-          description: 资产类型
         categoryCode:
           type: string
           minLength: 1
           maxLength: 64
           nullable: true
-          description: 分类编码
         requestMethod:
           type: string
           enum:
@@ -342,12 +351,10 @@ components:
             - PATCH
             - DELETE
           nullable: true
-          description: 上游请求方法
         upstreamUrl:
           type: string
           maxLength: 512
           nullable: true
-          description: 上游请求地址
         authScheme:
           type: string
           enum:
@@ -355,24 +362,18 @@ components:
             - HEADER_TOKEN
             - QUERY_TOKEN
           nullable: true
-          description: 鉴权方案
         authConfig:
           type: string
           nullable: true
-          description: 鉴权配置(JSON 字符串)
-          example: '{"headerName":"Authorization","tokenValue":"Bearer xxx"}'
         requestTemplate:
           type: string
           nullable: true
-          description: 请求模板描述
         requestExample:
           type: string
           nullable: true
-          description: 请求示例快照，可为空
         responseExample:
           type: string
           nullable: true
-          description: 响应示例快照，可为空
 
     AttachAiCapabilityProfileReq:
       type: object
@@ -386,27 +387,17 @@ components:
           type: string
           minLength: 1
           maxLength: 128
-          description: AI 服务提供商
-          example: OpenAI
         model:
           type: string
           minLength: 1
           maxLength: 128
-          description: 模型标识
-          example: gpt-4.1
         streamingSupported:
           type: boolean
-          description: 是否支持流式输出
-          example: true
         capabilityTags:
           type: array
           minItems: 1
           items:
             type: string
-          description: 能力标签列表
-          example:
-            - chat
-            - vision
 
     AiCapabilityProfileResp:
       type: object
@@ -414,54 +405,50 @@ components:
       properties:
         provider:
           type: string
-          description: AI 服务提供商
         model:
           type: string
-          description: 模型标识
         streamingSupported:
           type: boolean
-          description: 是否支持流式输出
         capabilityTags:
           type: array
           items:
             type: string
-          description: 能力标签列表
 
     ApiAssetSummaryResp:
       type: object
       properties:
         apiCode:
           type: string
-          description: 资产业务编码(API Code)
         assetName:
           type: string
           nullable: true
-          description: 资产展示名称
         assetType:
           type: string
           enum:
             - STANDARD_API
             - AI_API
-          description: 资产类型
         categoryCode:
           type: string
           nullable: true
-          description: 分类编码
         categoryName:
           type: string
           nullable: true
-          description: 分类名称
         status:
           type: string
           enum:
             - DRAFT
-            - ENABLED
-            - DISABLED
-          description: 资产状态
+            - PUBLISHED
+            - UNPUBLISHED
+        publisherDisplayName:
+          type: string
+          nullable: true
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
         updatedAt:
           type: string
           format: date-time
-          description: 最近更新时间
 
     ApiAssetPageResp:
       type: object
@@ -472,14 +459,11 @@ components:
             $ref: '#/components/schemas/ApiAssetSummaryResp'
         page:
           type: integer
-          description: 当前页码
         size:
           type: integer
-          description: 当前页大小
         total:
           type: integer
           format: int64
-          description: 总记录数
 
     ApiAssetResp:
       type: object
@@ -487,76 +471,68 @@ components:
         id:
           type: string
           format: uuid
-          description: 资产实体唯一标识
         apiCode:
           type: string
-          description: 资产业务编码(API Code)
         assetName:
           type: string
           nullable: true
-          description: 资产展示名称
         assetType:
           type: string
           enum:
             - STANDARD_API
             - AI_API
-          description: 资产类型
         categoryCode:
           type: string
           nullable: true
-          description: 分类编码
         status:
           type: string
           enum:
             - DRAFT
-            - ENABLED
-            - DISABLED
-          description: 资产状态
+            - PUBLISHED
+            - UNPUBLISHED
+        publisherDisplayName:
+          type: string
+          nullable: true
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
         requestMethod:
           type: string
           nullable: true
-          description: 上游请求方法
         upstreamUrl:
           type: string
           nullable: true
-          description: 上游请求地址
         authScheme:
           type: string
           nullable: true
-          description: 鉴权方案
         authConfig:
           type: string
           nullable: true
-          description: 鉴权配置(JSON 字符串)
         requestTemplate:
           type: string
           nullable: true
-          description: 请求模板描述
         requestExample:
           type: string
           nullable: true
-          description: 请求示例快照
         responseExample:
           type: string
           nullable: true
-          description: 响应示例快照
         aiCapabilityProfile:
           $ref: '#/components/schemas/AiCapabilityProfileResp'
+        deleted:
+          type: boolean
         createdAt:
           type: string
           format: date-time
-          description: 创建时间
         updatedAt:
           type: string
           format: date-time
-          description: 最近更新时间
 
     ErrorResp:
       type: object
       properties:
         code:
           type: string
-          description: 错误码
         message:
           type: string
-          description: 错误信息

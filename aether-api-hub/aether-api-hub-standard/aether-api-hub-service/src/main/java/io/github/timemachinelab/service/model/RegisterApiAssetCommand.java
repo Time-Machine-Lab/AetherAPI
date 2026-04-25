@@ -3,18 +3,35 @@ package io.github.timemachinelab.service.model;
 import io.github.timemachinelab.domain.catalog.model.AssetType;
 
 /**
- * 注册 API 资产命令。
+ * Register API asset command.
  */
 public class RegisterApiAssetCommand {
 
+    private final String ownerUserId;
+    private final String publisherDisplayName;
     private final String apiCode;
     private final AssetType assetType;
     private final String assetName;
 
-    public RegisterApiAssetCommand(String apiCode, AssetType assetType, String assetName) {
+    public RegisterApiAssetCommand(
+            String ownerUserId,
+            String publisherDisplayName,
+            String apiCode,
+            AssetType assetType,
+            String assetName) {
+        this.ownerUserId = ownerUserId;
+        this.publisherDisplayName = publisherDisplayName;
         this.apiCode = apiCode;
         this.assetType = assetType;
         this.assetName = assetName;
+    }
+
+    public String getOwnerUserId() {
+        return ownerUserId;
+    }
+
+    public String getPublisherDisplayName() {
+        return publisherDisplayName;
     }
 
     public String getApiCode() {
@@ -29,4 +46,3 @@ public class RegisterApiAssetCommand {
         return assetName;
     }
 }
-

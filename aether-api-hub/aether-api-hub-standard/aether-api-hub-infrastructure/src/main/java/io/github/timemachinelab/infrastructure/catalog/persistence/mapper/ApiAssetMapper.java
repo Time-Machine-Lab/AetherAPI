@@ -6,7 +6,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 /**
- * API 资产 Mapper。
+ * API asset mapper.
  */
 public interface ApiAssetMapper extends BaseMapper<ApiAssetDo> {
 
@@ -19,4 +19,3 @@ public interface ApiAssetMapper extends BaseMapper<ApiAssetDo> {
     @Select("SELECT COUNT(*) FROM api_asset WHERE api_code = #{apiCode} AND is_deleted = FALSE")
     int existsByCode(@Param("apiCode") String apiCode);
 }
-
