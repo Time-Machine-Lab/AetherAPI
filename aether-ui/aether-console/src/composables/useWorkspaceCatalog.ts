@@ -281,7 +281,9 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
       }
     } catch {
       assetError.value = deps.t(
-        isPublished ? 'console.workspace.assetUnpublishFailed' : 'console.workspace.assetPublishFailed',
+        isPublished
+          ? 'console.workspace.assetUnpublishFailed'
+          : 'console.workspace.assetPublishFailed',
       )
     } finally {
       assetLoading.value = false

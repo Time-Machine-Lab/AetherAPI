@@ -190,7 +190,7 @@ function confirmDeleteAsset() {
                 v-for="item in assetListItems"
                 :key="item.apiCode"
                 type="button"
-                  class="group relative flex min-h-[44px] w-full cursor-pointer items-center gap-3 rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-white px-4 py-3 text-left shadow-console transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-console-hover active:scale-[0.995]"
+                class="group relative flex min-h-[44px] w-full cursor-pointer items-center gap-3 rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-white px-4 py-3 text-left shadow-console transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-console-hover active:scale-[0.995]"
                 :disabled="assetLoading"
                 @click="handleListSelectAsset(item.apiCode)"
               >
@@ -204,10 +204,7 @@ function confirmDeleteAsset() {
                   </p>
                   <p class="text-xs text-muted-foreground">{{ item.apiCode }}</p>
                 </div>
-                <Badge
-                  :variant="assetStatusBadgeVariant(item.status)"
-                  class="shrink-0 text-[11px]"
-                >
+                <Badge :variant="assetStatusBadgeVariant(item.status)" class="shrink-0 text-[11px]">
                   {{ assetStatusLabel(item.status) }}
                 </Badge>
                 <span
@@ -336,12 +333,7 @@ function confirmDeleteAsset() {
                   <p class="font-semibold text-foreground">{{ currentAsset.displayName }}</p>
                   <p class="text-xs text-muted-foreground">{{ currentAsset.apiCode }}</p>
                 </div>
-                <Badge
-                  :variant="
-                    assetStatusBadgeVariant(currentAsset.status)
-                  "
-                  class="shrink-0"
-                >
+                <Badge :variant="assetStatusBadgeVariant(currentAsset.status)" class="shrink-0">
                   {{ assetStatusLabel(currentAsset.status) }}
                 </Badge>
               </div>

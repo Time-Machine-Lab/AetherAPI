@@ -93,7 +93,8 @@ export default {
     workspace: {
       metaTitle: 'API 资产管理',
       title: 'API 资产管理',
-      description: '管理 API 分类与自己拥有的市场资产，创建草稿、发布资产、绑定 AI 能力配置，或查询已有资产。',
+      description:
+        '管理 API 分类与自己拥有的市场资产，创建草稿、发布资产、绑定 AI 能力配置，或查询已有资产。',
       categoryTitle: '分类管理',
       categoryDescription: '创建、重命名、启用或禁用 API 分类。',
       categoryNamePlaceholder: '输入分类名称',
