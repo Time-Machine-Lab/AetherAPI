@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import type { AssetStatus } from '@/api/catalog/catalog.types'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -62,6 +63,7 @@ const {
   handleRegisterAsset,
   handleSaveAssetConfig,
   handleToggleAsset,
+  handleDeleteAsset,
   handleBindAiProfile,
   addAiTag,
   recentAssets,
@@ -80,6 +82,27 @@ const {
 function openRecentAsset(apiCode: string) {
   assetCodeInput.value = apiCode
   handleLoadAsset()
+}
+
+function assetStatusLabel(status: AssetStatus) {
+  if (status === 'PUBLISHED') return t('console.workspace.published')
+  if (status === 'UNPUBLISHED') return t('console.workspace.unpublished')
+  return t('console.workspace.draft')
+}
+
+function assetStatusBadgeVariant(status: AssetStatus) {
+  return status === 'PUBLISHED' ? 'status-enabled' : 'status-disabled'
+}
+
+function assetStatusBarClass(status: AssetStatus) {
+  if (status === 'PUBLISHED') return 'bg-primary'
+  if (status === 'UNPUBLISHED') return 'bg-muted-foreground/35'
+  return 'bg-[var(--palette-text-legal)]'
+}
+
+function confirmDeleteAsset() {
+  if (!window.confirm(t('console.workspace.assetDeleteConfirm'))) return
+  handleDeleteAsset()
 }
 </script>
 
@@ -133,8 +156,8 @@ function openRecentAsset(apiCode: string) {
               >
                 <option value="">{{ t('console.workspace.assetListFilterAll') }}</option>
                 <option value="DRAFT">DRAFT</option>
-                <option value="ENABLED">ENABLED</option>
-                <option value="DISABLED">DISABLED</option>
+                <option value="PUBLISHED">PUBLISHED</option>
+                <option value="UNPUBLISHED">UNPUBLISHED</option>
               </select>
               <Button size="sm" :disabled="assetListLoading" @click="handleListAssets(1)">
                 {{ t('console.workspace.assetListSearch') }}
@@ -167,13 +190,13 @@ function openRecentAsset(apiCode: string) {
                 v-for="item in assetListItems"
                 :key="item.apiCode"
                 type="button"
-                class="group flex min-h-[44px] w-full cursor-pointer items-center gap-3 rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-white px-4 py-3 text-left shadow-console transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-console-hover active:scale-[0.995]"
+                  class="group relative flex min-h-[44px] w-full cursor-pointer items-center gap-3 rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-white px-4 py-3 text-left shadow-console transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-console-hover active:scale-[0.995]"
                 :disabled="assetLoading"
                 @click="handleListSelectAsset(item.apiCode)"
               >
                 <span
                   class="absolute left-3 top-3 bottom-3 hidden w-[3px] rounded-full"
-                  :class="item.status === 'ENABLED' ? 'bg-primary' : 'bg-muted-foreground/25'"
+                  :class="assetStatusBarClass(item.status)"
                 />
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-sm font-medium text-foreground">
@@ -182,16 +205,10 @@ function openRecentAsset(apiCode: string) {
                   <p class="text-xs text-muted-foreground">{{ item.apiCode }}</p>
                 </div>
                 <Badge
-                  :variant="item.status === 'ENABLED' ? 'status-enabled' : 'status-disabled'"
+                  :variant="assetStatusBadgeVariant(item.status)"
                   class="shrink-0 text-[11px]"
                 >
-                  {{
-                    item.status === 'ENABLED'
-                      ? t('console.workspace.enabled')
-                      : item.status === 'DRAFT'
-                        ? 'DRAFT'
-                        : t('console.workspace.disabled')
-                  }}
+                  {{ assetStatusLabel(item.status) }}
                 </Badge>
                 <span
                   class="shrink-0 text-muted-foreground/40 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-foreground/60"
@@ -279,22 +296,13 @@ function openRecentAsset(apiCode: string) {
                 </div>
                 <div class="space-y-1">
                   <label class="text-xs font-medium text-muted-foreground">{{
-                    t('console.workspace.fieldCategoryCode')
+                    t('console.workspace.fieldDisplayName')
                   }}</label>
                   <Input
-                    v-model="registerForm.categoryCode"
-                    :placeholder="t('console.workspace.fieldCategoryCode')"
+                    v-model="registerForm.assetName"
+                    :placeholder="t('console.workspace.fieldDisplayName')"
                   />
                 </div>
-              </div>
-              <div class="space-y-1">
-                <label class="text-xs font-medium text-muted-foreground">{{
-                  t('console.workspace.fieldDisplayName')
-                }}</label>
-                <Input
-                  v-model="registerForm.displayName"
-                  :placeholder="t('console.workspace.fieldDisplayName')"
-                />
               </div>
               <div class="space-y-1">
                 <label class="text-xs font-medium text-muted-foreground">{{
@@ -330,20 +338,23 @@ function openRecentAsset(apiCode: string) {
                 </div>
                 <Badge
                   :variant="
-                    currentAsset.status === 'ENABLED' ? 'status-enabled' : 'status-disabled'
+                    assetStatusBadgeVariant(currentAsset.status)
                   "
                   class="shrink-0"
                 >
-                  {{ currentAsset.status }}
+                  {{ assetStatusLabel(currentAsset.status) }}
                 </Badge>
               </div>
-              <div class="flex gap-2">
+              <div class="flex flex-wrap gap-2">
                 <Button size="xs" variant="outline" @click="handleToggleAsset">
                   {{
-                    currentAsset.status === 'ENABLED'
-                      ? t('console.workspace.disable')
-                      : t('console.workspace.enable')
+                    currentAsset.status === 'PUBLISHED'
+                      ? t('console.workspace.unpublish')
+                      : t('console.workspace.publish')
                   }}
+                </Button>
+                <Button size="xs" variant="destructive" @click="confirmDeleteAsset">
+                  {{ t('console.workspace.deleteAsset') }}
                 </Button>
               </div>
 
@@ -478,7 +489,7 @@ function openRecentAsset(apiCode: string) {
                   />
                 </div>
                 <label class="flex items-center gap-2 text-sm">
-                  <input v-model="aiProfileForm.streaming" type="checkbox" />
+                  <input v-model="aiProfileForm.streamingSupported" type="checkbox" />
                   {{ t('console.workspace.fieldStreaming') }}
                 </label>
                 <div class="flex gap-2">
@@ -490,9 +501,9 @@ function openRecentAsset(apiCode: string) {
                   />
                   <Button size="sm" variant="outline" @click="addAiTag">+</Button>
                 </div>
-                <div v-if="aiProfileForm.tags.length" class="flex flex-wrap gap-2">
+                <div v-if="aiProfileForm.capabilityTags.length" class="flex flex-wrap gap-2">
                   <span
-                    v-for="tag in aiProfileForm.tags"
+                    v-for="tag in aiProfileForm.capabilityTags"
                     :key="tag"
                     class="rounded-full bg-white px-2.5 py-1 text-[11px] shadow-console"
                   >

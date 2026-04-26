@@ -8,12 +8,13 @@ import {
 } from '@/api/catalog/category.api'
 import {
   bindAiProfile,
-  disableAsset,
-  enableAsset,
+  deleteAsset,
   getAsset,
   listAssets,
+  publishAsset,
   registerAsset,
   reviseAsset,
+  unpublishAsset,
 } from '@/api/catalog/asset.api'
 import type { ApiAsset, ApiAssetSummary, ApiCategory } from '@/api/catalog/catalog.types'
 import type {
@@ -35,8 +36,9 @@ interface WorkspaceCatalogDeps {
   listAssets: typeof listAssets
   registerAsset: typeof registerAsset
   reviseAsset: typeof reviseAsset
-  enableAsset: typeof enableAsset
-  disableAsset: typeof disableAsset
+  publishAsset: typeof publishAsset
+  unpublishAsset: typeof unpublishAsset
+  deleteAsset: typeof deleteAsset
   bindAiProfile: typeof bindAiProfile
   getRecentAssets: typeof getRecentAssets
   onAssetSelected?: (asset: ApiAsset) => void | Promise<void>
@@ -57,8 +59,9 @@ function buildDeps(options: WorkspaceCatalogOptions): WorkspaceCatalogDeps {
     listAssets,
     registerAsset,
     reviseAsset,
-    enableAsset,
-    disableAsset,
+    publishAsset,
+    unpublishAsset,
+    deleteAsset,
     bindAiProfile,
     getRecentAssets,
     autoLoad: true,
@@ -83,16 +86,15 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
 
   const registerForm = ref<RegisterAssetBody>({
     apiCode: '',
-    displayName: '',
+    assetName: '',
     assetType: 'STANDARD_API',
-    categoryCode: '',
   })
 
   const aiProfileForm = ref<BindAiProfileBody>({
     provider: '',
     model: '',
-    streaming: false,
-    tags: [],
+    streamingSupported: false,
+    capabilityTags: [],
   })
   const assetConfigForm = ref<{
     displayName: string
@@ -247,9 +249,8 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
       await setCurrentAsset(await deps.registerAsset(registerForm.value), true)
       registerForm.value = {
         apiCode: '',
-        displayName: '',
+        assetName: '',
         assetType: 'STANDARD_API',
-        categoryCode: '',
       }
     } catch {
       assetError.value = deps.t('console.workspace.registerFailed')
@@ -260,11 +261,48 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
 
   async function handleToggleAsset() {
     if (!currentAsset.value) return
-    const updated =
-      currentAsset.value.status === 'ENABLED'
-        ? await deps.disableAsset(currentAsset.value.apiCode)
-        : await deps.enableAsset(currentAsset.value.apiCode)
-    await setCurrentAsset(updated)
+    assetLoading.value = true
+    assetError.value = ''
+    const isPublished = currentAsset.value.status === 'PUBLISHED'
+    try {
+      const updated = isPublished
+        ? await deps.unpublishAsset(currentAsset.value.apiCode)
+        : await deps.publishAsset(currentAsset.value.apiCode)
+      await setCurrentAsset(updated)
+      const idx = assetListItems.value.findIndex((item) => item.apiCode === updated.apiCode)
+      if (idx !== -1) {
+        assetListItems.value[idx] = {
+          ...assetListItems.value[idx],
+          status: updated.status,
+          publisherDisplayName: updated.publisherDisplayName ?? null,
+          publishedAt: updated.publishedAt ?? null,
+          updatedAt: updated.updatedAt ?? assetListItems.value[idx].updatedAt,
+        }
+      }
+    } catch {
+      assetError.value = deps.t(
+        isPublished ? 'console.workspace.assetUnpublishFailed' : 'console.workspace.assetPublishFailed',
+      )
+    } finally {
+      assetLoading.value = false
+    }
+  }
+
+  async function handleDeleteAsset() {
+    if (!currentAsset.value) return
+    assetLoading.value = true
+    assetError.value = ''
+    try {
+      const deleted = await deps.deleteAsset(currentAsset.value.apiCode)
+      assetListItems.value = assetListItems.value.filter((item) => item.apiCode !== deleted.apiCode)
+      assetListTotal.value = Math.max(0, assetListTotal.value - 1)
+      currentAsset.value = null
+      syncAssetConfigForm(null)
+    } catch {
+      assetError.value = deps.t('console.workspace.assetDeleteFailed')
+    } finally {
+      assetLoading.value = false
+    }
   }
 
   async function handleBindAiProfile() {
@@ -303,8 +341,8 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
 
   function addAiTag() {
     const tag = aiTagInput.value.trim()
-    if (tag && !aiProfileForm.value.tags.includes(tag)) {
-      aiProfileForm.value.tags.push(tag)
+    if (tag && !aiProfileForm.value.capabilityTags.includes(tag)) {
+      aiProfileForm.value.capabilityTags.push(tag)
     }
     aiTagInput.value = ''
   }
@@ -339,6 +377,7 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     handleRegisterAsset,
     handleSaveAssetConfig,
     handleToggleAsset,
+    handleDeleteAsset,
     handleBindAiProfile,
     addAiTag,
     recentAssets,

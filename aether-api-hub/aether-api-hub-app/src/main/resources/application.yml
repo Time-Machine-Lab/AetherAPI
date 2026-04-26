@@ -6,5 +6,7 @@ spring:
     name: aether-api-hub
   profiles:
     active: ${ACTIVE:dev}
+  config:
+    import: optional:classpath:you-cant-see-that.yml
 
 

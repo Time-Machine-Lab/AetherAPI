@@ -101,6 +101,12 @@ loadList()
                 </Badge>
               </div>
               <p class="mt-1 text-xs text-muted-foreground">{{ asset.apiCode }}</p>
+              <p v-if="asset.publisherDisplayName" class="mt-2 text-xs text-muted-foreground">
+                {{ t('console.home.publisher') }} {{ asset.publisherDisplayName }}
+              </p>
+              <p v-if="asset.publishedAt" class="mt-1 text-xs text-muted-foreground">
+                {{ t('console.home.publishedAt') }} {{ asset.publishedAt }}
+              </p>
               <div v-if="asset.categoryName" class="mt-3 flex flex-wrap items-center gap-2">
                 <span
                   class="rounded-[8px] border border-[rgb(34_34_34_/_0.06)] bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground"
@@ -159,6 +165,17 @@ loadList()
                 <p v-if="detail.description" class="leading-6 text-muted-foreground">
                   {{ detail.description }}
                 </p>
+                <div
+                  v-if="detail.publisherDisplayName || detail.publishedAt"
+                  class="rounded-[14px] bg-secondary px-4 py-3 text-xs text-muted-foreground"
+                >
+                  <p v-if="detail.publisherDisplayName">
+                    {{ t('console.home.publisher') }} {{ detail.publisherDisplayName }}
+                  </p>
+                  <p v-if="detail.publishedAt" class="mt-1">
+                    {{ t('console.home.publishedAt') }} {{ detail.publishedAt }}
+                  </p>
+                </div>
                 <div class="grid grid-cols-2 gap-3">
                   <div class="rounded-[14px] bg-secondary px-4 py-3">
                     <p class="text-xs text-muted-foreground">{{ t('console.home.authScheme') }}</p>

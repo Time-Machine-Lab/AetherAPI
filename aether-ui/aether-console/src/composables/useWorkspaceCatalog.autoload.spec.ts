@@ -23,8 +23,9 @@ vi.mock('@/api/catalog/asset.api', () => ({
   listAssets: vi.fn(),
   registerAsset: vi.fn(),
   reviseAsset: vi.fn(),
-  enableAsset: vi.fn(),
-  disableAsset: vi.fn(),
+  publishAsset: vi.fn(),
+  unpublishAsset: vi.fn(),
+  deleteAsset: vi.fn(),
   bindAiProfile: vi.fn(),
 }))
 

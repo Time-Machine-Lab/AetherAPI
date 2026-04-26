@@ -25,6 +25,8 @@ describe('discovery api', () => {
             assetName: 'Chat Completions',
             assetType: 'AI_API',
             category: { categoryCode: 'ai', categoryName: 'AI' },
+            publisher: { displayName: 'Ada Publisher' },
+            publishedAt: '2026-04-26T12:00:00Z',
           },
         ],
         page: 1,
@@ -56,12 +58,37 @@ describe('discovery api', () => {
           assetType: 'AI_API',
           categoryCode: 'ai',
           categoryName: 'AI',
+          publisherDisplayName: 'Ada Publisher',
+          publishedAt: '2026-04-26T12:00:00Z',
         },
       ],
       total: 1,
       page: 1,
       pageSize: 10,
     })
+  })
+
+  it('tolerates discovery list responses without pagination metadata', async () => {
+    mockedGet.mockResolvedValueOnce({
+      data: {
+        items: [
+          {
+            apiCode: 'weather-api',
+            assetName: 'Weather API',
+            assetType: 'STANDARD_API',
+            category: null,
+            publisher: null,
+          },
+        ],
+      },
+    })
+
+    const result = await listDiscoveryAssets()
+
+    expect(result.total).toBe(1)
+    expect(result.page).toBe(1)
+    expect(result.pageSize).toBe(1)
+    expect(result.items[0].publisherDisplayName).toBeUndefined()
   })
 
   it('maps discovery detail response', async () => {
@@ -71,6 +98,8 @@ describe('discovery api', () => {
         assetName: 'Chat Completions',
         assetType: 'AI_API',
         category: { categoryCode: 'ai', categoryName: 'AI' },
+        publisher: { displayName: 'Ada Publisher' },
+        publishedAt: '2026-04-26T12:00:00Z',
         description: 'LLM chat completion endpoint',
         authScheme: 'HEADER_TOKEN',
         requestMethod: 'POST',
@@ -90,5 +119,7 @@ describe('discovery api', () => {
     expect(mockedGet).toHaveBeenCalledWith('v1/discovery/assets/chat-completions')
     expect(result.aiProfile?.provider).toBe('OpenAI')
     expect(result.requestMethod).toBe('POST')
+    expect(result.publisherDisplayName).toBe('Ada Publisher')
+    expect(result.publishedAt).toBe('2026-04-26T12:00:00Z')
   })
 })

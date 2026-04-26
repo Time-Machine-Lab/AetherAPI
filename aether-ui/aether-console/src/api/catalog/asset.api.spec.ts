@@ -6,16 +6,25 @@ vi.mock('@/api/http', () => ({
     post: vi.fn(),
     put: vi.fn(),
     patch: vi.fn(),
+    delete: vi.fn(),
   },
 }))
 
 import { http } from '@/api/http'
-import { disableAsset, enableAsset, getAsset, registerAsset, reviseAsset } from './asset.api'
+import {
+  deleteAsset,
+  getAsset,
+  publishAsset,
+  registerAsset,
+  reviseAsset,
+  unpublishAsset,
+} from './asset.api'
 
 const mockedGet = vi.mocked(http.get)
 const mockedPost = vi.mocked(http.post)
 const mockedPut = vi.mocked(http.put)
 const mockedPatch = vi.mocked(http.patch)
+const mockedDelete = vi.mocked(http.delete)
 
 describe('asset api', () => {
   beforeEach(() => {
@@ -23,6 +32,7 @@ describe('asset api', () => {
     mockedPost.mockReset()
     mockedPut.mockReset()
     mockedPatch.mockReset()
+    mockedDelete.mockReset()
   })
 
   it('maps backend asset detail fields into frontend asset shape', async () => {
@@ -32,7 +42,9 @@ describe('asset api', () => {
         assetName: 'Weather API',
         assetType: 'STANDARD_API',
         categoryCode: 'tools',
-        status: 'ENABLED',
+        status: 'PUBLISHED',
+        publisherDisplayName: 'Ada',
+        publishedAt: '2026-04-26T12:00:00Z',
         requestMethod: 'GET',
         upstreamUrl: 'https://upstream.example.com/weather',
         authScheme: 'NONE',
@@ -51,6 +63,9 @@ describe('asset api', () => {
       expect.objectContaining({
         apiCode: 'weather-api',
         displayName: 'Weather API',
+        status: 'PUBLISHED',
+        publisherDisplayName: 'Ada',
+        publishedAt: '2026-04-26T12:00:00Z',
         requestMethod: 'GET',
         upstreamUrl: 'https://upstream.example.com/weather',
         authScheme: 'NONE',
@@ -77,16 +92,14 @@ describe('asset api', () => {
 
     await registerAsset({
       apiCode: 'weather-api',
-      displayName: 'Weather API',
+      assetName: 'Weather API',
       assetType: 'STANDARD_API',
-      categoryCode: 'tools',
     })
 
-    expect(mockedPost).toHaveBeenCalledWith('v1/assets', {
+    expect(mockedPost).toHaveBeenCalledWith('v1/current-user/assets', {
       apiCode: 'weather-api',
       assetName: 'Weather API',
       assetType: 'STANDARD_API',
-      categoryCode: 'tools',
     })
   })
 
@@ -108,29 +121,53 @@ describe('asset api', () => {
       upstreamUrl: 'https://upstream.example.com/weather',
     })
 
-    expect(mockedPut).toHaveBeenCalledWith('v1/assets/weather-api', {
+    expect(mockedPut).toHaveBeenCalledWith('v1/current-user/assets/weather-api', {
       assetName: 'Weather API',
+      assetType: undefined,
       categoryCode: 'tools',
+      description: undefined,
       requestMethod: 'GET',
       upstreamUrl: 'https://upstream.example.com/weather',
+      authScheme: undefined,
+      requestTemplate: undefined,
+      requestExample: undefined,
+      responseExample: undefined,
     })
   })
 
-  it('uses backend patch contract for enable and disable actions', async () => {
+  it('uses backend patch contract for publish and unpublish actions', async () => {
     mockedPatch.mockResolvedValue({
       data: {
         apiCode: 'weather-api',
         assetName: 'Weather API',
         assetType: 'STANDARD_API',
         categoryCode: 'tools',
-        status: 'ENABLED',
+        status: 'PUBLISHED',
       },
     })
 
-    await enableAsset('weather-api')
-    await disableAsset('weather-api')
+    await publishAsset('weather-api')
+    await unpublishAsset('weather-api')
 
-    expect(mockedPatch).toHaveBeenNthCalledWith(1, 'v1/assets/weather-api/enable')
-    expect(mockedPatch).toHaveBeenNthCalledWith(2, 'v1/assets/weather-api/disable')
+    expect(mockedPatch).toHaveBeenNthCalledWith(1, 'v1/current-user/assets/weather-api/publish')
+    expect(mockedPatch).toHaveBeenNthCalledWith(2, 'v1/current-user/assets/weather-api/unpublish')
+  })
+
+  it('uses current-user delete contract for owner soft delete', async () => {
+    mockedDelete.mockResolvedValueOnce({
+      data: {
+        apiCode: 'weather-api',
+        assetName: 'Weather API',
+        assetType: 'STANDARD_API',
+        categoryCode: 'tools',
+        status: 'UNPUBLISHED',
+        deleted: true,
+      },
+    })
+
+    const result = await deleteAsset('weather-api')
+
+    expect(mockedDelete).toHaveBeenCalledWith('v1/current-user/assets/weather-api')
+    expect(result.deleted).toBe(true)
   })
 })

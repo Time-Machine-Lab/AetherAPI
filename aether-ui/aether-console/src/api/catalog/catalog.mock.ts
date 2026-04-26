@@ -42,7 +42,9 @@ const assets: AssetDto[] = [
     displayName: 'DeepSeek V3',
     assetType: 'AI_API',
     categoryCode: 'cat-ai',
-    status: 'ENABLED',
+    status: 'PUBLISHED',
+    publisherDisplayName: 'Aether Labs',
+    publishedAt: '2026-04-20T10:00:00Z',
     requestMethod: 'POST',
     upstreamUrl: 'https://upstream.example.com/deepseek/chat',
     description: '通用推理与工具调用旗舰模型。',
@@ -60,7 +62,9 @@ const assets: AssetDto[] = [
     displayName: 'Kimi K2',
     assetType: 'AI_API',
     categoryCode: 'cat-ai',
-    status: 'ENABLED',
+    status: 'PUBLISHED',
+    publisherDisplayName: 'Moonshot Team',
+    publishedAt: '2026-04-21T10:00:00Z',
     requestMethod: 'POST',
     upstreamUrl: 'https://upstream.example.com/kimi/chat',
     description: '长上下文与 Agent 场景旗舰模型。',
@@ -73,7 +77,9 @@ const assets: AssetDto[] = [
     displayName: 'Baidu Search API',
     assetType: 'STANDARD_API',
     categoryCode: 'cat-search',
-    status: 'ENABLED',
+    status: 'PUBLISHED',
+    publisherDisplayName: 'Search Studio',
+    publishedAt: '2026-04-22T10:00:00Z',
     requestMethod: 'GET',
     upstreamUrl: 'https://upstream.example.com/search',
     description: '联网检索与引用增强接口。',
@@ -85,7 +91,9 @@ const assets: AssetDto[] = [
     displayName: 'Weather Data API',
     assetType: 'STANDARD_API',
     categoryCode: 'cat-data',
-    status: 'DISABLED',
+    status: 'UNPUBLISHED',
+    publisherDisplayName: 'Weather Studio',
+    publishedAt: null,
     requestMethod: 'GET',
     upstreamUrl: 'https://upstream.example.com/weather',
     description: '实时天气与预报数据服务。',
@@ -144,7 +152,7 @@ const routes: { method: string; pattern: RegExp; handler: MockHandler }[] = [
     pattern: /^\/api\/v1\/discovery\/assets$/,
     handler: (params) => {
       const list: DiscoveryAssetDto[] = assets
-        .filter((a) => a.status === 'ENABLED')
+        .filter((a) => a.status === 'PUBLISHED')
         .map((a) => ({
           apiCode: a.apiCode,
           assetName: a.assetName ?? a.displayName ?? null,
@@ -153,6 +161,8 @@ const routes: { method: string; pattern: RegExp; handler: MockHandler }[] = [
             categoryCode: a.categoryCode ?? null,
             categoryName: categories.find((c) => c.categoryCode === a.categoryCode)?.name ?? null,
           },
+          publisher: { displayName: a.publisherDisplayName ?? null },
+          publishedAt: a.publishedAt ?? null,
         }))
       return ok(page(list, params))
     },
@@ -162,7 +172,22 @@ const routes: { method: string; pattern: RegExp; handler: MockHandler }[] = [
     pattern: /^\/api\/v1\/discovery\/assets\/(.+)$/,
     handler: (_, __, match) => {
       const asset = assets.find((a) => a.apiCode === match![1])
-      if (!asset) notFound()
+      if (!asset || asset.status !== 'PUBLISHED' || asset.deleted) notFound()
+      const aiProfile = asset.aiCapabilityProfile
+        ? {
+            provider: asset.aiCapabilityProfile.provider,
+            model: asset.aiCapabilityProfile.model,
+            streamingSupported: asset.aiCapabilityProfile.streamingSupported,
+            capabilityTags: asset.aiCapabilityProfile.capabilityTags,
+          }
+        : asset.aiProfile
+          ? {
+              provider: asset.aiProfile.provider,
+              model: asset.aiProfile.model,
+              streamingSupported: asset.aiProfile.streaming,
+              capabilityTags: asset.aiProfile.tags,
+            }
+          : null
       const detail: DiscoveryAssetDetailDto = {
         apiCode: asset.apiCode,
         assetName: asset.assetName ?? asset.displayName ?? null,
@@ -171,24 +196,19 @@ const routes: { method: string; pattern: RegExp; handler: MockHandler }[] = [
           categoryCode: asset.categoryCode ?? null,
           categoryName: categories.find((c) => c.categoryCode === asset.categoryCode)?.name ?? null,
         },
+        publisher: { displayName: asset.publisherDisplayName ?? null },
+        publishedAt: asset.publishedAt ?? null,
         description: asset.description,
         authScheme: (asset.authScheme as 'NONE' | 'HEADER_TOKEN' | 'QUERY_TOKEN' | null) ?? null,
         requestMethod: asset.assetType === 'AI_API' ? 'POST' : 'GET',
         requestTemplate:
           asset.assetType === 'AI_API'
             ? '{"model":"' +
-              asset.aiProfile?.model +
+              (aiProfile?.model ?? '') +
               '","messages":[{"role":"user","content":"Hello"}]}'
             : undefined,
         exampleSnapshot: { requestExample: '{"code":0,"data":{}}' },
-        aiCapabilityProfile: asset.aiProfile
-          ? {
-              provider: asset.aiProfile.provider,
-              model: asset.aiProfile.model,
-              streamingSupported: asset.aiProfile.streaming,
-              capabilityTags: asset.aiProfile.tags,
-            }
-          : null,
+        aiCapabilityProfile: aiProfile,
       }
       return ok(detail)
     },
@@ -248,61 +268,105 @@ const routes: { method: string; pattern: RegExp; handler: MockHandler }[] = [
   },
   // Assets
   {
+    method: 'GET',
+    pattern: /^\/api\/v1\/current-user\/assets$/,
+    handler: (params) => {
+      const status = params.status
+      const categoryCode = params.categoryCode
+      const list = assets.filter(
+        (asset) =>
+          !asset.deleted &&
+          (!status || asset.status === status) &&
+          (!categoryCode || asset.categoryCode === categoryCode),
+      )
+      return ok(page(list, params))
+    },
+  },
+  {
     method: 'POST',
-    pattern: /^\/api\/v1\/assets$/,
+    pattern: /^\/api\/v1\/current-user\/assets$/,
     handler: (_, body) => {
       const b = body as AssetDto
-      const asset: AssetDto = { ...b, status: 'DRAFT' }
+      const now = new Date().toISOString()
+      const asset: AssetDto = {
+        ...b,
+        categoryCode: b.categoryCode ?? null,
+        status: 'DRAFT',
+        publisherDisplayName: 'Current User',
+        publishedAt: null,
+        deleted: false,
+        createdAt: now,
+        updatedAt: now,
+      }
       assets.push(asset)
       return ok(asset)
     },
   },
   {
     method: 'GET',
-    pattern: /^\/api\/v1\/assets\/(.+)$/,
+    pattern: /^\/api\/v1\/current-user\/assets\/(.+)$/,
     handler: (_, __, match) => {
       const asset = assets.find((a) => a.apiCode === match![1])
-      if (!asset) notFound()
+      if (!asset || asset.deleted) notFound()
       return ok({ ...asset })
     },
   },
   {
     method: 'PUT',
-    pattern: /^\/api\/v1\/assets\/(.+)$/,
+    pattern: /^\/api\/v1\/current-user\/assets\/(.+)$/,
     handler: (_, body, match) => {
       const asset = assets.find((a) => a.apiCode === match![1])
-      if (!asset) notFound()
+      if (!asset || asset.deleted) notFound()
       Object.assign(asset, body)
+      if (asset.status === 'PUBLISHED') {
+        asset.status = 'UNPUBLISHED'
+      }
+      asset.updatedAt = new Date().toISOString()
       return ok({ ...asset })
     },
   },
   {
     method: 'PATCH',
-    pattern: /^\/api\/v1\/assets\/(.+)\/enable$/,
+    pattern: /^\/api\/v1\/current-user\/assets\/(.+)\/publish$/,
     handler: (_, __, match) => {
       const asset = assets.find((a) => a.apiCode === match![1])
-      if (!asset) notFound()
-      asset.status = 'ENABLED'
+      if (!asset || asset.deleted) notFound()
+      asset.status = 'PUBLISHED'
+      asset.publishedAt = new Date().toISOString()
+      asset.updatedAt = asset.publishedAt
       return ok({ ...asset })
     },
   },
   {
     method: 'PATCH',
-    pattern: /^\/api\/v1\/assets\/(.+)\/disable$/,
+    pattern: /^\/api\/v1\/current-user\/assets\/(.+)\/unpublish$/,
     handler: (_, __, match) => {
       const asset = assets.find((a) => a.apiCode === match![1])
-      if (!asset) notFound()
-      asset.status = 'DISABLED'
+      if (!asset || asset.deleted) notFound()
+      asset.status = 'UNPUBLISHED'
+      asset.updatedAt = new Date().toISOString()
+      return ok({ ...asset })
+    },
+  },
+  {
+    method: 'DELETE',
+    pattern: /^\/api\/v1\/current-user\/assets\/(.+)$/,
+    handler: (_, __, match) => {
+      const asset = assets.find((a) => a.apiCode === match![1])
+      if (!asset || asset.deleted) notFound()
+      asset.deleted = true
+      asset.updatedAt = new Date().toISOString()
       return ok({ ...asset })
     },
   },
   {
     method: 'PUT',
-    pattern: /^\/api\/v1\/assets\/(.+)\/ai-profile$/,
+    pattern: /^\/api\/v1\/current-user\/assets\/(.+)\/ai-profile$/,
     handler: (_, body, match) => {
       const asset = assets.find((a) => a.apiCode === match![1])
-      if (!asset) notFound()
-      asset.aiProfile = body as AssetDto['aiProfile']
+      if (!asset || asset.deleted) notFound()
+      asset.aiCapabilityProfile = body as AssetDto['aiCapabilityProfile']
+      asset.updatedAt = new Date().toISOString()
       return ok({ ...asset })
     },
   },

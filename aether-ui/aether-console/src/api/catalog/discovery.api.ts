@@ -1,5 +1,5 @@
 import { http } from '@/api/http'
-import type { DiscoveryAssetDetailDto, DiscoveryAssetDto, PageDto } from './catalog.dto'
+import type { DiscoveryAssetDetailDto, DiscoveryAssetDto, DiscoveryListDto } from './catalog.dto'
 import type { DiscoveryAsset, DiscoveryAssetDetail, PageResult } from './catalog.types'
 
 function mapAsset(dto: DiscoveryAssetDto): DiscoveryAsset {
@@ -9,6 +9,8 @@ function mapAsset(dto: DiscoveryAssetDto): DiscoveryAsset {
     assetType: dto.assetType,
     categoryCode: dto.category?.categoryCode ?? '',
     categoryName: dto.category?.categoryName ?? undefined,
+    publisherDisplayName: dto.publisher?.displayName ?? undefined,
+    publishedAt: dto.publishedAt ?? undefined,
   }
 }
 
@@ -42,12 +44,14 @@ export async function listDiscoveryAssets(params?: {
   keyword?: string
   categoryCode?: string
 }): Promise<PageResult<DiscoveryAsset>> {
-  const { data } = await http.get<PageDto<DiscoveryAssetDto>>('v1/discovery/assets', { params })
+  const { data } = await http.get<DiscoveryListDto<DiscoveryAssetDto>>('v1/discovery/assets', {
+    params,
+  })
   return {
     items: data.items.map(mapAsset),
-    total: data.total,
-    page: data.page,
-    pageSize: data.pageSize,
+    total: data.total ?? data.items.length,
+    page: data.page ?? 1,
+    pageSize: data.pageSize ?? data.size ?? data.items.length,
   }
 }
 

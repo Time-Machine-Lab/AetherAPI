@@ -22,6 +22,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class MybatisApiAssetQueryPortTest {
 
+    private static final String OWNER_USER_ID = "owner-1";
+
     @Mock
     private ApiAssetManagementQueryMapper mapper;
 
@@ -33,37 +35,37 @@ class MybatisApiAssetQueryPortTest {
     }
 
     @Test
-    @DisplayName("management list should keep mixed lifecycle states visible")
+    @DisplayName("asset workspace list should keep mixed lifecycle states visible")
     void shouldKeepMixedLifecycleStatesVisible() {
-        when(mapper.selectPage(null, null, null, 20, 0)).thenReturn(List.of(
+        when(mapper.selectPage(OWNER_USER_ID, null, null, null, 20, 0)).thenReturn(List.of(
                 record("weather-draft", "DRAFT", "STANDARD_API", "2026-04-20T08:00:00"),
-                record("chat-enabled", "ENABLED", "AI_API", "2026-04-21T08:00:00"),
-                record("invoice-disabled", "DISABLED", "STANDARD_API", "2026-04-22T08:00:00")
+                record("chat-published", "PUBLISHED", "AI_API", "2026-04-21T08:00:00"),
+                record("invoice-unpublished", "UNPUBLISHED", "STANDARD_API", "2026-04-22T08:00:00")
         ));
 
-        List<ApiAssetSummaryModel> result = queryPort.findPage(null, null, null, 1, 20);
+        List<ApiAssetSummaryModel> result = queryPort.findPage(OWNER_USER_ID, null, null, null, 1, 20);
 
         assertEquals(3, result.size());
         assertEquals("DRAFT", result.get(0).getStatus());
-        assertEquals("ENABLED", result.get(1).getStatus());
-        assertEquals("DISABLED", result.get(2).getStatus());
+        assertEquals("PUBLISHED", result.get(1).getStatus());
+        assertEquals("UNPUBLISHED", result.get(2).getStatus());
         assertEquals("2026-04-20T08:00:00Z", result.get(0).getUpdatedAt());
     }
 
     @Test
-    @DisplayName("management list should translate filters and pagination to mapper arguments")
+    @DisplayName("asset workspace list should translate filters and pagination to mapper arguments")
     void shouldTranslateFiltersAndPaginationToMapperArguments() {
-        ApiAssetManagementQueryRecord filtered = record("chat-enabled", "ENABLED", "AI_API", "2026-04-21T08:00:00");
+        ApiAssetManagementQueryRecord filtered = record("chat-published", "PUBLISHED", "AI_API", "2026-04-21T08:00:00");
         filtered.setCategoryCode("tools");
         filtered.setCategoryName("Tools");
-        when(mapper.selectPage("ENABLED", "tools", "chat", 10, 10)).thenReturn(List.of(filtered));
-        when(mapper.count("ENABLED", "tools", "chat")).thenReturn(1L);
+        when(mapper.selectPage(OWNER_USER_ID, "PUBLISHED", "tools", "chat", 10, 10)).thenReturn(List.of(filtered));
+        when(mapper.count(OWNER_USER_ID, "PUBLISHED", "tools", "chat")).thenReturn(1L);
 
-        List<ApiAssetSummaryModel> result = queryPort.findPage("ENABLED", "tools", "chat", 2, 10);
-        long total = queryPort.count("ENABLED", "tools", "chat");
+        List<ApiAssetSummaryModel> result = queryPort.findPage(OWNER_USER_ID, "PUBLISHED", "tools", "chat", 2, 10);
+        long total = queryPort.count(OWNER_USER_ID, "PUBLISHED", "tools", "chat");
 
-        verify(mapper).selectPage("ENABLED", "tools", "chat", 10, 10);
-        verify(mapper).count("ENABLED", "tools", "chat");
+        verify(mapper).selectPage(OWNER_USER_ID, "PUBLISHED", "tools", "chat", 10, 10);
+        verify(mapper).count(OWNER_USER_ID, "PUBLISHED", "tools", "chat");
         assertEquals(1, total);
         assertEquals("tools", result.get(0).getCategoryCode());
         assertEquals("Tools", result.get(0).getCategoryName());
@@ -75,9 +77,9 @@ class MybatisApiAssetQueryPortTest {
         ApiAssetManagementQueryRecord record = record("uncategorized", "DRAFT", "STANDARD_API", "2026-04-23T08:00:00");
         record.setCategoryCode(null);
         record.setCategoryName(null);
-        when(mapper.selectPage(null, null, "uncategorized", 20, 0)).thenReturn(List.of(record));
+        when(mapper.selectPage(OWNER_USER_ID, null, null, "uncategorized", 20, 0)).thenReturn(List.of(record));
 
-        ApiAssetSummaryModel result = queryPort.findPage(null, null, "uncategorized", 1, 20).get(0);
+        ApiAssetSummaryModel result = queryPort.findPage(OWNER_USER_ID, null, null, "uncategorized", 1, 20).get(0);
 
         assertNull(result.getCategoryCode());
         assertNull(result.getCategoryName());

@@ -3,11 +3,17 @@ export interface DiscoveryCategoryDto {
   categoryName?: string | null
 }
 
+export interface DiscoveryPublisherDto {
+  displayName?: string | null
+}
+
 export interface DiscoveryAssetDto {
   apiCode: string
   assetName?: string | null
   assetType: 'AI_API' | 'STANDARD_API'
   category?: DiscoveryCategoryDto | null
+  publisher?: DiscoveryPublisherDto | null
+  publishedAt?: string | null
 }
 
 export interface AiProfileDto {
@@ -47,12 +53,16 @@ export interface CategoryDto {
 }
 
 export interface AssetDto {
+  id?: string
   apiCode: string
   assetName?: string | null
   displayName?: string | null
   assetType: 'AI_API' | 'STANDARD_API'
   categoryCode: string | null
-  status: 'DRAFT' | 'ENABLED' | 'DISABLED'
+  categoryName?: string | null
+  status: 'DRAFT' | 'PUBLISHED' | 'UNPUBLISHED'
+  publisherDisplayName?: string | null
+  publishedAt?: string | null
   description?: string
   requestMethod?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | null
   upstreamUrl?: string | null
@@ -68,6 +78,9 @@ export interface AssetDto {
     streamingSupported: boolean
     capabilityTags: string[]
   } | null
+  deleted?: boolean
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface PageDto<T> {
@@ -77,17 +90,23 @@ export interface PageDto<T> {
   pageSize: number
 }
 
+export interface DiscoveryListDto<T> {
+  items: T[]
+  total?: number
+  page?: number
+  pageSize?: number
+  size?: number
+}
+
 export interface RegisterAssetBody {
   apiCode: string
-  displayName: string
+  assetName: string
   assetType: 'AI_API' | 'STANDARD_API'
-  categoryCode: string
-  description?: string
-  authScheme?: string
 }
 
 export interface ReviseAssetBody {
   displayName?: string | null
+  assetType?: 'AI_API' | 'STANDARD_API'
   categoryCode?: string | null
   description?: string | null
   requestMethod?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | null
@@ -101,8 +120,8 @@ export interface ReviseAssetBody {
 export interface BindAiProfileBody {
   provider: string
   model: string
-  streaming: boolean
-  tags: string[]
+  streamingSupported: boolean
+  capabilityTags: string[]
 }
 
 export interface CreateCategoryBody {
@@ -114,7 +133,7 @@ export interface RenameCategoryBody {
 }
 
 export interface ListAssetsQuery {
-  status?: 'DRAFT' | 'ENABLED' | 'DISABLED'
+  status?: 'DRAFT' | 'PUBLISHED' | 'UNPUBLISHED'
   categoryCode?: string
   keyword?: string
   page?: number
@@ -127,7 +146,9 @@ export interface AssetSummaryDto {
   assetType: 'AI_API' | 'STANDARD_API'
   categoryCode: string | null
   categoryName: string | null
-  status: 'DRAFT' | 'ENABLED' | 'DISABLED'
+  status: 'DRAFT' | 'PUBLISHED' | 'UNPUBLISHED'
+  publisherDisplayName?: string | null
+  publishedAt?: string | null
   updatedAt: string
 }
 

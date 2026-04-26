@@ -20,8 +20,9 @@ vi.mock('@/api/catalog/asset.api', () => ({
   listAssets: vi.fn(),
   registerAsset: vi.fn(),
   reviseAsset: vi.fn(),
-  enableAsset: vi.fn(),
-  disableAsset: vi.fn(),
+  publishAsset: vi.fn(),
+  unpublishAsset: vi.fn(),
+  deleteAsset: vi.fn(),
   bindAiProfile: vi.fn(),
 }))
 
@@ -119,16 +120,16 @@ describe('useWorkspaceCatalog', () => {
     expect(workspace.catLoading.value).toBe(false)
   })
 
-  it('loads, registers, toggles, and binds AI profile for assets', async () => {
-    const enabledAsset = asset({ status: 'ENABLED' })
-    const aiAsset = asset({ assetType: 'AI_API', status: 'ENABLED' })
+  it('loads, registers, publishes, and binds AI profile for assets', async () => {
+    const publishedAsset = asset({ status: 'PUBLISHED' })
+    const aiAsset = asset({ assetType: 'AI_API', status: 'PUBLISHED' })
     const workspace = useWorkspaceCatalog({
       t,
       autoLoad: false,
       getAsset: vi.fn().mockResolvedValueOnce(asset()),
       registerAsset: vi.fn().mockResolvedValueOnce(asset({ apiCode: 'new-api' })),
-      enableAsset: vi.fn().mockResolvedValueOnce(enabledAsset),
-      disableAsset: vi.fn().mockResolvedValueOnce(asset({ status: 'DISABLED' })),
+      publishAsset: vi.fn().mockResolvedValueOnce(publishedAsset),
+      unpublishAsset: vi.fn().mockResolvedValueOnce(asset({ status: 'UNPUBLISHED' })),
       bindAiProfile: vi.fn().mockResolvedValueOnce(aiAsset),
       getRecentAssets: vi.fn().mockReturnValue([]),
     })
@@ -139,21 +140,20 @@ describe('useWorkspaceCatalog', () => {
 
     workspace.registerForm.value = {
       apiCode: 'new-api',
-      displayName: 'New API',
+      assetName: 'New API',
       assetType: 'STANDARD_API',
-      categoryCode: 'tools',
     }
     await workspace.handleRegisterAsset()
     expect(workspace.currentAsset.value?.apiCode).toBe('new-api')
     expect(workspace.registerForm.value.apiCode).toBe('')
 
     await workspace.handleToggleAsset()
-    expect(workspace.currentAsset.value?.status).toBe('ENABLED')
+    expect(workspace.currentAsset.value?.status).toBe('PUBLISHED')
 
     workspace.aiTagInput.value = 'vision'
     workspace.addAiTag()
     await workspace.handleBindAiProfile()
-    expect(workspace.aiProfileForm.value.tags).toEqual(['vision'])
+    expect(workspace.aiProfileForm.value.capabilityTags).toEqual(['vision'])
     expect(workspace.currentAsset.value?.assetType).toBe('AI_API')
   })
 
@@ -176,7 +176,7 @@ describe('useWorkspaceCatalog', () => {
 
   it('loads asset list with filter and paging state', async () => {
     const summaries = [
-      assetSummary({ apiCode: 'api-a', assetName: 'API A', status: 'ENABLED' }),
+      assetSummary({ apiCode: 'api-a', assetName: 'API A', status: 'PUBLISHED' }),
       assetSummary({ apiCode: 'api-b', assetName: 'API B', status: 'DRAFT' }),
     ]
     const listPage: PageResult<ApiAssetSummary> = {
@@ -204,7 +204,7 @@ describe('useWorkspaceCatalog', () => {
 
   it('passes filter fields to listAssets and reflects them in state', async () => {
     const listFn = vi.fn().mockResolvedValueOnce({
-      items: [assetSummary({ apiCode: 'ai-api-1', status: 'ENABLED' })],
+      items: [assetSummary({ apiCode: 'ai-api-1', status: 'PUBLISHED' })],
       total: 1,
       page: 1,
       pageSize: 20,
@@ -217,11 +217,11 @@ describe('useWorkspaceCatalog', () => {
     })
 
     workspace.assetListFilterKeyword.value = 'weather'
-    workspace.assetListFilterStatus.value = 'ENABLED'
+    workspace.assetListFilterStatus.value = 'PUBLISHED'
     await workspace.handleListAssets(1)
 
     expect(listFn).toHaveBeenCalledWith(
-      expect.objectContaining({ keyword: 'weather', status: 'ENABLED', page: 1 }),
+      expect.objectContaining({ keyword: 'weather', status: 'PUBLISHED', page: 1 }),
     )
     expect(workspace.assetListItems.value[0].apiCode).toBe('ai-api-1')
   })
@@ -243,7 +243,7 @@ describe('useWorkspaceCatalog', () => {
 
   it('list selection hydrates currentAsset via getAsset', async () => {
     const onAssetSelected = vi.fn()
-    const selectedAsset = asset({ apiCode: 'weather-api', status: 'ENABLED' })
+    const selectedAsset = asset({ apiCode: 'weather-api', status: 'PUBLISHED' })
     const workspace = useWorkspaceCatalog({
       t,
       autoLoad: false,
@@ -255,7 +255,7 @@ describe('useWorkspaceCatalog', () => {
     await workspace.handleListSelectAsset('weather-api')
 
     expect(workspace.currentAsset.value?.apiCode).toBe('weather-api')
-    expect(workspace.currentAsset.value?.status).toBe('ENABLED')
+    expect(workspace.currentAsset.value?.status).toBe('PUBLISHED')
     expect(workspace.assetConfigForm.value.requestMethod).toBe('GET')
     expect(workspace.assetConfigForm.value.upstreamUrl).toBe('https://upstream.example.com/weather')
     expect(workspace.assetError.value).toBe('')
@@ -295,7 +295,7 @@ describe('useWorkspaceCatalog', () => {
 
   it('saves edited asset config through reviseAsset and updates current asset', async () => {
     const revisedAsset = asset({
-      status: 'ENABLED',
+      status: 'UNPUBLISHED',
       requestMethod: 'POST',
       upstreamUrl: 'https://upstream.example.com/weather/v2',
     })
@@ -324,9 +324,37 @@ describe('useWorkspaceCatalog', () => {
       requestExample: null,
       responseExample: null,
     })
+    expect(workspace.currentAsset.value?.status).toBe('UNPUBLISHED')
     expect(workspace.currentAsset.value?.requestMethod).toBe('POST')
     expect(workspace.currentAsset.value?.upstreamUrl).toBe(
       'https://upstream.example.com/weather/v2',
     )
+  })
+
+  it('unpublishes and deletes the selected asset', async () => {
+    const selectedAsset = asset({ apiCode: 'weather-api', status: 'PUBLISHED' })
+    const unpublishAsset = vi.fn().mockResolvedValueOnce(asset({ status: 'UNPUBLISHED' }))
+    const deleteAsset = vi.fn().mockResolvedValueOnce(asset({ deleted: true }))
+    const workspace = useWorkspaceCatalog({
+      t,
+      autoLoad: false,
+      getAsset: vi.fn().mockResolvedValueOnce(selectedAsset),
+      unpublishAsset,
+      deleteAsset,
+      getRecentAssets: vi.fn().mockReturnValue([]),
+    })
+
+    await workspace.handleListSelectAsset('weather-api')
+    await workspace.handleToggleAsset()
+    expect(unpublishAsset).toHaveBeenCalledWith('weather-api')
+    expect(workspace.currentAsset.value?.status).toBe('UNPUBLISHED')
+
+    workspace.assetListItems.value = [assetSummary({ apiCode: 'weather-api' })]
+    workspace.assetListTotal.value = 1
+    await workspace.handleDeleteAsset()
+    expect(deleteAsset).toHaveBeenCalledWith('weather-api')
+    expect(workspace.currentAsset.value).toBeNull()
+    expect(workspace.assetListItems.value).toHaveLength(0)
+    expect(workspace.assetListTotal.value).toBe(0)
   })
 })
