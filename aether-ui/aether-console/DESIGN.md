@@ -403,3 +403,48 @@ All workspace management panels (category management, asset management, recent a
 - Don't let the shell search container use `shadow-console` — use `bg-secondary` instead
 - Don't give inline-rename inputs a height below `h-9` — cramped inputs break row rhythm
 - Don't mix action affordances (hover lift, cursor-pointer) into read-only status labels
+
+## 11. 控制台展示型组件视觉规范
+
+本章定义 `aether-console` 中用于“展示信息而非触发操作”的组件模式。实现市场、资产、日志、Playground 等页面时，优先复用这些展示型组件；基础 `Button`、`Input`、`Card` 继续作为底层原子组件，不承载只读状态语义。
+
+### 11.1 语义边界
+
+| 类型       | 用途                                        | 视觉规则                                                                          | 禁止事项                                          |
+| ---------- | ------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------- |
+| 只读状态   | 类型、状态、方法、状态码、结果类型          | 使用 `DisplayTag` / `MethodTag`，圆形胶囊、浅色底、无阴影                         | 不使用 Button、无 hover lift、无 `cursor-pointer` |
+| 可点击操作 | 新建、编辑、复制、查询、调用、删除          | 使用 `Button` 或可点击 `DataListRow`，具备 hover / focus / disabled / active 状态 | 不伪装成只读标签                                  |
+| 字段输入   | 表单输入、选择、JSON 文本域                 | 使用 `FieldLabel` + 输入控件，说明在字段附近展示                                  | 不依赖 placeholder 作为唯一说明                   |
+| 系统反馈   | 空态、错误态、加载态、不可用态              | 使用 `StateBlock` 或同等结构，包含图标、标题、说明和可选行动入口                  | 不用空白区域代替反馈                              |
+| 数据展示   | JSON、Header、Payload、示例、日志结构化字段 | 使用 `CodeBlock`，支持格式化、复制、纯文本兜底和必要折叠                          | 不在页面内散写 `<pre>` 样式                       |
+
+### 11.2 元信息与标签
+
+- `MetaItem` 用于发布者、时间、分类、鉴权方式、耗时等短信息，结构为图标 + 可选标签 + 值。
+- `DisplayTag` 用于类型、状态、结果、状态码等只读短标签。颜色按语义选择：成功使用主色浅底，危险使用 destructive 浅底，信息使用 legal blue 浅底，AI 使用 chart-3 浅底。
+- `MethodTag` 用于 HTTP 方法：GET 为成功色，POST 为信息色，PUT/PATCH 为警示色，DELETE 为危险色。
+- 元信息缺失时可以省略，不从其他数据推导不可用字段。
+
+### 11.3 字段组与增强 Label
+
+- 复杂表单必须用 `FieldGroup` 分组，例如基础信息、上游与鉴权、请求与响应示例、AI 能力。
+- 字段标题使用 `FieldLabel`，支持说明、必填/可选标记。关键字段说明必须出现在字段附近。
+- 字段组使用白底、14px 圆角、轻边框，并在标题左侧使用 2px 主色强调线。
+
+### 11.4 结构化列表行
+
+- 资产、日志、API Key 等高密度列表优先使用 `DataListRow` 或同等结构。
+- 行内分区为：标题/描述、元信息、只读标签、操作按钮。只读标签和操作按钮必须视觉分离。
+- 只有整行可点击时才允许 hover lift 和 `cursor-pointer`；纯展示行保持静态。
+
+### 11.5 JSON 与代码展示
+
+- 请求模板、请求示例、响应示例、Header、Payload、调用结果、日志 `usageSnapshot` 均使用 `CodeBlock`。
+- 合法 JSON 自动格式化；非法 JSON 或普通文本以原文展示，并给出非阻塞提示。
+- 代码块可按场景提供复制与折叠；复制反馈使用 i18n 文案。
+
+### 11.6 状态反馈
+
+- 列表加载、空结果、请求失败、契约不可用等状态使用 `StateBlock` 或同等结构。
+- 空态应包含明确标题和说明；错误态使用 destructive 色；不可用态使用中性图标和说明。
+- 不可用能力不得呈现为可工作的真实操作，可展示为 disabled Action 或不可用态说明。

@@ -2,15 +2,7 @@
 import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  CalendarClock,
-  Folder,
-  Network,
-  Pencil,
-  Plus,
-  Settings,
-  Trash2,
-} from 'lucide-vue-next'
+import { CalendarClock, Folder, Pencil, Plus, Settings, Trash2 } from 'lucide-vue-next'
 import { useWorkspaceCatalog } from '@/composables/useWorkspaceCatalog'
 import CredentialWorkspace from '@/features/credential/CredentialWorkspace.vue'
 import ApiCallLogWorkspace from '@/features/api-call-log/ApiCallLogWorkspace.vue'
@@ -18,10 +10,16 @@ import { defaultConsoleWorkspaceHash, isHiddenConsoleNavId } from '@/features/co
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import MetaItem from '@/components/console/MetaItem.vue'
 import CopyableField from '@/components/console/CopyableField.vue'
+import DisplayTag from '@/components/console/DisplayTag.vue'
+import MethodTag from '@/components/console/MethodTag.vue'
+import DataListRow from '@/components/console/DataListRow.vue'
+import FieldGroup from '@/components/console/FieldGroup.vue'
+import FieldLabel from '@/components/console/FieldLabel.vue'
+import StateBlock from '@/components/console/StateBlock.vue'
 import { buildUnifiedAccessAddress } from '@/utils/platform-url'
+import { assetTypeTone, type DisplayTone } from '@/utils/visual-system'
 import type { AssetStatus } from '@/api/catalog/catalog.types'
 
 const { t } = useI18n()
@@ -83,8 +81,14 @@ function assetStatusLabel(status: AssetStatus) {
   return t('console.workspace.draft')
 }
 
-function assetStatusBadgeVariant(status: AssetStatus) {
-  return status === 'PUBLISHED' ? 'status-enabled' : 'status-disabled'
+function assetTypeLabel(assetType: string) {
+  return assetType === 'AI_API' ? 'AI' : 'API'
+}
+
+function assetStatusTone(status: AssetStatus): DisplayTone {
+  if (status === 'PUBLISHED') return 'success'
+  if (status === 'UNPUBLISHED') return 'neutral'
+  return 'info'
 }
 
 function assetStatusBarClass(status: AssetStatus) {
@@ -184,72 +188,87 @@ function confirmDeleteAsset() {
               </Button>
             </div>
 
-            <div v-if="assetListLoading" class="py-6 text-center text-sm text-muted-foreground">
-              {{ t('console.workspace.loading') }}
-            </div>
-            <div v-else-if="assetListError" class="py-6 text-center text-sm text-destructive">
-              {{ t('console.workspace.assetListError') }}
-            </div>
-            <div
+            <StateBlock
+              v-if="assetListLoading"
+              tone="loading"
+              :title="t('console.workspace.loading')"
+            />
+            <StateBlock
+              v-else-if="assetListError"
+              tone="error"
+              :title="t('console.workspace.assetListError')"
+            />
+            <StateBlock
               v-else-if="
                 assetListItems.length === 0 &&
                 assetListTotal === 0 &&
                 assetListPage === 1 &&
                 !assetListLoading
               "
-              class="py-6 text-center text-sm text-muted-foreground"
-            >
-              {{ t('console.workspace.assetListEmpty') }}
-            </div>
+              tone="empty"
+              :title="t('console.workspace.assetListEmpty')"
+            />
             <div v-else-if="assetListItems.length > 0" class="space-y-2">
-              <div
-                v-for="item in assetListItems"
-                :key="item.apiCode"
-                class="group relative flex min-h-[72px] w-full items-center gap-3 rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-white px-4 py-3 text-left shadow-console transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-console-hover"
-              >
+              <DataListRow v-for="item in assetListItems" :key="item.apiCode">
                 <span
                   class="absolute bottom-3 left-3 top-3 w-[3px] rounded-full"
                   :class="assetStatusBarClass(item.status)"
                 />
-                <button
-                  type="button"
-                  class="min-w-0 flex-1 pl-2 text-left"
-                  :disabled="assetLoading"
-                  @click="selectAsset(item.apiCode)"
-                >
+                <template #title>
                   <p class="truncate text-sm font-medium text-foreground">
                     {{ item.assetName ?? item.apiCode }}
                   </p>
+                </template>
+                <template #description>
                   <p class="text-xs text-muted-foreground">{{ item.apiCode }}</p>
-                  <div class="mt-2 flex flex-wrap gap-1.5">
-                    <Badge :variant="item.assetType === 'AI_API' ? 'type-ai' : 'type-api'">
-                      {{ item.assetType === 'AI_API' ? 'AI' : 'API' }}
-                    </Badge>
-                    <Badge :variant="assetStatusBadgeVariant(item.status)">
-                      {{ assetStatusLabel(item.status) }}
-                    </Badge>
-                    <MetaItem
-                      :icon="Folder"
-                      :label="t('console.workspace.listMetaCategory')"
-                      :value="item.categoryName ?? item.categoryCode"
-                    />
-                    <MetaItem
-                      :icon="CalendarClock"
-                      :label="t('console.workspace.listMetaUpdatedAt')"
-                      :value="formatDateTime(item.updatedAt)"
-                    />
-                    <MetaItem
-                      :icon="CalendarClock"
-                      :label="t('console.workspace.listMetaPublishedAt')"
-                      :value="formatDateTime(item.publishedAt)"
-                    />
-                  </div>
-                </button>
-                <Button size="xs" variant="outline" :disabled="assetLoading" @click="editAsset(item.apiCode)">
-                  <Pencil class="size-3.5" />
-                  {{ t('console.shared.edit') }}
-                </Button>
-              </div>
+                </template>
+                <template #meta>
+                  <MetaItem
+                    :icon="Folder"
+                    :label="t('console.workspace.listMetaCategory')"
+                    :value="item.categoryName ?? item.categoryCode"
+                  />
+                  <MetaItem
+                    :icon="CalendarClock"
+                    :label="t('console.workspace.listMetaUpdatedAt')"
+                    :value="formatDateTime(item.updatedAt)"
+                  />
+                  <MetaItem
+                    :icon="CalendarClock"
+                    :label="t('console.workspace.listMetaPublishedAt')"
+                    :value="formatDateTime(item.publishedAt)"
+                  />
+                </template>
+                <template #tags>
+                  <DisplayTag
+                    :tone="assetTypeTone(item.assetType)"
+                    :label="assetTypeLabel(item.assetType)"
+                  />
+                  <DisplayTag
+                    :tone="assetStatusTone(item.status)"
+                    :label="assetStatusLabel(item.status)"
+                  />
+                </template>
+                <template #actions>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    :disabled="assetLoading"
+                    @click="selectAsset(item.apiCode)"
+                  >
+                    {{ t('console.workspace.assetLoad') }}
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    :disabled="assetLoading"
+                    @click="editAsset(item.apiCode)"
+                  >
+                    <Pencil class="size-3.5" />
+                    {{ t('console.shared.edit') }}
+                  </Button>
+                </template>
+              </DataListRow>
 
               <div class="flex items-center justify-between pt-2 text-xs text-muted-foreground">
                 <span>{{
@@ -288,17 +307,20 @@ function confirmDeleteAsset() {
             <CardDescription>{{ t('console.workspace.assetDescription') }}</CardDescription>
           </CardHeader>
           <CardContent class="space-y-4">
-            <div class="space-y-1">
-              <label class="text-xs font-medium text-muted-foreground">
-                {{ t('console.workspace.assetCodePlaceholder') }}
-              </label>
+            <div class="space-y-2">
+              <FieldLabel :label="t('console.workspace.assetCodePlaceholder')" optional />
               <div class="flex gap-2">
                 <Input
                   v-model="assetCodeInput"
                   :placeholder="t('console.workspace.assetCodePlaceholder')"
                   class="flex-1"
                 />
-                <Button size="sm" variant="outline" :disabled="assetLoading" @click="handleLoadAsset">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  :disabled="assetLoading"
+                  @click="handleLoadAsset"
+                >
                   {{ t('console.workspace.assetLoad') }}
                 </Button>
               </div>
@@ -306,8 +328,14 @@ function confirmDeleteAsset() {
 
             <p v-if="assetError" class="text-sm text-destructive">{{ assetError }}</p>
 
+            <StateBlock
+              v-if="!currentAsset"
+              tone="empty"
+              :title="t('console.workspace.noAssetSelected')"
+              :description="t('console.workspace.noAssetSelectedDescription')"
+            />
             <div
-              v-if="currentAsset"
+              v-else
               class="space-y-4 rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-secondary/40 px-4 py-4"
             >
               <div class="flex min-h-[44px] items-start justify-between gap-3">
@@ -315,19 +343,17 @@ function confirmDeleteAsset() {
                   <p class="font-semibold text-foreground">{{ currentAsset.displayName }}</p>
                   <p class="text-xs text-muted-foreground">{{ currentAsset.apiCode }}</p>
                 </div>
-                <Badge :variant="assetStatusBadgeVariant(currentAsset.status)" class="shrink-0">
-                  {{ assetStatusLabel(currentAsset.status) }}
-                </Badge>
+                <DisplayTag
+                  :tone="assetStatusTone(currentAsset.status)"
+                  :label="assetStatusLabel(currentAsset.status)"
+                />
               </div>
               <div class="flex flex-wrap gap-2">
-                <Badge :variant="currentAsset.assetType === 'AI_API' ? 'type-ai' : 'type-api'">
-                  {{ currentAsset.assetType === 'AI_API' ? 'AI' : 'API' }}
-                </Badge>
-                <MetaItem
-                  :icon="Network"
-                  :label="t('console.workspace.listMetaMethod')"
-                  :value="currentAsset.requestMethod"
+                <DisplayTag
+                  :tone="assetTypeTone(currentAsset.assetType)"
+                  :label="assetTypeLabel(currentAsset.assetType)"
                 />
+                <MethodTag :method="currentAsset.requestMethod" />
                 <MetaItem
                   :icon="Folder"
                   :label="t('console.workspace.listMetaCategory')"
@@ -406,7 +432,10 @@ function confirmDeleteAsset() {
               <label class="text-xs font-medium text-muted-foreground">
                 {{ t('console.workspace.fieldApiCode') }}
               </label>
-              <Input v-model="registerForm.apiCode" :placeholder="t('console.workspace.fieldApiCode')" />
+              <Input
+                v-model="registerForm.apiCode"
+                :placeholder="t('console.workspace.fieldApiCode')"
+              />
             </div>
             <div class="space-y-1">
               <label class="text-xs font-medium text-muted-foreground">
@@ -448,7 +477,9 @@ function confirmDeleteAsset() {
       class="fixed inset-0 z-50 bg-black/35"
       @click.self="closeAssetEditor"
     >
-      <aside class="ml-auto flex h-full w-full max-w-3xl flex-col overflow-y-auto bg-white shadow-console">
+      <aside
+        class="ml-auto flex h-full w-full max-w-3xl flex-col overflow-y-auto bg-white shadow-console"
+      >
         <div
           class="sticky top-0 z-10 flex items-start justify-between gap-3 border-b bg-white px-6 py-5"
         >
@@ -471,67 +502,71 @@ function confirmDeleteAsset() {
             :value="buildUnifiedAccessAddress(currentAsset.apiCode)"
           />
 
-          <div class="space-y-3 rounded-[14px] bg-secondary/60 p-4">
-            <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {{ t('console.workspace.assetConfigTitle') }}
-            </p>
+          <FieldGroup
+            :title="t('console.workspace.assetBasicGroup')"
+            :description="t('console.workspace.editAssetDescription')"
+          >
             <div class="grid gap-3 md:grid-cols-2">
-              <div class="space-y-1">
-                <label class="text-xs font-medium text-muted-foreground">
-                  {{ t('console.workspace.fieldDisplayName') }}
-                </label>
+              <div class="space-y-2">
+                <FieldLabel :label="t('console.workspace.fieldDisplayName')" required />
                 <Input
                   v-model="assetConfigForm.displayName"
                   :placeholder="t('console.workspace.fieldDisplayName')"
                 />
               </div>
-              <div class="space-y-1">
-                <label class="text-xs font-medium text-muted-foreground">
-                  {{ t('console.workspace.fieldCategoryCode') }}
-                </label>
+              <div class="space-y-2">
+                <FieldLabel
+                  :label="t('console.workspace.fieldCategoryCode')"
+                  :hint="t('console.workspace.categoryDependencyHint')"
+                  required
+                />
                 <Input
                   v-model="assetConfigForm.categoryCode"
                   :placeholder="t('console.workspace.fieldCategoryCode')"
                 />
-                <p class="text-xs leading-5 text-muted-foreground">
-                  {{ t('console.workspace.categoryDependencyHint') }}
-                </p>
               </div>
-              <div class="space-y-1">
-                <label class="text-xs font-medium text-muted-foreground">
-                  {{ t('console.workspace.fieldRequestMethodPlaceholder') }}
-                </label>
+            </div>
+          </FieldGroup>
+
+          <FieldGroup
+            :title="t('console.workspace.assetUpstreamGroup')"
+            :description="t('console.workspace.fieldUpstreamUrlHint')"
+          >
+            <div class="grid gap-3 md:grid-cols-2">
+              <div class="space-y-2">
+                <FieldLabel
+                  :label="t('console.workspace.fieldRequestMethodPlaceholder')"
+                  :hint="t('console.workspace.fieldRequestMethodHint')"
+                />
                 <select
                   v-model="assetConfigForm.requestMethod"
                   class="h-11 w-full cursor-pointer appearance-none rounded-[8px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
                 >
-                  <option value="">{{ t('console.workspace.fieldRequestMethodPlaceholder') }}</option>
+                  <option value="">
+                    {{ t('console.workspace.fieldRequestMethodPlaceholder') }}
+                  </option>
                   <option value="GET">GET</option>
                   <option value="POST">POST</option>
                   <option value="PUT">PUT</option>
                   <option value="PATCH">PATCH</option>
                   <option value="DELETE">DELETE</option>
                 </select>
-                <p class="text-xs leading-5 text-muted-foreground">
-                  {{ t('console.workspace.fieldRequestMethodHint') }}
-                </p>
               </div>
-              <div class="space-y-1">
-                <label class="text-xs font-medium text-muted-foreground">
-                  {{ t('console.workspace.fieldUpstreamUrl') }}
-                </label>
+              <div class="space-y-2">
+                <FieldLabel
+                  :label="t('console.workspace.fieldUpstreamUrl')"
+                  :hint="t('console.workspace.fieldUpstreamUrlHint')"
+                />
                 <Input
                   v-model="assetConfigForm.upstreamUrl"
                   :placeholder="t('console.workspace.fieldUpstreamUrl')"
                 />
-                <p class="text-xs leading-5 text-muted-foreground">
-                  {{ t('console.workspace.fieldUpstreamUrlHint') }}
-                </p>
               </div>
-              <div class="space-y-1 md:col-span-2">
-                <label class="text-xs font-medium text-muted-foreground">
-                  {{ t('console.workspace.fieldAuthSchemePlaceholder') }}
-                </label>
+              <div class="space-y-2 md:col-span-2">
+                <FieldLabel
+                  :label="t('console.workspace.fieldAuthSchemePlaceholder')"
+                  :hint="t('console.workspace.fieldAuthSchemeHint')"
+                />
                 <select
                   v-model="assetConfigForm.authScheme"
                   class="h-11 w-full cursor-pointer appearance-none rounded-[8px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
@@ -541,61 +576,57 @@ function confirmDeleteAsset() {
                   <option value="HEADER_TOKEN">HEADER_TOKEN</option>
                   <option value="QUERY_TOKEN">QUERY_TOKEN</option>
                 </select>
-                <p class="text-xs leading-5 text-muted-foreground">
-                  {{ t('console.workspace.fieldAuthSchemeHint') }}
-                </p>
               </div>
-              <div class="space-y-1 md:col-span-2">
-                <label class="text-xs font-medium text-muted-foreground">
-                  {{ t('console.workspace.fieldAuthConfig') }}
-                </label>
+              <div class="space-y-2 md:col-span-2">
+                <FieldLabel
+                  :label="t('console.workspace.fieldAuthConfig')"
+                  :hint="t('console.workspace.fieldAuthConfigHint')"
+                  optional
+                />
                 <Input
                   v-model="assetConfigForm.authConfig"
                   :placeholder="t('console.workspace.fieldAuthConfigPlaceholder')"
                 />
-                <p class="text-xs leading-5 text-muted-foreground">
-                  {{ t('console.workspace.fieldAuthConfigHint') }}
-                </p>
               </div>
             </div>
-            <div class="space-y-1">
-              <label class="text-xs font-medium text-muted-foreground">
-                {{ t('console.workspace.fieldRequestTemplate') }}
-              </label>
+          </FieldGroup>
+
+          <FieldGroup :title="t('console.workspace.assetExampleGroup')">
+            <div class="space-y-2">
+              <FieldLabel
+                :label="t('console.workspace.fieldRequestTemplate')"
+                :hint="t('console.workspace.fieldRequestTemplateHint')"
+                optional
+              />
               <textarea
                 v-model="assetConfigForm.requestTemplate"
                 :placeholder="t('console.workspace.fieldRequestTemplate')"
                 class="min-h-[96px] w-full rounded-[12px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
               />
-              <p class="text-xs leading-5 text-muted-foreground">
-                {{ t('console.workspace.fieldRequestTemplateHint') }}
-              </p>
             </div>
-            <div class="space-y-1">
-              <label class="text-xs font-medium text-muted-foreground">
-                {{ t('console.workspace.fieldRequestExample') }}
-              </label>
+            <div class="space-y-2">
+              <FieldLabel
+                :label="t('console.workspace.fieldRequestExample')"
+                :hint="t('console.workspace.fieldRequestExampleHint')"
+                optional
+              />
               <textarea
                 v-model="assetConfigForm.requestExample"
                 :placeholder="t('console.workspace.fieldRequestExample')"
                 class="min-h-[96px] w-full rounded-[12px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
               />
-              <p class="text-xs leading-5 text-muted-foreground">
-                {{ t('console.workspace.fieldRequestExampleHint') }}
-              </p>
             </div>
-            <div class="space-y-1">
-              <label class="text-xs font-medium text-muted-foreground">
-                {{ t('console.workspace.fieldResponseExample') }}
-              </label>
+            <div class="space-y-2">
+              <FieldLabel
+                :label="t('console.workspace.fieldResponseExample')"
+                :hint="t('console.workspace.fieldResponseExampleHint')"
+                optional
+              />
               <textarea
                 v-model="assetConfigForm.responseExample"
                 :placeholder="t('console.workspace.fieldResponseExample')"
                 class="min-h-[96px] w-full rounded-[12px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
               />
-              <p class="text-xs leading-5 text-muted-foreground">
-                {{ t('console.workspace.fieldResponseExampleHint') }}
-              </p>
             </div>
             <div class="rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-white px-4 py-3">
               <p class="text-xs font-semibold text-foreground">
@@ -610,26 +641,26 @@ function confirmDeleteAsset() {
                 {{ t('console.workspace.assetConfigSave') }}
               </Button>
             </div>
-          </div>
+          </FieldGroup>
 
-          <div v-if="currentAsset.assetType === 'AI_API'" class="space-y-2 rounded-[14px] bg-secondary p-4">
-            <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {{ t('console.workspace.aiProfileTitle') }}
-            </p>
-            <p class="text-xs leading-5 text-muted-foreground">
-              {{ t('console.workspace.aiProfileHint') }}
-            </p>
-            <div class="space-y-1">
-              <label class="text-xs font-medium text-muted-foreground">
-                {{ t('console.workspace.fieldProvider') }}
-              </label>
-              <Input v-model="aiProfileForm.provider" :placeholder="t('console.workspace.fieldProvider')" />
+          <FieldGroup
+            v-if="currentAsset.assetType === 'AI_API'"
+            :title="t('console.workspace.aiProfileTitle')"
+            :description="t('console.workspace.aiProfileHint')"
+          >
+            <div class="space-y-2">
+              <FieldLabel :label="t('console.workspace.fieldProvider')" />
+              <Input
+                v-model="aiProfileForm.provider"
+                :placeholder="t('console.workspace.fieldProvider')"
+              />
             </div>
-            <div class="space-y-1">
-              <label class="text-xs font-medium text-muted-foreground">
-                {{ t('console.workspace.fieldModel') }}
-              </label>
-              <Input v-model="aiProfileForm.model" :placeholder="t('console.workspace.fieldModel')" />
+            <div class="space-y-2">
+              <FieldLabel :label="t('console.workspace.fieldModel')" />
+              <Input
+                v-model="aiProfileForm.model"
+                :placeholder="t('console.workspace.fieldModel')"
+              />
             </div>
             <label class="flex items-center gap-2 text-sm">
               <input v-model="aiProfileForm.streamingSupported" type="checkbox" />
@@ -648,7 +679,7 @@ function confirmDeleteAsset() {
               <span
                 v-for="tag in aiProfileForm.capabilityTags"
                 :key="tag"
-                class="rounded-full bg-white px-2.5 py-1 text-[11px] shadow-console"
+                class="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-[var(--chart-3)]"
               >
                 {{ tag }}
               </span>
@@ -656,7 +687,7 @@ function confirmDeleteAsset() {
             <Button size="sm" :disabled="assetLoading" @click="handleBindAiProfile">
               {{ t('console.workspace.bindAiProfile') }}
             </Button>
-          </div>
+          </FieldGroup>
         </div>
       </aside>
     </div>

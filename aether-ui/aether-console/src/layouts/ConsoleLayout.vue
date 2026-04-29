@@ -22,9 +22,9 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import AppLocaleSwitch from '@/components/AppLocaleSwitch.vue'
 import BrandMarkIcon from '@/components/icons/BrandMarkIcon.vue'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import DisplayTag from '@/components/console/DisplayTag.vue'
 import { appConfig } from '@/app/app-config'
 import {
   consoleNotices,
@@ -192,9 +192,11 @@ async function handleSignOut() {
                   <span v-if="!sidebarCollapsed" class="min-w-0 flex-1 truncate font-medium">{{
                     t(item.labelKey)
                   }}</span>
-                  <Badge v-if="!sidebarCollapsed && item.badge" variant="outline">{{
-                    item.badge
-                  }}</Badge>
+                  <DisplayTag
+                    v-if="!sidebarCollapsed && item.badge"
+                    tone="neutral"
+                    :label="item.badge"
+                  />
                 </RouterLink>
               </div>
             </section>

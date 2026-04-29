@@ -25,6 +25,11 @@ export default {
       upstreamAddress: 'Upstream URL',
       edit: 'Edit',
       close: 'Close',
+      required: 'Required',
+      optional: 'Optional',
+      expand: 'Expand',
+      collapse: 'Collapse',
+      plainTextFallback: 'This content is not valid JSON, so it is shown as plain text.',
     },
     nav: {
       home: 'API Market',
@@ -87,6 +92,7 @@ export default {
       assetType: 'Type:',
       tryInPlayground: 'Try in Playground',
       subscriptionUnavailable: 'Subscription is not available yet',
+      unavailableDescription: 'This capability does not have a product flow or API contract yet.',
     },
     signIn: {
       metaTitle: 'Console Sign In',
@@ -139,6 +145,9 @@ export default {
       openEditor: 'Open editor',
       registerAction: 'Register draft',
       assetConfigTitle: 'Asset configuration',
+      assetBasicGroup: 'Basic information',
+      assetUpstreamGroup: 'Upstream and auth',
+      assetExampleGroup: 'Request and response examples',
       assetConfigSave: 'Save configuration',
       assetConfigSaveFailed: 'Saving asset configuration failed. Please try again.',
       assetPublishFailed: 'Publishing failed. Complete the required configuration and try again.',
@@ -167,7 +176,8 @@ export default {
         'Example is a possible upstream response payload, usually showing successful structure or key fields.',
       fieldUpstreamUrlHint:
         'The upstream URL is the owner target service. Callers should use the platform Unified Access URL.',
-      fieldRequestMethodHint: 'The platform forwards requests to the upstream target with this method.',
+      fieldRequestMethodHint:
+        'The platform forwards requests to the upstream target with this method.',
       fieldAuthSchemeHint:
         'Auth scheme describes how the platform attaches the owner credential when calling upstream.',
       categoryDependencyTitle: 'Category is required before publishing',
@@ -211,6 +221,9 @@ export default {
       assetListPageSummary: 'Page {page} / {totalPages}, {total} total',
       assetListPrev: 'Previous',
       assetListNext: 'Next',
+      assetSelectedTitle: 'Selected asset',
+      noAssetSelected: 'No asset selected',
+      noAssetSelectedDescription: 'Select one asset from the list, or load it by apiCode.',
       listMetaUpdatedAt: 'Updated',
       listMetaPublishedAt: 'Published',
       listMetaCategory: 'Category',
@@ -323,6 +336,13 @@ export default {
         responseHeaders: 'Response Headers',
         upstreamUrl: 'Upstream URL',
       },
+      groups: {
+        basic: 'Basics',
+        credential: 'Credential and channel',
+        error: 'Error diagnostics',
+        ai: 'AI extension',
+        contract: 'Contract boundary',
+      },
     },
     playground: {
       metaTitle: 'Unified Access Playground',
@@ -332,6 +352,10 @@ export default {
       securityNotice:
         'API Key is a sensitive credential shown in full only once at creation. This page does not persist your key — it will be lost on refresh or close.',
       targetApi: 'Target API',
+      requestConfigGroup: 'Request configuration',
+      credentialGroup: 'Call credential',
+      payloadGroup: 'Payload and headers',
+      responseGroup: 'Response diagnostics',
       browseDiscovery: 'Browse API Market',
       hideDiscovery: 'Hide API list',
       discoveryLoading: 'Loading published assets…',

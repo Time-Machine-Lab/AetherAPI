@@ -8,11 +8,13 @@ import type { DiscoveryAsset } from '@/api/catalog/catalog.types'
 import UnifiedAccessGuidance from './UnifiedAccessGuidance.vue'
 import CodeBlock from '@/components/console/CodeBlock.vue'
 import CopyableField from '@/components/console/CopyableField.vue'
+import DisplayTag from '@/components/console/DisplayTag.vue'
+import FieldLabel from '@/components/console/FieldLabel.vue'
+import FieldGroup from '@/components/console/FieldGroup.vue'
+import StateBlock from '@/components/console/StateBlock.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Label } from '@/components/ui/label'
 import {
   Eye,
   EyeOff,
@@ -124,14 +126,10 @@ function getMethodColor(m: UnifiedAccessMethod): string {
   return colors[m]
 }
 
-function getFailureTypeColor(failureType: string): string {
-  const map: Record<string, string> = {
-    INVALID_API_CODE: 'bg-amber-50 text-amber-700',
-    INVALID_CREDENTIAL: 'bg-red-50 text-red-700',
-    TARGET_NOT_FOUND: 'bg-orange-50 text-orange-700',
-    TARGET_UNAVAILABLE: 'bg-slate-50 text-slate-700',
-  }
-  return map[failureType] ?? 'bg-muted text-foreground'
+function responseTone(status: number) {
+  if (status >= 200 && status < 300) return 'success'
+  if (status >= 400) return 'danger'
+  return 'info'
 }
 
 function routeApiCode() {
@@ -205,19 +203,21 @@ watch(
               v-if="showDiscoveryPicker"
               class="rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-muted/40 p-4"
             >
-              <div v-if="discoveryLoading" class="py-4 text-center text-sm text-muted-foreground">
-                <Loader2 class="mx-auto mb-2 h-4 w-4 animate-spin" />
-                {{ t('console.playground.discoveryLoading') }}
-              </div>
-              <div v-else-if="discoveryError" class="py-4 text-center text-sm text-destructive">
-                {{ t('console.playground.discoveryError') }}
-              </div>
-              <div
+              <StateBlock
+                v-if="discoveryLoading"
+                tone="loading"
+                :title="t('console.playground.discoveryLoading')"
+              />
+              <StateBlock
+                v-else-if="discoveryError"
+                tone="error"
+                :title="t('console.playground.discoveryError')"
+              />
+              <StateBlock
                 v-else-if="discoveryAssets.length === 0"
-                class="py-4 text-center text-sm text-muted-foreground"
-              >
-                {{ t('console.playground.discoveryEmpty') }}
-              </div>
+                tone="empty"
+                :title="t('console.playground.discoveryEmpty')"
+              />
               <div v-else class="grid gap-2 sm:grid-cols-2">
                 <button
                   v-for="asset in discoveryAssets"
@@ -231,16 +231,14 @@ watch(
                     </p>
                     <p class="mt-0.5 truncate text-xs text-muted-foreground">{{ asset.apiCode }}</p>
                   </div>
-                  <Badge variant="secondary" class="shrink-0 text-xs">{{
-                    asset.assetType === 'AI_API' ? 'AI' : 'API'
-                  }}</Badge>
+                  <DisplayTag tone="neutral" :label="asset.assetType === 'AI_API' ? 'AI' : 'API'" />
                 </button>
               </div>
             </div>
 
             <!-- apiCode input -->
             <div class="space-y-2">
-              <Label>{{ t('console.playground.fieldApiCode') }}</Label>
+              <FieldLabel :label="t('console.playground.fieldApiCode')" required />
               <Input v-model="apiCode" :placeholder="t('console.playground.apiCodePlaceholder')" />
             </div>
 
@@ -269,18 +267,16 @@ watch(
                   selectedAssetDetail.displayName || selectedAssetDetail.apiCode
                 }}</strong></span
               >
-              <Badge
+              <DisplayTag
                 v-if="selectedAssetDetail.aiProfile?.streaming"
-                variant="outline"
-                class="text-xs"
-              >
-                {{ t('console.playground.streamingSupported') }}
-              </Badge>
+                tone="ai"
+                :label="t('console.playground.streamingSupported')"
+              />
             </div>
 
             <!-- Method selector -->
             <div class="space-y-2">
-              <Label>{{ t('console.playground.fieldMethod') }}</Label>
+              <FieldLabel :label="t('console.playground.fieldMethod')" required />
               <div class="flex flex-wrap gap-2">
                 <button
                   v-for="m in METHODS"
@@ -307,6 +303,7 @@ watch(
             <CardDescription>{{ t('console.playground.apiKeyHint') }}</CardDescription>
           </CardHeader>
           <CardContent class="space-y-3">
+            <FieldLabel :label="t('console.playground.fieldApiKey')" required />
             <div class="flex gap-2">
               <div class="relative flex-1">
                 <Input
@@ -334,38 +331,33 @@ watch(
         </Card>
 
         <!-- Request body card -->
-        <Card v-if="methodSupportsBody">
-          <CardHeader>
-            <CardTitle>{{ t('console.playground.fieldRequestBody') }}</CardTitle>
-            <CardDescription>{{ t('console.playground.requestBodyHint') }}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <textarea
-              v-model="requestBody"
-              rows="8"
-              class="w-full resize-y rounded-[8px] border border-[rgb(34_34_34_/_0.12)] bg-white p-4 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              :placeholder="t('console.playground.requestBodyPlaceholder')"
-              spellcheck="false"
-            />
-          </CardContent>
-        </Card>
+        <FieldGroup
+          v-if="methodSupportsBody"
+          :title="t('console.playground.fieldRequestBody')"
+          :description="t('console.playground.requestBodyHint')"
+        >
+          <textarea
+            v-model="requestBody"
+            rows="8"
+            class="w-full resize-y rounded-[8px] border border-[rgb(34_34_34_/_0.12)] bg-white p-4 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            :placeholder="t('console.playground.requestBodyPlaceholder')"
+            spellcheck="false"
+          />
+        </FieldGroup>
 
         <!-- Extra headers card (optional, collapsed by default) -->
-        <Card>
-          <CardHeader>
-            <CardTitle>{{ t('console.playground.fieldExtraHeaders') }}</CardTitle>
-            <CardDescription>{{ t('console.playground.extraHeadersHint') }}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <textarea
-              v-model="extraHeaders"
-              rows="3"
-              class="w-full resize-y rounded-[8px] border border-[rgb(34_34_34_/_0.12)] bg-white p-4 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              :placeholder="`{ &quot;Accept&quot;: &quot;application/json&quot; }`"
-              spellcheck="false"
-            />
-          </CardContent>
-        </Card>
+        <FieldGroup
+          :title="t('console.playground.fieldExtraHeaders')"
+          :description="t('console.playground.extraHeadersHint')"
+        >
+          <textarea
+            v-model="extraHeaders"
+            rows="3"
+            class="w-full resize-y rounded-[8px] border border-[rgb(34_34_34_/_0.12)] bg-white p-4 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            :placeholder="`{ &quot;Accept&quot;: &quot;application/json&quot; }`"
+            spellcheck="false"
+          />
+        </FieldGroup>
 
         <!-- Actions -->
         <div class="flex items-center gap-3">
@@ -389,13 +381,11 @@ watch(
           <CardHeader>
             <CardTitle class="flex items-center gap-3">
               {{ t('console.playground.responseTitle') }}
-              <Badge
+              <DisplayTag
                 v-if="result"
-                :variant="result.status >= 200 && result.status < 300 ? 'default' : 'destructive'"
-                class="text-xs"
-              >
-                {{ result.status }}
-              </Badge>
+                :tone="responseTone(result.status)"
+                :label="result.status"
+              />
               <span v-if="elapsedMs" class="text-xs font-normal text-muted-foreground"
                 >{{ elapsedMs }}ms</span
               >
@@ -437,12 +427,7 @@ watch(
                     {{ t('console.playground.platformFailure') }}
                   </p>
                   <div class="flex flex-wrap items-center gap-2">
-                    <Badge
-                      :class="getFailureTypeColor(result.platformFailure.failureType)"
-                      class="text-xs"
-                    >
-                      {{ result.platformFailure.failureType }}
-                    </Badge>
+                    <DisplayTag tone="warning" :label="result.platformFailure.failureType" />
                     <code class="text-xs text-amber-700">{{ result.platformFailure.code }}</code>
                   </div>
                   <p class="text-sm text-amber-700">{{ result.platformFailure.message }}</p>
@@ -467,7 +452,7 @@ watch(
                 <span class="text-sm text-emerald-700">{{
                   t('console.playground.passthroughSuccess')
                 }}</span>
-                <Badge variant="outline" class="text-xs">{{ result.contentType }}</Badge>
+                <DisplayTag tone="neutral" :label="result.contentType" />
               </div>
               <CodeBlock :value="result.jsonBody" max-height-class="max-h-[500px]" />
             </div>
@@ -479,7 +464,7 @@ watch(
                 <span class="text-sm text-emerald-700">{{
                   t('console.playground.passthroughSuccess')
                 }}</span>
-                <Badge variant="outline" class="text-xs">{{ result.contentType }}</Badge>
+                <DisplayTag tone="neutral" :label="result.contentType" />
               </div>
               <CodeBlock :value="result.textBody" max-height-class="max-h-[500px]" />
             </div>
@@ -493,7 +478,7 @@ watch(
               <p class="text-sm text-muted-foreground">
                 {{ t('console.playground.binaryResponse') }}
               </p>
-              <Badge variant="outline" class="text-xs">{{ result.contentType }}</Badge>
+              <DisplayTag tone="neutral" :label="result.contentType" />
               <Button variant="outline" @click="handleDownloadBlob">
                 <Download class="mr-2 h-4 w-4" />
                 {{ t('console.playground.download') }}
@@ -507,11 +492,7 @@ watch(
               >
                 {{ t('console.playground.rawHeaders') }}
               </summary>
-              <CodeBlock
-                class="mt-2"
-                :value="result.rawHeaders"
-                max-height-class="max-h-[200px]"
-              />
+              <CodeBlock class="mt-2" :value="result.rawHeaders" max-height-class="max-h-[200px]" />
             </details>
           </CardContent>
         </Card>

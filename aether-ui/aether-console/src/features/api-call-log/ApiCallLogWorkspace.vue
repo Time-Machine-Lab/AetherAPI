@@ -1,14 +1,19 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { useApiCallLogWorkspace } from '@/composables/useApiCallLogWorkspace'
-import type { ApiCallLogItem } from '@/api/api-call-log/api-call-log.types'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import CodeBlock from '@/components/console/CodeBlock.vue'
+import DisplayTag from '@/components/console/DisplayTag.vue'
+import MethodTag from '@/components/console/MethodTag.vue'
+import DataListRow from '@/components/console/DataListRow.vue'
+import FieldGroup from '@/components/console/FieldGroup.vue'
+import StateBlock from '@/components/console/StateBlock.vue'
+import MetaItem from '@/components/console/MetaItem.vue'
 import { contractLimitedDiagnosticFieldKeys } from '@/features/api-call-log/api-call-log-diagnostics'
-import { AlertTriangle, CheckCircle2, Clock3, KeyRound, Loader2, Network } from 'lucide-vue-next'
+import { AlertTriangle, CheckCircle2, Clock3, KeyRound, Network } from 'lucide-vue-next'
+import { successTone } from '@/utils/visual-system'
 
 const { t } = useI18n()
 
@@ -53,13 +58,6 @@ function formatValue(value: string | number | boolean | null | undefined): strin
     return '—'
   }
   return String(value)
-}
-
-function statusBadgeVariant(log: ApiCallLogItem) {
-  if (log.success) {
-    return 'status-enabled' as const
-  }
-  return 'destructive' as const
 }
 
 function diagnosticUnavailableFields() {
@@ -115,81 +113,64 @@ function diagnosticUnavailableFields() {
               <CardTitle>{{ t('console.apiCallLogs.listTitle') }}</CardTitle>
               <CardDescription>{{ t('console.apiCallLogs.listDescription') }}</CardDescription>
             </div>
-            <Badge variant="outline">
-              {{
+            <DisplayTag
+              tone="neutral"
+              :label="
                 t('console.apiCallLogs.listSummary', {
                   from: showingFrom,
                   to: showingTo,
                   total: listTotal,
                 })
-              }}
-            </Badge>
+              "
+            />
           </div>
         </CardHeader>
         <CardContent class="space-y-3">
-          <div
-            v-if="listLoading"
-            class="flex items-center justify-center gap-2 py-9 text-sm text-muted-foreground"
-          >
-            <Loader2 class="size-4 animate-spin" />
-            <span>{{ t('console.workspace.loading') }}</span>
-          </div>
-          <div
+          <StateBlock v-if="listLoading" tone="loading" :title="t('console.workspace.loading')" />
+          <StateBlock
             v-else-if="listError"
-            class="flex items-center justify-center gap-2 py-9 text-sm text-destructive"
-          >
-            <AlertTriangle class="size-4" />
-            <span>{{ t('console.apiCallLogs.listError') }}</span>
-          </div>
-          <div
+            tone="error"
+            :title="t('console.apiCallLogs.listError')"
+          />
+          <StateBlock
             v-else-if="listItems.length === 0"
-            class="py-9 text-center text-sm text-muted-foreground"
-          >
-            {{ t('console.apiCallLogs.listEmpty') }}
-          </div>
+            tone="empty"
+            :title="t('console.apiCallLogs.listEmpty')"
+          />
           <div v-else class="space-y-2">
-            <button
+            <DataListRow
               v-for="item in listItems"
               :key="item.logId"
-              type="button"
-              class="w-full rounded-[14px] border bg-white px-4 py-3 text-left shadow-console transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-console-hover"
-              :class="
-                selectedLogId === item.logId ? 'border-primary/35' : 'border-[rgb(34_34_34_/_0.06)]'
-              "
+              as="button"
+              :selected="selectedLogId === item.logId"
               @click="handleSelectLog(item)"
             >
-              <div class="flex flex-wrap items-start justify-between gap-3">
-                <div class="min-w-0 space-y-1">
-                  <p class="truncate text-sm font-semibold text-foreground">
-                    {{ formatValue(item.targetApiName) }}
-                  </p>
-                  <p class="text-xs text-muted-foreground">
-                    {{ item.targetApiCode }}
-                  </p>
-                  <p class="text-xs text-muted-foreground">
-                    {{ formatDateTime(item.invocationTime) }}
-                  </p>
-                </div>
-                <div class="flex flex-wrap items-center gap-2">
-                  <Badge :variant="statusBadgeVariant(item)">
-                    {{
-                      item.success
-                        ? t('console.apiCallLogs.success')
-                        : t('console.apiCallLogs.failed')
-                    }}
-                  </Badge>
-                  <Badge variant="outline">{{ item.requestMethod }}</Badge>
-                  <Badge variant="outline">{{ item.resultType }}</Badge>
-                  <Badge v-if="item.httpStatusCode" variant="outline">
-                    {{ item.httpStatusCode }}
-                  </Badge>
-                  <Badge variant="outline">
-                    <Clock3 class="mr-1 size-3" />
-                    {{ item.durationMs }} ms
-                  </Badge>
-                </div>
-              </div>
-            </button>
+              <template #title>
+                <p class="truncate text-sm font-semibold text-foreground">
+                  {{ formatValue(item.targetApiName) }}
+                </p>
+              </template>
+              <template #description>
+                <p class="text-xs text-muted-foreground">{{ item.targetApiCode }}</p>
+              </template>
+              <template #meta>
+                <MetaItem :icon="Clock3" :value="formatDateTime(item.invocationTime)" />
+                <MetaItem :icon="Clock3" :value="`${item.durationMs} ms`" />
+              </template>
+              <template #tags>
+                <DisplayTag
+                  :tone="successTone(item.success)"
+                  :label="
+                    item.success
+                      ? t('console.apiCallLogs.success')
+                      : t('console.apiCallLogs.failed')
+                  "
+                />
+                <MethodTag :method="item.requestMethod" />
+                <DisplayTag tone="neutral" :label="item.resultType" />
+                <DisplayTag v-if="item.httpStatusCode" tone="info" :label="item.httpStatusCode" />
+              </template>
+            </DataListRow>
           </div>
 
           <div class="flex items-center justify-end gap-2 border-t border-border/70 pt-3">
@@ -222,22 +203,21 @@ function diagnosticUnavailableFields() {
           <CardDescription>{{ t('console.apiCallLogs.detailDescription') }}</CardDescription>
         </CardHeader>
         <CardContent>
-          <div
+          <StateBlock
             v-if="detailLoading"
-            class="flex items-center gap-2 py-2 text-sm text-muted-foreground"
-          >
-            <Loader2 class="size-4 animate-spin" />
-            <span>{{ t('console.apiCallLogs.detailLoading') }}</span>
-          </div>
-          <div
+            tone="loading"
+            :title="t('console.apiCallLogs.detailLoading')"
+          />
+          <StateBlock
             v-else-if="detailError"
-            class="rounded-[14px] border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive"
-          >
-            {{ t('console.apiCallLogs.detailError') }}
-          </div>
-          <div v-else-if="!selectedLogDetail" class="py-2 text-sm text-muted-foreground">
-            {{ t('console.apiCallLogs.detailEmpty') }}
-          </div>
+            tone="error"
+            :title="t('console.apiCallLogs.detailError')"
+          />
+          <StateBlock
+            v-else-if="!selectedLogDetail"
+            tone="empty"
+            :title="t('console.apiCallLogs.detailEmpty')"
+          />
           <div v-else class="space-y-4">
             <div class="rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-secondary/40 p-4">
               <div class="flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -256,116 +236,120 @@ function diagnosticUnavailableFields() {
               </p>
             </div>
 
-            <dl class="grid gap-3 text-sm sm:grid-cols-2">
-              <div>
-                <dt class="text-xs text-muted-foreground">
-                  {{ t('console.apiCallLogs.fields.targetApiCode') }}
-                </dt>
-                <dd class="mt-1 font-medium text-foreground">
-                  {{ formatValue(selectedLogDetail.targetApiCode) }}
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs text-muted-foreground">
-                  {{ t('console.apiCallLogs.fields.targetApiName') }}
-                </dt>
-                <dd class="mt-1 font-medium text-foreground">
-                  {{ formatValue(selectedLogDetail.targetApiName) }}
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs text-muted-foreground">
-                  {{ t('console.apiCallLogs.fields.requestMethod') }}
-                </dt>
-                <dd class="mt-1">
-                  <Badge variant="outline">{{ formatValue(selectedLogDetail.requestMethod) }}</Badge>
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs text-muted-foreground">
-                  {{ t('console.apiCallLogs.fields.invocationTime') }}
-                </dt>
-                <dd class="mt-1 font-medium text-foreground">
-                  {{ formatDateTime(selectedLogDetail.invocationTime) }}
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs text-muted-foreground">
-                  {{ t('console.apiCallLogs.fields.durationMs') }}
-                </dt>
-                <dd class="mt-1 font-medium text-foreground">
-                  {{ selectedLogDetail.durationMs }} ms
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs text-muted-foreground">
-                  {{ t('console.apiCallLogs.fields.resultType') }}
-                </dt>
-                <dd class="mt-1">
-                  <Badge variant="outline">{{ formatValue(selectedLogDetail.resultType) }}</Badge>
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs text-muted-foreground">
-                  {{ t('console.apiCallLogs.fields.httpStatusCode') }}
-                </dt>
-                <dd class="mt-1">
-                  <Badge variant="outline">{{ formatValue(selectedLogDetail.httpStatusCode) }}</Badge>
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs text-muted-foreground">
-                  {{ t('console.apiCallLogs.fields.accessChannel') }}
-                </dt>
-                <dd class="mt-1">
-                  <Badge variant="outline">
-                    <Network class="mr-1 size-3" />
-                    {{ formatValue(selectedLogDetail.accessChannel) }}
-                  </Badge>
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs text-muted-foreground">
-                  {{ t('console.apiCallLogs.fields.credentialCode') }}
-                </dt>
-                <dd class="mt-1 font-medium text-foreground">
-                  {{ formatValue(selectedLogDetail.credentialCode) }}
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs text-muted-foreground">
-                  {{ t('console.apiCallLogs.fields.credentialStatus') }}
-                </dt>
-                <dd class="mt-1">
-                  <Badge variant="outline">
-                    <KeyRound class="mr-1 size-3" />
-                    {{ formatValue(selectedLogDetail.credentialStatus) }}
-                  </Badge>
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs text-muted-foreground">
-                  {{ t('console.apiCallLogs.fields.createdAt') }}
-                </dt>
-                <dd class="mt-1 font-medium text-foreground">
-                  {{ formatDateTime(selectedLogDetail.createdAt) }}
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs text-muted-foreground">
-                  {{ t('console.apiCallLogs.fields.updatedAt') }}
-                </dt>
-                <dd class="mt-1 font-medium text-foreground">
-                  {{ formatDateTime(selectedLogDetail.updatedAt) }}
-                </dd>
-              </div>
-            </dl>
+            <FieldGroup :title="t('console.apiCallLogs.groups.basic')">
+              <dl class="grid gap-3 text-sm sm:grid-cols-2">
+                <div>
+                  <dt class="text-xs text-muted-foreground">
+                    {{ t('console.apiCallLogs.fields.targetApiCode') }}
+                  </dt>
+                  <dd class="mt-1 font-medium text-foreground">
+                    {{ formatValue(selectedLogDetail.targetApiCode) }}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-xs text-muted-foreground">
+                    {{ t('console.apiCallLogs.fields.targetApiName') }}
+                  </dt>
+                  <dd class="mt-1 font-medium text-foreground">
+                    {{ formatValue(selectedLogDetail.targetApiName) }}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-xs text-muted-foreground">
+                    {{ t('console.apiCallLogs.fields.requestMethod') }}
+                  </dt>
+                  <dd class="mt-1">
+                    <MethodTag :method="selectedLogDetail.requestMethod" />
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-xs text-muted-foreground">
+                    {{ t('console.apiCallLogs.fields.invocationTime') }}
+                  </dt>
+                  <dd class="mt-1 font-medium text-foreground">
+                    {{ formatDateTime(selectedLogDetail.invocationTime) }}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-xs text-muted-foreground">
+                    {{ t('console.apiCallLogs.fields.durationMs') }}
+                  </dt>
+                  <dd class="mt-1 font-medium text-foreground">
+                    {{ selectedLogDetail.durationMs }} ms
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-xs text-muted-foreground">
+                    {{ t('console.apiCallLogs.fields.resultType') }}
+                  </dt>
+                  <dd class="mt-1">
+                    <DisplayTag tone="neutral" :label="formatValue(selectedLogDetail.resultType)" />
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-xs text-muted-foreground">
+                    {{ t('console.apiCallLogs.fields.httpStatusCode') }}
+                  </dt>
+                  <dd class="mt-1">
+                    <DisplayTag
+                      tone="info"
+                      :label="formatValue(selectedLogDetail.httpStatusCode)"
+                    />
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-xs text-muted-foreground">
+                    {{ t('console.apiCallLogs.fields.accessChannel') }}
+                  </dt>
+                  <dd class="mt-1">
+                    <DisplayTag
+                      :icon="Network"
+                      tone="info"
+                      :label="formatValue(selectedLogDetail.accessChannel)"
+                    />
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-xs text-muted-foreground">
+                    {{ t('console.apiCallLogs.fields.credentialCode') }}
+                  </dt>
+                  <dd class="mt-1 font-medium text-foreground">
+                    {{ formatValue(selectedLogDetail.credentialCode) }}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-xs text-muted-foreground">
+                    {{ t('console.apiCallLogs.fields.credentialStatus') }}
+                  </dt>
+                  <dd class="mt-1">
+                    <DisplayTag
+                      :icon="KeyRound"
+                      tone="neutral"
+                      :label="formatValue(selectedLogDetail.credentialStatus)"
+                    />
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-xs text-muted-foreground">
+                    {{ t('console.apiCallLogs.fields.createdAt') }}
+                  </dt>
+                  <dd class="mt-1 font-medium text-foreground">
+                    {{ formatDateTime(selectedLogDetail.createdAt) }}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-xs text-muted-foreground">
+                    {{ t('console.apiCallLogs.fields.updatedAt') }}
+                  </dt>
+                  <dd class="mt-1 font-medium text-foreground">
+                    {{ formatDateTime(selectedLogDetail.updatedAt) }}
+                  </dd>
+                </div>
+              </dl>
+            </FieldGroup>
 
-            <div class="space-y-3">
-              <h3 class="text-sm font-semibold text-foreground">
-                {{ t('console.apiCallLogs.errorTitle') }}
-              </h3>
-              <div class="rounded-[14px] border border-[rgb(34_34_34_/_0.06)] p-3 text-sm">
+            <FieldGroup :title="t('console.apiCallLogs.groups.error')">
+              <div class="text-sm">
                 <template v-if="selectedLogDetail.error">
                   <p>
                     <span class="text-muted-foreground"
@@ -388,13 +372,10 @@ function diagnosticUnavailableFields() {
                 </template>
                 <p v-else class="text-muted-foreground">{{ t('console.apiCallLogs.noError') }}</p>
               </div>
-            </div>
+            </FieldGroup>
 
-            <div class="space-y-3">
-              <h3 class="text-sm font-semibold text-foreground">
-                {{ t('console.apiCallLogs.aiExtensionTitle') }}
-              </h3>
-              <div class="rounded-[14px] border border-[rgb(34_34_34_/_0.06)] p-3 text-sm">
+            <FieldGroup :title="t('console.apiCallLogs.groups.ai')">
+              <div class="text-sm">
                 <template v-if="selectedLogDetail.aiExtension">
                   <p>
                     <span class="text-muted-foreground"
@@ -425,32 +406,28 @@ function diagnosticUnavailableFields() {
                   {{ t('console.apiCallLogs.noAiExtension') }}
                 </p>
               </div>
-            </div>
+            </FieldGroup>
 
-            <div class="space-y-3">
-              <h3 class="text-sm font-semibold text-foreground">
-                {{ t('console.apiCallLogs.diagnosticTitle') }}
-              </h3>
+            <FieldGroup
+              :title="t('console.apiCallLogs.groups.contract')"
+              :description="t('console.apiCallLogs.diagnosticDescription')"
+            >
               <div
                 class="rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-secondary/40 p-4 text-sm"
               >
-                <p class="leading-6 text-muted-foreground">
-                  {{ t('console.apiCallLogs.diagnosticDescription') }}
-                </p>
-                <div class="mt-3 flex flex-wrap gap-2">
-                  <Badge
+                <div class="flex flex-wrap gap-2">
+                  <DisplayTag
                     v-for="field in diagnosticUnavailableFields()"
                     :key="field"
-                    variant="status-disabled"
-                  >
-                    {{ field }} · {{ t('console.shared.unavailable') }}
-                  </Badge>
+                    tone="neutral"
+                    :label="`${field} · ${t('console.shared.unavailable')}`"
+                  />
                 </div>
                 <p class="mt-3 text-xs leading-5 text-muted-foreground">
                   {{ t('console.apiCallLogs.contractLimitedHint') }}
                 </p>
               </div>
-            </div>
+            </FieldGroup>
           </div>
         </CardContent>
       </Card>

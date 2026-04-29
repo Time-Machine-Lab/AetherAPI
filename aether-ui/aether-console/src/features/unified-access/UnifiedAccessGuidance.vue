@@ -148,7 +148,10 @@ const { t } = useI18n()
           <p class="mb-1 text-muted-foreground">
             {{ t('console.playground.fieldRequestTemplate') }}
           </p>
-          <CodeBlock :value="selectedAssetDetail.requestTemplate" max-height-class="max-h-[200px]" />
+          <CodeBlock
+            :value="selectedAssetDetail.requestTemplate"
+            max-height-class="max-h-[200px]"
+          />
         </div>
       </CardContent>
     </Card>

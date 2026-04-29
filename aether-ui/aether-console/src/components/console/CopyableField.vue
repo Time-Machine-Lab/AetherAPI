@@ -29,7 +29,13 @@ async function copy() {
         <p class="text-xs font-semibold text-foreground">{{ label }}</p>
         <p v-if="hint" class="mt-1 text-xs leading-5 text-muted-foreground">{{ hint }}</p>
       </div>
-      <Button type="button" size="icon-xs" variant="outline" :title="t('console.shared.copy')" @click="copy">
+      <Button
+        type="button"
+        size="icon-xs"
+        variant="outline"
+        :title="t('console.shared.copy')"
+        @click="copy"
+      >
         <Check v-if="feedback === 'success'" class="size-3.5 text-primary" />
         <Copy v-else class="size-3.5" />
       </Button>
@@ -42,7 +48,9 @@ async function copy() {
       class="mt-2 text-xs"
       :class="feedback === 'success' ? 'text-primary' : 'text-destructive'"
     >
-      {{ feedback === 'success' ? t('console.shared.copySuccess') : t('console.shared.copyFailed') }}
+      {{
+        feedback === 'success' ? t('console.shared.copySuccess') : t('console.shared.copyFailed')
+      }}
     </p>
   </div>
 </template>

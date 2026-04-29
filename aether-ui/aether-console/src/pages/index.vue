@@ -12,14 +12,18 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { getAiCapabilityLabels } from '@/features/catalog/catalog-helpers'
 import { useCatalogDiscovery } from '@/composables/useCatalogDiscovery'
-import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import MetaItem from '@/components/console/MetaItem.vue'
 import CopyableField from '@/components/console/CopyableField.vue'
 import CodeBlock from '@/components/console/CodeBlock.vue'
+import DisplayTag from '@/components/console/DisplayTag.vue'
+import MethodTag from '@/components/console/MethodTag.vue'
+import FieldGroup from '@/components/console/FieldGroup.vue'
+import StateBlock from '@/components/console/StateBlock.vue'
 import { buildUnifiedAccessAddress } from '@/utils/platform-url'
+import { assetTypeTone } from '@/utils/visual-system'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -83,18 +87,9 @@ function openPlayground(apiCode: string) {
     <section class="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
       <!-- Asset list -->
       <div>
-        <div v-if="listLoading" class="py-16 text-center text-sm text-muted-foreground">
-          {{ t('console.home.loading') }}
-        </div>
-        <div v-else-if="listError" class="py-16 text-center text-sm text-destructive">
-          {{ t('console.home.listError') }}
-        </div>
-        <div
-          v-else-if="assets.length === 0"
-          class="py-16 text-center text-sm text-muted-foreground"
-        >
-          {{ t('console.home.empty') }}
-        </div>
+        <StateBlock v-if="listLoading" tone="loading" :title="t('console.home.loading')" />
+        <StateBlock v-else-if="listError" tone="error" :title="t('console.home.listError')" />
+        <StateBlock v-else-if="assets.length === 0" tone="empty" :title="t('console.home.empty')" />
         <div v-else class="grid min-h-[200px] gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Card
             v-for="asset in assets"
@@ -112,12 +107,10 @@ function openPlayground(apiCode: string) {
                 <p class="truncate text-sm font-semibold text-foreground">
                   {{ asset.displayName }}
                 </p>
-                <Badge
-                  :variant="asset.assetType === 'AI_API' ? 'type-ai' : 'type-api'"
-                  class="shrink-0 text-[11px]"
-                >
-                  {{ asset.assetType === 'AI_API' ? 'AI' : 'API' }}
-                </Badge>
+                <DisplayTag
+                  :tone="assetTypeTone(asset.assetType)"
+                  :label="asset.assetType === 'AI_API' ? 'AI' : 'API'"
+                />
               </div>
               <p class="mt-1 text-xs text-muted-foreground">{{ asset.apiCode }}</p>
               <div class="mt-3 flex flex-wrap gap-1.5">
@@ -138,40 +131,35 @@ function openPlayground(apiCode: string) {
           </CardHeader>
           <CardContent>
             <Transition name="fade" mode="out-in">
-              <div
-                v-if="!selectedAsset"
-                key="empty"
-                class="flex flex-col items-center gap-3 py-12 text-center"
-              >
-                <MousePointerClick class="size-8 text-muted-foreground/40" />
-                <p class="text-sm text-muted-foreground">{{ t('console.home.detailEmpty') }}</p>
+              <div v-if="!selectedAsset" key="empty">
+                <StateBlock
+                  :icon="MousePointerClick"
+                  tone="empty"
+                  :title="t('console.home.detailEmpty')"
+                />
               </div>
-              <div
+              <StateBlock
                 v-else-if="detailLoading"
                 key="loading"
-                class="py-10 text-center text-sm text-muted-foreground"
-              >
-                {{ t('console.home.loading') }}
-              </div>
-              <div
+                tone="loading"
+                :title="t('console.home.loading')"
+              />
+              <StateBlock
                 v-else-if="detailError"
                 key="error"
-                class="py-10 text-center text-sm text-destructive"
-              >
-                {{ t('console.home.detailError') }}
-              </div>
+                tone="error"
+                :title="t('console.home.detailError')"
+              />
               <div v-else-if="detail" :key="detail.apiCode" class="space-y-5 text-sm">
                 <div class="flex items-start justify-between gap-2">
                   <div class="min-w-0">
                     <p class="font-semibold text-foreground">{{ detail.displayName }}</p>
                     <p class="mt-1 text-xs text-muted-foreground">{{ detail.apiCode }}</p>
                   </div>
-                  <Badge
-                    :variant="detail.assetType === 'AI_API' ? 'type-ai' : 'type-api'"
-                    class="shrink-0 text-[11px]"
-                  >
-                    {{ detail.assetType === 'AI_API' ? 'AI' : 'API' }}
-                  </Badge>
+                  <DisplayTag
+                    :tone="assetTypeTone(detail.assetType)"
+                    :label="detail.assetType === 'AI_API' ? 'AI' : 'API'"
+                  />
                 </div>
                 <p v-if="detail.description" class="leading-6 text-muted-foreground">
                   {{ detail.description }}
@@ -211,50 +199,36 @@ function openPlayground(apiCode: string) {
                     {{ t('console.home.subscriptionUnavailable') }}
                   </Button>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div class="rounded-[14px] bg-secondary px-4 py-3">
-                    <p class="text-xs text-muted-foreground">{{ t('console.home.authScheme') }}</p>
-                    <p class="mt-1 font-medium text-foreground">
-                      {{ detail.authScheme ?? t('console.home.noAuth') }}
-                    </p>
+                <FieldGroup :title="t('console.home.detailTitle')">
+                  <div class="grid grid-cols-2 gap-3">
+                    <MetaItem
+                      :icon="KeyRound"
+                      :label="t('console.home.authScheme')"
+                      :value="detail.authScheme ?? t('console.home.noAuth')"
+                    />
+                    <MethodTag :method="detail.requestMethod" />
                   </div>
-                  <div v-if="detail.requestMethod" class="rounded-[14px] bg-secondary px-4 py-3">
-                    <p class="text-xs text-muted-foreground">
-                      {{ t('console.home.requestMethod') }}
-                    </p>
-                    <p
-                      class="mt-1 font-mono font-bold"
-                      :class="{
-                        'text-[var(--palette-text-legal)]': detail.requestMethod === 'GET',
-                        'text-primary': ['POST', 'PUT', 'PATCH'].includes(detail.requestMethod),
-                        'text-destructive': detail.requestMethod === 'DELETE',
-                      }"
-                    >
-                      {{ detail.requestMethod }}
-                    </p>
-                  </div>
-                </div>
+                </FieldGroup>
                 <div v-if="detail.assetType === 'AI_API' && detail.aiProfile" class="space-y-2">
-                  <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {{ t('console.home.aiCapability') }}
-                  </p>
-                  <div class="rounded-[14px] bg-secondary px-4 py-3 space-y-1">
+                  <FieldGroup :title="t('console.home.aiCapability')">
                     <p class="text-foreground">
                       {{ detail.aiProfile.provider }} / {{ detail.aiProfile.model }}
                     </p>
                     <div class="flex flex-wrap gap-2 pt-1">
-                      <span
+                      <DisplayTag
                         v-for="label in getAiCapabilityLabels(detail.aiProfile)"
                         :key="label"
-                        class="rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-[var(--chart-3)] shadow-console"
-                      >
-                        {{ label }}
-                      </span>
+                        tone="ai"
+                        :label="label"
+                      />
                     </div>
-                  </div>
+                  </FieldGroup>
                 </div>
                 <div v-if="detail.requestTemplate">
-                  <CodeBlock :label="t('console.home.requestTemplate')" :value="detail.requestTemplate" />
+                  <CodeBlock
+                    :label="t('console.home.requestTemplate')"
+                    :value="detail.requestTemplate"
+                  />
                 </div>
                 <div v-if="detail.exampleSnapshot?.requestExample">
                   <CodeBlock

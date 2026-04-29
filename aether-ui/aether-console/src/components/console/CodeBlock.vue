@@ -11,11 +11,15 @@ const props = withDefaults(
     label?: string
     copyable?: boolean
     editable?: boolean
+    collapsible?: boolean
+    defaultCollapsed?: boolean
     maxHeightClass?: string
   }>(),
   {
     copyable: true,
     editable: false,
+    collapsible: false,
+    defaultCollapsed: false,
     maxHeightClass: 'max-h-[360px]',
   },
 )
@@ -23,6 +27,7 @@ const props = withDefaults(
 const { t } = useI18n()
 const formatted = computed(() => formatCodeContent(props.value))
 const feedback = ref<'idle' | 'success' | 'failed'>('idle')
+const collapsed = ref(props.defaultCollapsed)
 
 async function copy() {
   feedback.value = (await copyTextToClipboard(formatted.value.source)) ? 'success' : 'failed'
@@ -34,6 +39,7 @@ async function copy() {
 
 <template>
   <div
+    data-console-code-block
     class="overflow-hidden rounded-[14px] border"
     :class="
       editable
@@ -47,32 +53,54 @@ async function copy() {
     >
       <div class="flex min-w-0 items-center gap-2">
         <p v-if="label" class="truncate text-xs font-semibold text-foreground">{{ label }}</p>
-        <span class="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
+        <span
+          class="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground"
+        >
           {{ formatted.language }}
         </span>
       </div>
-      <Button
-        v-if="copyable && formatted.source"
-        type="button"
-        size="icon-xs"
-        variant="ghost"
-        :title="t('console.shared.copy')"
-        @click="copy"
-      >
-        <Check v-if="feedback === 'success'" class="size-3.5 text-primary" />
-        <Copy v-else class="size-3.5" />
-      </Button>
+      <div class="flex shrink-0 items-center gap-1">
+        <Button
+          v-if="collapsible"
+          type="button"
+          size="xs"
+          variant="ghost"
+          @click="collapsed = !collapsed"
+        >
+          {{ collapsed ? t('console.shared.expand') : t('console.shared.collapse') }}
+        </Button>
+        <Button
+          v-if="copyable && formatted.source"
+          type="button"
+          size="icon-xs"
+          variant="ghost"
+          :title="t('console.shared.copy')"
+          @click="copy"
+        >
+          <Check v-if="feedback === 'success'" class="size-3.5 text-primary" />
+          <Copy v-else class="size-3.5" />
+        </Button>
+      </div>
     </div>
     <pre
+      v-if="!collapsed"
       class="overflow-auto px-4 py-3 font-mono text-xs leading-5 text-foreground"
       :class="maxHeightClass"
     ><code>{{ formatted.display || t('console.shared.emptyCode') }}</code></pre>
+    <p
+      v-if="!collapsed && formatted.source && !formatted.formatted && formatted.language === 'text'"
+      class="border-t border-[rgb(34_34_34_/_0.06)] px-3 py-2 text-xs text-muted-foreground"
+    >
+      {{ t('console.shared.plainTextFallback') }}
+    </p>
     <p
       v-if="feedback !== 'idle'"
       class="border-t border-[rgb(34_34_34_/_0.06)] px-3 py-2 text-xs"
       :class="feedback === 'success' ? 'text-primary' : 'text-destructive'"
     >
-      {{ feedback === 'success' ? t('console.shared.copySuccess') : t('console.shared.copyFailed') }}
+      {{
+        feedback === 'success' ? t('console.shared.copySuccess') : t('console.shared.copyFailed')
+      }}
     </p>
   </div>
 </template>
