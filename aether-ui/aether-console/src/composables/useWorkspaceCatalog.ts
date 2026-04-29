@@ -83,6 +83,8 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
   const currentAsset = ref<ApiAsset | null>(null)
   const assetLoading = ref(false)
   const assetError = ref('')
+  const assetCreateOpen = ref(false)
+  const assetEditorOpen = ref(false)
 
   const registerForm = ref<RegisterAssetBody>({
     apiCode: '',
@@ -145,12 +147,63 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     }
   }
 
+  function syncAiProfileForm(asset: ApiAsset | null) {
+    aiProfileForm.value = {
+      provider: asset?.aiProfile?.provider ?? '',
+      model: asset?.aiProfile?.model ?? '',
+      streamingSupported: asset?.aiProfile?.streaming ?? false,
+      capabilityTags: [...(asset?.aiProfile?.tags ?? [])],
+    }
+  }
+
   async function setCurrentAsset(asset: ApiAsset, notifySelection = false) {
     currentAsset.value = asset
     syncAssetConfigForm(asset)
+    syncAiProfileForm(asset)
     if (notifySelection) {
       await deps.onAssetSelected?.(asset)
     }
+  }
+
+  function mergeAiProfileUpdate(previous: ApiAsset, updated: ApiAsset): ApiAsset {
+    return {
+      ...previous,
+      ...updated,
+      displayName: updated.displayName ?? previous.displayName,
+      categoryCode: updated.categoryCode ?? previous.categoryCode,
+      requestMethod: updated.requestMethod ?? previous.requestMethod,
+      upstreamUrl: updated.upstreamUrl ?? previous.upstreamUrl,
+      authScheme: updated.authScheme ?? previous.authScheme,
+      authConfig: updated.authConfig ?? previous.authConfig,
+      requestTemplate: updated.requestTemplate ?? previous.requestTemplate,
+      requestExample: updated.requestExample ?? previous.requestExample,
+      responseExample: updated.responseExample ?? previous.responseExample,
+      aiProfile: updated.aiProfile ?? {
+        provider: aiProfileForm.value.provider,
+        model: aiProfileForm.value.model,
+        streaming: aiProfileForm.value.streamingSupported,
+        tags: [...aiProfileForm.value.capabilityTags],
+      },
+    }
+  }
+
+  function openCreateAsset() {
+    assetCreateOpen.value = true
+  }
+
+  function closeCreateAsset() {
+    assetCreateOpen.value = false
+  }
+
+  function openAssetEditor() {
+    if (!currentAsset.value) return
+    syncAssetConfigForm(currentAsset.value)
+    syncAiProfileForm(currentAsset.value)
+    assetEditorOpen.value = true
+  }
+
+  function closeAssetEditor() {
+    assetEditorOpen.value = false
   }
 
   async function handleListAssets(page = 1) {
@@ -255,8 +308,12 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
         assetName: '',
         assetType: 'STANDARD_API',
       }
+      assetCreateOpen.value = false
+      await handleListAssets(assetListPage.value)
+      return true
     } catch {
       assetError.value = deps.t('console.workspace.registerFailed')
+      return false
     } finally {
       assetLoading.value = false
     }
@@ -303,6 +360,7 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
       assetListTotal.value = Math.max(0, assetListTotal.value - 1)
       currentAsset.value = null
       syncAssetConfigForm(null)
+      syncAiProfileForm(null)
     } catch {
       assetError.value = deps.t('console.workspace.assetDeleteFailed')
     } finally {
@@ -312,7 +370,21 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
 
   async function handleBindAiProfile() {
     if (!currentAsset.value) return
-    await setCurrentAsset(await deps.bindAiProfile(currentAsset.value.apiCode, aiProfileForm.value))
+    const previous = currentAsset.value
+    assetLoading.value = true
+    assetError.value = ''
+    try {
+      currentAsset.value = mergeAiProfileUpdate(
+        previous,
+        await deps.bindAiProfile(previous.apiCode, aiProfileForm.value),
+      )
+      return true
+    } catch {
+      assetError.value = deps.t('console.workspace.aiBindFailed')
+      return false
+    } finally {
+      assetLoading.value = false
+    }
   }
 
   function normalizeOptionalText(value: string) {
@@ -338,8 +410,12 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
           responseExample: normalizeOptionalText(assetConfigForm.value.responseExample),
         }),
       )
+      assetEditorOpen.value = false
+      await handleListAssets(assetListPage.value)
+      return true
     } catch {
       assetError.value = deps.t('console.workspace.assetConfigSaveFailed')
+      return false
     } finally {
       assetLoading.value = false
     }
@@ -375,6 +451,12 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     currentAsset,
     assetLoading,
     assetError,
+    assetCreateOpen,
+    assetEditorOpen,
+    openCreateAsset,
+    closeCreateAsset,
+    openAssetEditor,
+    closeAssetEditor,
     registerForm,
     assetConfigForm,
     aiProfileForm,

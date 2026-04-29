@@ -76,6 +76,18 @@ describe('useUnifiedAccessPlayground', () => {
     expect(playground.requestBody.value).toBe('{"city":"Shanghai"}')
   })
 
+  it('loads selected detail directly from an apiCode for routed playground context', async () => {
+    mockedGetDiscoveryAssetDetail.mockResolvedValueOnce(detail({ requestMethod: 'PATCH' }))
+    const playground = useUnifiedAccessPlayground()
+
+    await playground.loadSelectedAssetDetail(' weather-api ')
+
+    expect(mockedGetDiscoveryAssetDetail).toHaveBeenCalledWith('weather-api')
+    expect(playground.apiCode.value).toBe('weather-api')
+    expect(playground.method.value).toBe('PATCH')
+    expect(playground.requestBody.value).toBe('{"city":"Shanghai"}')
+  })
+
   it('invokes Unified Access with parsed extra headers and preserves success response', async () => {
     mockedInvokeUnifiedAccess.mockResolvedValueOnce(jsonResult())
     const playground = useUnifiedAccessPlayground()

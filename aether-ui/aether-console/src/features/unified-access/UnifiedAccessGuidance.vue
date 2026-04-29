@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Info, ShieldCheck, Zap, ArrowRightLeft, X } from 'lucide-vue-next'
+import CodeBlock from '@/components/console/CodeBlock.vue'
 
 withDefaults(
   defineProps<{
@@ -147,10 +148,7 @@ const { t } = useI18n()
           <p class="mb-1 text-muted-foreground">
             {{ t('console.playground.fieldRequestTemplate') }}
           </p>
-          <pre
-            class="max-h-[200px] overflow-auto rounded-[8px] border border-[rgb(34_34_34_/_0.06)] bg-muted/40 p-3 font-mono text-xs leading-5 text-foreground"
-            >{{ selectedAssetDetail.requestTemplate }}</pre
-          >
+          <CodeBlock :value="selectedAssetDetail.requestTemplate" max-height-class="max-h-[200px]" />
         </div>
       </CardContent>
     </Card>

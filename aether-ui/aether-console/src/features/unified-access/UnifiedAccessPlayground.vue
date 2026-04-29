@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import { useUnifiedAccessPlayground } from '@/composables/useUnifiedAccessPlayground'
 import type { UnifiedAccessMethod } from '@/api/unified-access/unified-access.types'
 import type { DiscoveryAsset } from '@/api/catalog/catalog.types'
 import UnifiedAccessGuidance from './UnifiedAccessGuidance.vue'
+import CodeBlock from '@/components/console/CodeBlock.vue'
+import CopyableField from '@/components/console/CopyableField.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -25,9 +28,11 @@ import {
   XCircle,
   AlertTriangle,
 } from 'lucide-vue-next'
-import { ref } from 'vue'
+import { buildUnifiedAccessAddress } from '@/utils/platform-url'
 
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
 
 const {
   apiCode,
@@ -42,6 +47,7 @@ const {
   detailLoading,
   loadDiscoveryAssets,
   selectDiscoveryAsset,
+  loadSelectedAssetDetail,
   invoking,
   result,
   invokeError,
@@ -128,7 +134,31 @@ function getFailureTypeColor(failureType: string): string {
   return map[failureType] ?? 'bg-muted text-foreground'
 }
 
-onMounted(loadDiscoveryAssets)
+function routeApiCode() {
+  return typeof route.query.apiCode === 'string' ? route.query.apiCode : ''
+}
+
+function openApiKeyManagement() {
+  router.push({ name: 'console-workspace', hash: '#credentials' })
+}
+
+onMounted(async () => {
+  await loadDiscoveryAssets()
+  const queryApiCode = routeApiCode()
+  if (queryApiCode) {
+    await loadSelectedAssetDetail(queryApiCode)
+  }
+})
+
+watch(
+  () => route.query.apiCode,
+  async () => {
+    const queryApiCode = routeApiCode()
+    if (queryApiCode && queryApiCode !== apiCode.value) {
+      await loadSelectedAssetDetail(queryApiCode)
+    }
+  },
+)
 </script>
 
 <template>
@@ -214,6 +244,13 @@ onMounted(loadDiscoveryAssets)
               <Input v-model="apiCode" :placeholder="t('console.playground.apiCodePlaceholder')" />
             </div>
 
+            <CopyableField
+              v-if="apiCode.trim()"
+              :label="t('console.shared.platformCallAddress')"
+              :hint="t('console.playground.platformAddressHint')"
+              :value="buildUnifiedAccessAddress(apiCode.trim())"
+            />
+
             <!-- Detail loading indicator -->
             <div v-if="detailLoading" class="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 class="h-3.5 w-3.5 animate-spin" />
@@ -290,6 +327,9 @@ onMounted(loadDiscoveryAssets)
                 <Trash2 class="h-3.5 w-3.5" />
               </Button>
             </div>
+            <Button size="sm" variant="link" @click="openApiKeyManagement">
+              {{ t('console.playground.apiKeyManage') }}
+            </Button>
           </CardContent>
         </Card>
 
@@ -429,10 +469,7 @@ onMounted(loadDiscoveryAssets)
                 }}</span>
                 <Badge variant="outline" class="text-xs">{{ result.contentType }}</Badge>
               </div>
-              <pre
-                class="max-h-[500px] overflow-auto rounded-[8px] border border-[rgb(34_34_34_/_0.06)] bg-muted/40 p-4 font-mono text-sm leading-6 text-foreground"
-                >{{ JSON.stringify(result.jsonBody, null, 2) }}</pre
-              >
+              <CodeBlock :value="result.jsonBody" max-height-class="max-h-[500px]" />
             </div>
 
             <!-- Text success -->
@@ -444,10 +481,7 @@ onMounted(loadDiscoveryAssets)
                 }}</span>
                 <Badge variant="outline" class="text-xs">{{ result.contentType }}</Badge>
               </div>
-              <pre
-                class="max-h-[500px] overflow-auto rounded-[8px] border border-[rgb(34_34_34_/_0.06)] bg-muted/40 p-4 font-mono text-sm leading-6 text-foreground"
-                >{{ result.textBody }}</pre
-              >
+              <CodeBlock :value="result.textBody" max-height-class="max-h-[500px]" />
             </div>
 
             <!-- Binary -->
@@ -473,10 +507,11 @@ onMounted(loadDiscoveryAssets)
               >
                 {{ t('console.playground.rawHeaders') }}
               </summary>
-              <pre
-                class="mt-2 max-h-[200px] overflow-auto rounded-[8px] border border-[rgb(34_34_34_/_0.06)] bg-muted/40 p-3 font-mono text-xs leading-5 text-muted-foreground"
-                >{{ JSON.stringify(result.rawHeaders, null, 2) }}</pre
-              >
+              <CodeBlock
+                class="mt-2"
+                :value="result.rawHeaders"
+                max-height-class="max-h-[200px]"
+              />
             </details>
           </CardContent>
         </Card>

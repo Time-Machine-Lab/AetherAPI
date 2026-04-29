@@ -13,6 +13,19 @@ export default {
     },
   },
   console: {
+    shared: {
+      copy: 'Copy',
+      copySuccess: 'Copied',
+      copyFailed: 'Copy failed. Copy manually instead.',
+      emptyCode: 'No content',
+      unavailable: 'Unavailable',
+      platformCallAddress: 'Platform Unified Access URL',
+      platformCallAddressHint:
+        'This is the AetherAPI platform URL for callers, not the upstream URL configured by the asset owner.',
+      upstreamAddress: 'Upstream URL',
+      edit: 'Edit',
+      close: 'Close',
+    },
     nav: {
       home: 'API Market',
       workspace: 'Workspace',
@@ -70,6 +83,10 @@ export default {
       requestTemplate: 'Request template',
       requestExample: 'Request example',
       responseExample: 'Response example',
+      category: 'Category:',
+      assetType: 'Type:',
+      tryInPlayground: 'Try in Playground',
+      subscriptionUnavailable: 'Subscription is not available yet',
     },
     signIn: {
       metaTitle: 'Console Sign In',
@@ -113,6 +130,13 @@ export default {
       assetNotFound: 'Asset not found',
       registerFailed: 'Registration failed. Check the fields and try again.',
       registerTitle: 'Register new asset',
+      createAsset: 'Create asset draft',
+      createAssetDescription:
+        'Create a draft with its code, name, and type without losing the current list filters.',
+      editAsset: 'Edit asset configuration',
+      editAssetDescription:
+        'Maintain asset basics, upstream auth, examples, and AI capability in a focused panel.',
+      openEditor: 'Open editor',
       registerAction: 'Register draft',
       assetConfigTitle: 'Asset configuration',
       assetConfigSave: 'Save configuration',
@@ -133,8 +157,25 @@ export default {
       fieldAuthConfigHint:
         'Required for HEADER_TOKEN and QUERY_TOKEN. Leave empty when auth scheme is NONE.',
       fieldRequestTemplate: 'Request template',
+      fieldRequestTemplateHint:
+        'Template describes the forwarded structure or mapping rule, including placeholders and fixed fields.',
       fieldRequestExample: 'Request example',
+      fieldRequestExampleHint:
+        'Example is one concrete request payload that helps callers understand real inputs.',
       fieldResponseExample: 'Response example',
+      fieldResponseExampleHint:
+        'Example is a possible upstream response payload, usually showing successful structure or key fields.',
+      fieldUpstreamUrlHint:
+        'The upstream URL is the owner target service. Callers should use the platform Unified Access URL.',
+      fieldRequestMethodHint: 'The platform forwards requests to the upstream target with this method.',
+      fieldAuthSchemeHint:
+        'Auth scheme describes how the platform attaches the owner credential when calling upstream.',
+      categoryDependencyTitle: 'Category is required before publishing',
+      categoryDependencyHint:
+        'Published assets need a recognizable category code. This screen only edits the code; create new categories through an admin or a future category management entry.',
+      aiProfileHint:
+        'AI capability fields describe provider, model, streaming, and tags only. They should not overwrite base asset configuration.',
+      aiBindFailed: 'Binding AI capability failed. Please try again later.',
       aiProfileTitle: 'AI profile',
       fieldProvider: 'Provider',
       fieldModel: 'Model name',
@@ -170,6 +211,10 @@ export default {
       assetListPageSummary: 'Page {page} / {totalPages}, {total} total',
       assetListPrev: 'Previous',
       assetListNext: 'Next',
+      listMetaUpdatedAt: 'Updated',
+      listMetaPublishedAt: 'Published',
+      listMetaCategory: 'Category',
+      listMetaMethod: 'Method',
     },
     credentials: {
       title: 'My API Keys',
@@ -245,6 +290,11 @@ export default {
       logIdLabel: 'Log ID',
       errorTitle: 'Error',
       aiExtensionTitle: 'AI Extension',
+      diagnosticTitle: 'Request / response diagnostics',
+      diagnosticDescription:
+        'The current log API contract does not expose the fields below. The page will not fake a real call snapshot from asset config or local cache.',
+      contractLimitedHint:
+        'This requires a future update to docs/api/api-call-log.yaml and backend log snapshots.',
       noError: 'No error payload for this log.',
       noAiExtension: 'No AI extension payload for this log.',
       fields: {
@@ -267,6 +317,11 @@ export default {
         model: 'AI Model',
         streaming: 'Streaming',
         usageSnapshot: 'Usage Snapshot',
+        requestBody: 'Request Body',
+        responseBody: 'Response Body',
+        requestHeaders: 'Request Headers',
+        responseHeaders: 'Response Headers',
+        upstreamUrl: 'Upstream URL',
       },
     },
     playground: {
@@ -291,6 +346,9 @@ export default {
       fieldApiKey: 'API Key',
       apiKeyHint:
         'Unified Access authenticates via X-Aether-Api-Key header, independent of the console session.',
+      apiKeyManage: 'Manage API Keys',
+      platformAddressHint:
+        'This asset platform Unified Access URL can be used from external clients with X-Aether-Api-Key.',
       apiKeyPlaceholder: 'Enter your API Key',
       fieldRequestBody: 'Request Body',
       requestBodyHint:

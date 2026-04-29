@@ -6,7 +6,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { AlertTriangle, CheckCircle2, Clock3, Loader2 } from 'lucide-vue-next'
+import CodeBlock from '@/components/console/CodeBlock.vue'
+import { contractLimitedDiagnosticFieldKeys } from '@/features/api-call-log/api-call-log-diagnostics'
+import { AlertTriangle, CheckCircle2, Clock3, KeyRound, Loader2, Network } from 'lucide-vue-next'
 
 const { t } = useI18n()
 
@@ -58,6 +60,10 @@ function statusBadgeVariant(log: ApiCallLogItem) {
     return 'status-enabled' as const
   }
   return 'destructive' as const
+}
+
+function diagnosticUnavailableFields() {
+  return contractLimitedDiagnosticFieldKeys.map((key) => t(key))
 }
 </script>
 
@@ -158,7 +164,7 @@ function statusBadgeVariant(log: ApiCallLogItem) {
                     {{ formatValue(item.targetApiName) }}
                   </p>
                   <p class="text-xs text-muted-foreground">
-                    {{ item.targetApiCode }} · {{ item.requestMethod }}
+                    {{ item.targetApiCode }}
                   </p>
                   <p class="text-xs text-muted-foreground">
                     {{ formatDateTime(item.invocationTime) }}
@@ -172,7 +178,11 @@ function statusBadgeVariant(log: ApiCallLogItem) {
                         : t('console.apiCallLogs.failed')
                     }}
                   </Badge>
+                  <Badge variant="outline">{{ item.requestMethod }}</Badge>
                   <Badge variant="outline">{{ item.resultType }}</Badge>
+                  <Badge v-if="item.httpStatusCode" variant="outline">
+                    {{ item.httpStatusCode }}
+                  </Badge>
                   <Badge variant="outline">
                     <Clock3 class="mr-1 size-3" />
                     {{ item.durationMs }} ms
@@ -267,8 +277,8 @@ function statusBadgeVariant(log: ApiCallLogItem) {
                 <dt class="text-xs text-muted-foreground">
                   {{ t('console.apiCallLogs.fields.requestMethod') }}
                 </dt>
-                <dd class="mt-1 font-medium text-foreground">
-                  {{ formatValue(selectedLogDetail.requestMethod) }}
+                <dd class="mt-1">
+                  <Badge variant="outline">{{ formatValue(selectedLogDetail.requestMethod) }}</Badge>
                 </dd>
               </div>
               <div>
@@ -291,24 +301,27 @@ function statusBadgeVariant(log: ApiCallLogItem) {
                 <dt class="text-xs text-muted-foreground">
                   {{ t('console.apiCallLogs.fields.resultType') }}
                 </dt>
-                <dd class="mt-1 font-medium text-foreground">
-                  {{ formatValue(selectedLogDetail.resultType) }}
+                <dd class="mt-1">
+                  <Badge variant="outline">{{ formatValue(selectedLogDetail.resultType) }}</Badge>
                 </dd>
               </div>
               <div>
                 <dt class="text-xs text-muted-foreground">
                   {{ t('console.apiCallLogs.fields.httpStatusCode') }}
                 </dt>
-                <dd class="mt-1 font-medium text-foreground">
-                  {{ formatValue(selectedLogDetail.httpStatusCode) }}
+                <dd class="mt-1">
+                  <Badge variant="outline">{{ formatValue(selectedLogDetail.httpStatusCode) }}</Badge>
                 </dd>
               </div>
               <div>
                 <dt class="text-xs text-muted-foreground">
                   {{ t('console.apiCallLogs.fields.accessChannel') }}
                 </dt>
-                <dd class="mt-1 font-medium text-foreground">
-                  {{ formatValue(selectedLogDetail.accessChannel) }}
+                <dd class="mt-1">
+                  <Badge variant="outline">
+                    <Network class="mr-1 size-3" />
+                    {{ formatValue(selectedLogDetail.accessChannel) }}
+                  </Badge>
                 </dd>
               </div>
               <div>
@@ -323,8 +336,11 @@ function statusBadgeVariant(log: ApiCallLogItem) {
                 <dt class="text-xs text-muted-foreground">
                   {{ t('console.apiCallLogs.fields.credentialStatus') }}
                 </dt>
-                <dd class="mt-1 font-medium text-foreground">
-                  {{ formatValue(selectedLogDetail.credentialStatus) }}
+                <dd class="mt-1">
+                  <Badge variant="outline">
+                    <KeyRound class="mr-1 size-3" />
+                    {{ formatValue(selectedLogDetail.credentialStatus) }}
+                  </Badge>
                 </dd>
               </div>
               <div>
@@ -398,15 +414,40 @@ function statusBadgeVariant(log: ApiCallLogItem) {
                     >
                     {{ formatValue(selectedLogDetail.aiExtension.streaming) }}
                   </p>
-                  <p class="break-all">
-                    <span class="text-muted-foreground"
-                      >{{ t('console.apiCallLogs.fields.usageSnapshot') }}:</span
-                    >
-                    {{ formatValue(selectedLogDetail.aiExtension.usageSnapshot) }}
-                  </p>
+                  <CodeBlock
+                    v-if="selectedLogDetail.aiExtension.usageSnapshot"
+                    class="mt-3"
+                    :label="t('console.apiCallLogs.fields.usageSnapshot')"
+                    :value="selectedLogDetail.aiExtension.usageSnapshot"
+                  />
                 </template>
                 <p v-else class="text-muted-foreground">
                   {{ t('console.apiCallLogs.noAiExtension') }}
+                </p>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <h3 class="text-sm font-semibold text-foreground">
+                {{ t('console.apiCallLogs.diagnosticTitle') }}
+              </h3>
+              <div
+                class="rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-secondary/40 p-4 text-sm"
+              >
+                <p class="leading-6 text-muted-foreground">
+                  {{ t('console.apiCallLogs.diagnosticDescription') }}
+                </p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <Badge
+                    v-for="field in diagnosticUnavailableFields()"
+                    :key="field"
+                    variant="status-disabled"
+                  >
+                    {{ field }} · {{ t('console.shared.unavailable') }}
+                  </Badge>
+                </div>
+                <p class="mt-3 text-xs leading-5 text-muted-foreground">
+                  {{ t('console.apiCallLogs.contractLimitedHint') }}
                 </p>
               </div>
             </div>

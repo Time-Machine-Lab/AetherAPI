@@ -396,4 +396,57 @@ describe('useWorkspaceCatalog', () => {
     expect(workspace.assetListItems.value).toHaveLength(0)
     expect(workspace.assetListTotal.value).toBe(0)
   })
+
+  it('opens focused create/edit flows and preserves base config when binding AI profile', async () => {
+    const selectedAsset = asset({
+      assetType: 'AI_API',
+      requestMethod: 'POST',
+      upstreamUrl: 'https://upstream.example.com/ai',
+      requestTemplate: '{"messages":"{{messages}}"}',
+      requestExample: '{"messages":["hi"]}',
+      responseExample: '{"reply":"hello"}',
+    })
+    const bindAiProfile = vi.fn().mockResolvedValueOnce({
+      apiCode: 'weather-api',
+      assetType: 'AI_API',
+      status: 'DRAFT',
+      aiProfile: {
+        provider: 'OpenAI',
+        model: 'gpt-test',
+        streaming: true,
+        tags: ['chat'],
+      },
+    } as ApiAsset)
+    const workspace = useWorkspaceCatalog({
+      t,
+      autoLoad: false,
+      getAsset: vi.fn().mockResolvedValueOnce(selectedAsset),
+      bindAiProfile,
+      getRecentAssets: vi.fn().mockReturnValue([]),
+    })
+
+    workspace.openCreateAsset()
+    expect(workspace.assetCreateOpen.value).toBe(true)
+    workspace.closeCreateAsset()
+    expect(workspace.assetCreateOpen.value).toBe(false)
+
+    await workspace.handleListSelectAsset('weather-api')
+    workspace.openAssetEditor()
+    expect(workspace.assetEditorOpen.value).toBe(true)
+
+    workspace.aiProfileForm.value = {
+      provider: 'OpenAI',
+      model: 'gpt-test',
+      streamingSupported: true,
+      capabilityTags: ['chat'],
+    }
+    await workspace.handleBindAiProfile()
+
+    expect(workspace.currentAsset.value?.upstreamUrl).toBe('https://upstream.example.com/ai')
+    expect(workspace.currentAsset.value?.requestTemplate).toBe('{"messages":"{{messages}}"}')
+    expect(workspace.currentAsset.value?.requestExample).toBe('{"messages":["hi"]}')
+    expect(workspace.currentAsset.value?.responseExample).toBe('{"reply":"hello"}')
+    expect(workspace.assetConfigForm.value.upstreamUrl).toBe('https://upstream.example.com/ai')
+    expect(workspace.currentAsset.value?.aiProfile?.model).toBe('gpt-test')
+  })
 })

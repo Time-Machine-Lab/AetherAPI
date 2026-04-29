@@ -1,13 +1,28 @@
 <script setup lang="ts">
-import { Search, MousePointerClick } from 'lucide-vue-next'
+import {
+  CalendarClock,
+  Folder,
+  KeyRound,
+  MousePointerClick,
+  Play,
+  Search,
+  UserRound,
+} from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { getAiCapabilityLabels } from '@/features/catalog/catalog-helpers'
 import { useCatalogDiscovery } from '@/composables/useCatalogDiscovery'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import MetaItem from '@/components/console/MetaItem.vue'
+import CopyableField from '@/components/console/CopyableField.vue'
+import CodeBlock from '@/components/console/CodeBlock.vue'
+import { buildUnifiedAccessAddress } from '@/utils/platform-url'
 
 const { t } = useI18n()
+const router = useRouter()
 const {
   keyword,
   assets,
@@ -22,6 +37,10 @@ const {
 } = useCatalogDiscovery()
 
 loadList()
+
+function openPlayground(apiCode: string) {
+  router.push({ name: 'console-playground', query: { apiCode } })
+}
 </script>
 
 <route lang="json5">
@@ -101,18 +120,10 @@ loadList()
                 </Badge>
               </div>
               <p class="mt-1 text-xs text-muted-foreground">{{ asset.apiCode }}</p>
-              <p v-if="asset.publisherDisplayName" class="mt-2 text-xs text-muted-foreground">
-                {{ t('console.home.publisher') }} {{ asset.publisherDisplayName }}
-              </p>
-              <p v-if="asset.publishedAt" class="mt-1 text-xs text-muted-foreground">
-                {{ t('console.home.publishedAt') }} {{ asset.publishedAt }}
-              </p>
-              <div v-if="asset.categoryName" class="mt-3 flex flex-wrap items-center gap-2">
-                <span
-                  class="rounded-[8px] border border-[rgb(34_34_34_/_0.06)] bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground"
-                >
-                  {{ asset.categoryName }}
-                </span>
+              <div class="mt-3 flex flex-wrap gap-1.5">
+                <MetaItem :icon="UserRound" :value="asset.publisherDisplayName" />
+                <MetaItem :icon="CalendarClock" :value="asset.publishedAt" />
+                <MetaItem :icon="Folder" :value="asset.categoryName" />
               </div>
             </CardContent>
           </Card>
@@ -167,14 +178,38 @@ loadList()
                 </p>
                 <div
                   v-if="detail.publisherDisplayName || detail.publishedAt"
-                  class="rounded-[14px] bg-secondary px-4 py-3 text-xs text-muted-foreground"
+                  class="flex flex-wrap gap-1.5 rounded-[14px] bg-secondary px-4 py-3"
                 >
-                  <p v-if="detail.publisherDisplayName">
-                    {{ t('console.home.publisher') }} {{ detail.publisherDisplayName }}
-                  </p>
-                  <p v-if="detail.publishedAt" class="mt-1">
-                    {{ t('console.home.publishedAt') }} {{ detail.publishedAt }}
-                  </p>
+                  <MetaItem
+                    :icon="UserRound"
+                    :label="t('console.home.publisher')"
+                    :value="detail.publisherDisplayName"
+                  />
+                  <MetaItem
+                    :icon="CalendarClock"
+                    :label="t('console.home.publishedAt')"
+                    :value="detail.publishedAt"
+                  />
+                  <MetaItem
+                    :icon="Folder"
+                    :label="t('console.home.category')"
+                    :value="detail.categoryName"
+                  />
+                </div>
+                <CopyableField
+                  :label="t('console.shared.platformCallAddress')"
+                  :hint="t('console.shared.platformCallAddressHint')"
+                  :value="buildUnifiedAccessAddress(detail.apiCode)"
+                />
+                <div class="flex flex-wrap gap-2">
+                  <Button size="sm" @click="openPlayground(detail.apiCode)">
+                    <Play class="size-4" />
+                    {{ t('console.home.tryInPlayground') }}
+                  </Button>
+                  <Button size="sm" variant="outline" disabled>
+                    <KeyRound class="size-4" />
+                    {{ t('console.home.subscriptionUnavailable') }}
+                  </Button>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                   <div class="rounded-[14px] bg-secondary px-4 py-3">
@@ -219,31 +254,19 @@ loadList()
                   </div>
                 </div>
                 <div v-if="detail.requestTemplate">
-                  <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-primary/70">
-                    {{ t('console.home.requestTemplate') }}
-                  </p>
-                  <pre
-                    class="overflow-x-auto rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-[#fafafa] px-4 py-3 text-xs leading-5 text-foreground"
-                    >{{ detail.requestTemplate }}</pre
-                  >
+                  <CodeBlock :label="t('console.home.requestTemplate')" :value="detail.requestTemplate" />
                 </div>
                 <div v-if="detail.exampleSnapshot?.requestExample">
-                  <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-primary/70">
-                    {{ t('console.home.requestExample') }}
-                  </p>
-                  <pre
-                    class="overflow-x-auto rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-[#fafafa] px-4 py-3 text-xs leading-5 text-foreground"
-                    >{{ detail.exampleSnapshot.requestExample }}</pre
-                  >
+                  <CodeBlock
+                    :label="t('console.home.requestExample')"
+                    :value="detail.exampleSnapshot.requestExample"
+                  />
                 </div>
                 <div v-if="detail.exampleSnapshot?.responseExample">
-                  <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-primary/70">
-                    {{ t('console.home.responseExample') }}
-                  </p>
-                  <pre
-                    class="overflow-x-auto rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-[#fafafa] px-4 py-3 text-xs leading-5 text-foreground"
-                    >{{ detail.exampleSnapshot.responseExample }}</pre
-                  >
+                  <CodeBlock
+                    :label="t('console.home.responseExample')"
+                    :value="detail.exampleSnapshot.responseExample"
+                  />
                 </div>
               </div>
             </Transition>

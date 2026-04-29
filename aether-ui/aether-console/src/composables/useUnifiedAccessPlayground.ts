@@ -50,9 +50,16 @@ export function useUnifiedAccessPlayground() {
 
   async function selectDiscoveryAsset(asset: DiscoveryAsset) {
     apiCode.value = asset.apiCode
+    await loadSelectedAssetDetail(asset.apiCode)
+  }
+
+  async function loadSelectedAssetDetail(nextApiCode = apiCode.value) {
+    const normalizedApiCode = nextApiCode.trim()
+    if (!normalizedApiCode) return
+    apiCode.value = normalizedApiCode
     detailLoading.value = true
     try {
-      const detail = await getDiscoveryAssetDetail(asset.apiCode)
+      const detail = await getDiscoveryAssetDetail(normalizedApiCode)
       selectedAssetDetail.value = detail
       if (detail.requestMethod) {
         method.value = detail.requestMethod as UnifiedAccessMethod
@@ -138,6 +145,7 @@ export function useUnifiedAccessPlayground() {
     detailLoading,
     loadDiscoveryAssets,
     selectDiscoveryAsset,
+    loadSelectedAssetDetail,
     // invocation
     invoking,
     result,
