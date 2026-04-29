@@ -47,7 +47,8 @@ describe('asset api', () => {
         publishedAt: '2026-04-26T12:00:00Z',
         requestMethod: 'GET',
         upstreamUrl: 'https://upstream.example.com/weather',
-        authScheme: 'NONE',
+        authScheme: 'HEADER_TOKEN',
+        authConfig: 'Authorization: Bearer upstream-token',
         aiCapabilityProfile: {
           provider: 'OpenAI',
           model: 'gpt-4.1',
@@ -68,7 +69,8 @@ describe('asset api', () => {
         publishedAt: '2026-04-26T12:00:00Z',
         requestMethod: 'GET',
         upstreamUrl: 'https://upstream.example.com/weather',
-        authScheme: 'NONE',
+        authScheme: 'HEADER_TOKEN',
+        authConfig: 'Authorization: Bearer upstream-token',
         aiProfile: {
           provider: 'OpenAI',
           model: 'gpt-4.1',
@@ -119,6 +121,8 @@ describe('asset api', () => {
       categoryCode: 'tools',
       requestMethod: 'GET',
       upstreamUrl: 'https://upstream.example.com/weather',
+      authScheme: 'HEADER_TOKEN',
+      authConfig: 'Authorization: Bearer upstream-token',
     })
 
     expect(mockedPut).toHaveBeenCalledWith('v1/current-user/assets/weather-api', {
@@ -128,7 +132,8 @@ describe('asset api', () => {
       description: undefined,
       requestMethod: 'GET',
       upstreamUrl: 'https://upstream.example.com/weather',
-      authScheme: undefined,
+      authScheme: 'HEADER_TOKEN',
+      authConfig: 'Authorization: Bearer upstream-token',
       requestTemplate: undefined,
       requestExample: undefined,
       responseExample: undefined,

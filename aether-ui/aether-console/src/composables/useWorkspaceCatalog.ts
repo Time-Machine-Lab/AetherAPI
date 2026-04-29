@@ -102,6 +102,7 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     requestMethod: NonNullable<ReviseAssetBody['requestMethod']> | ''
     upstreamUrl: string
     authScheme: string
+    authConfig: string
     requestTemplate: string
     requestExample: string
     responseExample: string
@@ -111,6 +112,7 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     requestMethod: '',
     upstreamUrl: '',
     authScheme: '',
+    authConfig: '',
     requestTemplate: '',
     requestExample: '',
     responseExample: '',
@@ -136,6 +138,7 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
       requestMethod: asset?.requestMethod ?? '',
       upstreamUrl: asset?.upstreamUrl ?? '',
       authScheme: asset?.authScheme ?? '',
+      authConfig: asset?.authConfig ?? '',
       requestTemplate: asset?.requestTemplate ?? '',
       requestExample: asset?.requestExample ?? '',
       responseExample: asset?.responseExample ?? '',
@@ -329,6 +332,7 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
           requestMethod: assetConfigForm.value.requestMethod || null,
           upstreamUrl: normalizeOptionalText(assetConfigForm.value.upstreamUrl),
           authScheme: assetConfigForm.value.authScheme || null,
+          authConfig: normalizeOptionalText(assetConfigForm.value.authConfig),
           requestTemplate: normalizeOptionalText(assetConfigForm.value.requestTemplate),
           requestExample: normalizeOptionalText(assetConfigForm.value.requestExample),
           responseExample: normalizeOptionalText(assetConfigForm.value.responseExample),

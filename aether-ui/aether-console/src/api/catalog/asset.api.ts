@@ -96,6 +96,7 @@ export async function reviseAsset(apiCode: string, body: ReviseAssetBody): Promi
     requestMethod: body.requestMethod,
     upstreamUrl: body.upstreamUrl,
     authScheme: body.authScheme,
+    authConfig: body.authConfig,
     requestTemplate: body.requestTemplate,
     requestExample: body.requestExample,
     responseExample: body.responseExample,

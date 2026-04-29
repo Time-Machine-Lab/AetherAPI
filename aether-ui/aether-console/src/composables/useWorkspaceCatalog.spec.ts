@@ -243,7 +243,12 @@ describe('useWorkspaceCatalog', () => {
 
   it('list selection hydrates currentAsset via getAsset', async () => {
     const onAssetSelected = vi.fn()
-    const selectedAsset = asset({ apiCode: 'weather-api', status: 'PUBLISHED' })
+    const selectedAsset = asset({
+      apiCode: 'weather-api',
+      status: 'PUBLISHED',
+      authScheme: 'HEADER_TOKEN',
+      authConfig: 'Authorization: Bearer upstream-token',
+    })
     const workspace = useWorkspaceCatalog({
       t,
       autoLoad: false,
@@ -258,6 +263,7 @@ describe('useWorkspaceCatalog', () => {
     expect(workspace.currentAsset.value?.status).toBe('PUBLISHED')
     expect(workspace.assetConfigForm.value.requestMethod).toBe('GET')
     expect(workspace.assetConfigForm.value.upstreamUrl).toBe('https://upstream.example.com/weather')
+    expect(workspace.assetConfigForm.value.authConfig).toBe('Authorization: Bearer upstream-token')
     expect(workspace.assetError.value).toBe('')
     expect(onAssetSelected).toHaveBeenCalledWith(selectedAsset)
   })
@@ -311,6 +317,8 @@ describe('useWorkspaceCatalog', () => {
     await workspace.handleListSelectAsset('weather-api')
     workspace.assetConfigForm.value.requestMethod = 'POST'
     workspace.assetConfigForm.value.upstreamUrl = 'https://upstream.example.com/weather/v2'
+    workspace.assetConfigForm.value.authScheme = 'QUERY_TOKEN'
+    workspace.assetConfigForm.value.authConfig = ' access_token=upstream-token '
 
     await workspace.handleSaveAssetConfig()
 
@@ -319,7 +327,8 @@ describe('useWorkspaceCatalog', () => {
       categoryCode: 'tools',
       requestMethod: 'POST',
       upstreamUrl: 'https://upstream.example.com/weather/v2',
-      authScheme: 'NONE',
+      authScheme: 'QUERY_TOKEN',
+      authConfig: 'access_token=upstream-token',
       requestTemplate: null,
       requestExample: null,
       responseExample: null,
@@ -328,6 +337,36 @@ describe('useWorkspaceCatalog', () => {
     expect(workspace.currentAsset.value?.requestMethod).toBe('POST')
     expect(workspace.currentAsset.value?.upstreamUrl).toBe(
       'https://upstream.example.com/weather/v2',
+    )
+  })
+
+  it('saves empty auth config as null when no upstream token auth is needed', async () => {
+    const reviseAsset = vi.fn().mockResolvedValueOnce(asset())
+    const workspace = useWorkspaceCatalog({
+      t,
+      autoLoad: false,
+      getAsset: vi.fn().mockResolvedValueOnce(
+        asset({
+          authScheme: 'HEADER_TOKEN',
+          authConfig: 'Authorization: Bearer old-token',
+        }),
+      ),
+      reviseAsset,
+      getRecentAssets: vi.fn().mockReturnValue([]),
+    })
+
+    await workspace.handleListSelectAsset('weather-api')
+    workspace.assetConfigForm.value.authScheme = 'NONE'
+    workspace.assetConfigForm.value.authConfig = '   '
+
+    await workspace.handleSaveAssetConfig()
+
+    expect(reviseAsset).toHaveBeenCalledWith(
+      'weather-api',
+      expect.objectContaining({
+        authScheme: 'NONE',
+        authConfig: null,
+      }),
     )
   })
 

@@ -49,6 +49,7 @@ const assets: AssetDto[] = [
     upstreamUrl: 'https://upstream.example.com/deepseek/chat',
     description: '通用推理与工具调用旗舰模型。',
     authScheme: 'HEADER_TOKEN',
+    authConfig: 'Authorization: Bearer deepseek-token',
     aiProfile: {
       provider: 'DeepSeek',
       model: 'deepseek-v3',
@@ -69,6 +70,7 @@ const assets: AssetDto[] = [
     upstreamUrl: 'https://upstream.example.com/kimi/chat',
     description: '长上下文与 Agent 场景旗舰模型。',
     authScheme: 'HEADER_TOKEN',
+    authConfig: 'Authorization: Bearer kimi-token',
     aiProfile: { provider: 'Moonshot', model: 'kimi-k2', streaming: true, tags: ['reasoning'] },
   },
   {
@@ -84,6 +86,7 @@ const assets: AssetDto[] = [
     upstreamUrl: 'https://upstream.example.com/search',
     description: '联网检索与引用增强接口。',
     authScheme: 'QUERY_TOKEN',
+    authConfig: 'access_token=search-token',
   },
   {
     apiCode: 'weather-api',
@@ -98,6 +101,7 @@ const assets: AssetDto[] = [
     upstreamUrl: 'https://upstream.example.com/weather',
     description: '实时天气与预报数据服务。',
     authScheme: 'QUERY_TOKEN',
+    authConfig: 'access_token=weather-token',
   },
 ]
 

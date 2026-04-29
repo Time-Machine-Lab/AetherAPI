@@ -416,6 +416,18 @@ function confirmDeleteAsset() {
                       <option value="QUERY_TOKEN">QUERY_TOKEN</option>
                     </select>
                   </div>
+                  <div class="space-y-1 md:col-span-2">
+                    <label class="text-xs font-medium text-muted-foreground">{{
+                      t('console.workspace.fieldAuthConfig')
+                    }}</label>
+                    <Input
+                      v-model="assetConfigForm.authConfig"
+                      :placeholder="t('console.workspace.fieldAuthConfigPlaceholder')"
+                    />
+                    <p class="text-xs leading-5 text-muted-foreground">
+                      {{ t('console.workspace.fieldAuthConfigHint') }}
+                    </p>
+                  </div>
                 </div>
                 <div class="space-y-1">
                   <label class="text-xs font-medium text-muted-foreground">{{

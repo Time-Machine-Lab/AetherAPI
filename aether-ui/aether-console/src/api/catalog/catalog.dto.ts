@@ -112,6 +112,7 @@ export interface ReviseAssetBody {
   requestMethod?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | null
   upstreamUrl?: string | null
   authScheme?: string | null
+  authConfig?: string | null
   requestTemplate?: string | null
   requestExample?: string | null
   responseExample?: string | null

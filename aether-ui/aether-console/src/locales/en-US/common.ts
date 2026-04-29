@@ -128,6 +128,10 @@ export default {
       fieldRequestMethodPlaceholder: 'Request method',
       fieldUpstreamUrl: 'Upstream URL',
       fieldAuthSchemePlaceholder: 'Auth scheme',
+      fieldAuthConfig: 'Auth configuration',
+      fieldAuthConfigPlaceholder: 'Authorization: Bearer token or access_token=token',
+      fieldAuthConfigHint:
+        'Required for HEADER_TOKEN and QUERY_TOKEN. Leave empty when auth scheme is NONE.',
       fieldRequestTemplate: 'Request template',
       fieldRequestExample: 'Request example',
       fieldResponseExample: 'Response example',
