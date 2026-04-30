@@ -6,9 +6,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.apache.ibatis.annotations.Select;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -96,6 +98,18 @@ class MybatisCatalogDiscoveryQueryPortTest {
         assertFalse(result.get().getAiCapabilityProfile().getCapabilityTags().isEmpty());
     }
 
+    @Test
+    @DisplayName("discovery active read SQL should only expose published non-deleted assets")
+    void shouldKeepDeletedAssetsOutOfDiscoveryReadSql() throws NoSuchMethodException {
+        Method selectAssetSummaries = CatalogDiscoveryMapper.class.getMethod("selectAssetSummaries");
+        Method selectAssetDetail = CatalogDiscoveryMapper.class.getMethod("selectAssetDetail", String.class);
+
+        assertSqlContains(selectAssetSummaries, "WHERE a.is_deleted = FALSE");
+        assertSqlContains(selectAssetSummaries, "AND a.status = 'PUBLISHED'");
+        assertSqlContains(selectAssetDetail, "WHERE a.is_deleted = FALSE");
+        assertSqlContains(selectAssetDetail, "AND a.status = 'PUBLISHED'");
+    }
+
     private CatalogDiscoveryAssetRecord assetRecord(String apiCode, String status, String assetType, String publisher) {
         CatalogDiscoveryAssetRecord record = new CatalogDiscoveryAssetRecord();
         record.setApiCode(apiCode);
@@ -112,5 +126,10 @@ class MybatisCatalogDiscoveryQueryPortTest {
         record.setRequestExample("{\"city\":\"Shanghai\"}");
         record.setResponseExample("{\"temperature\":26}");
         return record;
+    }
+
+    private void assertSqlContains(Method method, String expected) {
+        String sql = String.join("\n", method.getAnnotation(Select.class).value());
+        assertTrue(sql.contains(expected), () -> "Expected SQL to contain: " + expected + "\n" + sql);
     }
 }

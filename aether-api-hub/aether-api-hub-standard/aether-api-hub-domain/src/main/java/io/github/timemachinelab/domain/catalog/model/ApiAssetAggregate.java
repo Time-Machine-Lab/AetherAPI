@@ -217,7 +217,6 @@ public class ApiAssetAggregate {
     public void softDelete() {
         ensureNotDeleted();
         this.deleted = true;
-        this.status = status == AssetStatus.DRAFT ? AssetStatus.DRAFT : AssetStatus.UNPUBLISHED;
         this.publishedAt = null;
         touch();
     }

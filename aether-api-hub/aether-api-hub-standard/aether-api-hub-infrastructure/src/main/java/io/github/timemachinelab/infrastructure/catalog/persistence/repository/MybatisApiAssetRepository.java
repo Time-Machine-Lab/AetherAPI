@@ -9,6 +9,9 @@ import io.github.timemachinelab.infrastructure.catalog.persistence.entity.ApiAss
 import io.github.timemachinelab.infrastructure.catalog.persistence.mapper.ApiAssetMapper;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 /**
@@ -46,11 +49,26 @@ public class MybatisApiAssetRepository implements ApiAssetRepository {
             return;
         }
         Long persistedVersion = existing.getVersion();
+        if (aggregate.isDeleted()) {
+            int updatedRows = mapper.markDeletedById(
+                    existing.getId(),
+                    persistedVersion,
+                    toLocalDateTime(aggregate.getUpdatedAt())
+            );
+            if (updatedRows == 0) {
+                throw new AssetDomainException("Asset update conflict: " + aggregate.getCode().getValue());
+            }
+            return;
+        }
         ApiAssetConverter.updateDo(existing, aggregate);
         existing.setVersion(persistedVersion);
         int updatedRows = mapper.updateById(existing);
         if (updatedRows == 0) {
             throw new AssetDomainException("Asset update conflict: " + aggregate.getCode().getValue());
         }
+    }
+
+    private LocalDateTime toLocalDateTime(Instant value) {
+        return value == null ? null : LocalDateTime.ofInstant(value, ZoneOffset.UTC);
     }
 }

@@ -195,14 +195,14 @@ class ApiAssetAggregateTest {
         }
 
         @Test
-        @DisplayName("should soft delete published asset as unpublished")
-        void shouldSoftDeletePublishedAssetAsUnpublished() {
+        @DisplayName("should soft delete published asset without modeling delete as unpublish")
+        void shouldSoftDeletePublishedAssetWithoutModelingDeleteAsUnpublish() {
             ApiAssetAggregate aggregate = configuredAggregate(AssetType.STANDARD_API, AssetStatus.PUBLISHED);
 
             aggregate.softDelete();
 
             assertTrue(aggregate.isDeleted());
-            assertEquals(AssetStatus.UNPUBLISHED, aggregate.getStatus());
+            assertEquals(AssetStatus.PUBLISHED, aggregate.getStatus());
             assertNull(aggregate.getPublishedAt());
         }
     }

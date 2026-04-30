@@ -27,6 +27,7 @@ import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -74,6 +75,29 @@ class MybatisApiAssetRepositoryTest {
         );
 
         assertEquals("Asset update conflict: weather-forecast", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("soft delete should use explicit logic-delete update")
+    void shouldUseExplicitLogicDeleteUpdateWhenSavingDeletedAsset() {
+        ApiAssetDo existing = existingDo();
+        ApiAssetAggregate deletedAggregate = revisedAggregate(1L);
+        deletedAggregate.softDelete();
+        when(mapper.selectByCodeIncludingDeleted("weather-forecast")).thenReturn(existing);
+        when(mapper.markDeletedById(
+                existing.getId(),
+                existing.getVersion(),
+                deletedAggregate.getUpdatedAt().atOffset(java.time.ZoneOffset.UTC).toLocalDateTime()
+        )).thenReturn(1);
+
+        repository.save(deletedAggregate);
+
+        verify(mapper).markDeletedById(
+                existing.getId(),
+                existing.getVersion(),
+                deletedAggregate.getUpdatedAt().atOffset(java.time.ZoneOffset.UTC).toLocalDateTime()
+        );
+        verify(mapper, never()).updateById(existing);
     }
 
     private ApiAssetDo existingDo() {

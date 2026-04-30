@@ -5,14 +5,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.apache.ibatis.annotations.Select;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -85,6 +88,30 @@ class MybatisApiAssetQueryPortTest {
         assertNull(result.getCategoryName());
     }
 
+    @Test
+    @DisplayName("management active read SQL should exclude deleted assets")
+    void shouldKeepDeletedAssetsOutOfManagementActiveReadSql() throws NoSuchMethodException {
+        Method selectPage = ApiAssetManagementQueryMapper.class.getMethod(
+                "selectPage",
+                String.class,
+                String.class,
+                String.class,
+                String.class,
+                int.class,
+                int.class
+        );
+        Method count = ApiAssetManagementQueryMapper.class.getMethod(
+                "count",
+                String.class,
+                String.class,
+                String.class,
+                String.class
+        );
+
+        assertSqlContains(selectPage, "WHERE a.is_deleted = FALSE");
+        assertSqlContains(count, "WHERE a.is_deleted = FALSE");
+    }
+
     private ApiAssetManagementQueryRecord record(
             String apiCode,
             String status,
@@ -97,5 +124,10 @@ class MybatisApiAssetQueryPortTest {
         record.setStatus(status);
         record.setUpdatedAt(LocalDateTime.parse(updatedAt));
         return record;
+    }
+
+    private void assertSqlContains(Method method, String expected) {
+        String sql = String.join("\n", method.getAnnotation(Select.class).value());
+        assertTrue(sql.contains(expected), () -> "Expected SQL to contain: " + expected + "\n" + sql);
     }
 }

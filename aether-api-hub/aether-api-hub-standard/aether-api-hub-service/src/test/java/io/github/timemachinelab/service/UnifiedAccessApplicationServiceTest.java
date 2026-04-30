@@ -356,6 +356,44 @@ class UnifiedAccessApplicationServiceTest {
     }
 
     @Test
+    @DisplayName("resolveInvocation rejects deleted target api as not found")
+    void shouldRejectDeletedTargetApiAsNotFound() {
+        InMemoryCredentialValidationUseCase credentialValidationUseCase = validCredentialUseCase();
+        InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
+        InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
+        InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
+        ApiAssetAggregate deletedAsset = publishedAsset("chat-completions", AssetType.STANDARD_API, false);
+        deletedAsset.softDelete();
+        apiAssetRepositoryPort.save(deletedAsset);
+
+        UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
+                credentialValidationUseCase,
+                apiAssetRepositoryPort,
+                downstreamProxyPort,
+                observabilityUseCase
+        );
+
+        UnifiedAccessPlatformFailureException ex = assertThrows(UnifiedAccessPlatformFailureException.class, () -> service.invoke(
+                new ResolveUnifiedAccessInvocationCommand(
+                        "chat-completions",
+                        "ak_live_validation_key",
+                        "GET",
+                        Map.of(),
+                        Map.of(),
+                        null,
+                        null,
+                        null
+                )
+        ));
+
+        assertEquals("ASSET_NOT_FOUND", ex.getFailure().getCode());
+        assertEquals(PlatformPreForwardFailureType.TARGET_NOT_FOUND, ex.getFailure().getFailureType());
+        assertEquals(404, ex.getFailure().getHttpStatus());
+        assertEquals(1, apiAssetRepositoryPort.findByCodeCount);
+        assertEquals(0, downstreamProxyPort.invocationCount);
+    }
+
+    @Test
     @DisplayName("invoke leaves ai extension fields empty for standard api logging")
     void shouldLeaveAiExtensionFieldsEmptyForStandardApiLog() {
         InMemoryCredentialValidationUseCase credentialValidationUseCase = validCredentialUseCase();
@@ -492,12 +530,16 @@ class UnifiedAccessApplicationServiceTest {
         @Override
         public Optional<ApiAssetAggregate> findByCode(ApiCode code) {
             this.findByCodeCount++;
-            return Optional.ofNullable(storage.get(code.getValue()));
+            ApiAssetAggregate aggregate = storage.get(code.getValue());
+            if (aggregate == null || aggregate.isDeleted()) {
+                return Optional.empty();
+            }
+            return Optional.of(aggregate);
         }
 
         @Override
         public Optional<ApiAssetAggregate> findByCodeIncludingDeleted(ApiCode code) {
-            return findByCode(code);
+            return Optional.ofNullable(storage.get(code.getValue()));
         }
 
         @Override

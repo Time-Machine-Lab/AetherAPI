@@ -270,6 +270,40 @@ class ApiAssetApplicationServiceTest {
 
             assertTrue(exception.getMessage().contains("not found"));
         }
+
+        @Test
+        @DisplayName("should hide deleted assets from active owner reads after refresh")
+        void shouldHideDeletedAssetsFromActiveOwnerReadsAfterRefresh() {
+            ApiAssetApplicationService lifecycleService = lifecycleService(categoryRef -> true);
+            lifecycleService.registerAsset(new RegisterApiAssetCommand(
+                    CURRENT_USER_ID,
+                    PUBLISHER_DISPLAY_NAME,
+                    "weather-forecast",
+                    AssetType.STANDARD_API,
+                    "Weather Forecast"));
+            lifecycleService.reviseAsset(completeRevisionCommand("weather-forecast"));
+            lifecycleService.publishAsset(CURRENT_USER_ID, PUBLISHER_DISPLAY_NAME, "weather-forecast");
+
+            ApiAssetModel deleted = lifecycleService.deleteAsset(CURRENT_USER_ID, "weather-forecast");
+
+            assertTrue(deleted.isDeleted());
+            assertEquals("PUBLISHED", deleted.getStatus());
+            ApiAssetPageResult listAfterDelete = lifecycleService.listAssets(new ListApiAssetQuery(
+                    CURRENT_USER_ID,
+                    null,
+                    null,
+                    null,
+                    1,
+                    20
+            ));
+            assertEquals(0, listAfterDelete.getTotal());
+            assertTrue(listAfterDelete.getItems().isEmpty());
+            AssetDomainException detailException = assertThrows(
+                    AssetDomainException.class,
+                    () -> lifecycleService.getAssetByCode(CURRENT_USER_ID, "weather-forecast")
+            );
+            assertTrue(detailException.getMessage().contains("not found"));
+        }
     }
 
     private ApiAssetApplicationService lifecycleService(CategoryValidityChecker validityChecker) {
@@ -311,12 +345,16 @@ class ApiAssetApplicationServiceTest {
 
         @Override
         public Optional<ApiAssetAggregate> findByCode(ApiCode code) {
-            return Optional.ofNullable(assets.get(code.getValue()));
+            ApiAssetAggregate aggregate = assets.get(code.getValue());
+            if (aggregate == null || aggregate.isDeleted()) {
+                return Optional.empty();
+            }
+            return Optional.of(aggregate);
         }
 
         @Override
         public Optional<ApiAssetAggregate> findByCodeIncludingDeleted(ApiCode code) {
-            return findByCode(code);
+            return Optional.ofNullable(assets.get(code.getValue()));
         }
 
         @Override
@@ -370,6 +408,7 @@ class ApiAssetApplicationServiceTest {
         private List<ApiAssetAggregate> filtered(String ownerUserId, String status, String categoryCode, String keyword) {
             String normalizedKeyword = keyword == null ? null : keyword.toLowerCase();
             return repository.assets.values().stream()
+                    .filter(asset -> !asset.isDeleted())
                     .filter(asset -> ownerUserId.equals(asset.getOwnerUserId()))
                     .filter(asset -> status == null || asset.getStatus().name().equals(status))
                     .filter(asset -> categoryCode == null
