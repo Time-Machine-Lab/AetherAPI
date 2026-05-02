@@ -153,6 +153,29 @@ class ApiAssetAggregateTest {
             assertEquals("AI Alice", aggregate.getPublisherDisplayName());
             assertNotNull(aggregate.getPublishedAt());
         }
+
+        @Test
+        @DisplayName("should preserve asset configuration when attaching profile")
+        void shouldPreserveAssetConfigurationWhenAttachingProfile() {
+            ApiAssetAggregate aggregate = configuredAggregate(AssetType.AI_API, AssetStatus.DRAFT);
+
+            aggregate.attachAiCapabilityProfile(
+                    AiCapabilityProfile.of("OpenAI", "gpt-4.1", true, List.of("chat", "vision")),
+                    "AI Alice"
+            );
+
+            assertEquals("Demo API", aggregate.getName());
+            assertEquals(CategoryRef.of("tools"), aggregate.getCategoryRef());
+            assertEquals(AssetStatus.DRAFT, aggregate.getStatus());
+            assertEquals(RequestMethod.POST, aggregate.getUpstreamConfig().getRequestMethod());
+            assertEquals("https://example.com/api", aggregate.getUpstreamConfig().getUpstreamUrl());
+            assertEquals(AuthScheme.NONE, aggregate.getUpstreamConfig().getAuthScheme());
+            assertEquals("template", aggregate.getRequestTemplate());
+            assertEquals("{\"city\":\"shanghai\"}", aggregate.getExampleSnapshot().getRequestExample());
+            assertEquals("{\"temp\":26}", aggregate.getExampleSnapshot().getResponseExample());
+            assertEquals("OpenAI", aggregate.getAiCapabilityProfile().getProvider());
+            assertEquals("gpt-4.1", aggregate.getAiCapabilityProfile().getModel());
+        }
     }
 
     @Nested

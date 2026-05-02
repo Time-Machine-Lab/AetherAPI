@@ -2,6 +2,7 @@ package io.github.timemachinelab.infrastructure.catalog.persistence.repository;
 
 import io.github.timemachinelab.domain.catalog.model.ApiAssetAggregate;
 import io.github.timemachinelab.domain.catalog.model.ApiCode;
+import io.github.timemachinelab.domain.catalog.model.AiCapabilityProfile;
 import io.github.timemachinelab.domain.catalog.model.AssetDomainException;
 import io.github.timemachinelab.domain.catalog.model.AssetId;
 import io.github.timemachinelab.domain.catalog.model.AssetStatus;
@@ -23,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -60,6 +62,36 @@ class MybatisApiAssetRepositoryTest {
         assertEquals("Weather Forecast", captor.getValue().getAssetName());
         assertEquals("tools", captor.getValue().getCategoryCode());
         assertEquals("https://upstream.example.com/weather", captor.getValue().getUpstreamUrl());
+    }
+
+    @Test
+    @DisplayName("update should persist ai profile without clearing existing asset configuration")
+    void shouldPersistAiProfileWithoutClearingExistingAssetConfiguration() {
+        ApiAssetDo existing = existingDo();
+        existing.setAssetType("AI_API");
+        when(mapper.selectByCodeIncludingDeleted("weather-forecast")).thenReturn(existing);
+        when(mapper.updateById(existing)).thenReturn(1);
+
+        repository.save(aiProfileAggregate(1L));
+
+        ArgumentCaptor<ApiAssetDo> captor = ArgumentCaptor.forClass(ApiAssetDo.class);
+        verify(mapper).updateById(captor.capture());
+        ApiAssetDo saved = captor.getValue();
+        assertEquals("Weather Forecast", saved.getAssetName());
+        assertEquals("AI_API", saved.getAssetType());
+        assertEquals("tools", saved.getCategoryCode());
+        assertEquals("DRAFT", saved.getStatus());
+        assertEquals("GET", saved.getRequestMethod());
+        assertEquals("https://upstream.example.com/weather", saved.getUpstreamUrl());
+        assertEquals("HEADER_TOKEN", saved.getAuthScheme());
+        assertEquals("{\"headerName\":\"Authorization\",\"token\":\"secret\"}", saved.getAuthConfig());
+        assertEquals("template", saved.getRequestTemplate());
+        assertEquals("{\"city\":\"Shanghai\"}", saved.getRequestExample());
+        assertEquals("{\"temperature\":26}", saved.getResponseExample());
+        assertEquals("OpenAI", saved.getAiProvider());
+        assertEquals("gpt-4.1", saved.getAiModel());
+        assertEquals(Boolean.TRUE, saved.getAiStreamingSupported());
+        assertEquals("[\"chat\",\"vision\"]", saved.getAiCapabilityTagsJson());
     }
 
     @Test
@@ -137,6 +169,34 @@ class MybatisApiAssetRepositoryTest {
                 "template",
                 ExampleSnapshot.of("{\"city\":\"Shanghai\"}", "{\"temperature\":26}"),
                 null,
+                now,
+                now,
+                false,
+                version
+        );
+    }
+
+    private ApiAssetAggregate aiProfileAggregate(long version) {
+        Instant now = Instant.now();
+        return ApiAssetAggregate.reconstitute(
+                AssetId.of("550e8400-e29b-41d4-a716-446655440000"),
+                ApiCode.of("weather-forecast"),
+                "user-1",
+                "Alice",
+                "Weather Forecast",
+                AssetType.AI_API,
+                CategoryRef.of("tools"),
+                AssetStatus.DRAFT,
+                null,
+                UpstreamEndpointConfig.of(
+                        RequestMethod.GET,
+                        "https://upstream.example.com/weather",
+                        AuthScheme.HEADER_TOKEN,
+                        "{\"headerName\":\"Authorization\",\"token\":\"secret\"}"
+                ),
+                "template",
+                ExampleSnapshot.of("{\"city\":\"Shanghai\"}", "{\"temperature\":26}"),
+                AiCapabilityProfile.of("OpenAI", "gpt-4.1", true, List.of("chat", "vision")),
                 now,
                 now,
                 false,

@@ -11,6 +11,7 @@ import io.github.timemachinelab.service.application.ApiAssetApplicationService;
 import io.github.timemachinelab.service.model.ApiAssetModel;
 import io.github.timemachinelab.service.model.ApiAssetPageResult;
 import io.github.timemachinelab.service.model.ApiAssetSummaryModel;
+import io.github.timemachinelab.service.model.AttachAiCapabilityProfileCommand;
 import io.github.timemachinelab.service.model.ListApiAssetQuery;
 import io.github.timemachinelab.service.model.RegisterApiAssetCommand;
 import io.github.timemachinelab.service.model.ReviseApiAssetCommand;
@@ -304,6 +305,46 @@ class ApiAssetApplicationServiceTest {
             );
             assertTrue(detailException.getMessage().contains("not found"));
         }
+
+        @Test
+        @DisplayName("should preserve complete asset configuration when attaching ai profile")
+        void shouldPreserveCompleteAssetConfigurationWhenAttachingAiProfile() {
+            ApiAssetApplicationService lifecycleService = lifecycleService(categoryRef -> true);
+            lifecycleService.registerAsset(new RegisterApiAssetCommand(
+                    CURRENT_USER_ID,
+                    PUBLISHER_DISPLAY_NAME,
+                    "chat-completion",
+                    AssetType.AI_API,
+                    "Chat Completion"));
+            lifecycleService.reviseAsset(completeAiRevisionCommand("chat-completion"));
+
+            ApiAssetModel result = lifecycleService.attachAiCapabilityProfile(new AttachAiCapabilityProfileCommand(
+                    CURRENT_USER_ID,
+                    "AI Alice",
+                    "chat-completion",
+                    "OpenAI",
+                    "gpt-4.1",
+                    true,
+                    List.of("chat", "vision")
+            ));
+
+            assertEquals("Chat Completion", result.getAssetName());
+            assertEquals("AI_API", result.getAssetType());
+            assertEquals("tools", result.getCategoryCode());
+            assertEquals("DRAFT", result.getStatus());
+            assertEquals("AI Alice", result.getPublisherDisplayName());
+            assertEquals("POST", result.getRequestMethod());
+            assertEquals("https://upstream.example.com/chat", result.getUpstreamUrl());
+            assertEquals("HEADER_TOKEN", result.getAuthScheme());
+            assertEquals("{\"headerName\":\"Authorization\",\"token\":\"secret\"}", result.getAuthConfig());
+            assertEquals("chat-template", result.getRequestTemplate());
+            assertEquals("{\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}]}", result.getRequestExample());
+            assertEquals("{\"choices\":[{\"message\":{\"content\":\"hello\"}}]}", result.getResponseExample());
+            assertEquals("OpenAI", result.getAiProvider());
+            assertEquals("gpt-4.1", result.getAiModel());
+            assertEquals(Boolean.TRUE, result.getAiStreamingSupported());
+            assertEquals(List.of("chat", "vision"), result.getAiCapabilityTags());
+        }
     }
 
     private ApiAssetApplicationService lifecycleService(CategoryValidityChecker validityChecker) {
@@ -335,6 +376,34 @@ class ApiAssetApplicationServiceTest {
                 "{\"city\":\"Shanghai\"}",
                 true,
                 "{\"temperature\":26}",
+                true
+        );
+    }
+
+    private ReviseApiAssetCommand completeAiRevisionCommand(String apiCode) {
+        return new ReviseApiAssetCommand(
+                CURRENT_USER_ID,
+                PUBLISHER_DISPLAY_NAME,
+                apiCode,
+                "Chat Completion",
+                true,
+                AssetType.AI_API,
+                true,
+                "tools",
+                true,
+                RequestMethod.POST,
+                true,
+                "https://upstream.example.com/chat",
+                true,
+                AuthScheme.HEADER_TOKEN,
+                true,
+                "{\"headerName\":\"Authorization\",\"token\":\"secret\"}",
+                true,
+                "chat-template",
+                true,
+                "{\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}]}",
+                true,
+                "{\"choices\":[{\"message\":{\"content\":\"hello\"}}]}",
                 true
         );
     }
