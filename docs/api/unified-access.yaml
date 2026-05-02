@@ -36,6 +36,10 @@ paths:
           $ref: '#/components/responses/InvalidCredentialFailure'
         '404':
           $ref: '#/components/responses/TargetNotFoundFailure'
+        '502':
+          $ref: '#/components/responses/UpstreamExecutionFailure'
+        '504':
+          $ref: '#/components/responses/UpstreamTimeoutFailure'
         '503':
           $ref: '#/components/responses/TargetUnavailableFailure'
     post:
@@ -56,6 +60,10 @@ paths:
           $ref: '#/components/responses/InvalidCredentialFailure'
         '404':
           $ref: '#/components/responses/TargetNotFoundFailure'
+        '502':
+          $ref: '#/components/responses/UpstreamExecutionFailure'
+        '504':
+          $ref: '#/components/responses/UpstreamTimeoutFailure'
         '503':
           $ref: '#/components/responses/TargetUnavailableFailure'
     put:
@@ -76,6 +84,10 @@ paths:
           $ref: '#/components/responses/InvalidCredentialFailure'
         '404':
           $ref: '#/components/responses/TargetNotFoundFailure'
+        '502':
+          $ref: '#/components/responses/UpstreamExecutionFailure'
+        '504':
+          $ref: '#/components/responses/UpstreamTimeoutFailure'
         '503':
           $ref: '#/components/responses/TargetUnavailableFailure'
     patch:
@@ -96,6 +108,10 @@ paths:
           $ref: '#/components/responses/InvalidCredentialFailure'
         '404':
           $ref: '#/components/responses/TargetNotFoundFailure'
+        '502':
+          $ref: '#/components/responses/UpstreamExecutionFailure'
+        '504':
+          $ref: '#/components/responses/UpstreamTimeoutFailure'
         '503':
           $ref: '#/components/responses/TargetUnavailableFailure'
     delete:
@@ -114,6 +130,10 @@ paths:
           $ref: '#/components/responses/InvalidCredentialFailure'
         '404':
           $ref: '#/components/responses/TargetNotFoundFailure'
+        '502':
+          $ref: '#/components/responses/UpstreamExecutionFailure'
+        '504':
+          $ref: '#/components/responses/UpstreamTimeoutFailure'
         '503':
           $ref: '#/components/responses/TargetUnavailableFailure'
 
@@ -229,6 +249,28 @@ components:
             failureType: TARGET_UNAVAILABLE
             traceId: null
             apiCode: chat-completions
+    UpstreamExecutionFailure:
+      description: 上游执行失败。目标 API 已解析并进入转发阶段，但上游请求构造、连接或执行失败。
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UnifiedAccessExecutionFailureResp'
+          example:
+            code: UPSTREAM_EXECUTION_FAILURE
+            message: Upstream request failed for apiCode chat-completions
+            executionOutcome: UPSTREAM_FAILURE
+            detail: URI with undefined scheme
+    UpstreamTimeoutFailure:
+      description: 上游调用超时。目标 API 已解析并进入转发阶段，但上游在限定时间内未完成响应。
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UnifiedAccessExecutionFailureResp'
+          example:
+            code: UPSTREAM_TIMEOUT
+            message: Upstream request timed out for apiCode chat-completions
+            executionOutcome: UPSTREAM_TIMEOUT
+            detail: request timed out
 
   schemas:
     UnifiedAccessPassthroughJsonResp:
@@ -267,3 +309,30 @@ components:
           type: string
           nullable: true
           description: 调用方请求的 API 标识
+
+    UnifiedAccessExecutionFailureResp:
+      type: object
+      required:
+        - code
+        - message
+        - executionOutcome
+      properties:
+        code:
+          type: string
+          description: 上游执行结果错误码
+          enum:
+            - UPSTREAM_EXECUTION_FAILURE
+            - UPSTREAM_TIMEOUT
+        message:
+          type: string
+          description: 上游执行失败说明
+        executionOutcome:
+          type: string
+          description: 统一接入转发阶段执行结果分类
+          enum:
+            - UPSTREAM_FAILURE
+            - UPSTREAM_TIMEOUT
+        detail:
+          type: string
+          nullable: true
+          description: 底层传输或请求构造异常详情

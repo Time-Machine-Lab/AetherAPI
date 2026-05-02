@@ -93,6 +93,37 @@ class UnifiedAccessWebDelegateTest {
     }
 
     @Test
+    @DisplayName("invoke should expose upstream execution failure status and payload")
+    void shouldExposeUpstreamExecutionFailureStatusAndPayload() {
+        byte[] failureBody = "{\"code\":\"UPSTREAM_EXECUTION_FAILURE\",\"executionOutcome\":\"UPSTREAM_FAILURE\"}"
+                .getBytes(StandardCharsets.UTF_8);
+        StubUnifiedAccessUseCase useCase = new StubUnifiedAccessUseCase(
+                UnifiedAccessProxyResponseModel.upstreamFailure(
+                        502,
+                        Map.of(),
+                        failureBody,
+                        "application/json",
+                        false,
+                        "URI with undefined scheme"
+                )
+        );
+        UnifiedAccessWebDelegate delegate = new UnifiedAccessWebDelegate(useCase);
+
+        ResponseEntity<?> response = delegate.invoke(
+                "chat-completions",
+                "POST",
+                new HttpHeaders(),
+                new LinkedMultiValueMap<>(),
+                "{\"message\":\"hello\"}".getBytes(StandardCharsets.UTF_8),
+                "application/json"
+        );
+
+        assertEquals(502, response.getStatusCode().value());
+        assertArrayEquals(failureBody, assertInstanceOf(byte[].class, response.getBody()));
+        assertEquals("application/json", response.getHeaders().getContentType().toString());
+    }
+
+    @Test
     @DisplayName("invoke should not treat console bearer token as unified access api key")
     void shouldKeepConsoleBearerTokenSeparateFromApiKeyAuth() {
         StubUnifiedAccessUseCase useCase = new StubUnifiedAccessUseCase(

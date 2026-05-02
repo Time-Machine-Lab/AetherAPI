@@ -367,6 +367,22 @@ public class OrderController {
 - DO/PO 与领域对象分离
 - 表字段语义未经确认不得擅自修改
 
+### 9.1 后端测试执行方法论
+
+- 后端测试必须使用 Java 17 与 Maven；若 `mvn` 不在 PATH，先在本机常见目录查找已安装 Maven/JDK，不要直接跳过测试。
+- Windows 环境可临时设置 `JAVA_HOME` 与 `Path` 后执行 Maven，不要求修改全局环境变量。
+- 优先运行与本次变更相关的聚焦测试，覆盖受影响的 `domain`、`service`、`adapter`、`infrastructure` 模块。
+- 多模块聚焦测试使用 `-pl ... -am`，并在依赖模块无匹配测试时加 `-Dsurefire.failIfNoSpecifiedTests=false`。
+- 测试命令与结果必须记录到变更说明或最终回复；若仍无法执行，必须说明具体阻塞原因。
+
+参考命令：
+
+```powershell
+$env:JAVA_HOME='D:\Code\Language\Java\JDK\jdk-17.0.4'
+$env:Path="$env:JAVA_HOME\bin;D:\Code\Tools\apache-maven-3.9.9\bin;$env:Path"
+mvn -pl aether-api-hub-standard/aether-api-hub-domain,aether-api-hub-standard/aether-api-hub-service -am "-Dtest=目标测试类" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
 ## 10. AI 开发行为宪法
 
 AI 在本项目开发时必须遵守以下规则：
