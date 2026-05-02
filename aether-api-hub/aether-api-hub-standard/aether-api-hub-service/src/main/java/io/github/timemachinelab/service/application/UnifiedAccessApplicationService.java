@@ -7,7 +7,9 @@ import io.github.timemachinelab.domain.catalog.model.ApiAssetAggregate;
 import io.github.timemachinelab.domain.catalog.model.ApiCode;
 import io.github.timemachinelab.domain.catalog.model.AssetStatus;
 import io.github.timemachinelab.domain.catalog.model.UpstreamEndpointConfig;
+import io.github.timemachinelab.domain.consumerauth.model.ConsumerId;
 import io.github.timemachinelab.domain.consumerauth.model.CredentialValidationFailureReason;
+import io.github.timemachinelab.domain.consumerauth.model.UserConsumerMapping;
 import io.github.timemachinelab.service.model.ConsumerContextModel;
 import io.github.timemachinelab.service.model.CredentialValidationResult;
 import io.github.timemachinelab.service.model.PlatformPreForwardFailureType;
@@ -24,7 +26,9 @@ import io.github.timemachinelab.service.port.in.CredentialValidationUseCase;
 import io.github.timemachinelab.service.port.in.ObservabilityUseCase;
 import io.github.timemachinelab.service.port.in.UnifiedAccessUseCase;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
+import io.github.timemachinelab.service.port.out.ApiSubscriptionEntitlementPort;
 import io.github.timemachinelab.service.port.out.UnifiedAccessDownstreamProxyPort;
+import io.github.timemachinelab.service.port.out.UserConsumerMappingRepositoryPort;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -41,16 +45,22 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
 
     private final CredentialValidationUseCase credentialValidationUseCase;
     private final ApiAssetRepositoryPort apiAssetRepositoryPort;
+    private final ApiSubscriptionEntitlementPort apiSubscriptionEntitlementPort;
+    private final UserConsumerMappingRepositoryPort userConsumerMappingRepositoryPort;
     private final UnifiedAccessDownstreamProxyPort unifiedAccessDownstreamProxyPort;
     private final ObservabilityUseCase observabilityUseCase;
 
     public UnifiedAccessApplicationService(
             CredentialValidationUseCase credentialValidationUseCase,
             ApiAssetRepositoryPort apiAssetRepositoryPort,
+            ApiSubscriptionEntitlementPort apiSubscriptionEntitlementPort,
+            UserConsumerMappingRepositoryPort userConsumerMappingRepositoryPort,
             UnifiedAccessDownstreamProxyPort unifiedAccessDownstreamProxyPort,
             ObservabilityUseCase observabilityUseCase) {
         this.credentialValidationUseCase = credentialValidationUseCase;
         this.apiAssetRepositoryPort = apiAssetRepositoryPort;
+        this.apiSubscriptionEntitlementPort = apiSubscriptionEntitlementPort;
+        this.userConsumerMappingRepositoryPort = userConsumerMappingRepositoryPort;
         this.unifiedAccessDownstreamProxyPort = unifiedAccessDownstreamProxyPort;
         this.observabilityUseCase = observabilityUseCase;
     }
@@ -107,6 +117,7 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
                         consumerContext
                 ));
         ensureTargetAvailable(targetApi, apiCode.getValue(), consumerContext);
+        ensureSubscriptionEntitlement(targetApi, apiCode, consumerContext);
 
         return new UnifiedAccessInvocationModel(
                 consumerContext,
@@ -143,6 +154,28 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
                     consumerContext
             );
         }
+    }
+
+    private void ensureSubscriptionEntitlement(
+            ApiAssetAggregate targetApi,
+            ApiCode apiCode,
+            ConsumerContextModel consumerContext) {
+        ConsumerId consumerId = ConsumerId.of(consumerContext.getConsumerId());
+        UserConsumerMapping mapping = userConsumerMappingRepositoryPort.findActiveByConsumerId(consumerId).orElse(null);
+        if (mapping != null && targetApi.getOwnerUserId().equals(mapping.getUserId())) {
+            return;
+        }
+        if (apiSubscriptionEntitlementPort.hasActiveSubscription(consumerId, apiCode)) {
+            return;
+        }
+        throw platformFailure(
+                UnifiedAccessErrorCodes.API_SUBSCRIPTION_REQUIRED,
+                "API subscription is required before calling: " + apiCode.getValue(),
+                PlatformPreForwardFailureType.SUBSCRIPTION_REQUIRED,
+                apiCode.getValue(),
+                403,
+                consumerContext
+        );
     }
 
     private TargetApiSnapshotModel toTargetApiSnapshot(ApiAssetAggregate targetApi) {

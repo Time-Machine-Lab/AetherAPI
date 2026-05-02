@@ -7,15 +7,18 @@ import io.github.timemachinelab.domain.consumerauth.repository.ApiCredentialRepo
 import io.github.timemachinelab.domain.consumerauth.repository.ConsumerIdentityRepository;
 import io.github.timemachinelab.domain.consumerauth.repository.UserConsumerMappingRepository;
 import io.github.timemachinelab.domain.observability.repository.ApiCallLogRepository;
+import io.github.timemachinelab.domain.subscription.repository.ApiSubscriptionRepository;
 import io.github.timemachinelab.infrastructure.external.unifiedaccess.JdkUnifiedAccessDownstreamProxyPort;
 import io.github.timemachinelab.service.adapter.ApiCallLogRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.ApiAssetRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.ApiCredentialRepositoryAdapter;
+import io.github.timemachinelab.service.adapter.ApiSubscriptionRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.CategoryValidityAdapter;
 import io.github.timemachinelab.service.adapter.ConsumerIdentityRepositoryAdapter;
 import io.github.timemachinelab.service.application.ApiCallLogApplicationService;
 import io.github.timemachinelab.service.application.ApiAssetApplicationService;
 import io.github.timemachinelab.service.application.ApiCredentialApplicationService;
+import io.github.timemachinelab.service.application.ApiSubscriptionApplicationService;
 import io.github.timemachinelab.service.application.CatalogDiscoveryApplicationService;
 import io.github.timemachinelab.service.application.ConsoleSessionAuthApplicationService;
 import io.github.timemachinelab.service.application.CredentialValidationApplicationService;
@@ -28,6 +31,7 @@ import io.github.timemachinelab.service.port.in.ObservabilityUseCase;
 import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
 import io.github.timemachinelab.service.port.in.ApiCallLogUseCase;
 import io.github.timemachinelab.service.port.in.ApiCredentialUseCase;
+import io.github.timemachinelab.service.port.in.ApiSubscriptionUseCase;
 import io.github.timemachinelab.service.port.in.CatalogDiscoveryUseCase;
 import io.github.timemachinelab.service.port.in.ConsoleSessionAuthUseCase;
 import io.github.timemachinelab.service.port.in.CredentialValidationUseCase;
@@ -37,6 +41,8 @@ import io.github.timemachinelab.service.port.out.ApiCredentialRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiAssetQueryPort;
 import io.github.timemachinelab.service.port.out.ApiCallLogQueryPort;
+import io.github.timemachinelab.service.port.out.ApiSubscriptionEntitlementPort;
+import io.github.timemachinelab.service.port.out.ApiSubscriptionRepositoryPort;
 import io.github.timemachinelab.service.port.out.CatalogDiscoveryQueryPort;
 import io.github.timemachinelab.service.port.out.CategoryRepositoryPort;
 import io.github.timemachinelab.service.port.out.ConsoleSessionSettingsPort;
@@ -109,6 +115,11 @@ public class InfrastructureConfig {
     }
 
     @Bean
+    public ApiSubscriptionRepositoryAdapter apiSubscriptionRepositoryAdapter(ApiSubscriptionRepository apiSubscriptionRepository) {
+        return new ApiSubscriptionRepositoryAdapter(apiSubscriptionRepository);
+    }
+
+    @Bean
     public ApiCallLogRepositoryPort apiCallLogRepositoryPort(ApiCallLogRepository apiCallLogRepository) {
         return new ApiCallLogRepositoryAdapter(apiCallLogRepository);
     }
@@ -120,6 +131,20 @@ public class InfrastructureConfig {
             UserConsumerMappingRepositoryPort userConsumerMappingRepositoryPort) {
         return new ApiCredentialApplicationService(
                 apiCredentialRepositoryPort,
+                consumerIdentityRepositoryPort,
+                userConsumerMappingRepositoryPort
+        );
+    }
+
+    @Bean
+    public ApiSubscriptionUseCase apiSubscriptionUseCase(
+            ApiSubscriptionRepositoryPort apiSubscriptionRepositoryPort,
+            ApiAssetRepositoryPort apiAssetRepositoryPort,
+            ConsumerIdentityRepositoryPort consumerIdentityRepositoryPort,
+            UserConsumerMappingRepositoryPort userConsumerMappingRepositoryPort) {
+        return new ApiSubscriptionApplicationService(
+                apiSubscriptionRepositoryPort,
+                apiAssetRepositoryPort,
                 consumerIdentityRepositoryPort,
                 userConsumerMappingRepositoryPort
         );
@@ -192,11 +217,15 @@ public class InfrastructureConfig {
     public UnifiedAccessUseCase unifiedAccessUseCase(
             CredentialValidationUseCase credentialValidationUseCase,
             ApiAssetRepositoryPort apiAssetRepositoryPort,
+            ApiSubscriptionEntitlementPort apiSubscriptionEntitlementPort,
+            UserConsumerMappingRepositoryPort userConsumerMappingRepositoryPort,
             UnifiedAccessDownstreamProxyPort unifiedAccessDownstreamProxyPort,
             ObservabilityUseCase observabilityUseCase) {
         return new UnifiedAccessApplicationService(
                 credentialValidationUseCase,
                 apiAssetRepositoryPort,
+                apiSubscriptionEntitlementPort,
+                userConsumerMappingRepositoryPort,
                 unifiedAccessDownstreamProxyPort,
                 observabilityUseCase
         );

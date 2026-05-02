@@ -1,5 +1,6 @@
 package io.github.timemachinelab.service.adapter;
 
+import io.github.timemachinelab.domain.consumerauth.model.ConsumerId;
 import io.github.timemachinelab.domain.consumerauth.model.UserConsumerMapping;
 import io.github.timemachinelab.domain.consumerauth.repository.UserConsumerMappingRepository;
 import io.github.timemachinelab.service.port.out.UserConsumerMappingRepositoryPort;
@@ -20,6 +21,11 @@ public class UserConsumerMappingRepositoryAdapter implements UserConsumerMapping
     @Override
     public Optional<UserConsumerMapping> findActiveByUserId(String userId) {
         return delegate.findActiveByUserId(userId);
+    }
+
+    @Override
+    public Optional<UserConsumerMapping> findActiveByConsumerId(ConsumerId consumerId) {
+        return delegate.findActiveByConsumerId(consumerId);
     }
 
     @Override

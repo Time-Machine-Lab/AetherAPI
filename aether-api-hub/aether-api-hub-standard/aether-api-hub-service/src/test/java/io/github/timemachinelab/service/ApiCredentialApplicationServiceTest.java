@@ -274,6 +274,13 @@ class ApiCredentialApplicationServiceTest {
         }
 
         @Override
+        public Optional<UserConsumerMapping> findActiveByConsumerId(ConsumerId consumerId) {
+            return storage.values().stream()
+                    .filter(item -> item.getConsumerId().equals(consumerId))
+                    .findFirst();
+        }
+
+        @Override
         public void save(UserConsumerMapping mapping) {
             storage.put(mapping.getUserId(), mapping);
         }

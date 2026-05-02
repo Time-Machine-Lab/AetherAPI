@@ -3,6 +3,7 @@ package io.github.timemachinelab.adapter.web.handler;
 import io.github.timemachinelab.api.error.CatalogErrorCodes;
 import io.github.timemachinelab.api.error.ConsoleSessionAuthErrorCodes;
 import io.github.timemachinelab.api.error.ConsumerAuthErrorCodes;
+import io.github.timemachinelab.api.error.ApiSubscriptionErrorCodes;
 import io.github.timemachinelab.api.error.ObservabilityErrorCodes;
 import io.github.timemachinelab.api.resp.UnifiedAccessPlatformFailureResp;
 import io.github.timemachinelab.domain.catalog.model.AssetDomainException;
@@ -10,6 +11,7 @@ import io.github.timemachinelab.domain.catalog.model.CategoryDomainException;
 import io.github.timemachinelab.domain.consolesessionauth.model.ConsoleSessionAuthDomainException;
 import io.github.timemachinelab.domain.consumerauth.model.ConsumerAuthDomainException;
 import io.github.timemachinelab.domain.observability.model.ObservabilityDomainException;
+import io.github.timemachinelab.domain.subscription.model.ApiSubscriptionDomainException;
 import io.github.timemachinelab.service.model.UnifiedAccessPlatformFailureException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -141,6 +143,25 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(body);
     }
 
+    @ExceptionHandler(ApiSubscriptionDomainException.class)
+    public ResponseEntity<Map<String, String>> handleApiSubscriptionDomainException(ApiSubscriptionDomainException ex) {
+        log.warn("API subscription domain exception: {}", ex.getMessage());
+
+        String code = mapApiSubscriptionExceptionToCode(ex.getMessage());
+        Map<String, String> body = new HashMap<>();
+        body.put("code", code);
+        body.put("message", ex.getMessage());
+
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        if (ApiSubscriptionErrorCodes.API_SUBSCRIPTION_NOT_FOUND.equals(code)) {
+            status = HttpStatus.NOT_FOUND;
+        } else if (ApiSubscriptionErrorCodes.API_SUBSCRIPTION_ALREADY_CANCELLED.equals(code)
+                || ApiSubscriptionErrorCodes.API_SUBSCRIPTION_OWNER_ACCESS.equals(code)) {
+            status = HttpStatus.CONFLICT;
+        }
+        return ResponseEntity.status(status).body(body);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgumentException(
             IllegalArgumentException ex, HttpServletRequest request) {
@@ -151,6 +172,9 @@ public class GlobalExceptionHandler {
         }
         if (isAssetListQueryIllegalArgument(ex.getMessage(), request.getRequestURI())) {
             return buildAssetListQueryErrorResponse();
+        }
+        if (isApiSubscriptionRequest(request.getRequestURI())) {
+            return buildApiSubscriptionRequestErrorResponse(ex.getMessage());
         }
 
         Map<String, String> body = new HashMap<>();
@@ -182,6 +206,8 @@ public class GlobalExceptionHandler {
         String objectName = ex.getBindingResult().getObjectName();
         if (objectName != null && objectName.toLowerCase().contains("consolesignin")) {
             body.put("code", ConsoleSessionAuthErrorCodes.CONSOLE_SIGN_IN_REQUEST_INVALID);
+        } else if (objectName != null && objectName.toLowerCase().contains("subscribeapi")) {
+            body.put("code", ApiSubscriptionErrorCodes.API_SUBSCRIPTION_INVALID);
         } else if (objectName != null && objectName.toLowerCase().contains("credential")) {
             body.put("code", ConsumerAuthErrorCodes.API_CREDENTIAL_INVALID);
         } else if (objectName != null && objectName.toLowerCase().contains("apicalllog")) {
@@ -283,6 +309,19 @@ public class GlobalExceptionHandler {
         return ObservabilityErrorCodes.API_CALL_LOG_INVALID_QUERY;
     }
 
+    private String mapApiSubscriptionExceptionToCode(String message) {
+        if (message != null && message.contains("already cancelled")) {
+            return ApiSubscriptionErrorCodes.API_SUBSCRIPTION_ALREADY_CANCELLED;
+        }
+        if (message != null && message.contains("owner access")) {
+            return ApiSubscriptionErrorCodes.API_SUBSCRIPTION_OWNER_ACCESS;
+        }
+        if (message != null && message.contains("not found")) {
+            return ApiSubscriptionErrorCodes.API_SUBSCRIPTION_NOT_FOUND;
+        }
+        return ApiSubscriptionErrorCodes.API_SUBSCRIPTION_INVALID;
+    }
+
     private String mapIllegalArgumentCode(String message) {
         if (message != null && message.contains("ApiCode")) {
             return CatalogErrorCodes.API_CODE_INVALID;
@@ -339,6 +378,9 @@ public class GlobalExceptionHandler {
             if (requestUri.startsWith("/api/v1/current-user/api-keys")) {
                 return ConsumerAuthErrorCodes.API_CREDENTIAL_INVALID;
             }
+            if (requestUri.startsWith("/api/v1/current-user/api-subscriptions")) {
+                return ApiSubscriptionErrorCodes.API_SUBSCRIPTION_INVALID;
+            }
             if (requestUri.startsWith("/api/v1/current-user/api-call-logs")) {
                 return ObservabilityErrorCodes.API_CALL_LOG_INVALID_QUERY;
             }
@@ -361,6 +403,9 @@ public class GlobalExceptionHandler {
             if (requestUri.startsWith("/api/v1/current-user/api-keys")) {
                 return "Invalid API credential request parameters";
             }
+            if (requestUri.startsWith("/api/v1/current-user/api-subscriptions")) {
+                return "Invalid API subscription request parameters";
+            }
             if (requestUri.startsWith("/api/v1/current-user/api-call-logs")) {
                 return "Invalid API call log request parameters";
             }
@@ -375,6 +420,17 @@ public class GlobalExceptionHandler {
     private boolean isAssetListQueryRequest(String requestUri) {
         return "/api/v1/current-user/assets".equals(requestUri)
                 || "/api/v1/current-user/assets/".equals(requestUri);
+    }
+
+    private boolean isApiSubscriptionRequest(String requestUri) {
+        return requestUri != null && requestUri.startsWith("/api/v1/current-user/api-subscriptions");
+    }
+
+    private ResponseEntity<Map<String, String>> buildApiSubscriptionRequestErrorResponse(String message) {
+        Map<String, String> body = new HashMap<>();
+        body.put("code", ApiSubscriptionErrorCodes.API_SUBSCRIPTION_INVALID);
+        body.put("message", message == null ? "Invalid API subscription request parameters" : message);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
     private boolean isAssetListQueryIllegalArgument(String message, String requestUri) {

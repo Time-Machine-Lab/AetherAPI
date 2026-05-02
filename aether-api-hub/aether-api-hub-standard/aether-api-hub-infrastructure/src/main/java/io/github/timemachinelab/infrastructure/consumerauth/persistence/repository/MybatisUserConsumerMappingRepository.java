@@ -1,5 +1,6 @@
 package io.github.timemachinelab.infrastructure.consumerauth.persistence.repository;
 
+import io.github.timemachinelab.domain.consumerauth.model.ConsumerId;
 import io.github.timemachinelab.domain.consumerauth.model.UserConsumerMapping;
 import io.github.timemachinelab.domain.consumerauth.repository.UserConsumerMappingRepository;
 import io.github.timemachinelab.infrastructure.consumerauth.persistence.converter.UserConsumerMappingConverter;
@@ -24,6 +25,12 @@ public class MybatisUserConsumerMappingRepository implements UserConsumerMapping
     @Override
     public Optional<UserConsumerMapping> findActiveByUserId(String userId) {
         return Optional.ofNullable(UserConsumerMappingConverter.toAggregate(mapper.selectActiveByUserId(userId)));
+    }
+
+    @Override
+    public Optional<UserConsumerMapping> findActiveByConsumerId(ConsumerId consumerId) {
+        return Optional.ofNullable(UserConsumerMappingConverter.toAggregate(
+                mapper.selectActiveByConsumerId(consumerId.getValue())));
     }
 
     @Override

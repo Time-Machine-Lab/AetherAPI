@@ -18,4 +18,13 @@ public interface UserConsumerMappingMapper extends BaseMapper<UserConsumerMappin
             LIMIT 1
             """)
     UserConsumerMappingDo selectActiveByUserId(@Param("userId") String userId);
+
+    @Select("""
+            SELECT * FROM user_consumer_mapping
+            WHERE consumer_id = #{consumerId}
+              AND mapping_status = 'ACTIVE'
+              AND is_deleted = FALSE
+            LIMIT 1
+            """)
+    UserConsumerMappingDo selectActiveByConsumerId(@Param("consumerId") String consumerId);
 }

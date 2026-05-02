@@ -1,0 +1,333 @@
+openapi: 3.0.3
+info:
+  title: ApiSubscriptionController 当前用户 API 订阅接口
+  version: 1.0.0
+  description: |
+    当前登录用户 API 订阅管理接口。
+    本文件是 ApiSubscriptionController.java 的唯一顶层 API 契约。
+    订阅表示当前用户对某个已发布 API 资产的使用资格，不表示购买、支付、套餐或结算。
+servers:
+  - url: /api/v1
+    description: Aether API Hub v1
+
+tags:
+  - name: CurrentUserApiSubscriptions
+    description: 当前用户 API 订阅
+
+security:
+  - bearerAuth: []
+
+paths:
+  /current-user/api-subscriptions:
+    post:
+      summary: 订阅已发布 API
+      operationId: subscribeCurrentUserApi
+      tags:
+        - CurrentUserApiSubscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscribeApiReq'
+      responses:
+        '200':
+          description: 订阅成功、重复订阅返回已有订阅，或资产所有者返回 OWNER 访问状态
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultApiSubscriptionResp'
+        '400':
+          description: 请求参数非法或目标资产不可订阅
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+        '401':
+          description: 当前请求未通过登录认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+        '404':
+          description: 目标 API 资产不存在、未发布或已删除
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+    get:
+      summary: 查询当前用户 API 订阅列表
+      operationId: listCurrentUserApiSubscriptions
+      tags:
+        - CurrentUserApiSubscriptions
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: 当前用户订阅分页结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultApiSubscriptionPageResp'
+        '401':
+          description: 当前请求未通过登录认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+
+  /current-user/api-subscriptions/status:
+    get:
+      summary: 查询当前用户对指定 API 的订阅状态
+      operationId: getCurrentUserApiSubscriptionStatus
+      tags:
+        - CurrentUserApiSubscriptions
+      parameters:
+        - name: apiCode
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+      responses:
+        '200':
+          description: 当前用户对指定 API 的订阅状态
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultApiSubscriptionStatusResp'
+        '400':
+          description: 请求参数非法
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+        '401':
+          description: 当前请求未通过登录认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+
+  /current-user/api-subscriptions/{subscriptionId}/cancel:
+    patch:
+      summary: 取消当前用户 API 订阅
+      operationId: cancelCurrentUserApiSubscription
+      tags:
+        - CurrentUserApiSubscriptions
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 取消订阅成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultApiSubscriptionResp'
+        '401':
+          description: 当前请求未通过登录认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+        '404':
+          description: 订阅不存在或不属于当前用户
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+        '409':
+          description: 当前订阅状态不允许取消
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TmlResultErrorResp'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    SubscribeApiReq:
+      type: object
+      required:
+        - apiCode
+      properties:
+        apiCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: 目标 API 资产编码
+          example: weather-forecast
+
+    ApiSubscriptionResp:
+      type: object
+      properties:
+        subscriptionId:
+          type: string
+          format: uuid
+          nullable: true
+          description: 订阅记录 ID。OWNER 访问状态下为空。
+        apiCode:
+          type: string
+        assetName:
+          type: string
+          nullable: true
+        assetOwnerUserId:
+          type: string
+          nullable: true
+        subscriptionStatus:
+          type: string
+          enum:
+            - ACTIVE
+            - CANCELLED
+            - OWNER
+        subscribed:
+          type: boolean
+        ownerAccess:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        cancelledAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ApiSubscriptionStatusResp:
+      type: object
+      properties:
+        apiCode:
+          type: string
+        accessStatus:
+          type: string
+          enum:
+            - SUBSCRIBED
+            - NOT_SUBSCRIBED
+            - OWNER
+        subscriptionId:
+          type: string
+          format: uuid
+          nullable: true
+        subscriptionStatus:
+          type: string
+          enum:
+            - ACTIVE
+            - CANCELLED
+          nullable: true
+        subscribed:
+          type: boolean
+        ownerAccess:
+          type: boolean
+
+    ApiSubscriptionPageResp:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApiSubscriptionResp'
+        page:
+          type: integer
+        size:
+          type: integer
+        total:
+          type: integer
+          format: int64
+
+    TmlResultApiSubscriptionResp:
+      type: object
+      properties:
+        code:
+          type: string
+          example: SUCCESS
+        message:
+          type: string
+          example: OK
+        traceId:
+          type: string
+          nullable: true
+        data:
+          $ref: '#/components/schemas/ApiSubscriptionResp'
+
+    TmlResultApiSubscriptionStatusResp:
+      type: object
+      properties:
+        code:
+          type: string
+          example: SUCCESS
+        message:
+          type: string
+          example: OK
+        traceId:
+          type: string
+          nullable: true
+        data:
+          $ref: '#/components/schemas/ApiSubscriptionStatusResp'
+
+    TmlResultApiSubscriptionPageResp:
+      type: object
+      properties:
+        code:
+          type: string
+          example: SUCCESS
+        message:
+          type: string
+          example: OK
+        traceId:
+          type: string
+          nullable: true
+        data:
+          $ref: '#/components/schemas/ApiSubscriptionPageResp'
+
+    ErrorResp:
+      type: object
+      properties:
+        code:
+          type: string
+          example: API_SUBSCRIPTION_NOT_FOUND
+        message:
+          type: string
+          example: API subscription not found
+
+    TmlResultErrorResp:
+      type: object
+      properties:
+        code:
+          type: string
+          example: API_SUBSCRIPTION_NOT_FOUND
+        message:
+          type: string
+        traceId:
+          type: string
+          nullable: true
+        data:
+          $ref: '#/components/schemas/ErrorResp'

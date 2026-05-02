@@ -9,7 +9,9 @@ import io.github.timemachinelab.domain.catalog.model.AssetType;
 import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 import io.github.timemachinelab.domain.catalog.model.UpstreamEndpointConfig;
+import io.github.timemachinelab.domain.consumerauth.model.ConsumerId;
 import io.github.timemachinelab.domain.consumerauth.model.CredentialValidationFailureReason;
+import io.github.timemachinelab.domain.consumerauth.model.UserConsumerMapping;
 import io.github.timemachinelab.service.application.UnifiedAccessApplicationService;
 import io.github.timemachinelab.service.model.ConsumerContextModel;
 import io.github.timemachinelab.service.model.CredentialValidationResult;
@@ -24,7 +26,9 @@ import io.github.timemachinelab.service.model.ValidateApiCredentialCommand;
 import io.github.timemachinelab.service.port.in.CredentialValidationUseCase;
 import io.github.timemachinelab.service.port.in.ObservabilityUseCase;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
+import io.github.timemachinelab.service.port.out.ApiSubscriptionEntitlementPort;
 import io.github.timemachinelab.service.port.out.UnifiedAccessDownstreamProxyPort;
+import io.github.timemachinelab.service.port.out.UserConsumerMappingRepositoryPort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -64,7 +68,7 @@ class UnifiedAccessApplicationServiceTest {
         InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
         apiAssetRepositoryPort.save(publishedAsset("chat-completions", AssetType.AI_API, true));
 
-        UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
+        UnifiedAccessApplicationService service = newService(
                 credentialValidationUseCase,
                 apiAssetRepositoryPort,
                 downstreamProxyPort,
@@ -108,7 +112,7 @@ class UnifiedAccessApplicationServiceTest {
         InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
         apiAssetRepositoryPort.save(publishedAsset("chat-completions", AssetType.AI_API, true));
 
-        UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
+        UnifiedAccessApplicationService service = newService(
                 credentialValidationUseCase,
                 apiAssetRepositoryPort,
                 downstreamProxyPort,
@@ -160,7 +164,7 @@ class UnifiedAccessApplicationServiceTest {
         );
         apiAssetRepositoryPort.save(publishedAsset("chat-completions", AssetType.AI_API, true));
 
-        UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
+        UnifiedAccessApplicationService service = newService(
                 credentialValidationUseCase,
                 apiAssetRepositoryPort,
                 downstreamProxyPort,
@@ -208,7 +212,7 @@ class UnifiedAccessApplicationServiceTest {
         InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
         apiAssetRepositoryPort.save(publishedAsset("chat-completions", AssetType.STANDARD_API, false));
 
-        UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
+        UnifiedAccessApplicationService service = newService(
                 credentialValidationUseCase,
                 apiAssetRepositoryPort,
                 downstreamProxyPort,
@@ -251,7 +255,7 @@ class UnifiedAccessApplicationServiceTest {
         InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
         InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
         InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
-        UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
+        UnifiedAccessApplicationService service = newService(
                 credentialValidationUseCase,
                 apiAssetRepositoryPort,
                 downstreamProxyPort,
@@ -289,7 +293,7 @@ class UnifiedAccessApplicationServiceTest {
         InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
         InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
         observabilityUseCase.exceptionToThrow = new IllegalStateException("log database unavailable");
-        UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
+        UnifiedAccessApplicationService service = newService(
                 credentialValidationUseCase,
                 apiAssetRepositoryPort,
                 downstreamProxyPort,
@@ -325,7 +329,7 @@ class UnifiedAccessApplicationServiceTest {
         InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
         apiAssetRepositoryPort.save(unpublishedAsset("chat-completions"));
 
-        UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
+        UnifiedAccessApplicationService service = newService(
                 credentialValidationUseCase,
                 apiAssetRepositoryPort,
                 downstreamProxyPort,
@@ -366,7 +370,7 @@ class UnifiedAccessApplicationServiceTest {
         deletedAsset.softDelete();
         apiAssetRepositoryPort.save(deletedAsset);
 
-        UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
+        UnifiedAccessApplicationService service = newService(
                 credentialValidationUseCase,
                 apiAssetRepositoryPort,
                 downstreamProxyPort,
@@ -402,7 +406,7 @@ class UnifiedAccessApplicationServiceTest {
         InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
         apiAssetRepositoryPort.save(publishedAsset("weather-api", AssetType.STANDARD_API, false));
 
-        UnifiedAccessApplicationService service = new UnifiedAccessApplicationService(
+        UnifiedAccessApplicationService service = newService(
                 credentialValidationUseCase,
                 apiAssetRepositoryPort,
                 downstreamProxyPort,
@@ -428,6 +432,142 @@ class UnifiedAccessApplicationServiceTest {
         assertNull(logCommand.getAiProvider());
         assertNull(logCommand.getAiModel());
         assertNull(logCommand.getAiStreaming());
+    }
+
+    @Test
+    @DisplayName("resolveInvocation forwards owner request without subscription")
+    void shouldForwardOwnerRequestWithoutSubscription() {
+        InMemoryCredentialValidationUseCase credentialValidationUseCase = validCredentialUseCase();
+        InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
+        InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
+        InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
+        apiAssetRepositoryPort.save(publishedAsset("owner-api", AssetType.STANDARD_API, false));
+
+        UnifiedAccessApplicationService service = newService(
+                credentialValidationUseCase,
+                apiAssetRepositoryPort,
+                new InMemoryApiSubscriptionEntitlementPort(false),
+                new InMemoryUserConsumerMappingRepositoryPort("consumer-1", "publisher-user-1"),
+                downstreamProxyPort,
+                observabilityUseCase
+        );
+
+        UnifiedAccessInvocationModel invocation = service.resolveInvocation(new ResolveUnifiedAccessInvocationCommand(
+                "owner-api",
+                "ak_live_validation_key",
+                "GET",
+                Map.of(),
+                Map.of(),
+                null,
+                null,
+                null
+        ));
+
+        assertEquals("owner-api", invocation.getTargetApi().getApiCode());
+        assertEquals(0, downstreamProxyPort.invocationCount);
+    }
+
+    @Test
+    @DisplayName("resolveInvocation rejects non-owner request without active subscription")
+    void shouldRejectMissingSubscriptionBeforeForwarding() {
+        InMemoryCredentialValidationUseCase credentialValidationUseCase = validCredentialUseCase();
+        InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
+        InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
+        InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
+        apiAssetRepositoryPort.save(publishedAsset("weather-api", AssetType.STANDARD_API, false));
+
+        UnifiedAccessApplicationService service = newService(
+                credentialValidationUseCase,
+                apiAssetRepositoryPort,
+                new InMemoryApiSubscriptionEntitlementPort(false),
+                new InMemoryUserConsumerMappingRepositoryPort("consumer-1", "subscriber-user-1"),
+                downstreamProxyPort,
+                observabilityUseCase
+        );
+
+        UnifiedAccessPlatformFailureException ex = assertThrows(UnifiedAccessPlatformFailureException.class, () -> service.invoke(
+                new ResolveUnifiedAccessInvocationCommand(
+                        "weather-api",
+                        "ak_live_validation_key",
+                        "GET",
+                        Map.of(),
+                        Map.of(),
+                        null,
+                        null,
+                        null
+                )
+        ));
+
+        assertEquals("API_SUBSCRIPTION_REQUIRED", ex.getFailure().getCode());
+        assertEquals(PlatformPreForwardFailureType.SUBSCRIPTION_REQUIRED, ex.getFailure().getFailureType());
+        assertEquals(403, ex.getFailure().getHttpStatus());
+        assertEquals(0, downstreamProxyPort.invocationCount);
+        assertEquals(1, observabilityUseCase.recordedCommands.size());
+    }
+
+    @Test
+    @DisplayName("resolveInvocation forwards subscribed non-owner request")
+    void shouldForwardSubscribedNonOwnerRequest() {
+        InMemoryCredentialValidationUseCase credentialValidationUseCase = validCredentialUseCase();
+        InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
+        InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
+        InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
+        apiAssetRepositoryPort.save(publishedAsset("weather-api", AssetType.STANDARD_API, false));
+
+        UnifiedAccessApplicationService service = newService(
+                credentialValidationUseCase,
+                apiAssetRepositoryPort,
+                new InMemoryApiSubscriptionEntitlementPort(true),
+                new InMemoryUserConsumerMappingRepositoryPort("consumer-1", "subscriber-user-1"),
+                downstreamProxyPort,
+                observabilityUseCase
+        );
+
+        UnifiedAccessProxyResponseModel response = service.invoke(new ResolveUnifiedAccessInvocationCommand(
+                "weather-api",
+                "ak_live_validation_key",
+                "GET",
+                Map.of(),
+                Map.of(),
+                null,
+                null,
+                null
+        ));
+
+        assertEquals(UnifiedAccessExecutionOutcomeType.SUCCESS, response.getOutcomeType());
+        assertEquals(1, downstreamProxyPort.invocationCount);
+    }
+
+    private UnifiedAccessApplicationService newService(
+            CredentialValidationUseCase credentialValidationUseCase,
+            ApiAssetRepositoryPort apiAssetRepositoryPort,
+            UnifiedAccessDownstreamProxyPort downstreamProxyPort,
+            ObservabilityUseCase observabilityUseCase) {
+        return newService(
+                credentialValidationUseCase,
+                apiAssetRepositoryPort,
+                new InMemoryApiSubscriptionEntitlementPort(true),
+                new InMemoryUserConsumerMappingRepositoryPort("consumer-1", "subscriber-user-1"),
+                downstreamProxyPort,
+                observabilityUseCase
+        );
+    }
+
+    private UnifiedAccessApplicationService newService(
+            CredentialValidationUseCase credentialValidationUseCase,
+            ApiAssetRepositoryPort apiAssetRepositoryPort,
+            ApiSubscriptionEntitlementPort apiSubscriptionEntitlementPort,
+            UserConsumerMappingRepositoryPort userConsumerMappingRepositoryPort,
+            UnifiedAccessDownstreamProxyPort downstreamProxyPort,
+            ObservabilityUseCase observabilityUseCase) {
+        return new UnifiedAccessApplicationService(
+                credentialValidationUseCase,
+                apiAssetRepositoryPort,
+                apiSubscriptionEntitlementPort,
+                userConsumerMappingRepositoryPort,
+                downstreamProxyPort,
+                observabilityUseCase
+        );
     }
 
     private InMemoryCredentialValidationUseCase validCredentialUseCase() {
@@ -586,6 +726,60 @@ class UnifiedAccessApplicationServiceTest {
                 throw exceptionToThrow;
             }
             recordedCommands.add(command);
+        }
+    }
+
+    private static final class InMemoryApiSubscriptionEntitlementPort implements ApiSubscriptionEntitlementPort {
+
+        private final boolean activeSubscription;
+
+        private InMemoryApiSubscriptionEntitlementPort(boolean activeSubscription) {
+            this.activeSubscription = activeSubscription;
+        }
+
+        @Override
+        public boolean hasActiveSubscription(ConsumerId consumerId, ApiCode apiCode) {
+            return activeSubscription;
+        }
+    }
+
+    private static final class InMemoryUserConsumerMappingRepositoryPort implements UserConsumerMappingRepositoryPort {
+
+        private final String consumerId;
+        private final String userId;
+
+        private InMemoryUserConsumerMappingRepositoryPort(String consumerId, String userId) {
+            this.consumerId = consumerId;
+            this.userId = userId;
+        }
+
+        @Override
+        public Optional<UserConsumerMapping> findActiveByUserId(String userId) {
+            if (!this.userId.equals(userId)) {
+                return Optional.empty();
+            }
+            return Optional.of(UserConsumerMapping.createActive(
+                    userId,
+                    ConsumerId.of(consumerId),
+                    io.github.timemachinelab.domain.consumerauth.model.ConsumerCode.of("consumer_code_1")
+            ));
+        }
+
+        @Override
+        public Optional<UserConsumerMapping> findActiveByConsumerId(ConsumerId consumerId) {
+            if (!this.consumerId.equals(consumerId.getValue())) {
+                return Optional.empty();
+            }
+            return Optional.of(UserConsumerMapping.createActive(
+                    userId,
+                    consumerId,
+                    io.github.timemachinelab.domain.consumerauth.model.ConsumerCode.of("consumer_code_1")
+            ));
+        }
+
+        @Override
+        public void save(UserConsumerMapping mapping) {
+            throw new UnsupportedOperationException("save is not used in this test");
         }
     }
 }
