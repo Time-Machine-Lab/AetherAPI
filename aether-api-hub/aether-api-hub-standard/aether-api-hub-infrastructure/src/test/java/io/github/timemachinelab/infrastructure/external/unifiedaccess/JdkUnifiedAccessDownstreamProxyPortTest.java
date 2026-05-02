@@ -11,7 +11,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Authenticator;
 import java.net.CookieHandler;
@@ -22,6 +24,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Optional;
@@ -29,6 +32,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.net.ssl.SSLContext;
@@ -267,6 +271,117 @@ class JdkUnifiedAccessDownstreamProxyPortTest {
         }
     }
 
+    @Test
+    @DisplayName("forward should use streaming setup timeout for streaming-capable targets")
+    void shouldUseStreamingSetupTimeoutForStreamingTargets() throws Exception {
+        FixedStreamingHttpClient httpClient = new FixedStreamingHttpClient(
+                200,
+                Map.of("Content-Type", List.of("text/event-stream")),
+                new ByteArrayInputStream("data: hello\n\n".getBytes(StandardCharsets.UTF_8))
+        );
+        JdkUnifiedAccessDownstreamProxyPort proxyPort = new JdkUnifiedAccessDownstreamProxyPort(
+                httpClient,
+                Duration.ofMillis(50),
+                Duration.ofSeconds(7)
+        );
+
+        UnifiedAccessProxyResponseModel response = proxyPort.forward(
+                invocation("https://secure-upstream.example.com/v1/chat-completions", true)
+        );
+
+        assertEquals(Optional.of(Duration.ofSeconds(7)), httpClient.lastRequest.timeout());
+        assertEquals(UnifiedAccessExecutionOutcomeType.SUCCESS, response.getOutcomeType());
+        assertTrue(response.isStreaming());
+        try (response; var inputStream = response.getResponseStream()) {
+            assertEquals("data: hello\n\n", new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test
+    @DisplayName("forward should not pre-read streaming response bodies")
+    void shouldNotBufferStreamingResponseBeforeReturning() throws Exception {
+        CountingInputStream upstreamStream = new CountingInputStream(
+                "data: deferred\n\n".getBytes(StandardCharsets.UTF_8)
+        );
+        FixedStreamingHttpClient httpClient = new FixedStreamingHttpClient(
+                200,
+                Map.of("Content-Type", List.of("text/event-stream")),
+                upstreamStream
+        );
+        JdkUnifiedAccessDownstreamProxyPort proxyPort = new JdkUnifiedAccessDownstreamProxyPort(httpClient);
+
+        UnifiedAccessProxyResponseModel response = proxyPort.forward(
+                invocation("https://secure-upstream.example.com/v1/chat-completions", true)
+        );
+
+        assertTrue(response.isStreaming());
+        assertNotNull(response.getResponseStream());
+        assertEquals(0, upstreamStream.readCount());
+        try (response; var inputStream = response.getResponseStream()) {
+            assertEquals("data: deferred\n\n", new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
+        }
+        assertTrue(upstreamStream.readCount() > 0);
+    }
+
+    @Test
+    @DisplayName("forward should allow long-lived streams within streaming setup budget")
+    void shouldKeepLongLivedStreamingResponseWithinStreamingBudget() throws Exception {
+        startServer(exchange -> {
+            try {
+                Thread.sleep(150);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
+            exchange.getResponseHeaders().add("Content-Type", "text/event-stream");
+            exchange.sendResponseHeaders(200, 0);
+            try (OutputStream outputStream = exchange.getResponseBody()) {
+                outputStream.write("data: hello\n\n".getBytes(StandardCharsets.UTF_8));
+                outputStream.flush();
+                try {
+                    Thread.sleep(150);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                }
+                outputStream.write("data: world\n\n".getBytes(StandardCharsets.UTF_8));
+                outputStream.flush();
+            }
+        });
+
+        JdkUnifiedAccessDownstreamProxyPort proxyPort = new JdkUnifiedAccessDownstreamProxyPort(
+                HttpClient.newBuilder().connectTimeout(Duration.ofMillis(50)).build(),
+                Duration.ofMillis(50),
+                Duration.ofSeconds(2)
+        );
+        UnifiedAccessProxyResponseModel response = proxyPort.forward(invocation(serverUrl("/v1/chat-completions"), true));
+
+        assertEquals(UnifiedAccessExecutionOutcomeType.SUCCESS, response.getOutcomeType());
+        assertTrue(response.isStreaming());
+        try (response; var inputStream = response.getResponseStream()) {
+            assertEquals("data: hello\n\ndata: world\n\n", new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test
+    @DisplayName("forward should classify streaming setup timeout distinctly")
+    void shouldClassifyStreamingSetupTimeout() {
+        TimeoutHttpClient httpClient = new TimeoutHttpClient();
+        JdkUnifiedAccessDownstreamProxyPort proxyPort = new JdkUnifiedAccessDownstreamProxyPort(
+                httpClient,
+                Duration.ofSeconds(30),
+                Duration.ofMillis(25)
+        );
+
+        UnifiedAccessProxyResponseModel response = proxyPort.forward(
+                invocation("https://secure-upstream.example.com/v1/chat-completions", true)
+        );
+
+        assertEquals(Optional.of(Duration.ofMillis(25)), httpClient.lastRequest.timeout());
+        assertEquals(UnifiedAccessExecutionOutcomeType.UPSTREAM_TIMEOUT, response.getOutcomeType());
+        assertEquals(504, response.getStatusCode());
+        assertEquals("application/json", response.getContentType());
+        assertTrue(new String(response.getResponseBody(), StandardCharsets.UTF_8).contains("UPSTREAM_TIMEOUT"));
+    }
+
     private UnifiedAccessInvocationModel invocation(String upstreamUrl, boolean streamingSupported) {
         return new UnifiedAccessInvocationModel(
                 new ConsumerContextModel(
@@ -448,6 +563,248 @@ class JdkUnifiedAccessDownstreamProxyPortTest {
         @Override
         public HttpClient.Version version() {
             return HttpClient.Version.HTTP_1_1;
+        }
+    }
+
+    private static final class FixedStreamingHttpClient extends HttpClient {
+
+        private final int statusCode;
+        private final Map<String, List<String>> responseHeaders;
+        private final InputStream responseBody;
+        private HttpRequest lastRequest;
+
+        private FixedStreamingHttpClient(
+                int statusCode,
+                Map<String, List<String>> responseHeaders,
+                InputStream responseBody) {
+            this.statusCode = statusCode;
+            this.responseHeaders = responseHeaders;
+            this.responseBody = responseBody;
+        }
+
+        @Override
+        public Optional<CookieHandler> cookieHandler() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Duration> connectTimeout() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Redirect followRedirects() {
+            return Redirect.NEVER;
+        }
+
+        @Override
+        public Optional<ProxySelector> proxy() {
+            return Optional.empty();
+        }
+
+        @Override
+        public SSLContext sslContext() {
+            return null;
+        }
+
+        @Override
+        public SSLParameters sslParameters() {
+            return null;
+        }
+
+        @Override
+        public Optional<Authenticator> authenticator() {
+            return Optional.empty();
+        }
+
+        @Override
+        public HttpClient.Version version() {
+            return HttpClient.Version.HTTP_1_1;
+        }
+
+        @Override
+        public Optional<Executor> executor() {
+            return Optional.empty();
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public <T> HttpResponse<T> send(HttpRequest request, HttpResponse.BodyHandler<T> responseBodyHandler) {
+            this.lastRequest = request;
+            return (HttpResponse<T>) new FixedInputStreamHttpResponse(statusCode, responseHeaders, responseBody, request);
+        }
+
+        @Override
+        public <T> CompletableFuture<HttpResponse<T>> sendAsync(
+                HttpRequest request,
+                HttpResponse.BodyHandler<T> responseBodyHandler) {
+            throw new UnsupportedOperationException("sendAsync is not used in this test");
+        }
+
+        @Override
+        public <T> CompletableFuture<HttpResponse<T>> sendAsync(
+                HttpRequest request,
+                HttpResponse.BodyHandler<T> responseBodyHandler,
+                HttpResponse.PushPromiseHandler<T> pushPromiseHandler) {
+            throw new UnsupportedOperationException("sendAsync is not used in this test");
+        }
+    }
+
+    private static final class TimeoutHttpClient extends HttpClient {
+
+        private HttpRequest lastRequest;
+
+        @Override
+        public Optional<CookieHandler> cookieHandler() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Duration> connectTimeout() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Redirect followRedirects() {
+            return Redirect.NEVER;
+        }
+
+        @Override
+        public Optional<ProxySelector> proxy() {
+            return Optional.empty();
+        }
+
+        @Override
+        public SSLContext sslContext() {
+            return null;
+        }
+
+        @Override
+        public SSLParameters sslParameters() {
+            return null;
+        }
+
+        @Override
+        public Optional<Authenticator> authenticator() {
+            return Optional.empty();
+        }
+
+        @Override
+        public HttpClient.Version version() {
+            return HttpClient.Version.HTTP_1_1;
+        }
+
+        @Override
+        public Optional<Executor> executor() {
+            return Optional.empty();
+        }
+
+        @Override
+        public <T> HttpResponse<T> send(
+                HttpRequest request,
+                HttpResponse.BodyHandler<T> responseBodyHandler) throws HttpTimeoutException {
+            this.lastRequest = request;
+            throw new HttpTimeoutException("request timed out");
+        }
+
+        @Override
+        public <T> CompletableFuture<HttpResponse<T>> sendAsync(
+                HttpRequest request,
+                HttpResponse.BodyHandler<T> responseBodyHandler) {
+            throw new UnsupportedOperationException("sendAsync is not used in this test");
+        }
+
+        @Override
+        public <T> CompletableFuture<HttpResponse<T>> sendAsync(
+                HttpRequest request,
+                HttpResponse.BodyHandler<T> responseBodyHandler,
+                HttpResponse.PushPromiseHandler<T> pushPromiseHandler) {
+            throw new UnsupportedOperationException("sendAsync is not used in this test");
+        }
+    }
+
+    private static final class FixedInputStreamHttpResponse implements HttpResponse<InputStream> {
+
+        private final int statusCode;
+        private final Map<String, List<String>> responseHeaders;
+        private final InputStream responseBody;
+        private final HttpRequest request;
+
+        private FixedInputStreamHttpResponse(
+                int statusCode,
+                Map<String, List<String>> responseHeaders,
+                InputStream responseBody,
+                HttpRequest request) {
+            this.statusCode = statusCode;
+            this.responseHeaders = responseHeaders;
+            this.responseBody = responseBody;
+            this.request = request;
+        }
+
+        @Override
+        public int statusCode() {
+            return statusCode;
+        }
+
+        @Override
+        public HttpRequest request() {
+            return request;
+        }
+
+        @Override
+        public Optional<HttpResponse<InputStream>> previousResponse() {
+            return Optional.empty();
+        }
+
+        @Override
+        public HttpHeaders headers() {
+            return HttpHeaders.of(responseHeaders, (name, value) -> true);
+        }
+
+        @Override
+        public InputStream body() {
+            return responseBody;
+        }
+
+        @Override
+        public Optional<javax.net.ssl.SSLSession> sslSession() {
+            return Optional.empty();
+        }
+
+        @Override
+        public java.net.URI uri() {
+            return request.uri();
+        }
+
+        @Override
+        public HttpClient.Version version() {
+            return HttpClient.Version.HTTP_1_1;
+        }
+    }
+
+    private static final class CountingInputStream extends InputStream {
+
+        private final ByteArrayInputStream delegate;
+        private final AtomicInteger readCount = new AtomicInteger();
+
+        private CountingInputStream(byte[] source) {
+            this.delegate = new ByteArrayInputStream(source);
+        }
+
+        @Override
+        public int read() {
+            readCount.incrementAndGet();
+            return delegate.read();
+        }
+
+        @Override
+        public int read(byte[] target, int offset, int length) {
+            readCount.incrementAndGet();
+            return delegate.read(target, offset, length);
+        }
+
+        private int readCount() {
+            return readCount.get();
         }
     }
 }

@@ -31,6 +31,7 @@ import java.util.StringJoiner;
 public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstreamProxyPort {
 
     private static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration DEFAULT_STREAMING_SETUP_TIMEOUT = Duration.ofMinutes(5);
     private static final String JSON_CONTENT_TYPE = "application/json";
     private static final Set<String> HOP_BY_HOP_HEADERS = Set.of(
             "connection",
@@ -47,14 +48,25 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
 
     private final HttpClient httpClient;
     private final Duration requestTimeout;
+    private final Duration streamingSetupTimeout;
 
     public JdkUnifiedAccessDownstreamProxyPort(HttpClient httpClient) {
-        this(httpClient, DEFAULT_REQUEST_TIMEOUT);
+        this(httpClient, DEFAULT_REQUEST_TIMEOUT, DEFAULT_STREAMING_SETUP_TIMEOUT);
     }
 
     public JdkUnifiedAccessDownstreamProxyPort(HttpClient httpClient, Duration requestTimeout) {
+        this(httpClient, requestTimeout, DEFAULT_STREAMING_SETUP_TIMEOUT);
+    }
+
+    public JdkUnifiedAccessDownstreamProxyPort(
+            HttpClient httpClient,
+            Duration requestTimeout,
+            Duration streamingSetupTimeout) {
         this.httpClient = Objects.requireNonNull(httpClient, "HTTP client must not be null");
         this.requestTimeout = requestTimeout == null ? DEFAULT_REQUEST_TIMEOUT : requestTimeout;
+        this.streamingSetupTimeout = streamingSetupTimeout == null
+                ? DEFAULT_STREAMING_SETUP_TIMEOUT
+                : streamingSetupTimeout;
     }
 
     @Override
@@ -111,10 +123,17 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
     private HttpRequest buildRequest(UnifiedAccessInvocationModel invocation) {
         TargetApiSnapshotModel targetApi = invocation.getTargetApi();
         URI uri = buildUri(targetApi, invocation.getQueryParameters());
-        HttpRequest.Builder builder = HttpRequest.newBuilder(uri).timeout(requestTimeout);
+        HttpRequest.Builder builder = HttpRequest.newBuilder(uri).timeout(resolveRequestTimeout(targetApi));
         applyForwardedHeaders(builder, invocation);
         applyHeaderAuth(builder, targetApi);
         return builder.method(resolveOutgoingMethod(invocation), bodyPublisher(invocation.getRequestBody())).build();
+    }
+
+    private Duration resolveRequestTimeout(TargetApiSnapshotModel targetApi) {
+        if (targetApi.isStreamingSupported()) {
+            return streamingSetupTimeout;
+        }
+        return requestTimeout;
     }
 
     private URI buildUri(TargetApiSnapshotModel targetApi, Map<String, List<String>> queryParameters) {
