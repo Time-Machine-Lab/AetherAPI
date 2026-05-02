@@ -261,6 +261,7 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
 
     private String timeoutPayload(UnifiedAccessInvocationModel invocation, Exception ex) {
         return executionPayload(
+                invocation,
                 UnifiedAccessErrorCodes.UPSTREAM_TIMEOUT,
                 "UPSTREAM_TIMEOUT",
                 "Upstream request timed out for apiCode " + invocation.getTargetApi().getApiCode(),
@@ -270,6 +271,7 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
 
     private String transportFailurePayload(UnifiedAccessInvocationModel invocation, Exception ex) {
         return executionPayload(
+                invocation,
                 UnifiedAccessErrorCodes.UPSTREAM_EXECUTION_FAILURE,
                 "UPSTREAM_FAILURE",
                 "Upstream request failed for apiCode " + invocation.getTargetApi().getApiCode(),
@@ -277,12 +279,60 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
         );
     }
 
-    private String executionPayload(String code, String outcomeType, String message, Exception ex) {
+    private String executionPayload(
+            UnifiedAccessInvocationModel invocation,
+            String code,
+            String outcomeType,
+            String message,
+            Exception ex) {
         return "{\"code\":\"" + escapeJson(code)
                 + "\",\"message\":\"" + escapeJson(message)
                 + "\",\"executionOutcome\":\"" + escapeJson(outcomeType)
-                + "\",\"detail\":\"" + escapeJson(ex.getMessage())
+                + "\",\"detail\":\"" + escapeJson(sanitizeDetail(invocation, ex.getMessage()))
                 + "\"}";
+    }
+
+    private String sanitizeDetail(UnifiedAccessInvocationModel invocation, String detail) {
+        if (detail == null || detail.isBlank()) {
+            return "";
+        }
+        String sanitized = detail;
+        sanitized = redactValue(sanitized, invocation.getTargetApi().getAuthConfig());
+        sanitized = redactAuthConfigToken(sanitized, invocation.getTargetApi().getAuthConfig());
+        sanitized = redactValue(sanitized, invocation.getConsumerContext().getMaskedKey());
+        sanitized = redactValue(sanitized, invocation.getConsumerContext().getKeyPrefix());
+        for (Map.Entry<String, List<String>> entry : invocation.getHeaders().entrySet()) {
+            if (isSensitiveHeader(entry.getKey())) {
+                for (String value : entry.getValue()) {
+                    sanitized = redactValue(sanitized, value);
+                }
+            }
+        }
+        return sanitized;
+    }
+
+    private String redactAuthConfigToken(String source, String authConfig) {
+        if (authConfig == null || authConfig.isBlank()) {
+            return source;
+        }
+        String[] headerParts = splitAuthConfig(authConfig, ":");
+        String[] queryParts = splitAuthConfig(authConfig, "=");
+        return redactValue(redactValue(source, headerParts[1]), queryParts[1]);
+    }
+
+    private String redactValue(String source, String sensitiveValue) {
+        if (source == null || source.isBlank() || sensitiveValue == null || sensitiveValue.isBlank()) {
+            return source;
+        }
+        return source.replace(sensitiveValue, "[REDACTED]");
+    }
+
+    private boolean isSensitiveHeader(String headerName) {
+        if (headerName == null || headerName.isBlank()) {
+            return false;
+        }
+        String normalized = headerName.toLowerCase(Locale.ROOT);
+        return "authorization".equals(normalized) || "x-aether-api-key".equals(normalized);
     }
 
     private String[] splitAuthConfig(String authConfig, String delimiter) {

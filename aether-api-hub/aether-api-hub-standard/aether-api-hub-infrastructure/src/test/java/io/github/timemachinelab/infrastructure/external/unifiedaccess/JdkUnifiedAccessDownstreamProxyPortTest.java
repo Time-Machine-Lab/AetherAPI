@@ -13,13 +13,26 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.Authenticator;
+import java.net.CookieHandler;
 import java.net.InetSocketAddress;
+import java.net.ProxySelector;
+import java.net.ServerSocket;
 import java.net.http.HttpClient;
+import java.net.http.HttpHeaders;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -77,6 +90,31 @@ class JdkUnifiedAccessDownstreamProxyPortTest {
     }
 
     @Test
+    @DisplayName("forward should preserve successful https upstream semantics")
+    void shouldPreserveSuccessfulHttpsUpstreamSemantics() {
+        FixedHttpClient httpClient = new FixedHttpClient(
+                203,
+                Map.of("Content-Type", List.of("application/json"), "X-Upstream-Trace", List.of("https-up-1")),
+                "{\"secure\":true}".getBytes(StandardCharsets.UTF_8)
+        );
+        JdkUnifiedAccessDownstreamProxyPort proxyPort = new JdkUnifiedAccessDownstreamProxyPort(httpClient);
+
+        UnifiedAccessProxyResponseModel response = proxyPort.forward(
+                invocation("https://secure-upstream.example.com/v1/chat-completions", false)
+        );
+
+        assertEquals("https", httpClient.lastRequest.uri().getScheme());
+        assertEquals("POST", httpClient.lastRequest.method());
+        assertEquals(Optional.of("Bearer upstream-token"), httpClient.lastRequest.headers().firstValue("Authorization"));
+        assertEquals(Optional.empty(), httpClient.lastRequest.headers().firstValue("X-Aether-Api-Key"));
+        assertEquals(UnifiedAccessExecutionOutcomeType.SUCCESS, response.getOutcomeType());
+        assertEquals(203, response.getStatusCode());
+        assertEquals("application/json", response.getContentType());
+        assertArrayEquals("{\"secure\":true}".getBytes(StandardCharsets.UTF_8), response.getResponseBody());
+        assertEquals(List.of("https-up-1"), response.getResponseHeaders().get("X-Upstream-Trace"));
+    }
+
+    @Test
     @DisplayName("forward should classify upstream timeout distinctly")
     void shouldClassifyUpstreamTimeout() throws Exception {
         startServer(exchange -> {
@@ -103,6 +141,27 @@ class JdkUnifiedAccessDownstreamProxyPortTest {
         assertEquals(504, response.getStatusCode());
         assertEquals("application/json", response.getContentType());
         assertTrue(new String(response.getResponseBody(), StandardCharsets.UTF_8).contains("UPSTREAM_TIMEOUT"));
+    }
+
+    @Test
+    @DisplayName("forward should classify https connection failure as execution failure")
+    void shouldClassifyHttpsConnectionFailureAsExecutionFailure() throws Exception {
+        int unusedPort = unusedLocalPort();
+        JdkUnifiedAccessDownstreamProxyPort proxyPort = new JdkUnifiedAccessDownstreamProxyPort(
+                HttpClient.newBuilder().connectTimeout(Duration.ofMillis(200)).build(),
+                Duration.ofMillis(500)
+        );
+
+        UnifiedAccessProxyResponseModel response = proxyPort.forward(
+                invocation("https://127.0.0.1:" + unusedPort + "/v1/chat-completions", false)
+        );
+
+        assertEquals(UnifiedAccessExecutionOutcomeType.UPSTREAM_FAILURE, response.getOutcomeType());
+        assertEquals(502, response.getStatusCode());
+        assertEquals("application/json", response.getContentType());
+        String body = new String(response.getResponseBody(), StandardCharsets.UTF_8);
+        assertTrue(body.contains("UPSTREAM_EXECUTION_FAILURE"));
+        assertTrue(body.contains("UPSTREAM_FAILURE"));
     }
 
     @Test
@@ -167,6 +226,25 @@ class JdkUnifiedAccessDownstreamProxyPortTest {
         assertTrue(body.contains("URI with undefined scheme"));
     }
 
+    @Test
+    @DisplayName("forward should sanitize secrets from execution failure payload")
+    void shouldSanitizeSecretsFromExecutionFailurePayload() {
+        JdkUnifiedAccessDownstreamProxyPort proxyPort = new JdkUnifiedAccessDownstreamProxyPort(HttpClient.newHttpClient());
+
+        UnifiedAccessProxyResponseModel response = proxyPort.forward(invocation(
+                "https:// upstream.example.com/ak_live_validation_key/Bearer upstream-token",
+                false
+        ));
+
+        String body = new String(response.getResponseBody(), StandardCharsets.UTF_8);
+        assertEquals(UnifiedAccessExecutionOutcomeType.UPSTREAM_FAILURE, response.getOutcomeType());
+        assertEquals(502, response.getStatusCode());
+        assertTrue(body.contains("UPSTREAM_EXECUTION_FAILURE"));
+        assertFalse(body.contains("ak_live_validation_key"));
+        assertFalse(body.contains("Bearer upstream-token"));
+        assertFalse(body.contains("Authorization: Bearer upstream-token"));
+    }
+
     private void startServer(ExchangeHandler handler) throws IOException {
         server = HttpServer.create(new InetSocketAddress(0), 0);
         server.createContext("/", exchange -> {
@@ -181,6 +259,12 @@ class JdkUnifiedAccessDownstreamProxyPortTest {
 
     private String serverUrl(String path) {
         return "http://127.0.0.1:" + server.getAddress().getPort() + path;
+    }
+
+    private int unusedLocalPort() throws IOException {
+        try (ServerSocket socket = new ServerSocket(0)) {
+            return socket.getLocalPort();
+        }
     }
 
     private UnifiedAccessInvocationModel invocation(String upstreamUrl, boolean streamingSupported) {
@@ -225,5 +309,145 @@ class JdkUnifiedAccessDownstreamProxyPortTest {
     @FunctionalInterface
     private interface ExchangeHandler {
         void handle(HttpExchange exchange) throws IOException;
+    }
+
+    private static final class FixedHttpClient extends HttpClient {
+
+        private final int statusCode;
+        private final Map<String, List<String>> responseHeaders;
+        private final byte[] responseBody;
+        private HttpRequest lastRequest;
+
+        private FixedHttpClient(int statusCode, Map<String, List<String>> responseHeaders, byte[] responseBody) {
+            this.statusCode = statusCode;
+            this.responseHeaders = responseHeaders;
+            this.responseBody = responseBody;
+        }
+
+        @Override
+        public Optional<CookieHandler> cookieHandler() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Duration> connectTimeout() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Redirect followRedirects() {
+            return Redirect.NEVER;
+        }
+
+        @Override
+        public Optional<ProxySelector> proxy() {
+            return Optional.empty();
+        }
+
+        @Override
+        public SSLContext sslContext() {
+            return null;
+        }
+
+        @Override
+        public SSLParameters sslParameters() {
+            return null;
+        }
+
+        @Override
+        public Optional<Authenticator> authenticator() {
+            return Optional.empty();
+        }
+
+        @Override
+        public HttpClient.Version version() {
+            return HttpClient.Version.HTTP_1_1;
+        }
+
+        @Override
+        public Optional<Executor> executor() {
+            return Optional.empty();
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public <T> HttpResponse<T> send(HttpRequest request, HttpResponse.BodyHandler<T> responseBodyHandler) {
+            this.lastRequest = request;
+            return (HttpResponse<T>) new FixedHttpResponse(statusCode, responseHeaders, responseBody, request);
+        }
+
+        @Override
+        public <T> CompletableFuture<HttpResponse<T>> sendAsync(
+                HttpRequest request,
+                HttpResponse.BodyHandler<T> responseBodyHandler) {
+            throw new UnsupportedOperationException("sendAsync is not used in this test");
+        }
+
+        @Override
+        public <T> CompletableFuture<HttpResponse<T>> sendAsync(
+                HttpRequest request,
+                HttpResponse.BodyHandler<T> responseBodyHandler,
+                HttpResponse.PushPromiseHandler<T> pushPromiseHandler) {
+            throw new UnsupportedOperationException("sendAsync is not used in this test");
+        }
+    }
+
+    private static final class FixedHttpResponse implements HttpResponse<byte[]> {
+
+        private final int statusCode;
+        private final Map<String, List<String>> responseHeaders;
+        private final byte[] responseBody;
+        private final HttpRequest request;
+
+        private FixedHttpResponse(
+                int statusCode,
+                Map<String, List<String>> responseHeaders,
+                byte[] responseBody,
+                HttpRequest request) {
+            this.statusCode = statusCode;
+            this.responseHeaders = responseHeaders;
+            this.responseBody = responseBody;
+            this.request = request;
+        }
+
+        @Override
+        public int statusCode() {
+            return statusCode;
+        }
+
+        @Override
+        public HttpRequest request() {
+            return request;
+        }
+
+        @Override
+        public Optional<HttpResponse<byte[]>> previousResponse() {
+            return Optional.empty();
+        }
+
+        @Override
+        public HttpHeaders headers() {
+            return HttpHeaders.of(responseHeaders, (name, value) -> true);
+        }
+
+        @Override
+        public byte[] body() {
+            return responseBody;
+        }
+
+        @Override
+        public Optional<javax.net.ssl.SSLSession> sslSession() {
+            return Optional.empty();
+        }
+
+        @Override
+        public java.net.URI uri() {
+            return request.uri();
+        }
+
+        @Override
+        public HttpClient.Version version() {
+            return HttpClient.Version.HTTP_1_1;
+        }
     }
 }
