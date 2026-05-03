@@ -8,21 +8,27 @@ import io.github.timemachinelab.adapter.web.delegate.CategoryWebDelegate;
 import io.github.timemachinelab.adapter.web.delegate.UnifiedAccessWebDelegate;
 import io.github.timemachinelab.api.req.ListApiAssetReq;
 import io.github.timemachinelab.api.req.ListApiCallLogReq;
+import jakarta.servlet.http.HttpServletResponse;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class ControllerParameterBindingRegressionTest {
@@ -129,15 +135,52 @@ class ControllerParameterBindingRegressionTest {
     @Test
     void unifiedAccessBindsApiCodePathVariableExplicitly() throws Exception {
         UnifiedAccessWebDelegate delegate = mock(UnifiedAccessWebDelegate.class);
-        when(delegate.invoke(eq("unknown-api"), eq("GET"), any(), any(), eq(null), eq(null)))
-                .thenReturn(ResponseEntity.ok().build());
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new UnifiedAccessController(delegate)).build();
 
         mockMvc.perform(get("/api/v1/access/unknown-api")
                         .header("X-Aether-Api-Key", "ak_live_validation_key"))
                 .andExpect(status().isOk());
 
-        verify(delegate).invoke(eq("unknown-api"), eq("GET"), any(), any(), eq(null), eq(null));
+        verify(delegate).invokeToResponse(
+                eq("unknown-api"),
+                eq("GET"),
+                any(),
+                any(),
+                isNull(),
+                isNull(),
+                any()
+        );
+    }
+
+    @Test
+    @DisplayName("unified access should write streaming responses without Spring MVC message conversion")
+    void unifiedAccessStreamingResponseDoesNotBecomeMvcServerError() throws Exception {
+        UnifiedAccessWebDelegate delegate = mock(UnifiedAccessWebDelegate.class);
+        doAnswer(invocation -> {
+            HttpServletResponse response = invocation.getArgument(6);
+            response.setStatus(200);
+            response.setContentType("text/event-stream");
+            response.getOutputStream().write("data: hello\n\n".getBytes(StandardCharsets.UTF_8));
+            response.getOutputStream().flush();
+            return null;
+        }).when(delegate).invokeToResponse(
+                eq("chat-completions"),
+                eq("POST"),
+                any(),
+                any(),
+                any(),
+                eq("application/json"),
+                any()
+        );
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new UnifiedAccessController(delegate)).build();
+
+        mockMvc.perform(post("/api/v1/access/chat-completions")
+                        .header("X-Aether-Api-Key", "ak_live_validation_key")
+                        .contentType("application/json")
+                        .content("{\"stream\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "text/event-stream"))
+                .andExpect(content().string("data: hello\n\n"));
     }
 
     private boolean matchesCallLogQuery(ListApiCallLogReq req) {

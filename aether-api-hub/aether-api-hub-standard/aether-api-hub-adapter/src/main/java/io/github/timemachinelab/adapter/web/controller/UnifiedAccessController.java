@@ -1,8 +1,8 @@
 package io.github.timemachinelab.adapter.web.controller;
 
 import io.github.timemachinelab.adapter.web.delegate.UnifiedAccessWebDelegate;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,45 +30,50 @@ public class UnifiedAccessController {
     }
 
     @GetMapping("/{apiCode}")
-    public ResponseEntity<?> get(
+    public void get(
             @PathVariable("apiCode") String apiCode,
             @RequestHeader HttpHeaders headers,
-            @RequestParam MultiValueMap<String, String> queryParameters) {
-        return delegate.invoke(apiCode, "GET", headers, queryParameters, null, headers.getFirst(HttpHeaders.CONTENT_TYPE));
+            @RequestParam MultiValueMap<String, String> queryParameters,
+            HttpServletResponse response) {
+        delegate.invokeToResponse(apiCode, "GET", headers, queryParameters, null, headers.getFirst(HttpHeaders.CONTENT_TYPE), response);
     }
 
     @PostMapping("/{apiCode}")
-    public ResponseEntity<?> post(
+    public void post(
             @PathVariable("apiCode") String apiCode,
             @RequestHeader HttpHeaders headers,
             @RequestParam MultiValueMap<String, String> queryParameters,
-            @RequestBody(required = false) byte[] requestBody) {
-        return delegate.invoke(apiCode, "POST", headers, queryParameters, requestBody, headers.getFirst(HttpHeaders.CONTENT_TYPE));
+            @RequestBody(required = false) byte[] requestBody,
+            HttpServletResponse response) {
+        delegate.invokeToResponse(apiCode, "POST", headers, queryParameters, requestBody, headers.getFirst(HttpHeaders.CONTENT_TYPE), response);
     }
 
     @PutMapping("/{apiCode}")
-    public ResponseEntity<?> put(
+    public void put(
             @PathVariable("apiCode") String apiCode,
             @RequestHeader HttpHeaders headers,
             @RequestParam MultiValueMap<String, String> queryParameters,
-            @RequestBody(required = false) byte[] requestBody) {
-        return delegate.invoke(apiCode, "PUT", headers, queryParameters, requestBody, headers.getFirst(HttpHeaders.CONTENT_TYPE));
+            @RequestBody(required = false) byte[] requestBody,
+            HttpServletResponse response) {
+        delegate.invokeToResponse(apiCode, "PUT", headers, queryParameters, requestBody, headers.getFirst(HttpHeaders.CONTENT_TYPE), response);
     }
 
     @PatchMapping("/{apiCode}")
-    public ResponseEntity<?> patch(
+    public void patch(
             @PathVariable("apiCode") String apiCode,
             @RequestHeader HttpHeaders headers,
             @RequestParam MultiValueMap<String, String> queryParameters,
-            @RequestBody(required = false) byte[] requestBody) {
-        return delegate.invoke(apiCode, "PATCH", headers, queryParameters, requestBody, headers.getFirst(HttpHeaders.CONTENT_TYPE));
+            @RequestBody(required = false) byte[] requestBody,
+            HttpServletResponse response) {
+        delegate.invokeToResponse(apiCode, "PATCH", headers, queryParameters, requestBody, headers.getFirst(HttpHeaders.CONTENT_TYPE), response);
     }
 
     @DeleteMapping("/{apiCode}")
-    public ResponseEntity<?> delete(
+    public void delete(
             @PathVariable("apiCode") String apiCode,
             @RequestHeader HttpHeaders headers,
-            @RequestParam MultiValueMap<String, String> queryParameters) {
-        return delegate.invoke(apiCode, "DELETE", headers, queryParameters, null, headers.getFirst(HttpHeaders.CONTENT_TYPE));
+            @RequestParam MultiValueMap<String, String> queryParameters,
+            HttpServletResponse response) {
+        delegate.invokeToResponse(apiCode, "DELETE", headers, queryParameters, null, headers.getFirst(HttpHeaders.CONTENT_TYPE), response);
     }
 }

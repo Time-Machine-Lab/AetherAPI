@@ -46,6 +46,16 @@ describe('unified access api', () => {
     uaHarness.requestMock.mockReset()
   })
 
+  it('creates a streaming-safe axios instance for unified access calls', () => {
+    expect(uaHarness.createSpy).toHaveBeenCalledWith({
+      baseURL: '/api',
+      timeout: 0,
+      headers: { 'X-App-Id': 'console' },
+      validateStatus: expect.any(Function),
+      responseType: 'arraybuffer',
+    })
+  })
+
   it('returns parsed json success payloads', async () => {
     uaHarness.requestMock.mockResolvedValueOnce({
       status: 200,
@@ -74,6 +84,8 @@ describe('unified access api', () => {
         'Content-Type': 'application/json',
       },
       data: '{"model":"gpt-4.1"}',
+      timeout: 0,
+      onDownloadProgress: expect.any(Function),
     })
     expect(result).toMatchObject({
       kind: 'json',
@@ -137,6 +149,41 @@ describe('unified access api', () => {
       status: 503,
       contentType: 'text/plain',
       textBody: 'target upstream unavailable',
+    })
+  })
+
+  it('uses axios download progress for event-stream responses', async () => {
+    uaHarness.requestMock.mockResolvedValueOnce({
+      status: 200,
+      headers: {
+        'content-type': 'text/event-stream; charset=utf-8',
+      },
+      data: textBuffer('data: hello\n\ndata: world\n\n'),
+    })
+
+    const result = await invokeUnifiedAccess(
+      'chat-completions',
+      'POST',
+      'ak_live_plaintext_1234',
+      '{"stream":true}',
+    )
+
+    expect(uaHarness.requestMock).toHaveBeenCalledWith({
+      url: 'v1/access/chat-completions',
+      method: 'post',
+      headers: {
+        'X-Aether-Api-Key': 'ak_live_plaintext_1234',
+        'Content-Type': 'application/json',
+      },
+      data: '{"stream":true}',
+      timeout: 0,
+      onDownloadProgress: expect.any(Function),
+    })
+    expect(result).toMatchObject({
+      kind: 'text',
+      status: 200,
+      contentType: 'text/event-stream',
+      textBody: 'data: hello\n\ndata: world\n\n',
     })
   })
 })

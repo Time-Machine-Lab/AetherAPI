@@ -16,7 +16,7 @@ import type {
  */
 const uaHttp = axios.create({
   baseURL: env.apiBaseUrl,
-  timeout: env.requestTimeoutMs,
+  timeout: 0,
   headers: { 'X-App-Id': appConfig.appId },
   // Prevent axios from rejecting non-2xx so we can classify ourselves
   validateStatus: () => true,
@@ -71,6 +71,10 @@ export async function invokeUnifiedAccess(
     method: method.toLowerCase(),
     headers,
     data: hasBody && payload ? payload : undefined,
+    timeout: 0,
+    onDownloadProgress: () => {
+      // Keep axios on the browser download-progress path for streaming responses.
+    },
   })
 
   const status: number = response.status

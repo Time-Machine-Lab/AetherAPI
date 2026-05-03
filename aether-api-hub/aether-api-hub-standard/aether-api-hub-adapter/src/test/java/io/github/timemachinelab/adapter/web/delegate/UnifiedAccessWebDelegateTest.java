@@ -7,17 +7,21 @@ import io.github.timemachinelab.service.port.in.UnifiedAccessUseCase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
@@ -66,7 +70,11 @@ class UnifiedAccessWebDelegateTest {
         StubUnifiedAccessUseCase useCase = new StubUnifiedAccessUseCase(
                 UnifiedAccessProxyResponseModel.successStream(
                         200,
-                        Map.of("X-Accel-Buffering", List.of("no")),
+                        Map.of(
+                                "Content-Type", List.of("text/event-stream; charset=utf-8"),
+                                "Content-Length", List.of("128"),
+                                "X-Accel-Buffering", List.of("no")
+                        ),
                         new ByteArrayInputStream("data: hello\n\n".getBytes(StandardCharsets.UTF_8)),
                         "text/event-stream"
                 )
@@ -85,11 +93,99 @@ class UnifiedAccessWebDelegateTest {
         assertEquals(200, response.getStatusCode().value());
         assertEquals("text/event-stream", response.getHeaders().getContentType().toString());
         assertEquals(List.of("no"), response.getHeaders().get("X-Accel-Buffering"));
+        assertEquals(null, response.getHeaders().get("Content-Length"));
 
         StreamingResponseBody body = assertInstanceOf(StreamingResponseBody.class, response.getBody());
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         body.writeTo(outputStream);
         assertEquals("data: hello\n\n", outputStream.toString(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    @DisplayName("invokeToResponse should write established streams directly to servlet response")
+    void shouldWriteStreamingResponseToServletResponse() throws Exception {
+        StubUnifiedAccessUseCase useCase = new StubUnifiedAccessUseCase(
+                UnifiedAccessProxyResponseModel.successStream(
+                        200,
+                        Map.of(
+                                "Content-Type", List.of("text/event-stream; charset=utf-8"),
+                                "Content-Length", List.of("128"),
+                                "X-Accel-Buffering", List.of("no")
+                        ),
+                        new ByteArrayInputStream("data: hello\n\n".getBytes(StandardCharsets.UTF_8)),
+                        "text/event-stream"
+                )
+        );
+        UnifiedAccessWebDelegate delegate = new UnifiedAccessWebDelegate(useCase);
+        MockHttpServletResponse servletResponse = new MockHttpServletResponse();
+
+        delegate.invokeToResponse(
+                "chat-completions",
+                "POST",
+                new HttpHeaders(),
+                new LinkedMultiValueMap<>(),
+                "{\"stream\":true}".getBytes(StandardCharsets.UTF_8),
+                "application/json",
+                servletResponse
+        );
+
+        assertEquals(200, servletResponse.getStatus());
+        assertEquals("text/event-stream", servletResponse.getContentType());
+        assertEquals("no", servletResponse.getHeader("X-Accel-Buffering"));
+        assertEquals(null, servletResponse.getHeader("Content-Length"));
+        assertEquals("data: hello\n\n", servletResponse.getContentAsString());
+    }
+
+    @Test
+    @DisplayName("invoke should not turn established upstream streams into platform 500 when stream writing fails")
+    void shouldSwallowEstablishedStreamingWriteFailure() {
+        StubUnifiedAccessUseCase useCase = new StubUnifiedAccessUseCase(
+                UnifiedAccessProxyResponseModel.successStream(
+                        200,
+                        Map.of(),
+                        new FailingInputStream(),
+                        "text/event-stream"
+                )
+        );
+        UnifiedAccessWebDelegate delegate = new UnifiedAccessWebDelegate(useCase);
+
+        ResponseEntity<?> response = delegate.invoke(
+                "chat-completions",
+                "POST",
+                new HttpHeaders(),
+                new LinkedMultiValueMap<>(),
+                "{\"stream\":true}".getBytes(StandardCharsets.UTF_8),
+                "application/json"
+        );
+
+        StreamingResponseBody body = assertInstanceOf(StreamingResponseBody.class, response.getBody());
+        assertDoesNotThrow(() -> body.writeTo(new ByteArrayOutputStream()));
+    }
+
+    @Test
+    @DisplayName("invokeToResponse should not throw when established servlet stream writing fails")
+    void shouldSwallowServletStreamingWriteFailure() {
+        StubUnifiedAccessUseCase useCase = new StubUnifiedAccessUseCase(
+                UnifiedAccessProxyResponseModel.successStream(
+                        200,
+                        Map.of(),
+                        new FailingInputStream(),
+                        "text/event-stream"
+                )
+        );
+        UnifiedAccessWebDelegate delegate = new UnifiedAccessWebDelegate(useCase);
+        MockHttpServletResponse servletResponse = new MockHttpServletResponse();
+
+        assertDoesNotThrow(() -> delegate.invokeToResponse(
+                "chat-completions",
+                "POST",
+                new HttpHeaders(),
+                new LinkedMultiValueMap<>(),
+                "{\"stream\":true}".getBytes(StandardCharsets.UTF_8),
+                "application/json",
+                servletResponse
+        ));
+        assertEquals(200, servletResponse.getStatus());
     }
 
     @Test
@@ -171,6 +267,19 @@ class UnifiedAccessWebDelegateTest {
         public UnifiedAccessProxyResponseModel invoke(ResolveUnifiedAccessInvocationCommand command) {
             this.lastCommand = command;
             return response;
+        }
+    }
+
+    private static final class FailingInputStream extends InputStream {
+
+        @Override
+        public int read() throws IOException {
+            throw new IOException("stream read failed");
+        }
+
+        @Override
+        public int read(byte[] buffer, int offset, int length) throws IOException {
+            throw new IOException("stream read failed");
         }
     }
 }
