@@ -6,6 +6,11 @@ import type {
   DiscoveryAssetDetailDto,
   PageDto,
 } from './catalog.dto'
+import type {
+  ApiSubscriptionDto,
+  ApiSubscriptionPageDto,
+  ApiSubscriptionStatusDto,
+} from '@/api/subscription/subscription.dto'
 import { credentialMockRoutes } from '@/api/credential/credential.mock'
 import { apiCallLogMockRoutes } from '@/api/api-call-log/api-call-log.mock'
 
@@ -102,6 +107,35 @@ const assets: AssetDto[] = [
     description: '实时天气与预报数据服务。',
     authScheme: 'QUERY_TOKEN',
     authConfig: 'access_token=weather-token',
+  },
+]
+
+const ownerAccessApiCodes = new Set(['kimi-k2'])
+
+const subscriptions: ApiSubscriptionDto[] = [
+  {
+    subscriptionId: 'sub-baidu-search',
+    apiCode: 'baidu-search',
+    assetName: 'Baidu Search API',
+    assetOwnerUserId: 'user-search-studio',
+    subscriptionStatus: 'ACTIVE',
+    subscribed: true,
+    ownerAccess: false,
+    createdAt: '2026-05-02T08:00:00Z',
+    updatedAt: '2026-05-02T08:00:00Z',
+    cancelledAt: null,
+  },
+  {
+    subscriptionId: 'sub-weather-cancelled',
+    apiCode: 'weather-api',
+    assetName: 'Weather Data API',
+    assetOwnerUserId: 'user-weather-studio',
+    subscriptionStatus: 'CANCELLED',
+    subscribed: false,
+    ownerAccess: false,
+    createdAt: '2026-05-01T08:00:00Z',
+    updatedAt: '2026-05-02T09:00:00Z',
+    cancelledAt: '2026-05-02T09:00:00Z',
   },
 ]
 
@@ -215,6 +249,115 @@ const routes: { method: string; pattern: RegExp; handler: MockHandler }[] = [
         aiCapabilityProfile: aiProfile,
       }
       return ok(detail)
+    },
+  },
+  // Current-user API subscriptions
+  {
+    method: 'GET',
+    pattern: /^\/api\/v1\/current-user\/api-subscriptions$/,
+    handler: (params) => {
+      const result = page([...subscriptions], params)
+      const data: ApiSubscriptionPageDto = {
+        items: result.items,
+        total: result.total,
+        page: result.page,
+        size: Number(params.size ?? params.pageSize ?? 20),
+      }
+      return ok(data)
+    },
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/v1\/current-user\/api-subscriptions$/,
+    handler: (_, body) => {
+      const apiCode = (body as { apiCode?: string }).apiCode
+      const asset = assets.find((a) => a.apiCode === apiCode)
+      if (!apiCode || !asset || asset.status !== 'PUBLISHED' || asset.deleted) notFound()
+      if (ownerAccessApiCodes.has(apiCode)) {
+        return ok({
+          subscriptionId: null,
+          apiCode,
+          assetName: asset.assetName ?? asset.displayName ?? null,
+          assetOwnerUserId: 'current-user',
+          subscriptionStatus: 'OWNER',
+          subscribed: false,
+          ownerAccess: true,
+          createdAt: null,
+          updatedAt: null,
+          cancelledAt: null,
+        } satisfies ApiSubscriptionDto)
+      }
+      const active = subscriptions.find(
+        (s) => s.apiCode === apiCode && s.subscriptionStatus === 'ACTIVE',
+      )
+      if (active) return ok({ ...active })
+      const now = new Date().toISOString()
+      const subscription: ApiSubscriptionDto = {
+        subscriptionId: `sub-${apiCode}-${Date.now()}`,
+        apiCode,
+        assetName: asset.assetName ?? asset.displayName ?? null,
+        assetOwnerUserId: `owner-${apiCode}`,
+        subscriptionStatus: 'ACTIVE',
+        subscribed: true,
+        ownerAccess: false,
+        createdAt: now,
+        updatedAt: now,
+        cancelledAt: null,
+      }
+      subscriptions.unshift(subscription)
+      return ok({ ...subscription })
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/v1\/current-user\/api-subscriptions\/status$/,
+    handler: (params) => {
+      const apiCode = params.apiCode
+      if (ownerAccessApiCodes.has(apiCode)) {
+        return ok({
+          apiCode,
+          accessStatus: 'OWNER',
+          subscriptionId: null,
+          subscriptionStatus: null,
+          subscribed: false,
+          ownerAccess: true,
+        } satisfies ApiSubscriptionStatusDto)
+      }
+      const active = subscriptions.find(
+        (s) => s.apiCode === apiCode && s.subscriptionStatus === 'ACTIVE',
+      )
+      if (active) {
+        return ok({
+          apiCode,
+          accessStatus: 'SUBSCRIBED',
+          subscriptionId: active.subscriptionId,
+          subscriptionStatus: 'ACTIVE',
+          subscribed: true,
+          ownerAccess: false,
+        } satisfies ApiSubscriptionStatusDto)
+      }
+      return ok({
+        apiCode,
+        accessStatus: 'NOT_SUBSCRIBED',
+        subscriptionId: null,
+        subscriptionStatus: null,
+        subscribed: false,
+        ownerAccess: false,
+      } satisfies ApiSubscriptionStatusDto)
+    },
+  },
+  {
+    method: 'PATCH',
+    pattern: /^\/api\/v1\/current-user\/api-subscriptions\/(.+)\/cancel$/,
+    handler: (_, __, match) => {
+      const subscription = subscriptions.find((s) => s.subscriptionId === match![1])
+      if (!subscription) notFound()
+      if (subscription.subscriptionStatus !== 'ACTIVE') return ok({ ...subscription })
+      subscription.subscriptionStatus = 'CANCELLED'
+      subscription.subscribed = false
+      subscription.updatedAt = new Date().toISOString()
+      subscription.cancelledAt = subscription.updatedAt
+      return ok({ ...subscription })
     },
   },
   // Categories

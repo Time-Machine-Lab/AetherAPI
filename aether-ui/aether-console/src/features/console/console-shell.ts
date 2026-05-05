@@ -5,6 +5,7 @@ export type ConsoleVisibleNavId =
   | 'catalog-manage'
   | 'unified-access-playground'
   | 'credentials'
+  | 'api-subscriptions'
   | 'api-call-logs'
 export type ConsoleHiddenNavId = 'category-manage' | 'usage' | 'orders' | 'billing' | 'docs'
 export type ConsoleNavId = ConsoleVisibleNavId | ConsoleHiddenNavId
@@ -49,7 +50,12 @@ export const hiddenConsoleNavIds = [
   'docs',
 ] as const
 
-const visibleConsoleWorkspaceNavIds = ['catalog-manage', 'credentials', 'api-call-logs'] as const
+const visibleConsoleWorkspaceNavIds = [
+  'catalog-manage',
+  'credentials',
+  'api-subscriptions',
+  'api-call-logs',
+] as const
 
 export const defaultConsoleWorkspaceHash = '#catalog-manage'
 
@@ -107,6 +113,12 @@ export const consoleSidebarGroups: ConsoleSidebarGroup[] = [
         labelKey: 'console.navigation.credentials',
         routeName: 'console-workspace',
         hash: '#credentials',
+      },
+      {
+        id: 'api-subscriptions',
+        labelKey: 'console.navigation.apiSubscriptions',
+        routeName: 'console-workspace',
+        hash: '#api-subscriptions',
       },
       {
         id: 'api-call-logs',

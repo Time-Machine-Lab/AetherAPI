@@ -3,6 +3,7 @@ export type UnifiedAccessMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 export type UnifiedAccessFailureType =
   | 'INVALID_API_CODE'
   | 'INVALID_CREDENTIAL'
+  | 'SUBSCRIPTION_REQUIRED'
   | 'TARGET_NOT_FOUND'
   | 'TARGET_UNAVAILABLE'
 

@@ -47,6 +47,9 @@ const {
   discoveryError,
   selectedAssetDetail,
   detailLoading,
+  subscriptionStatus,
+  subscriptionStatusLoading,
+  subscriptionStatusError,
   loadDiscoveryAssets,
   selectDiscoveryAsset,
   loadSelectedAssetDetail,
@@ -130,6 +133,35 @@ function responseTone(status: number) {
   if (status >= 200 && status < 300) return 'success'
   if (status >= 400) return 'danger'
   return 'info'
+}
+
+function isSubscriptionRequiredFailure() {
+  return (
+    result.value?.kind === 'platform-failure' &&
+    result.value.platformFailure &&
+    (result.value.platformFailure.failureType === 'SUBSCRIPTION_REQUIRED' ||
+      result.value.platformFailure.code === 'API_SUBSCRIPTION_REQUIRED')
+  )
+}
+
+function subscriptionStatusMessage() {
+  if (subscriptionStatus.value?.accessStatus === 'SUBSCRIBED') {
+    return t('console.playground.subscriptionStatusSubscribed')
+  }
+  if (subscriptionStatus.value?.accessStatus === 'OWNER') {
+    return t('console.playground.subscriptionStatusOwner')
+  }
+  return t('console.playground.subscriptionStatusNotSubscribed')
+}
+
+function subscriptionStatusTone() {
+  if (
+    subscriptionStatus.value?.accessStatus === 'SUBSCRIBED' ||
+    subscriptionStatus.value?.accessStatus === 'OWNER'
+  ) {
+    return 'success'
+  }
+  return 'warning'
 }
 
 function routeApiCode() {
@@ -272,6 +304,32 @@ watch(
                 tone="ai"
                 :label="t('console.playground.streamingSupported')"
               />
+            </div>
+
+            <div
+              v-if="selectedAssetDetail"
+              class="rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-white px-4 py-3"
+            >
+              <div
+                v-if="subscriptionStatusLoading"
+                class="flex items-center gap-2 text-sm text-muted-foreground"
+              >
+                <Loader2 class="h-3.5 w-3.5 animate-spin" />
+                {{ t('console.playground.subscriptionStatusLoading') }}
+              </div>
+              <div v-else-if="subscriptionStatusError" class="text-sm text-muted-foreground">
+                {{ t('console.playground.subscriptionStatusError') }}
+              </div>
+              <div
+                v-else-if="subscriptionStatus"
+                class="flex flex-wrap items-center justify-between gap-2"
+              >
+                <p class="text-sm text-muted-foreground">{{ subscriptionStatusMessage() }}</p>
+                <DisplayTag
+                  :tone="subscriptionStatusTone()"
+                  :label="subscriptionStatus.accessStatus"
+                />
+              </div>
             </div>
 
             <!-- Method selector -->
@@ -424,13 +482,20 @@ watch(
                 <AlertTriangle class="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
                 <div class="min-w-0 flex-1 space-y-2">
                   <p class="text-sm font-medium text-amber-800">
-                    {{ t('console.playground.platformFailure') }}
+                    {{
+                      isSubscriptionRequiredFailure()
+                        ? t('console.playground.subscriptionRequiredTitle')
+                        : t('console.playground.platformFailure')
+                    }}
                   </p>
                   <div class="flex flex-wrap items-center gap-2">
                     <DisplayTag tone="warning" :label="result.platformFailure.failureType" />
                     <code class="text-xs text-amber-700">{{ result.platformFailure.code }}</code>
                   </div>
                   <p class="text-sm text-amber-700">{{ result.platformFailure.message }}</p>
+                  <p v-if="isSubscriptionRequiredFailure()" class="text-sm text-amber-700">
+                    {{ t('console.playground.subscriptionRequiredBody') }}
+                  </p>
                   <div v-if="result.platformFailure.traceId" class="mt-2 text-xs text-amber-600">
                     <span class="font-medium">traceId:</span> {{ result.platformFailure.traceId }}
                   </div>
@@ -503,9 +568,19 @@ watch(
         <UnifiedAccessGuidance
           v-if="showGuidance"
           :selected-asset-detail="selectedAssetDetail"
+          :subscription-status="subscriptionStatus"
+          :subscription-status-loading="subscriptionStatusLoading"
+          :subscription-status-error="subscriptionStatusError"
           @close="showGuidance = false"
         />
-        <UnifiedAccessGuidance v-else :selected-asset-detail="selectedAssetDetail" compact />
+        <UnifiedAccessGuidance
+          v-else
+          :selected-asset-detail="selectedAssetDetail"
+          :subscription-status="subscriptionStatus"
+          :subscription-status-loading="subscriptionStatusLoading"
+          :subscription-status-error="subscriptionStatusError"
+          compact
+        />
       </div>
     </div>
   </div>

@@ -1,7 +1,9 @@
 import { ref, computed } from 'vue'
 import { invokeUnifiedAccess } from '@/api/unified-access/unified-access.api'
 import { listDiscoveryAssets, getDiscoveryAssetDetail } from '@/api/catalog/discovery.api'
+import { getCurrentUserApiSubscriptionStatus } from '@/api/subscription/subscription.api'
 import type { DiscoveryAsset, DiscoveryAssetDetail } from '@/api/catalog/catalog.types'
+import type { ApiSubscriptionStatus } from '@/api/subscription/subscription.types'
 import type {
   UnifiedAccessMethod,
   UnifiedAccessResult,
@@ -21,6 +23,9 @@ export function useUnifiedAccessPlayground() {
   const discoveryError = ref(false)
   const selectedAssetDetail = ref<DiscoveryAssetDetail | null>(null)
   const detailLoading = ref(false)
+  const subscriptionStatus = ref<ApiSubscriptionStatus | null>(null)
+  const subscriptionStatusLoading = ref(false)
+  const subscriptionStatusError = ref(false)
 
   // ── Invocation state ────────────────────────────────────
   const invoking = ref(false)
@@ -53,6 +58,21 @@ export function useUnifiedAccessPlayground() {
     await loadSelectedAssetDetail(asset.apiCode)
   }
 
+  async function loadSubscriptionStatus(nextApiCode = apiCode.value) {
+    const normalizedApiCode = nextApiCode.trim()
+    subscriptionStatus.value = null
+    subscriptionStatusError.value = false
+    if (!normalizedApiCode) return
+    subscriptionStatusLoading.value = true
+    try {
+      subscriptionStatus.value = await getCurrentUserApiSubscriptionStatus(normalizedApiCode)
+    } catch {
+      subscriptionStatusError.value = true
+    } finally {
+      subscriptionStatusLoading.value = false
+    }
+  }
+
   async function loadSelectedAssetDetail(nextApiCode = apiCode.value) {
     const normalizedApiCode = nextApiCode.trim()
     if (!normalizedApiCode) return
@@ -67,8 +87,11 @@ export function useUnifiedAccessPlayground() {
       if (detail.exampleSnapshot?.requestExample) {
         requestBody.value = detail.exampleSnapshot.requestExample
       }
+      await loadSubscriptionStatus(normalizedApiCode)
     } catch {
       selectedAssetDetail.value = null
+      subscriptionStatus.value = null
+      subscriptionStatusError.value = false
     } finally {
       detailLoading.value = false
     }
@@ -119,6 +142,8 @@ export function useUnifiedAccessPlayground() {
     result.value = null
     invokeError.value = ''
     selectedAssetDetail.value = null
+    subscriptionStatus.value = null
+    subscriptionStatusError.value = false
   }
 
   function clearApiKey() {
@@ -143,9 +168,13 @@ export function useUnifiedAccessPlayground() {
     discoveryError,
     selectedAssetDetail,
     detailLoading,
+    subscriptionStatus,
+    subscriptionStatusLoading,
+    subscriptionStatusError,
     loadDiscoveryAssets,
     selectDiscoveryAsset,
     loadSelectedAssetDetail,
+    loadSubscriptionStatus,
     // invocation
     invoking,
     result,

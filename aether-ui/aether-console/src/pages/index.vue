@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { watch } from 'vue'
 import {
   CalendarClock,
   Folder,
@@ -12,6 +13,8 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { getAiCapabilityLabels } from '@/features/catalog/catalog-helpers'
 import { useCatalogDiscovery } from '@/composables/useCatalogDiscovery'
+import { useApiSubscriptionStatus } from '@/composables/useApiSubscriptionStatus'
+import type { ApiSubscriptionAccessStatus } from '@/api/subscription/subscription.types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -39,12 +42,62 @@ const {
   loadList,
   selectAsset,
 } = useCatalogDiscovery()
+const {
+  status: subscriptionStatus,
+  statusLoading: subscriptionStatusLoading,
+  statusError: subscriptionStatusError,
+  actionLoading: subscriptionActionLoading,
+  actionError: subscriptionActionError,
+  canSubscribe,
+  canCancel,
+  loadStatus: loadSubscriptionStatus,
+  subscribe: subscribeToApi,
+  cancel: cancelSubscription,
+  resetStatus: resetSubscriptionStatus,
+} = useApiSubscriptionStatus()
 
 loadList()
 
 function openPlayground(apiCode: string) {
-  router.push({ name: 'console-playground', query: { apiCode } })
+  router.push({
+    name: 'console-playground',
+    query: {
+      apiCode,
+      subscriptionStatus: subscriptionStatus.value?.accessStatus,
+    },
+  })
 }
+
+function subscriptionStatusLabel(status?: ApiSubscriptionAccessStatus) {
+  if (status === 'SUBSCRIBED') return t('console.home.subscriptionSubscribed')
+  if (status === 'OWNER') return t('console.home.subscriptionOwner')
+  return t('console.home.subscriptionNotSubscribed')
+}
+
+function subscriptionStatusTone(status?: ApiSubscriptionAccessStatus) {
+  if (status === 'SUBSCRIBED' || status === 'OWNER') return 'success'
+  return 'neutral'
+}
+
+async function handleSubscribe() {
+  if (!detail.value) return
+  await subscribeToApi(detail.value.apiCode)
+}
+
+async function handleCancelSubscription() {
+  await cancelSubscription(subscriptionStatus.value?.subscriptionId)
+}
+
+watch(
+  () => detail.value?.apiCode,
+  async (apiCode) => {
+    if (apiCode) {
+      await loadSubscriptionStatus(apiCode)
+      return
+    }
+    resetSubscriptionStatus()
+  },
+)
 </script>
 
 <route lang="json5">
@@ -189,14 +242,67 @@ function openPlayground(apiCode: string) {
                   :hint="t('console.shared.platformCallAddressHint')"
                   :value="buildUnifiedAccessAddress(detail.apiCode)"
                 />
+                <div
+                  class="space-y-3 rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-white px-4 py-3"
+                >
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="min-w-0">
+                      <p
+                        class="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+                      >
+                        {{ t('console.navigation.apiSubscriptions') }}
+                      </p>
+                      <p class="mt-1 text-xs leading-5 text-muted-foreground">
+                        {{ t('console.home.subscriptionGuidance') }}
+                      </p>
+                    </div>
+                    <DisplayTag
+                      v-if="subscriptionStatus && !subscriptionStatusLoading"
+                      :tone="subscriptionStatusTone(subscriptionStatus.accessStatus)"
+                      :label="subscriptionStatusLabel(subscriptionStatus.accessStatus)"
+                    />
+                  </div>
+                  <StateBlock
+                    v-if="subscriptionStatusLoading"
+                    tone="loading"
+                    :title="t('console.home.subscriptionLoading')"
+                  />
+                  <StateBlock
+                    v-else-if="subscriptionStatusError"
+                    tone="error"
+                    :title="t('console.home.subscriptionStatusError')"
+                  />
+                  <p v-if="subscriptionActionError" class="text-xs text-destructive">
+                    {{ t('console.home.subscriptionActionError') }}
+                  </p>
+                  <div
+                    v-if="subscriptionStatus && !subscriptionStatusLoading"
+                    class="flex flex-wrap gap-2"
+                  >
+                    <Button
+                      v-if="canSubscribe"
+                      size="sm"
+                      :disabled="subscriptionActionLoading"
+                      @click="handleSubscribe"
+                    >
+                      <KeyRound class="size-4" />
+                      {{ t('console.home.subscribe') }}
+                    </Button>
+                    <Button
+                      v-if="canCancel"
+                      size="sm"
+                      variant="outline"
+                      :disabled="subscriptionActionLoading"
+                      @click="handleCancelSubscription"
+                    >
+                      {{ t('console.home.cancelSubscription') }}
+                    </Button>
+                  </div>
+                </div>
                 <div class="flex flex-wrap gap-2">
                   <Button size="sm" @click="openPlayground(detail.apiCode)">
                     <Play class="size-4" />
                     {{ t('console.home.tryInPlayground') }}
-                  </Button>
-                  <Button size="sm" variant="outline" disabled>
-                    <KeyRound class="size-4" />
-                    {{ t('console.home.subscriptionUnavailable') }}
                   </Button>
                 </div>
                 <FieldGroup :title="t('console.home.detailTitle')">

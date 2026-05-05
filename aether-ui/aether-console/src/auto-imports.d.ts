@@ -9,6 +9,7 @@ declare global {
   const EffectScope: typeof import('vue').EffectScope
   const acceptHMRUpdate: typeof import('pinia').acceptHMRUpdate
   const actions: typeof import('./stores/useAuthStore').actions
+  const canCancelSubscription: typeof import('./composables/useApiSubscriptionWorkspace').canCancelSubscription
   const computed: typeof import('vue').computed
   const createApp: typeof import('vue').createApp
   const createPinia: typeof import('pinia').createPinia
@@ -62,6 +63,7 @@ declare global {
   const shallowReactive: typeof import('vue').shallowReactive
   const shallowReadonly: typeof import('vue').shallowReadonly
   const shallowRef: typeof import('vue').shallowRef
+  const statusFromSubscription: typeof import('./composables/useApiSubscriptionStatus').statusFromSubscription
   const storeToRefs: typeof import('pinia').storeToRefs
   const toRaw: typeof import('vue').toRaw
   const toRef: typeof import('vue').toRef
@@ -70,6 +72,8 @@ declare global {
   const triggerRef: typeof import('vue').triggerRef
   const unref: typeof import('vue').unref
   const useApiCallLogWorkspace: typeof import('./composables/useApiCallLogWorkspace').useApiCallLogWorkspace
+  const useApiSubscriptionStatus: typeof import('./composables/useApiSubscriptionStatus').useApiSubscriptionStatus
+  const useApiSubscriptionWorkspace: typeof import('./composables/useApiSubscriptionWorkspace').useApiSubscriptionWorkspace
   const useAppInfo: typeof import('./composables/useAppInfo').useAppInfo
   const useAppShellStore: typeof import('./stores/useAppShellStore').useAppShellStore
   const useAttrs: typeof import('vue').useAttrs
@@ -108,6 +112,7 @@ declare module 'vue' {
   interface ComponentCustomProperties {
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
+    readonly canCancelSubscription: UnwrapRef<typeof import('./composables/useApiSubscriptionWorkspace')['canCancelSubscription']>
     readonly computed: UnwrapRef<typeof import('vue')['computed']>
     readonly createApp: UnwrapRef<typeof import('vue')['createApp']>
     readonly createPinia: UnwrapRef<typeof import('pinia')['createPinia']>
@@ -161,6 +166,7 @@ declare module 'vue' {
     readonly shallowReactive: UnwrapRef<typeof import('vue')['shallowReactive']>
     readonly shallowReadonly: UnwrapRef<typeof import('vue')['shallowReadonly']>
     readonly shallowRef: UnwrapRef<typeof import('vue')['shallowRef']>
+    readonly statusFromSubscription: UnwrapRef<typeof import('./composables/useApiSubscriptionStatus')['statusFromSubscription']>
     readonly storeToRefs: UnwrapRef<typeof import('pinia')['storeToRefs']>
     readonly toRaw: UnwrapRef<typeof import('vue')['toRaw']>
     readonly toRef: UnwrapRef<typeof import('vue')['toRef']>
@@ -169,6 +175,8 @@ declare module 'vue' {
     readonly triggerRef: UnwrapRef<typeof import('vue')['triggerRef']>
     readonly unref: UnwrapRef<typeof import('vue')['unref']>
     readonly useApiCallLogWorkspace: UnwrapRef<typeof import('./composables/useApiCallLogWorkspace')['useApiCallLogWorkspace']>
+    readonly useApiSubscriptionStatus: UnwrapRef<typeof import('./composables/useApiSubscriptionStatus')['useApiSubscriptionStatus']>
+    readonly useApiSubscriptionWorkspace: UnwrapRef<typeof import('./composables/useApiSubscriptionWorkspace')['useApiSubscriptionWorkspace']>
     readonly useAppInfo: UnwrapRef<typeof import('./composables/useAppInfo')['useAppInfo']>
     readonly useAppShellStore: UnwrapRef<typeof import('./stores/useAppShellStore')['useAppShellStore']>
     readonly useAttrs: UnwrapRef<typeof import('vue')['useAttrs']>

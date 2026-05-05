@@ -29,7 +29,7 @@ function isPlatformFailure(
   contentType: string,
   body: unknown,
 ): body is UnifiedAccessPlatformFailureDto {
-  if (![400, 401, 404, 503].includes(status)) return false
+  if (![400, 401, 403, 404, 503].includes(status)) return false
   if (!contentType.includes('application/json')) return false
   if (typeof body !== 'object' || body === null) return false
   return 'failureType' in body

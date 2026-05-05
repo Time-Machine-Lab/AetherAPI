@@ -48,6 +48,7 @@ export default {
       catalogManage: 'Asset Management',
       categoryManage: 'Categories',
       credentials: 'API Key',
+      apiSubscriptions: 'API Subscriptions',
       apiCallLogs: 'API Call Logs',
       playground: 'Playground',
       usage: 'Usage analytics',
@@ -92,6 +93,16 @@ export default {
       assetType: 'Type:',
       tryInPlayground: 'Try in Playground',
       subscriptionUnavailable: 'Subscription is not available yet',
+      subscriptionLoading: 'Loading subscription status',
+      subscriptionStatusError: 'Failed to load subscription status',
+      subscriptionActionError: 'Subscription action failed. Please try again.',
+      subscriptionSubscribed: 'Subscribed',
+      subscriptionNotSubscribed: 'Not subscribed',
+      subscriptionOwner: 'Owner access',
+      subscribe: 'Subscribe',
+      cancelSubscription: 'Cancel subscription',
+      subscriptionGuidance:
+        'Subscription is a lightweight usage entitlement for Unified Access. It does not create or reveal an API Key.',
       unavailableDescription: 'This capability does not have a product flow or API contract yet.',
     },
     signIn: {
@@ -275,6 +286,31 @@ export default {
       guidanceDocs:
         'For detailed integration guides and request examples, refer to the official documentation section.',
     },
+    subscriptions: {
+      title: 'My API Subscriptions',
+      description:
+        'View API usage entitlements for the current account. Subscriptions allow Unified Access calls when paired with a valid API Key.',
+      listTitle: 'Subscription List',
+      listDescription:
+        'Current-user subscription records returned by the API Subscription contract.',
+      listEmpty: 'No API subscriptions yet',
+      listEmptyDescription:
+        'Browse the API Market and subscribe to a published API when you need call access.',
+      listError: 'Failed to load API subscriptions. Please try again.',
+      loading: 'Loading subscriptions',
+      refresh: 'Refresh',
+      cancel: 'Cancel',
+      cancelConfirm: 'Cancel this API subscription?',
+      statusActive: 'Active',
+      statusCancelled: 'Cancelled',
+      statusOwner: 'Owner',
+      owner: 'Owner',
+      createdAt: 'Created',
+      cancelledAt: 'Cancelled',
+      pageSummary: 'Page {page} / {totalPages}, {total} total',
+      prev: 'Previous',
+      next: 'Next',
+    },
     apiCallLogs: {
       title: 'API Call Logs',
       description:
@@ -388,6 +424,15 @@ export default {
       copy: 'Copy',
       copied: 'Copied',
       platformFailure: 'Platform Pre-check Failure',
+      subscriptionRequiredTitle: 'Subscription Required',
+      subscriptionRequiredBody:
+        'This target API requires an active subscription or owner access before Unified Access can forward the request.',
+      subscriptionStatusLoading: 'Checking subscription status',
+      subscriptionStatusError: 'Could not check subscription status. You can still test manually.',
+      subscriptionStatusSubscribed: 'This account is subscribed to the selected API.',
+      subscriptionStatusNotSubscribed:
+        'This account is not subscribed. Unified Access may reject calls until you subscribe or use owner access.',
+      subscriptionStatusOwner: 'This account has owner access to the selected API.',
       passthroughSuccess: 'Upstream Passthrough Response',
       binaryResponse: 'Binary content received — cannot display inline.',
       download: 'Download File',
@@ -397,6 +442,8 @@ export default {
           'The API Code is invalid or does not match the required format. Please verify the API Code.',
         INVALID_CREDENTIAL:
           'The API Key is invalid, disabled, or the associated consumer context is unavailable. Please check your key status.',
+        SUBSCRIPTION_REQUIRED:
+          'The current caller is not the asset owner and does not have an active subscription for this API. Subscribe from the API Market, then retry with a valid API Key.',
         TARGET_NOT_FOUND:
           'No published target API could be resolved for this API Code. Verify the API exists and is published.',
         TARGET_UNAVAILABLE:

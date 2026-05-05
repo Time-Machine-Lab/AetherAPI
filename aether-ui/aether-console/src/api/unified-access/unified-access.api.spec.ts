@@ -133,6 +133,35 @@ describe('unified access api', () => {
     })
   })
 
+  it('classifies subscription-required platform failures before upstream passthrough', async () => {
+    uaHarness.requestMock.mockResolvedValueOnce({
+      status: 403,
+      headers: {
+        'content-type': 'application/json',
+      },
+      data: jsonBuffer({
+        code: 'API_SUBSCRIPTION_REQUIRED',
+        message: 'API subscription is required: weather-api',
+        failureType: 'SUBSCRIPTION_REQUIRED',
+        traceId: 'trace-subscription-required',
+        apiCode: 'weather-api',
+      }),
+    })
+
+    const result = await invokeUnifiedAccess('weather-api', 'GET', 'ak_live_plaintext_1234')
+
+    expect(result).toMatchObject({
+      kind: 'platform-failure',
+      status: 403,
+      platformFailure: {
+        code: 'API_SUBSCRIPTION_REQUIRED',
+        failureType: 'SUBSCRIPTION_REQUIRED',
+        traceId: 'trace-subscription-required',
+        apiCode: 'weather-api',
+      },
+    })
+  })
+
   it('returns text payloads when upstream responds with plain text', async () => {
     uaHarness.requestMock.mockResolvedValueOnce({
       status: 503,

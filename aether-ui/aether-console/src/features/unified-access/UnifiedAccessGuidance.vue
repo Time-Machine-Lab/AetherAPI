@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import type { DiscoveryAssetDetail } from '@/api/catalog/catalog.types'
+import type { ApiSubscriptionStatus } from '@/api/subscription/subscription.types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -10,10 +11,16 @@ import CodeBlock from '@/components/console/CodeBlock.vue'
 withDefaults(
   defineProps<{
     selectedAssetDetail?: DiscoveryAssetDetail | null
+    subscriptionStatus?: ApiSubscriptionStatus | null
+    subscriptionStatusLoading?: boolean
+    subscriptionStatusError?: boolean
     compact?: boolean
   }>(),
   {
     selectedAssetDetail: null,
+    subscriptionStatus: null,
+    subscriptionStatusLoading: false,
+    subscriptionStatusError: false,
     compact: false,
   },
 )
@@ -23,14 +30,31 @@ defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+function subscriptionMessage(status?: ApiSubscriptionStatus | null) {
+  if (status?.accessStatus === 'SUBSCRIBED') {
+    return t('console.playground.subscriptionStatusSubscribed')
+  }
+  if (status?.accessStatus === 'OWNER') {
+    return t('console.playground.subscriptionStatusOwner')
+  }
+  return t('console.playground.subscriptionStatusNotSubscribed')
+}
 </script>
 
 <template>
   <!-- Compact: minimal help link -->
   <Card v-if="compact" class="border-dashed">
-    <CardContent class="flex items-center gap-3 py-4">
+    <CardContent class="flex items-start gap-3 py-4">
       <Info class="h-4 w-4 shrink-0 text-muted-foreground" />
-      <p class="text-sm text-muted-foreground">{{ t('console.playground.guidanceCompactHint') }}</p>
+      <div class="space-y-1">
+        <p class="text-sm text-muted-foreground">
+          {{ t('console.playground.guidanceCompactHint') }}
+        </p>
+        <p v-if="subscriptionStatus" class="text-xs text-muted-foreground">
+          {{ subscriptionMessage(subscriptionStatus) }}
+        </p>
+      </div>
     </CardContent>
   </Card>
 
@@ -83,6 +107,27 @@ const { t } = useI18n()
     </Card>
 
     <!-- Failure type reference -->
+    <Card v-if="selectedAssetDetail">
+      <CardHeader>
+        <CardTitle class="text-base">{{ t('console.navigation.apiSubscriptions') }}</CardTitle>
+      </CardHeader>
+      <CardContent class="space-y-2 text-sm text-muted-foreground">
+        <p v-if="subscriptionStatusLoading">
+          {{ t('console.playground.subscriptionStatusLoading') }}
+        </p>
+        <p v-else-if="subscriptionStatusError">
+          {{ t('console.playground.subscriptionStatusError') }}
+        </p>
+        <p v-else-if="subscriptionStatus">
+          {{ subscriptionMessage(subscriptionStatus) }}
+        </p>
+        <p>
+          {{ t('console.home.subscriptionGuidance') }}
+        </p>
+      </CardContent>
+    </Card>
+
+    <!-- Failure type reference -->
     <Card>
       <CardHeader>
         <CardTitle class="text-base">{{ t('console.playground.failureReferenceTitle') }}</CardTitle>
@@ -98,6 +143,12 @@ const { t } = useI18n()
           <Badge class="shrink-0 bg-red-50 text-red-700 text-xs">INVALID_CREDENTIAL</Badge>
           <p class="text-sm text-muted-foreground">
             {{ t('console.playground.failureExplain.INVALID_CREDENTIAL') }}
+          </p>
+        </div>
+        <div class="flex items-start gap-3">
+          <Badge class="shrink-0 bg-amber-50 text-amber-700 text-xs">SUBSCRIPTION_REQUIRED</Badge>
+          <p class="text-sm text-muted-foreground">
+            {{ t('console.playground.failureExplain.SUBSCRIPTION_REQUIRED') }}
           </p>
         </div>
         <div class="flex items-start gap-3">
