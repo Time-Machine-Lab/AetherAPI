@@ -242,3 +242,17 @@ sequenceDiagram
 - 管理类 Controller 返回 `TML-SDK Result` 是明确约束，继续保持即可。
 - `Unified Access` 不应在成功调用场景下使用 `TML-SDK Result` 包装上游业务响应。
 - 换句话说，`TML-SDK Result` 属于平台自身业务接口规范，而不是统一调用入口的成功返回规范。
+
+## 5. 平台代理档案路由补充
+
+Unified Access 不拥有平台代理主数据，只消费 API Catalog 解析出的目标 API 快照和平台代理档案快照。代理档案由平台管理员维护，用于治理出站网络路径；API 资产所有者和 API 消费者不直接维护或感知代理节点。
+
+运行时路径如下：
+
+1. Unified Access 完成 API Key 校验、目标资产解析和订阅权限校验。
+2. 目标资产快照携带可空的 `proxyProfileId`。
+3. 若未绑定代理档案，基础设施转发边界继续使用直连 HTTP 客户端。
+4. 若绑定有效且启用的代理档案，基础设施转发边界使用按代理档案构造的 JDK `HttpClient`。
+5. 代理连接、代理认证、DNS、TLS、请求执行和超时问题都发生在上游执行阶段，应继续归类为 `UPSTREAM_EXECUTION_FAILURE` 或 `UPSTREAM_TIMEOUT`，并清理错误详情中的 API Key、上游令牌和代理凭证。
+
+绑定到已禁用、已删除或不存在代理档案的目标资产不得静默直连。该场景表示平台配置不可用，应在进入真实上游请求前阻断，避免绕过平台代理治理。

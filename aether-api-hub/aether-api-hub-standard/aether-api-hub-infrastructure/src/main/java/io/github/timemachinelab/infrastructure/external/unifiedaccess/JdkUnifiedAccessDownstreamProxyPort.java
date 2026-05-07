@@ -1,6 +1,7 @@
 package io.github.timemachinelab.infrastructure.external.unifiedaccess;
 
 import io.github.timemachinelab.api.error.UnifiedAccessErrorCodes;
+import io.github.timemachinelab.service.model.ProxyProfileSnapshotModel;
 import io.github.timemachinelab.service.model.TargetApiSnapshotModel;
 import io.github.timemachinelab.service.model.UnifiedAccessInvocationModel;
 import io.github.timemachinelab.service.model.UnifiedAccessProxyResponseModel;
@@ -47,6 +48,7 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
     );
 
     private final HttpClient httpClient;
+    private final UnifiedAccessHttpClientResolver httpClientResolver;
     private final Duration requestTimeout;
     private final Duration streamingSetupTimeout;
 
@@ -63,6 +65,19 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
             Duration requestTimeout,
             Duration streamingSetupTimeout) {
         this.httpClient = Objects.requireNonNull(httpClient, "HTTP client must not be null");
+        this.httpClientResolver = proxyProfile -> this.httpClient;
+        this.requestTimeout = requestTimeout == null ? DEFAULT_REQUEST_TIMEOUT : requestTimeout;
+        this.streamingSetupTimeout = streamingSetupTimeout == null
+                ? DEFAULT_STREAMING_SETUP_TIMEOUT
+                : streamingSetupTimeout;
+    }
+
+    public JdkUnifiedAccessDownstreamProxyPort(
+            UnifiedAccessHttpClientResolver httpClientResolver,
+            Duration requestTimeout,
+            Duration streamingSetupTimeout) {
+        this.httpClient = null;
+        this.httpClientResolver = Objects.requireNonNull(httpClientResolver, "HTTP client resolver must not be null");
         this.requestTimeout = requestTimeout == null ? DEFAULT_REQUEST_TIMEOUT : requestTimeout;
         this.streamingSetupTimeout = streamingSetupTimeout == null
                 ? DEFAULT_STREAMING_SETUP_TIMEOUT
@@ -75,12 +90,13 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
 
         try {
             HttpRequest request = buildRequest(invocation);
+            HttpClient selectedClient = httpClientResolver.resolve(invocation.getTargetApi().getProxyProfile());
             boolean streaming = invocation.getTargetApi().isStreamingSupported();
             if (streaming) {
-                HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+                HttpResponse<InputStream> response = selectedClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
                 return toStreamingOutcome(response);
             }
-            HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            HttpResponse<byte[]> response = selectedClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
             return toByteArrayOutcome(response);
         } catch (IllegalArgumentException ex) {
             return UnifiedAccessProxyResponseModel.upstreamFailure(
@@ -318,6 +334,7 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
         String sanitized = detail;
         sanitized = redactValue(sanitized, invocation.getTargetApi().getAuthConfig());
         sanitized = redactAuthConfigToken(sanitized, invocation.getTargetApi().getAuthConfig());
+        sanitized = redactProxyProfile(sanitized, invocation.getTargetApi().getProxyProfile());
         sanitized = redactValue(sanitized, invocation.getConsumerContext().getMaskedKey());
         sanitized = redactValue(sanitized, invocation.getConsumerContext().getKeyPrefix());
         for (Map.Entry<String, List<String>> entry : invocation.getHeaders().entrySet()) {
@@ -327,6 +344,16 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
                 }
             }
         }
+        return sanitized;
+    }
+
+    private String redactProxyProfile(String source, ProxyProfileSnapshotModel proxyProfile) {
+        if (proxyProfile == null) {
+            return source;
+        }
+        String sanitized = source;
+        sanitized = redactValue(sanitized, proxyProfile.getUsername());
+        sanitized = redactValue(sanitized, proxyProfile.getPasswordSecret());
         return sanitized;
     }
 

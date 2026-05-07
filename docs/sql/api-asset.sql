@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS api_asset (
     ai_model                VARCHAR(128) NULL COMMENT 'AI 模型标识，仅 AI_API 使用',
     ai_streaming_supported  BOOLEAN NULL COMMENT '是否支持流式，仅 AI_API 使用',
     ai_capability_tags_json TEXT NULL COMMENT 'AI 能力标签 JSON 数组，仅 AI_API 使用',
+    proxy_profile_id        VARCHAR(36) NULL COMMENT 'Platform proxy profile id for Unified Access outbound routing',
     created_at              TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at              TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
     is_deleted              BOOLEAN NOT NULL DEFAULT FALSE COMMENT '软删除标记',
@@ -54,6 +55,7 @@ COMMENT ON COLUMN api_asset.ai_provider IS 'AI 提供方，仅 AI_API 使用';
 COMMENT ON COLUMN api_asset.ai_model IS 'AI 模型标识，仅 AI_API 使用';
 COMMENT ON COLUMN api_asset.ai_streaming_supported IS '是否支持流式，仅 AI_API 使用';
 COMMENT ON COLUMN api_asset.ai_capability_tags_json IS 'AI 能力标签 JSON 数组，仅 AI_API 使用';
+COMMENT ON COLUMN api_asset.proxy_profile_id IS 'Platform proxy profile id for Unified Access outbound routing';
 COMMENT ON COLUMN api_asset.created_at IS '创建时间';
 COMMENT ON COLUMN api_asset.updated_at IS '更新时间';
 COMMENT ON COLUMN api_asset.is_deleted IS '软删除标记';
@@ -64,3 +66,4 @@ CREATE INDEX IF NOT EXISTS idx_api_asset_owner_user_id ON api_asset(owner_user_i
 CREATE INDEX IF NOT EXISTS idx_api_asset_market_visibility ON api_asset(status, is_deleted);
 CREATE INDEX IF NOT EXISTS idx_api_asset_category_code ON api_asset(category_code);
 CREATE INDEX IF NOT EXISTS idx_api_asset_published_at ON api_asset(published_at);
+CREATE INDEX IF NOT EXISTS idx_api_asset_proxy_profile_id ON api_asset(proxy_profile_id);

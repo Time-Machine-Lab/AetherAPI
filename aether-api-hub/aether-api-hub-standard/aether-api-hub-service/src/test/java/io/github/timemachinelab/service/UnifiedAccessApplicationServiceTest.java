@@ -609,6 +609,7 @@ class UnifiedAccessApplicationServiceTest {
                 assetType == AssetType.AI_API
                         ? AiCapabilityProfile.of("OpenAI", "gpt-4.1", streamingSupported, List.of("chat"))
                         : null,
+                null,
                 now.minusSeconds(300),
                 now.minusSeconds(120),
                 false,
@@ -634,6 +635,7 @@ class UnifiedAccessApplicationServiceTest {
                         AuthScheme.NONE,
                         null
                 ),
+                null,
                 null,
                 null,
                 null,

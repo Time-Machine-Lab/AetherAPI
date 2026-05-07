@@ -35,6 +35,7 @@ public class ApiAssetDo {
     private String aiModel;
     private Boolean aiStreamingSupported;
     private String aiCapabilityTagsJson;
+    private String proxyProfileId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -202,6 +203,14 @@ public class ApiAssetDo {
 
     public void setAiCapabilityTagsJson(String aiCapabilityTagsJson) {
         this.aiCapabilityTagsJson = aiCapabilityTagsJson;
+    }
+
+    public String getProxyProfileId() {
+        return proxyProfileId;
+    }
+
+    public void setProxyProfileId(String proxyProfileId) {
+        this.proxyProfileId = proxyProfileId;
     }
 
     public LocalDateTime getCreatedAt() {

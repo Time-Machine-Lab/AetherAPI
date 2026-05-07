@@ -246,6 +246,7 @@ class ApiAssetAggregateTest {
                 "template",
                 ExampleSnapshot.of("{\"city\":\"shanghai\"}", "{\"temp\":26}"),
                 null,
+                null,
                 now.minusSeconds(120),
                 now.minusSeconds(60),
                 false,

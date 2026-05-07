@@ -53,6 +53,7 @@ public final class ApiAssetConverter {
                 source.getRequestTemplate(),
                 ExampleSnapshot.of(source.getRequestExample(), source.getResponseExample()),
                 toAiCapabilityProfile(source),
+                source.getProxyProfileId(),
                 toInstant(source.getCreatedAt()),
                 toInstant(source.getUpdatedAt()),
                 Boolean.TRUE.equals(source.getIsDeleted()),
@@ -101,6 +102,7 @@ public final class ApiAssetConverter {
         target.setAiModel(source.getAiCapabilityProfile() == null ? null : source.getAiCapabilityProfile().getModel());
         target.setAiStreamingSupported(source.getAiCapabilityProfile() == null ? null : source.getAiCapabilityProfile().isStreamingSupported());
         target.setAiCapabilityTagsJson(source.getAiCapabilityProfile() == null ? null : serializeTags(source.getAiCapabilityProfile().getCapabilityTags()));
+        target.setProxyProfileId(source.getProxyProfileId());
         target.setCreatedAt(toLocalDateTime(source.getCreatedAt()));
         target.setUpdatedAt(toLocalDateTime(source.getUpdatedAt()));
         target.setIsDeleted(source.isDeleted());

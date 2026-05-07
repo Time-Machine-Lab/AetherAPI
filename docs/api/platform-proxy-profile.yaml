@@ -1,0 +1,367 @@
+openapi: 3.0.3
+info:
+  title: Platform Proxy Profile API
+  version: 1.0.0
+  description: |
+    Platform administrator APIs for managing Unified Access outbound proxy profiles.
+    This contract maps one-to-one to PlatformProxyProfileController.java.
+servers:
+  - url: /api/v1
+    description: Aether API Hub v1
+
+tags:
+  - name: PlatformProxyProfiles
+    description: Platform administrator proxy profile operations
+
+paths:
+  /platform/proxy-profiles:
+    get:
+      summary: List platform proxy profiles
+      operationId: listProxyProfiles
+      tags:
+        - PlatformProxyProfiles
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: enabled
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: keyword
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 128
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Paged proxy profile result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformProxyProfilePageResp'
+    post:
+      summary: Create platform proxy profile
+      operationId: createProxyProfile
+      tags:
+        - PlatformProxyProfiles
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePlatformProxyProfileReq'
+      responses:
+        '201':
+          description: Proxy profile created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformProxyProfileResp'
+
+  /platform/proxy-profiles/{profileId}:
+    get:
+      summary: Get platform proxy profile detail
+      operationId: getProxyProfile
+      tags:
+        - PlatformProxyProfiles
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: profileId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proxy profile detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformProxyProfileResp'
+    put:
+      summary: Update platform proxy profile
+      operationId: updateProxyProfile
+      tags:
+        - PlatformProxyProfiles
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: profileId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePlatformProxyProfileReq'
+      responses:
+        '200':
+          description: Proxy profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformProxyProfileResp'
+    delete:
+      summary: Delete platform proxy profile
+      operationId: deleteProxyProfile
+      tags:
+        - PlatformProxyProfiles
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: profileId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proxy profile deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformProxyProfileResp'
+
+  /platform/proxy-profiles/{profileId}/enable:
+    patch:
+      summary: Enable platform proxy profile
+      operationId: enableProxyProfile
+      tags:
+        - PlatformProxyProfiles
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: profileId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proxy profile enabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformProxyProfileResp'
+
+  /platform/proxy-profiles/{profileId}/disable:
+    patch:
+      summary: Disable platform proxy profile
+      operationId: disableProxyProfile
+      tags:
+        - PlatformProxyProfiles
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: profileId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proxy profile disabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformProxyProfileResp'
+
+  /platform/proxy-profiles/asset-bindings/{apiCode}:
+    put:
+      summary: Bind proxy profile to API asset
+      operationId: bindProxyProfileToAsset
+      tags:
+        - PlatformProxyProfiles
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: apiCode
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BindProxyProfileReq'
+      responses:
+        '200':
+          description: Asset proxy binding updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetProxyBindingResp'
+    delete:
+      summary: Unbind proxy profile from API asset
+      operationId: unbindProxyProfileFromAsset
+      tags:
+        - PlatformProxyProfiles
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: apiCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Asset proxy binding removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetProxyBindingResp'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+
+  schemas:
+    CreatePlatformProxyProfileReq:
+      type: object
+      required:
+        - profileCode
+        - profileName
+        - proxyType
+        - proxyHost
+        - proxyPort
+      properties:
+        profileCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+        profileName:
+          type: string
+          minLength: 1
+          maxLength: 128
+        proxyType:
+          type: string
+          enum:
+            - HTTP
+        proxyHost:
+          type: string
+          minLength: 1
+          maxLength: 255
+        proxyPort:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        username:
+          type: string
+          maxLength: 255
+          nullable: true
+        password:
+          type: string
+          nullable: true
+        enabled:
+          type: boolean
+          nullable: true
+
+    UpdatePlatformProxyProfileReq:
+      allOf:
+        - $ref: '#/components/schemas/CreatePlatformProxyProfileReq'
+
+    BindProxyProfileReq:
+      type: object
+      required:
+        - profileId
+      properties:
+        profileId:
+          type: string
+
+    PlatformProxyProfileResp:
+      type: object
+      properties:
+        id:
+          type: string
+        profileCode:
+          type: string
+        profileName:
+          type: string
+        proxyType:
+          type: string
+        proxyHost:
+          type: string
+        proxyPort:
+          type: integer
+        username:
+          type: string
+          nullable: true
+        credentialConfigured:
+          type: boolean
+        enabled:
+          type: boolean
+        deleted:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PlatformProxyProfilePageResp:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlatformProxyProfileResp'
+        page:
+          type: integer
+        size:
+          type: integer
+        total:
+          type: integer
+          format: int64
+
+    AssetProxyBindingResp:
+      type: object
+      properties:
+        apiCode:
+          type: string
+        proxyProfileId:
+          type: string
+          nullable: true
+        proxyProfileCode:
+          type: string
+          nullable: true
+        proxyProfileName:
+          type: string
+          nullable: true
+
+    ErrorResp:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string

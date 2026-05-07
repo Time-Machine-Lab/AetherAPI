@@ -16,6 +16,8 @@ public class TargetApiSnapshotModel {
     private final boolean streamingSupported;
     private final String aiProvider;
     private final String aiModel;
+    private final String proxyProfileId;
+    private final ProxyProfileSnapshotModel proxyProfile;
 
     public TargetApiSnapshotModel(
             String assetId,
@@ -29,6 +31,37 @@ public class TargetApiSnapshotModel {
             boolean streamingSupported,
             String aiProvider,
             String aiModel) {
+        this(
+                assetId,
+                apiCode,
+                assetName,
+                assetType,
+                requestMethod,
+                upstreamUrl,
+                authScheme,
+                authConfig,
+                streamingSupported,
+                aiProvider,
+                aiModel,
+                null,
+                null
+        );
+    }
+
+    public TargetApiSnapshotModel(
+            String assetId,
+            String apiCode,
+            String assetName,
+            String assetType,
+            String requestMethod,
+            String upstreamUrl,
+            String authScheme,
+            String authConfig,
+            boolean streamingSupported,
+            String aiProvider,
+            String aiModel,
+            String proxyProfileId,
+            ProxyProfileSnapshotModel proxyProfile) {
         this.assetId = assetId;
         this.apiCode = apiCode;
         this.assetName = assetName;
@@ -40,6 +73,8 @@ public class TargetApiSnapshotModel {
         this.streamingSupported = streamingSupported;
         this.aiProvider = aiProvider;
         this.aiModel = aiModel;
+        this.proxyProfileId = proxyProfileId;
+        this.proxyProfile = proxyProfile;
     }
 
     public String getAssetId() {
@@ -84,5 +119,13 @@ public class TargetApiSnapshotModel {
 
     public String getAiModel() {
         return aiModel;
+    }
+
+    public String getProxyProfileId() {
+        return proxyProfileId;
+    }
+
+    public ProxyProfileSnapshotModel getProxyProfile() {
+        return proxyProfile;
     }
 }

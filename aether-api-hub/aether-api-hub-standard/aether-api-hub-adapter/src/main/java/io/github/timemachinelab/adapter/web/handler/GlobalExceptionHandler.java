@@ -5,12 +5,14 @@ import io.github.timemachinelab.api.error.ConsoleSessionAuthErrorCodes;
 import io.github.timemachinelab.api.error.ConsumerAuthErrorCodes;
 import io.github.timemachinelab.api.error.ApiSubscriptionErrorCodes;
 import io.github.timemachinelab.api.error.ObservabilityErrorCodes;
+import io.github.timemachinelab.api.error.PlatformProxyProfileErrorCodes;
 import io.github.timemachinelab.api.resp.UnifiedAccessPlatformFailureResp;
 import io.github.timemachinelab.domain.catalog.model.AssetDomainException;
 import io.github.timemachinelab.domain.catalog.model.CategoryDomainException;
 import io.github.timemachinelab.domain.consolesessionauth.model.ConsoleSessionAuthDomainException;
 import io.github.timemachinelab.domain.consumerauth.model.ConsumerAuthDomainException;
 import io.github.timemachinelab.domain.observability.model.ObservabilityDomainException;
+import io.github.timemachinelab.domain.platformproxy.model.PlatformProxyProfileDomainException;
 import io.github.timemachinelab.domain.subscription.model.ApiSubscriptionDomainException;
 import io.github.timemachinelab.service.model.UnifiedAccessPlatformFailureException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -157,6 +159,26 @@ public class GlobalExceptionHandler {
             status = HttpStatus.NOT_FOUND;
         } else if (ApiSubscriptionErrorCodes.API_SUBSCRIPTION_ALREADY_CANCELLED.equals(code)
                 || ApiSubscriptionErrorCodes.API_SUBSCRIPTION_OWNER_ACCESS.equals(code)) {
+            status = HttpStatus.CONFLICT;
+        }
+        return ResponseEntity.status(status).body(body);
+    }
+
+    @ExceptionHandler(PlatformProxyProfileDomainException.class)
+    public ResponseEntity<Map<String, String>> handlePlatformProxyProfileDomainException(PlatformProxyProfileDomainException ex) {
+        log.warn("Platform proxy profile domain exception: {}", ex.getMessage());
+
+        String code = mapPlatformProxyProfileExceptionToCode(ex.getMessage());
+        Map<String, String> body = new HashMap<>();
+        body.put("code", code);
+        body.put("message", ex.getMessage());
+
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        if (PlatformProxyProfileErrorCodes.PROXY_PROFILE_FORBIDDEN.equals(code)) {
+            status = HttpStatus.FORBIDDEN;
+        } else if (PlatformProxyProfileErrorCodes.PROXY_PROFILE_NOT_FOUND.equals(code)) {
+            status = HttpStatus.NOT_FOUND;
+        } else if (PlatformProxyProfileErrorCodes.PROXY_PROFILE_CODE_ALREADY_EXISTS.equals(code)) {
             status = HttpStatus.CONFLICT;
         }
         return ResponseEntity.status(status).body(body);
@@ -339,6 +361,12 @@ public class GlobalExceptionHandler {
                 || message.contains("console session"))) {
             return ConsoleSessionAuthErrorCodes.CONSOLE_SESSION_UNAUTHORIZED;
         }
+        if (message != null && (message.contains("Proxy profile")
+                || message.contains("proxy profile")
+                || message.contains("Proxy port")
+                || message.contains("Proxy type"))) {
+            return PlatformProxyProfileErrorCodes.PROXY_PROFILE_INVALID;
+        }
         if (message != null && message.contains("Current user")) {
             return ConsumerAuthErrorCodes.CURRENT_USER_REQUIRED;
         }
@@ -381,6 +409,9 @@ public class GlobalExceptionHandler {
             if (requestUri.startsWith("/api/v1/current-user/api-subscriptions")) {
                 return ApiSubscriptionErrorCodes.API_SUBSCRIPTION_INVALID;
             }
+            if (requestUri.startsWith("/api/v1/platform/proxy-profiles")) {
+                return PlatformProxyProfileErrorCodes.PROXY_PROFILE_INVALID;
+            }
             if (requestUri.startsWith("/api/v1/current-user/api-call-logs")) {
                 return ObservabilityErrorCodes.API_CALL_LOG_INVALID_QUERY;
             }
@@ -405,6 +436,9 @@ public class GlobalExceptionHandler {
             }
             if (requestUri.startsWith("/api/v1/current-user/api-subscriptions")) {
                 return "Invalid API subscription request parameters";
+            }
+            if (requestUri.startsWith("/api/v1/platform/proxy-profiles")) {
+                return "Invalid platform proxy profile request parameters";
             }
             if (requestUri.startsWith("/api/v1/current-user/api-call-logs")) {
                 return "Invalid API call log request parameters";
@@ -447,5 +481,21 @@ public class GlobalExceptionHandler {
         body.put("code", CatalogErrorCodes.ASSET_INVALID_QUERY);
         body.put("message", "Invalid asset list query parameters");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    private String mapPlatformProxyProfileExceptionToCode(String message) {
+        if (message != null && message.contains("administrator role")) {
+            return PlatformProxyProfileErrorCodes.PROXY_PROFILE_FORBIDDEN;
+        }
+        if (message != null && message.contains("already exists")) {
+            return PlatformProxyProfileErrorCodes.PROXY_PROFILE_CODE_ALREADY_EXISTS;
+        }
+        if (message != null && message.contains("not found")) {
+            return PlatformProxyProfileErrorCodes.PROXY_PROFILE_NOT_FOUND;
+        }
+        if (message != null && message.contains("binding")) {
+            return PlatformProxyProfileErrorCodes.PROXY_PROFILE_BINDING_INVALID;
+        }
+        return PlatformProxyProfileErrorCodes.PROXY_PROFILE_INVALID;
     }
 }

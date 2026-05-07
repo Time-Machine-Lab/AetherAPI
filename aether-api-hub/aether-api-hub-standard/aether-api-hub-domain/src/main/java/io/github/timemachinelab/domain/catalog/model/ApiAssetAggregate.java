@@ -21,6 +21,7 @@ public class ApiAssetAggregate {
     private String requestTemplate;
     private ExampleSnapshot exampleSnapshot;
     private AiCapabilityProfile aiCapabilityProfile;
+    private String proxyProfileId;
     private Instant createdAt;
     private Instant updatedAt;
     private boolean deleted;
@@ -43,6 +44,7 @@ public class ApiAssetAggregate {
             String requestTemplate,
             ExampleSnapshot exampleSnapshot,
             AiCapabilityProfile aiCapabilityProfile,
+            String proxyProfileId,
             Instant createdAt,
             Instant updatedAt,
             boolean deleted,
@@ -60,6 +62,7 @@ public class ApiAssetAggregate {
         this.requestTemplate = normalizeOptional(requestTemplate);
         this.exampleSnapshot = exampleSnapshot;
         this.aiCapabilityProfile = aiCapabilityProfile;
+        this.proxyProfileId = normalizeOptional(proxyProfileId);
         this.createdAt = Objects.requireNonNull(createdAt, "Created time must not be null");
         this.updatedAt = Objects.requireNonNull(updatedAt, "Updated time must not be null");
         this.deleted = deleted;
@@ -94,6 +97,7 @@ public class ApiAssetAggregate {
                 null,
                 null,
                 null,
+                null,
                 now,
                 now,
                 false,
@@ -115,6 +119,7 @@ public class ApiAssetAggregate {
             String requestTemplate,
             ExampleSnapshot exampleSnapshot,
             AiCapabilityProfile aiCapabilityProfile,
+            String proxyProfileId,
             Instant createdAt,
             Instant updatedAt,
             boolean deleted,
@@ -133,6 +138,7 @@ public class ApiAssetAggregate {
                 requestTemplate,
                 exampleSnapshot,
                 aiCapabilityProfile,
+                proxyProfileId,
                 createdAt,
                 updatedAt,
                 deleted,
@@ -221,6 +227,18 @@ public class ApiAssetAggregate {
         touch();
     }
 
+    public void bindProxyProfile(String newProxyProfileId) {
+        ensureNotDeleted();
+        this.proxyProfileId = requireProxyProfileId(newProxyProfileId);
+        touch();
+    }
+
+    public void unbindProxyProfile() {
+        ensureNotDeleted();
+        this.proxyProfileId = null;
+        touch();
+    }
+
     public boolean isPublishReady(CategoryValidityChecker categoryValidityChecker) {
         if (name == null || categoryRef == null || upstreamConfig == null || !upstreamConfig.isComplete()) {
             return false;
@@ -288,6 +306,14 @@ public class ApiAssetAggregate {
         return normalized;
     }
 
+    private static String requireProxyProfileId(String proxyProfileId) {
+        String normalized = normalizeOptional(proxyProfileId);
+        if (normalized == null) {
+            throw new IllegalArgumentException("Proxy profile id must not be blank");
+        }
+        return normalized;
+    }
+
     public AssetId getId() {
         return id;
     }
@@ -338,6 +364,10 @@ public class ApiAssetAggregate {
 
     public AiCapabilityProfile getAiCapabilityProfile() {
         return aiCapabilityProfile;
+    }
+
+    public String getProxyProfileId() {
+        return proxyProfileId;
     }
 
     public Instant getCreatedAt() {

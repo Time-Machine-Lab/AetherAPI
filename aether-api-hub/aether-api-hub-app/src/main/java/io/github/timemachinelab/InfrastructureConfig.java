@@ -7,7 +7,9 @@ import io.github.timemachinelab.domain.consumerauth.repository.ApiCredentialRepo
 import io.github.timemachinelab.domain.consumerauth.repository.ConsumerIdentityRepository;
 import io.github.timemachinelab.domain.consumerauth.repository.UserConsumerMappingRepository;
 import io.github.timemachinelab.domain.observability.repository.ApiCallLogRepository;
+import io.github.timemachinelab.domain.platformproxy.repository.PlatformProxyProfileRepository;
 import io.github.timemachinelab.domain.subscription.repository.ApiSubscriptionRepository;
+import io.github.timemachinelab.infrastructure.external.unifiedaccess.JdkUnifiedAccessHttpClientResolver;
 import io.github.timemachinelab.infrastructure.external.unifiedaccess.JdkUnifiedAccessDownstreamProxyPort;
 import io.github.timemachinelab.service.adapter.ApiCallLogRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.ApiAssetRepositoryAdapter;
@@ -15,6 +17,7 @@ import io.github.timemachinelab.service.adapter.ApiCredentialRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.ApiSubscriptionRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.CategoryValidityAdapter;
 import io.github.timemachinelab.service.adapter.ConsumerIdentityRepositoryAdapter;
+import io.github.timemachinelab.service.adapter.PlatformProxyProfileRepositoryAdapter;
 import io.github.timemachinelab.service.application.ApiCallLogApplicationService;
 import io.github.timemachinelab.service.application.ApiAssetApplicationService;
 import io.github.timemachinelab.service.application.ApiCredentialApplicationService;
@@ -23,11 +26,13 @@ import io.github.timemachinelab.service.application.CatalogDiscoveryApplicationS
 import io.github.timemachinelab.service.application.ConsoleSessionAuthApplicationService;
 import io.github.timemachinelab.service.application.CredentialValidationApplicationService;
 import io.github.timemachinelab.service.application.ObservabilityApplicationService;
+import io.github.timemachinelab.service.application.PlatformProxyProfileApplicationService;
 import io.github.timemachinelab.service.application.UnifiedAccessApplicationService;
 import io.github.timemachinelab.service.adapter.CategoryRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.UserConsumerMappingRepositoryAdapter;
 import io.github.timemachinelab.service.application.CategoryApplicationService;
 import io.github.timemachinelab.service.port.in.ObservabilityUseCase;
+import io.github.timemachinelab.service.port.in.PlatformProxyProfileUseCase;
 import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
 import io.github.timemachinelab.service.port.in.ApiCallLogUseCase;
 import io.github.timemachinelab.service.port.in.ApiCredentialUseCase;
@@ -47,6 +52,7 @@ import io.github.timemachinelab.service.port.out.CatalogDiscoveryQueryPort;
 import io.github.timemachinelab.service.port.out.CategoryRepositoryPort;
 import io.github.timemachinelab.service.port.out.ConsoleSessionSettingsPort;
 import io.github.timemachinelab.service.port.out.ConsumerIdentityRepositoryPort;
+import io.github.timemachinelab.service.port.out.PlatformProxyProfileRepositoryPort;
 import io.github.timemachinelab.service.port.out.UnifiedAccessDownstreamProxyPort;
 import io.github.timemachinelab.service.port.out.UserConsumerMappingRepositoryPort;
 import io.github.timemachinelab.domain.consumerauth.service.CredentialValidationDomainService;
@@ -122,6 +128,12 @@ public class InfrastructureConfig {
     @Bean
     public ApiCallLogRepositoryPort apiCallLogRepositoryPort(ApiCallLogRepository apiCallLogRepository) {
         return new ApiCallLogRepositoryAdapter(apiCallLogRepository);
+    }
+
+    @Bean
+    public PlatformProxyProfileRepositoryPort platformProxyProfileRepositoryPort(
+            PlatformProxyProfileRepository platformProxyProfileRepository) {
+        return new PlatformProxyProfileRepositoryAdapter(platformProxyProfileRepository);
     }
 
     @Bean
@@ -201,6 +213,13 @@ public class InfrastructureConfig {
     }
 
     @Bean
+    public PlatformProxyProfileUseCase platformProxyProfileUseCase(
+            PlatformProxyProfileRepositoryPort platformProxyProfileRepositoryPort,
+            ApiAssetRepositoryPort apiAssetRepositoryPort) {
+        return new PlatformProxyProfileApplicationService(platformProxyProfileRepositoryPort, apiAssetRepositoryPort);
+    }
+
+    @Bean
     public HttpClient unifiedAccessHttpClient() {
         return HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
@@ -209,8 +228,18 @@ public class InfrastructureConfig {
     }
 
     @Bean
-    public UnifiedAccessDownstreamProxyPort unifiedAccessDownstreamProxyPort(HttpClient unifiedAccessHttpClient) {
-        return new JdkUnifiedAccessDownstreamProxyPort(unifiedAccessHttpClient);
+    public JdkUnifiedAccessHttpClientResolver unifiedAccessHttpClientResolver(HttpClient unifiedAccessHttpClient) {
+        return new JdkUnifiedAccessHttpClientResolver(unifiedAccessHttpClient, Duration.ofSeconds(10));
+    }
+
+    @Bean
+    public UnifiedAccessDownstreamProxyPort unifiedAccessDownstreamProxyPort(
+            JdkUnifiedAccessHttpClientResolver unifiedAccessHttpClientResolver) {
+        return new JdkUnifiedAccessDownstreamProxyPort(
+                unifiedAccessHttpClientResolver,
+                Duration.ofSeconds(30),
+                Duration.ofMinutes(5)
+        );
     }
 
     @Bean
@@ -220,14 +249,16 @@ public class InfrastructureConfig {
             ApiSubscriptionEntitlementPort apiSubscriptionEntitlementPort,
             UserConsumerMappingRepositoryPort userConsumerMappingRepositoryPort,
             UnifiedAccessDownstreamProxyPort unifiedAccessDownstreamProxyPort,
-            ObservabilityUseCase observabilityUseCase) {
+            ObservabilityUseCase observabilityUseCase,
+            PlatformProxyProfileRepositoryPort platformProxyProfileRepositoryPort) {
         return new UnifiedAccessApplicationService(
                 credentialValidationUseCase,
                 apiAssetRepositoryPort,
                 apiSubscriptionEntitlementPort,
                 userConsumerMappingRepositoryPort,
                 unifiedAccessDownstreamProxyPort,
-                observabilityUseCase
+                observabilityUseCase,
+                platformProxyProfileRepositoryPort
         );
     }
 }

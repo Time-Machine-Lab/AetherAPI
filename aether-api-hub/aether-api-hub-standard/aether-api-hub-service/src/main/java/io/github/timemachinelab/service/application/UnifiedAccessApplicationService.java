@@ -10,9 +10,12 @@ import io.github.timemachinelab.domain.catalog.model.UpstreamEndpointConfig;
 import io.github.timemachinelab.domain.consumerauth.model.ConsumerId;
 import io.github.timemachinelab.domain.consumerauth.model.CredentialValidationFailureReason;
 import io.github.timemachinelab.domain.consumerauth.model.UserConsumerMapping;
+import io.github.timemachinelab.domain.platformproxy.model.PlatformProxyProfileAggregate;
+import io.github.timemachinelab.domain.platformproxy.model.PlatformProxyProfileId;
 import io.github.timemachinelab.service.model.ConsumerContextModel;
 import io.github.timemachinelab.service.model.CredentialValidationResult;
 import io.github.timemachinelab.service.model.PlatformPreForwardFailureType;
+import io.github.timemachinelab.service.model.ProxyProfileSnapshotModel;
 import io.github.timemachinelab.service.model.RecordApiCallLogCommand;
 import io.github.timemachinelab.service.model.ResolveUnifiedAccessInvocationCommand;
 import io.github.timemachinelab.service.model.TargetApiSnapshotModel;
@@ -29,6 +32,7 @@ import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiSubscriptionEntitlementPort;
 import io.github.timemachinelab.service.port.out.UnifiedAccessDownstreamProxyPort;
 import io.github.timemachinelab.service.port.out.UserConsumerMappingRepositoryPort;
+import io.github.timemachinelab.service.port.out.PlatformProxyProfileRepositoryPort;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -49,6 +53,7 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
     private final UserConsumerMappingRepositoryPort userConsumerMappingRepositoryPort;
     private final UnifiedAccessDownstreamProxyPort unifiedAccessDownstreamProxyPort;
     private final ObservabilityUseCase observabilityUseCase;
+    private final PlatformProxyProfileRepositoryPort platformProxyProfileRepositoryPort;
 
     public UnifiedAccessApplicationService(
             CredentialValidationUseCase credentialValidationUseCase,
@@ -57,12 +62,32 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
             UserConsumerMappingRepositoryPort userConsumerMappingRepositoryPort,
             UnifiedAccessDownstreamProxyPort unifiedAccessDownstreamProxyPort,
             ObservabilityUseCase observabilityUseCase) {
+        this(
+                credentialValidationUseCase,
+                apiAssetRepositoryPort,
+                apiSubscriptionEntitlementPort,
+                userConsumerMappingRepositoryPort,
+                unifiedAccessDownstreamProxyPort,
+                observabilityUseCase,
+                null
+        );
+    }
+
+    public UnifiedAccessApplicationService(
+            CredentialValidationUseCase credentialValidationUseCase,
+            ApiAssetRepositoryPort apiAssetRepositoryPort,
+            ApiSubscriptionEntitlementPort apiSubscriptionEntitlementPort,
+            UserConsumerMappingRepositoryPort userConsumerMappingRepositoryPort,
+            UnifiedAccessDownstreamProxyPort unifiedAccessDownstreamProxyPort,
+            ObservabilityUseCase observabilityUseCase,
+            PlatformProxyProfileRepositoryPort platformProxyProfileRepositoryPort) {
         this.credentialValidationUseCase = credentialValidationUseCase;
         this.apiAssetRepositoryPort = apiAssetRepositoryPort;
         this.apiSubscriptionEntitlementPort = apiSubscriptionEntitlementPort;
         this.userConsumerMappingRepositoryPort = userConsumerMappingRepositoryPort;
         this.unifiedAccessDownstreamProxyPort = unifiedAccessDownstreamProxyPort;
         this.observabilityUseCase = observabilityUseCase;
+        this.platformProxyProfileRepositoryPort = platformProxyProfileRepositoryPort;
     }
 
     @Override
@@ -193,7 +218,39 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
                 upstreamConfig.getAuthConfig(),
                 streamingSupported,
                 targetApi.getAiCapabilityProfile() == null ? null : targetApi.getAiCapabilityProfile().getProvider(),
-                targetApi.getAiCapabilityProfile() == null ? null : targetApi.getAiCapabilityProfile().getModel()
+                targetApi.getAiCapabilityProfile() == null ? null : targetApi.getAiCapabilityProfile().getModel(),
+                targetApi.getProxyProfileId(),
+                resolveProxyProfileSnapshot(targetApi)
+        );
+    }
+
+    private ProxyProfileSnapshotModel resolveProxyProfileSnapshot(ApiAssetAggregate targetApi) {
+        String proxyProfileId = targetApi.getProxyProfileId();
+        if (proxyProfileId == null || proxyProfileId.isBlank()) {
+            return null;
+        }
+        if (platformProxyProfileRepositoryPort == null) {
+            throw new IllegalStateException("Platform proxy profile repository port must be configured when asset has proxy binding");
+        }
+        PlatformProxyProfileAggregate profile = platformProxyProfileRepositoryPort
+                .findById(PlatformProxyProfileId.of(proxyProfileId))
+                .filter(candidate -> !candidate.isDeleted() && candidate.isEnabled())
+                .orElseThrow(() -> platformFailure(
+                        UnifiedAccessErrorCodes.TARGET_API_UNAVAILABLE,
+                        "Target API proxy profile is unavailable: " + targetApi.getCode().getValue(),
+                        PlatformPreForwardFailureType.TARGET_UNAVAILABLE,
+                        targetApi.getCode().getValue(),
+                        503
+                ));
+        return new ProxyProfileSnapshotModel(
+                profile.getId().getValue(),
+                profile.getProfileCode(),
+                profile.getProxyType().name(),
+                profile.getProxyHost(),
+                profile.getProxyPort(),
+                profile.getUsername(),
+                profile.getPasswordSecret(),
+                profile.getVersion()
         );
     }
 
