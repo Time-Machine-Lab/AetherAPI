@@ -2,12 +2,15 @@ import { describe, expect, it, vi } from 'vitest'
 import { usePlatformProxyProfiles } from './usePlatformProxyProfiles'
 import type {
   AssetProxyBinding,
+  PlatformProxyAssetCandidate,
+  PlatformProxyAssetCandidatePage,
   PlatformProxyProfile,
   PlatformProxyProfilePage,
 } from '@/api/platform-proxy-profile/platform-proxy-profile.types'
 
 vi.mock('@/api/platform-proxy-profile/platform-proxy-profile.api', () => ({
   listPlatformProxyProfiles: vi.fn(),
+  listPlatformProxyAssetCandidates: vi.fn(),
   getPlatformProxyProfile: vi.fn(),
   createPlatformProxyProfile: vi.fn(),
   updatePlatformProxyProfile: vi.fn(),
@@ -42,6 +45,37 @@ function profile(overrides: Partial<PlatformProxyProfile> = {}): PlatformProxyPr
 
 function page(items: PlatformProxyProfile[]): PlatformProxyProfilePage {
   return { items, total: items.length, page: 1, pageSize: 20 }
+}
+
+function candidate(
+  overrides: Partial<PlatformProxyAssetCandidate> = {},
+): PlatformProxyAssetCandidate {
+  return {
+    apiCode: 'weather-api',
+    assetName: 'Weather API',
+    assetType: 'STANDARD_API',
+    status: 'PUBLISHED',
+    publisherDisplayName: 'Operations Team',
+    proxyProfileId: null,
+    proxyProfileCode: null,
+    proxyProfileName: null,
+    createdAt: '2026-05-08T00:00:00Z',
+    updatedAt: '2026-05-08T00:00:00Z',
+    ...overrides,
+  }
+}
+
+function candidatePage(
+  items: PlatformProxyAssetCandidate[],
+  overrides: Partial<PlatformProxyAssetCandidatePage> = {},
+): PlatformProxyAssetCandidatePage {
+  return {
+    items,
+    total: items.length,
+    page: 1,
+    pageSize: 10,
+    ...overrides,
+  }
 }
 
 function binding(overrides: Partial<AssetProxyBinding> = {}): AssetProxyBinding {
@@ -92,6 +126,103 @@ describe('usePlatformProxyProfiles', () => {
     expect(result).toBe(false)
     expect(workspace.accessDenied.value).toBe(true)
     expect(listPlatformProxyProfiles).not.toHaveBeenCalled()
+  })
+
+  it('loads asset binding candidates with trimmed keyword and paging state', async () => {
+    const listPlatformProxyAssetCandidates = vi
+      .fn()
+      .mockResolvedValueOnce(candidatePage([candidate()], { page: 1, total: 1 }))
+    const workspace = usePlatformProxyProfiles({
+      t,
+      autoLoad: false,
+      currentUserRole: 'OWNER',
+      listPlatformProxyAssetCandidates,
+    })
+
+    workspace.assetCandidateKeyword.value = ' weather '
+    await workspace.loadAssetCandidates(1)
+
+    expect(listPlatformProxyAssetCandidates).toHaveBeenCalledWith({
+      keyword: 'weather',
+      page: 1,
+      size: 10,
+    })
+    expect(workspace.assetCandidates.value).toHaveLength(1)
+    expect(workspace.assetCandidateTotal.value).toBe(1)
+    expect(workspace.assetCandidatePage.value).toBe(1)
+  })
+
+  it('selects an asset binding candidate into binding apiCode', () => {
+    const workspace = usePlatformProxyProfiles({
+      t,
+      autoLoad: false,
+      currentUserRole: 'OWNER',
+    })
+    const selected = candidate({ apiCode: 'baidu-search' })
+
+    workspace.selectAssetCandidate(selected)
+
+    expect(workspace.selectedAssetCandidate.value?.apiCode).toBe('baidu-search')
+    expect(workspace.bindingApiCode.value).toBe('baidu-search')
+  })
+
+  it('loads next asset candidate pages', async () => {
+    const listPlatformProxyAssetCandidates = vi.fn().mockResolvedValueOnce(
+      candidatePage([candidate({ apiCode: 'deepseek-v3' })], {
+        page: 2,
+        total: 11,
+      }),
+    )
+    const workspace = usePlatformProxyProfiles({
+      t,
+      autoLoad: false,
+      currentUserRole: 'ADMIN',
+      listPlatformProxyAssetCandidates,
+    })
+
+    await workspace.loadAssetCandidates(2)
+
+    expect(listPlatformProxyAssetCandidates).toHaveBeenCalledWith({ page: 2, size: 10 })
+    expect(workspace.assetCandidatePage.value).toBe(2)
+    expect(workspace.assetCandidateTotalPages()).toBe(2)
+  })
+
+  it('keeps binding inputs and previous result when asset candidate search fails', async () => {
+    const listPlatformProxyAssetCandidates = vi.fn().mockRejectedValueOnce({ status: 500 })
+    const workspace = usePlatformProxyProfiles({
+      t,
+      autoLoad: false,
+      currentUserRole: 'PLATFORM_ADMIN',
+      listPlatformProxyAssetCandidates,
+    })
+    workspace.bindingApiCode.value = 'weather-api'
+    workspace.bindingProfileId.value = 'proxy-1'
+    workspace.bindingResult.value = binding({ proxyProfileId: 'proxy-1' })
+
+    await workspace.loadAssetCandidates(1)
+
+    expect(workspace.assetCandidateError.value).toBe(
+      'console.platformProxy.errors.loadAssetCandidates',
+    )
+    expect(workspace.bindingApiCode.value).toBe('weather-api')
+    expect(workspace.bindingProfileId.value).toBe('proxy-1')
+    expect(workspace.bindingResult.value?.proxyProfileId).toBe('proxy-1')
+  })
+
+  it('blocks non-administrator sessions before loading asset candidates', async () => {
+    const listPlatformProxyAssetCandidates = vi.fn()
+    const workspace = usePlatformProxyProfiles({
+      t,
+      autoLoad: false,
+      currentUserRole: 'USER',
+      listPlatformProxyAssetCandidates,
+    })
+
+    const result = await workspace.loadAssetCandidates(1)
+
+    expect(result).toBe(false)
+    expect(workspace.accessDenied.value).toBe(true)
+    expect(listPlatformProxyAssetCandidates).not.toHaveBeenCalled()
   })
 
   it('hydrates edit form without prefilled password', async () => {

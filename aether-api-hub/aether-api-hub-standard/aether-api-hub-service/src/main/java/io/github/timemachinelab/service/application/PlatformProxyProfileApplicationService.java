@@ -10,7 +10,10 @@ import io.github.timemachinelab.service.model.AssetProxyBindingModel;
 import io.github.timemachinelab.service.model.BindProxyProfileCommand;
 import io.github.timemachinelab.service.model.CreatePlatformProxyProfileCommand;
 import io.github.timemachinelab.service.model.GetPlatformProxyProfileQuery;
+import io.github.timemachinelab.service.model.ListPlatformProxyAssetCandidateQuery;
 import io.github.timemachinelab.service.model.ListPlatformProxyProfileQuery;
+import io.github.timemachinelab.service.model.PlatformProxyAssetCandidateModel;
+import io.github.timemachinelab.service.model.PlatformProxyAssetCandidatePageResult;
 import io.github.timemachinelab.service.model.PlatformProxyProfileModel;
 import io.github.timemachinelab.service.model.PlatformProxyProfilePageResult;
 import io.github.timemachinelab.service.model.PlatformProxyProfileStateCommand;
@@ -18,6 +21,7 @@ import io.github.timemachinelab.service.model.UnbindProxyProfileCommand;
 import io.github.timemachinelab.service.model.UpdatePlatformProxyProfileCommand;
 import io.github.timemachinelab.service.port.in.PlatformProxyProfileUseCase;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
+import io.github.timemachinelab.service.port.out.PlatformProxyAssetCandidateQueryPort;
 import io.github.timemachinelab.service.port.out.PlatformProxyProfileRepositoryPort;
 
 import java.time.Instant;
@@ -35,12 +39,15 @@ public class PlatformProxyProfileApplicationService implements PlatformProxyProf
 
     private final PlatformProxyProfileRepositoryPort proxyProfileRepositoryPort;
     private final ApiAssetRepositoryPort apiAssetRepositoryPort;
+    private final PlatformProxyAssetCandidateQueryPort assetCandidateQueryPort;
 
     public PlatformProxyProfileApplicationService(
             PlatformProxyProfileRepositoryPort proxyProfileRepositoryPort,
-            ApiAssetRepositoryPort apiAssetRepositoryPort) {
+            ApiAssetRepositoryPort apiAssetRepositoryPort,
+            PlatformProxyAssetCandidateQueryPort assetCandidateQueryPort) {
         this.proxyProfileRepositoryPort = proxyProfileRepositoryPort;
         this.apiAssetRepositoryPort = apiAssetRepositoryPort;
+        this.assetCandidateQueryPort = assetCandidateQueryPort;
     }
 
     @Override
@@ -58,6 +65,30 @@ public class PlatformProxyProfileApplicationService implements PlatformProxyProf
                 page,
                 size,
                 proxyProfileRepositoryPort.count(query.getEnabled(), normalizeOptional(query.getKeyword()))
+        );
+    }
+
+    @Override
+    public PlatformProxyAssetCandidatePageResult listAssetBindingCandidates(
+            ListPlatformProxyAssetCandidateQuery query) {
+        requireAdmin(query.getActorRole());
+        int page = Math.max(1, query.getPage());
+        int size = Math.max(1, Math.min(query.getSize(), 100));
+        String keyword = normalizeOptional(query.getKeyword());
+        String status = normalizeOptional(query.getStatus());
+        String boundProfileId = normalizeOptional(query.getBoundProfileId());
+        List<PlatformProxyAssetCandidateModel> items = assetCandidateQueryPort.findPage(
+                keyword,
+                status,
+                boundProfileId,
+                page,
+                size
+        );
+        return new PlatformProxyAssetCandidatePageResult(
+                items,
+                page,
+                size,
+                assetCandidateQueryPort.count(keyword, status, boundProfileId)
         );
     }
 

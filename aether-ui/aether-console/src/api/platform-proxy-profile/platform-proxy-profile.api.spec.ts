@@ -18,6 +18,7 @@ import {
   disablePlatformProxyProfile,
   enablePlatformProxyProfile,
   getPlatformProxyProfile,
+  listPlatformProxyAssetCandidates,
   listPlatformProxyProfiles,
   unbindProxyProfileFromAsset,
   updatePlatformProxyProfile,
@@ -155,5 +156,81 @@ describe('platform proxy profile api', () => {
     )
     expect(bound.proxyProfileId).toBe('proxy-1')
     expect(unbound.proxyProfileId).toBeNull()
+  })
+
+  it('maps asset binding candidates with safe whitelisted fields only', async () => {
+    mockedGet.mockResolvedValueOnce({
+      data: {
+        items: [
+          {
+            apiCode: 'weather-api',
+            assetName: 'Weather API',
+            assetType: 'STANDARD_API',
+            status: 'PUBLISHED',
+            publisherDisplayName: 'Operations Team',
+            proxyProfileId: 'proxy-1',
+            proxyProfileCode: 'corp-egress',
+            proxyProfileName: 'Corporate egress',
+            createdAt: '2026-05-08T00:00:00Z',
+            updatedAt: '2026-05-08T01:00:00Z',
+            proxyHost: 'proxy.internal',
+            proxyPort: 8080,
+            username: 'operator',
+            password: 'secret',
+            authConfig: 'Authorization: Bearer token',
+            requestTemplate: '{"secret":true}',
+            requestExample: '{"token":"secret"}',
+          },
+        ],
+        page: 2,
+        size: 5,
+        total: 8,
+      },
+    })
+
+    const result = await listPlatformProxyAssetCandidates({
+      keyword: 'weather',
+      status: 'PUBLISHED',
+      boundProfileId: 'proxy-1',
+      page: 2,
+      size: 5,
+    })
+
+    expect(mockedGet).toHaveBeenCalledWith('v1/platform/proxy-profiles/asset-binding-candidates', {
+      params: {
+        keyword: 'weather',
+        status: 'PUBLISHED',
+        boundProfileId: 'proxy-1',
+        page: 2,
+        size: 5,
+      },
+    })
+    expect(result).toEqual({
+      items: [
+        {
+          apiCode: 'weather-api',
+          assetName: 'Weather API',
+          assetType: 'STANDARD_API',
+          status: 'PUBLISHED',
+          publisherDisplayName: 'Operations Team',
+          proxyProfileId: 'proxy-1',
+          proxyProfileCode: 'corp-egress',
+          proxyProfileName: 'Corporate egress',
+          createdAt: '2026-05-08T00:00:00Z',
+          updatedAt: '2026-05-08T01:00:00Z',
+        },
+      ],
+      page: 2,
+      pageSize: 5,
+      total: 8,
+    })
+    const candidate = result.items[0]
+    expect(candidate).not.toHaveProperty('proxyHost')
+    expect(candidate).not.toHaveProperty('proxyPort')
+    expect(candidate).not.toHaveProperty('username')
+    expect(candidate).not.toHaveProperty('password')
+    expect(candidate).not.toHaveProperty('authConfig')
+    expect(candidate).not.toHaveProperty('requestTemplate')
+    expect(candidate).not.toHaveProperty('requestExample')
   })
 })

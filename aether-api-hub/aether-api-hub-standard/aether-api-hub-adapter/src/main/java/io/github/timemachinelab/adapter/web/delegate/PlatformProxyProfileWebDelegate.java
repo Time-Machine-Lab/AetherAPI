@@ -2,15 +2,21 @@ package io.github.timemachinelab.adapter.web.delegate;
 
 import io.github.timemachinelab.api.req.BindProxyProfileReq;
 import io.github.timemachinelab.api.req.CreatePlatformProxyProfileReq;
+import io.github.timemachinelab.api.req.ListPlatformProxyAssetCandidateReq;
 import io.github.timemachinelab.api.req.UpdatePlatformProxyProfileReq;
 import io.github.timemachinelab.api.resp.AssetProxyBindingResp;
+import io.github.timemachinelab.api.resp.PlatformProxyAssetCandidatePageResp;
+import io.github.timemachinelab.api.resp.PlatformProxyAssetCandidateResp;
 import io.github.timemachinelab.api.resp.PlatformProxyProfilePageResp;
 import io.github.timemachinelab.api.resp.PlatformProxyProfileResp;
 import io.github.timemachinelab.service.model.AssetProxyBindingModel;
 import io.github.timemachinelab.service.model.BindProxyProfileCommand;
 import io.github.timemachinelab.service.model.CreatePlatformProxyProfileCommand;
 import io.github.timemachinelab.service.model.GetPlatformProxyProfileQuery;
+import io.github.timemachinelab.service.model.ListPlatformProxyAssetCandidateQuery;
 import io.github.timemachinelab.service.model.ListPlatformProxyProfileQuery;
+import io.github.timemachinelab.service.model.PlatformProxyAssetCandidateModel;
+import io.github.timemachinelab.service.model.PlatformProxyAssetCandidatePageResult;
 import io.github.timemachinelab.service.model.PlatformProxyProfileModel;
 import io.github.timemachinelab.service.model.PlatformProxyProfilePageResult;
 import io.github.timemachinelab.service.model.PlatformProxyProfileStateCommand;
@@ -35,6 +41,26 @@ public class PlatformProxyProfileWebDelegate {
         PlatformProxyProfilePageResult result = useCase.listProfiles(
                 new ListPlatformProxyProfileQuery(role, enabled, keyword, page, size));
         return new PlatformProxyProfilePageResp(
+                result.getItems().stream().map(this::toResp).toList(),
+                result.getPage(),
+                result.getSize(),
+                result.getTotal()
+        );
+    }
+
+    public PlatformProxyAssetCandidatePageResp listAssetBindingCandidates(
+            String role,
+            ListPlatformProxyAssetCandidateReq req) {
+        PlatformProxyAssetCandidatePageResult result = useCase.listAssetBindingCandidates(
+                new ListPlatformProxyAssetCandidateQuery(
+                        role,
+                        req.getKeyword(),
+                        req.getStatus(),
+                        req.getBoundProfileId(),
+                        req.getPage(),
+                        req.getSize()
+                ));
+        return new PlatformProxyAssetCandidatePageResp(
                 result.getItems().stream().map(this::toResp).toList(),
                 result.getPage(),
                 result.getSize(),
@@ -118,6 +144,21 @@ public class PlatformProxyProfileWebDelegate {
                 model.getProxyProfileId(),
                 model.getProxyProfileCode(),
                 model.getProxyProfileName()
+        );
+    }
+
+    private PlatformProxyAssetCandidateResp toResp(PlatformProxyAssetCandidateModel model) {
+        return new PlatformProxyAssetCandidateResp(
+                model.getApiCode(),
+                model.getAssetName(),
+                model.getAssetType(),
+                model.getStatus(),
+                model.getPublisherDisplayName(),
+                model.getProxyProfileId(),
+                model.getProxyProfileCode(),
+                model.getProxyProfileName(),
+                model.getCreatedAt(),
+                model.getUpdatedAt()
         );
     }
 }

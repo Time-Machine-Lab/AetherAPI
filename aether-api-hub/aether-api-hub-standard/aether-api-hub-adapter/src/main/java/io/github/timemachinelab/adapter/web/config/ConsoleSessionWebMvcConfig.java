@@ -30,6 +30,7 @@ public class ConsoleSessionWebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(consoleSessionAuthInterceptor)
                 .addPathPatterns(
                         "/api/v1/current-user/**",
+                        "/api/v1/platform/proxy-profiles/**",
                         "/api/v1/console/auth/current-session"
                 );
     }

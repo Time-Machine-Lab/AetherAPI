@@ -6,13 +6,16 @@ import {
   disablePlatformProxyProfile,
   enablePlatformProxyProfile,
   getPlatformProxyProfile,
+  listPlatformProxyAssetCandidates,
   listPlatformProxyProfiles,
   unbindProxyProfileFromAsset,
   updatePlatformProxyProfile,
 } from '@/api/platform-proxy-profile/platform-proxy-profile.api'
 import type {
   AssetProxyBinding,
+  ListPlatformProxyAssetCandidatesQuery,
   ListPlatformProxyProfilesQuery,
+  PlatformProxyAssetCandidate,
   PlatformProxyProfile,
   SavePlatformProxyProfileBody,
 } from '@/api/platform-proxy-profile/platform-proxy-profile.types'
@@ -23,6 +26,7 @@ interface PlatformProxyDeps {
   currentUserRole?: string | null | Ref<string | null | undefined>
   isPlatformAdminRole: typeof isPlatformAdminRole
   listPlatformProxyProfiles: typeof listPlatformProxyProfiles
+  listPlatformProxyAssetCandidates: typeof listPlatformProxyAssetCandidates
   getPlatformProxyProfile: typeof getPlatformProxyProfile
   createPlatformProxyProfile: typeof createPlatformProxyProfile
   updatePlatformProxyProfile: typeof updatePlatformProxyProfile
@@ -41,6 +45,7 @@ function buildDeps(options: PlatformProxyOptions): PlatformProxyDeps {
   return {
     isPlatformAdminRole,
     listPlatformProxyProfiles,
+    listPlatformProxyAssetCandidates,
     getPlatformProxyProfile,
     createPlatformProxyProfile,
     updatePlatformProxyProfile,
@@ -103,6 +108,14 @@ export function usePlatformProxyProfiles(options: PlatformProxyOptions) {
   const bindingResult = ref<AssetProxyBinding | null>(null)
   const bindingLoading = ref(false)
   const bindingError = ref('')
+  const assetCandidateKeyword = ref('')
+  const assetCandidates = ref<PlatformProxyAssetCandidate[]>([])
+  const assetCandidatePage = ref(1)
+  const assetCandidatePageSize = 10
+  const assetCandidateTotal = ref(0)
+  const assetCandidateLoading = ref(false)
+  const assetCandidateError = ref('')
+  const selectedAssetCandidate = ref<PlatformProxyAssetCandidate | null>(null)
 
   const enabledProfiles = computed(() =>
     profiles.value.filter((profile) => profile.enabled && !profile.deleted),
@@ -132,6 +145,10 @@ export function usePlatformProxyProfiles(options: PlatformProxyOptions) {
     return Math.max(1, Math.ceil(total.value / pageSize))
   }
 
+  function assetCandidateTotalPages() {
+    return Math.max(1, Math.ceil(assetCandidateTotal.value / assetCandidatePageSize))
+  }
+
   function buildListQuery(nextPage: number): ListPlatformProxyProfilesQuery {
     return {
       page: nextPage,
@@ -139,6 +156,16 @@ export function usePlatformProxyProfiles(options: PlatformProxyOptions) {
       ...(filterKeyword.value.trim() && { keyword: filterKeyword.value.trim() }),
       ...(filterEnabled.value === 'enabled' && { enabled: true }),
       ...(filterEnabled.value === 'disabled' && { enabled: false }),
+    }
+  }
+
+  function buildAssetCandidateQuery(nextPage: number): ListPlatformProxyAssetCandidatesQuery {
+    return {
+      page: nextPage,
+      size: assetCandidatePageSize,
+      ...(assetCandidateKeyword.value.trim() && {
+        keyword: assetCandidateKeyword.value.trim(),
+      }),
     }
   }
 
@@ -207,6 +234,34 @@ export function usePlatformProxyProfiles(options: PlatformProxyOptions) {
     } finally {
       listLoading.value = false
     }
+  }
+
+  async function loadAssetCandidates(nextPage = 1) {
+    if (!canUsePlatformProxy.value) {
+      accessDenied.value = true
+      return false
+    }
+    assetCandidateLoading.value = true
+    assetCandidateError.value = ''
+    accessDenied.value = false
+    try {
+      const result = await deps.listPlatformProxyAssetCandidates(buildAssetCandidateQuery(nextPage))
+      assetCandidates.value = result.items
+      assetCandidateTotal.value = result.total
+      assetCandidatePage.value = result.page
+      return true
+    } catch (error) {
+      handleAccessError(error)
+      assetCandidateError.value = deps.t('console.platformProxy.errors.loadAssetCandidates')
+      return false
+    } finally {
+      assetCandidateLoading.value = false
+    }
+  }
+
+  function selectAssetCandidate(candidate: PlatformProxyAssetCandidate) {
+    selectedAssetCandidate.value = candidate
+    bindingApiCode.value = candidate.apiCode
   }
 
   async function selectProfile(profileId: string) {
@@ -369,11 +424,22 @@ export function usePlatformProxyProfiles(options: PlatformProxyOptions) {
     bindingResult,
     bindingLoading,
     bindingError,
+    assetCandidateKeyword,
+    assetCandidates,
+    assetCandidatePage,
+    assetCandidatePageSize,
+    assetCandidateTotal,
+    assetCandidateLoading,
+    assetCandidateError,
+    selectedAssetCandidate,
     enabledProfiles,
     selectedBindingProfile,
     canBind,
     totalPages,
+    assetCandidateTotalPages,
     loadProfiles,
+    loadAssetCandidates,
+    selectAssetCandidate,
     selectProfile,
     openCreateForm,
     openEditForm,

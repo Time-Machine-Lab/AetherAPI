@@ -14,8 +14,12 @@ import FieldGroup from '@/components/console/FieldGroup.vue'
 import FieldLabel from '@/components/console/FieldLabel.vue'
 import MetaItem from '@/components/console/MetaItem.vue'
 import StateBlock from '@/components/console/StateBlock.vue'
-import type { PlatformProxyProfile } from '@/api/platform-proxy-profile/platform-proxy-profile.types'
-import type { DisplayTone } from '@/utils/visual-system'
+import type {
+  PlatformProxyAssetCandidate,
+  PlatformProxyAssetStatus,
+  PlatformProxyProfile,
+} from '@/api/platform-proxy-profile/platform-proxy-profile.types'
+import { assetTypeTone, type DisplayTone } from '@/utils/visual-system'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -49,6 +53,26 @@ function credentialTone(profile: PlatformProxyProfile): DisplayTone {
   return profile.credentialConfigured ? 'info' : 'neutral'
 }
 
+function assetStatusLabel(status: PlatformProxyAssetStatus) {
+  if (status === 'PUBLISHED') return t('console.workspace.published')
+  if (status === 'UNPUBLISHED') return t('console.workspace.unpublished')
+  return t('console.workspace.draft')
+}
+
+function assetStatusTone(status: PlatformProxyAssetStatus): DisplayTone {
+  if (status === 'PUBLISHED') return 'success'
+  if (status === 'UNPUBLISHED') return 'warning'
+  return 'neutral'
+}
+
+function candidateBindingLabel(candidate: PlatformProxyAssetCandidate) {
+  return (
+    candidate.proxyProfileName ||
+    candidate.proxyProfileCode ||
+    t('console.platformProxy.assetCandidateUnbound')
+  )
+}
+
 function formatDateTime(value?: string | null) {
   if (!value) return ''
   try {
@@ -60,6 +84,10 @@ function formatDateTime(value?: string | null) {
 
 async function submitSearch() {
   await proxy.loadProfiles(1)
+}
+
+async function submitAssetCandidateSearch() {
+  await proxy.loadAssetCandidates(1)
 }
 
 async function selectProfile(profile: PlatformProxyProfile) {
@@ -337,6 +365,136 @@ async function confirmDelete(profile: PlatformProxyProfile) {
             <CardDescription>{{ t('console.platformProxy.bindingDescription') }}</CardDescription>
           </CardHeader>
           <CardContent class="space-y-4">
+            <div class="space-y-3">
+              <FieldLabel
+                :label="t('console.platformProxy.assetCandidateSearchTitle')"
+                :hint="t('console.platformProxy.assetCandidateSearchHint')"
+                optional
+              />
+              <div class="flex flex-wrap gap-2">
+                <div class="relative min-w-[180px] flex-1">
+                  <Search
+                    class="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                  />
+                  <Input
+                    v-model="proxy.assetCandidateKeyword.value"
+                    :placeholder="t('console.platformProxy.assetCandidateSearchPlaceholder')"
+                    class="pl-10"
+                    @keydown.enter.prevent="submitAssetCandidateSearch"
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  :disabled="proxy.assetCandidateLoading.value"
+                  @click="submitAssetCandidateSearch"
+                >
+                  <Search class="size-4" />
+                  {{ t('console.platformProxy.assetCandidateSearch') }}
+                </Button>
+              </div>
+
+              <StateBlock
+                v-if="proxy.assetCandidateLoading.value"
+                tone="loading"
+                :title="t('console.platformProxy.assetCandidateLoading')"
+              />
+              <StateBlock
+                v-else-if="proxy.assetCandidateError.value"
+                tone="error"
+                :title="proxy.assetCandidateError.value"
+              />
+              <StateBlock
+                v-else-if="
+                  proxy.assetCandidateKeyword.value.trim() &&
+                  proxy.assetCandidates.value.length === 0
+                "
+                tone="empty"
+                :title="t('console.platformProxy.assetCandidateEmpty')"
+              />
+              <div v-else-if="proxy.assetCandidates.value.length > 0" class="space-y-2">
+                <DataListRow
+                  v-for="candidate in proxy.assetCandidates.value"
+                  :key="candidate.apiCode"
+                  as="button"
+                  :selected="proxy.selectedAssetCandidate.value?.apiCode === candidate.apiCode"
+                  @click="proxy.selectAssetCandidate(candidate)"
+                >
+                  <template #title>
+                    <p class="truncate text-sm font-medium text-foreground">
+                      {{ candidate.assetName || candidate.apiCode }}
+                    </p>
+                  </template>
+                  <template #description>
+                    <p class="text-xs text-muted-foreground">
+                      {{ candidate.apiCode }}
+                    </p>
+                  </template>
+                  <template #meta>
+                    <MetaItem
+                      :label="t('console.platformProxy.assetCandidatePublisher')"
+                      :value="candidate.publisherDisplayName"
+                    />
+                    <MetaItem
+                      :label="t('console.platformProxy.assetCandidateCurrentBinding')"
+                      :value="candidateBindingLabel(candidate)"
+                    />
+                  </template>
+                  <template #tags>
+                    <DisplayTag
+                      :tone="assetTypeTone(candidate.assetType)"
+                      :label="candidate.assetType"
+                    />
+                    <DisplayTag
+                      :tone="assetStatusTone(candidate.status)"
+                      :label="assetStatusLabel(candidate.status)"
+                    />
+                  </template>
+                  <template #actions>
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      @click.stop="proxy.selectAssetCandidate(candidate)"
+                    >
+                      {{ t('console.platformProxy.assetCandidateSelect') }}
+                    </Button>
+                  </template>
+                </DataListRow>
+
+                <div class="flex items-center justify-between pt-2 text-xs text-muted-foreground">
+                  <span>{{
+                    t('console.platformProxy.assetCandidatePageSummary', {
+                      page: proxy.assetCandidatePage.value,
+                      totalPages: proxy.assetCandidateTotalPages(),
+                      total: proxy.assetCandidateTotal.value,
+                    })
+                  }}</span>
+                  <div class="flex gap-1">
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      :disabled="
+                        proxy.assetCandidatePage.value <= 1 || proxy.assetCandidateLoading.value
+                      "
+                      @click="proxy.loadAssetCandidates(proxy.assetCandidatePage.value - 1)"
+                    >
+                      {{ t('console.platformProxy.prev') }}
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      :disabled="
+                        proxy.assetCandidatePage.value >= proxy.assetCandidateTotalPages() ||
+                        proxy.assetCandidateLoading.value
+                      "
+                      @click="proxy.loadAssetCandidates(proxy.assetCandidatePage.value + 1)"
+                    >
+                      {{ t('console.platformProxy.next') }}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="space-y-2">
               <FieldLabel :label="t('console.platformProxy.bindingApiCode')" required />
               <Input v-model="proxy.bindingApiCode.value" />

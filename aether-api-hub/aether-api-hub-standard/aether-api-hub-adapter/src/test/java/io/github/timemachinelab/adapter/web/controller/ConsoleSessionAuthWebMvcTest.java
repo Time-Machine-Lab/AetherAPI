@@ -3,11 +3,13 @@ package io.github.timemachinelab.adapter.web.controller;
 import io.github.timemachinelab.adapter.web.delegate.ApiCallLogWebDelegate;
 import io.github.timemachinelab.adapter.web.delegate.ApiCredentialWebDelegate;
 import io.github.timemachinelab.adapter.web.delegate.ConsoleAuthWebDelegate;
+import io.github.timemachinelab.adapter.web.delegate.PlatformProxyProfileWebDelegate;
 import io.github.timemachinelab.adapter.web.delegate.UnifiedAccessWebDelegate;
 import io.github.timemachinelab.adapter.web.handler.GlobalExceptionHandler;
 import io.github.timemachinelab.adapter.web.interceptor.ConsoleSessionAuthInterceptor;
 import io.github.timemachinelab.adapter.web.resolver.ConsoleSessionPrincipalArgumentResolver;
 import io.github.timemachinelab.api.error.CatalogErrorCodes;
+import io.github.timemachinelab.api.resp.PlatformProxyAssetCandidatePageResp;
 import io.github.timemachinelab.domain.consumerauth.model.ConsumerAuthDomainException;
 import io.github.timemachinelab.service.application.ConsoleSessionAuthApplicationService;
 import io.github.timemachinelab.service.model.ConsoleSignInCommand;
@@ -24,8 +26,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -154,17 +160,62 @@ class ConsoleSessionAuthWebMvcTest {
     }
 
     @Test
+    @DisplayName("platform proxy profile endpoint should resolve administrator role from console token")
+    void shouldResolveRoleForPlatformProxyProfiles() throws Exception {
+        PlatformProxyProfileWebDelegate proxyProfileDelegate = mock(PlatformProxyProfileWebDelegate.class);
+        when(proxyProfileDelegate.listProfiles(eq("OWNER"), eq(null), eq(null), eq(1), eq(20))).thenReturn(null);
+        MockMvc mockMvc = buildMockMvc(
+                mock(ApiCredentialWebDelegate.class),
+                mock(ApiCallLogWebDelegate.class),
+                mock(UnifiedAccessWebDelegate.class),
+                proxyProfileDelegate
+        );
+
+        mockMvc.perform(get("/api/v1/platform/proxy-profiles")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + issueToken()))
+                .andExpect(status().isOk());
+
+        verify(proxyProfileDelegate).listProfiles("OWNER", null, null, 1, 20);
+    }
+
+    @Test
+    @DisplayName("platform proxy asset candidate endpoint should resolve administrator role from console token")
+    void shouldResolveRoleForPlatformProxyAssetCandidates() throws Exception {
+        PlatformProxyProfileWebDelegate proxyProfileDelegate = mock(PlatformProxyProfileWebDelegate.class);
+        when(proxyProfileDelegate.listAssetBindingCandidates(
+                eq("OWNER"),
+                org.mockito.ArgumentMatchers.argThat(req -> "weather".equals(req.getKeyword()))))
+                .thenReturn(new PlatformProxyAssetCandidatePageResp(List.of(), 1, 20, 0L));
+        MockMvc mockMvc = buildMockMvc(
+                mock(ApiCredentialWebDelegate.class),
+                mock(ApiCallLogWebDelegate.class),
+                mock(UnifiedAccessWebDelegate.class),
+                proxyProfileDelegate
+        );
+
+        mockMvc.perform(get("/api/v1/platform/proxy-profiles/asset-binding-candidates")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + issueToken())
+                        .param("keyword", "weather"))
+                .andExpect(status().isOk());
+
+        verify(proxyProfileDelegate).listAssetBindingCandidates(
+                eq("OWNER"),
+                org.mockito.ArgumentMatchers.argThat(req -> "weather".equals(req.getKeyword())));
+    }
+
+    @Test
     @DisplayName("unified access unknown api should return platform failure response")
     void shouldReturnUnifiedAccessPlatformFailureForUnknownApi() throws Exception {
         UnifiedAccessWebDelegate unifiedAccessDelegate = mock(UnifiedAccessWebDelegate.class);
-        when(unifiedAccessDelegate.invoke(eq("unknown-api"), eq("GET"), any(), any(), eq(null), eq(null)))
-                .thenThrow(new UnifiedAccessPlatformFailureException(new UnifiedAccessPlatformFailureModel(
+        doThrow(new UnifiedAccessPlatformFailureException(new UnifiedAccessPlatformFailureModel(
                         CatalogErrorCodes.ASSET_NOT_FOUND,
                         "Asset not found: unknown-api",
                         PlatformPreForwardFailureType.TARGET_NOT_FOUND,
                         "unknown-api",
                         404
-                )));
+                )))
+                .when(unifiedAccessDelegate)
+                .invokeToResponse(eq("unknown-api"), eq("GET"), any(), any(), isNull(), isNull(), any());
         MockMvc mockMvc = buildMockMvc(
                 mock(ApiCredentialWebDelegate.class),
                 mock(ApiCallLogWebDelegate.class),
@@ -183,6 +234,19 @@ class ConsoleSessionAuthWebMvcTest {
             ApiCredentialWebDelegate credentialDelegate,
             ApiCallLogWebDelegate callLogDelegate,
             UnifiedAccessWebDelegate unifiedAccessDelegate) {
+        return buildMockMvc(
+                credentialDelegate,
+                callLogDelegate,
+                unifiedAccessDelegate,
+                mock(PlatformProxyProfileWebDelegate.class)
+        );
+    }
+
+    private MockMvc buildMockMvc(
+            ApiCredentialWebDelegate credentialDelegate,
+            ApiCallLogWebDelegate callLogDelegate,
+            UnifiedAccessWebDelegate unifiedAccessDelegate,
+            PlatformProxyProfileWebDelegate proxyProfileDelegate) {
         ConsoleSessionAuthApplicationService useCase = new ConsoleSessionAuthApplicationService(settingsPort);
         ConsoleAuthWebDelegate consoleAuthWebDelegate = new ConsoleAuthWebDelegate(useCase);
         ConsoleSessionPrincipalArgumentResolver argumentResolver = new ConsoleSessionPrincipalArgumentResolver();
@@ -192,7 +256,8 @@ class ConsoleSessionAuthWebMvcTest {
                         new ConsoleAuthController(consoleAuthWebDelegate),
                         new ApiCredentialController(credentialDelegate),
                         new ApiCallLogController(callLogDelegate),
-                        new UnifiedAccessController(unifiedAccessDelegate))
+                        new UnifiedAccessController(unifiedAccessDelegate),
+                        new PlatformProxyProfileController(proxyProfileDelegate))
                 .setCustomArgumentResolvers(argumentResolver)
                 .addInterceptors(new PathScopedInterceptor(authInterceptor))
                 .setControllerAdvice(new GlobalExceptionHandler())
@@ -262,6 +327,8 @@ class ConsoleSessionAuthWebMvcTest {
         public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
             String requestUri = request.getRequestURI();
             if (requestUri != null && (requestUri.startsWith("/api/v1/current-user/")
+                    || requestUri.startsWith("/api/v1/platform/proxy-profiles/")
+                    || "/api/v1/platform/proxy-profiles".equals(requestUri)
                     || "/api/v1/console/auth/current-session".equals(requestUri))) {
                 return delegate.preHandle(request, response, handler);
             }

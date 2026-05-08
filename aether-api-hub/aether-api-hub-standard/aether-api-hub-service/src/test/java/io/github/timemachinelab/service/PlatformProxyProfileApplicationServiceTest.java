@@ -12,8 +12,12 @@ import io.github.timemachinelab.service.application.PlatformProxyProfileApplicat
 import io.github.timemachinelab.service.model.AssetProxyBindingModel;
 import io.github.timemachinelab.service.model.BindProxyProfileCommand;
 import io.github.timemachinelab.service.model.CreatePlatformProxyProfileCommand;
+import io.github.timemachinelab.service.model.ListPlatformProxyAssetCandidateQuery;
+import io.github.timemachinelab.service.model.PlatformProxyAssetCandidateModel;
+import io.github.timemachinelab.service.model.PlatformProxyAssetCandidatePageResult;
 import io.github.timemachinelab.service.model.PlatformProxyProfileModel;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
+import io.github.timemachinelab.service.port.out.PlatformProxyAssetCandidateQueryPort;
 import io.github.timemachinelab.service.port.out.PlatformProxyProfileRepositoryPort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,7 +39,8 @@ class PlatformProxyProfileApplicationServiceTest {
         InMemoryProxyProfileRepositoryPort profiles = new InMemoryProxyProfileRepositoryPort();
         PlatformProxyProfileApplicationService service = new PlatformProxyProfileApplicationService(
                 profiles,
-                new InMemoryApiAssetRepositoryPort()
+                new InMemoryApiAssetRepositoryPort(),
+                new InMemoryPlatformProxyAssetCandidateQueryPort()
         );
 
         CreatePlatformProxyProfileCommand command = createCommand("USER");
@@ -72,7 +77,11 @@ class PlatformProxyProfileApplicationServiceTest {
                 AssetType.STANDARD_API,
                 "Weather Forecast"
         ));
-        PlatformProxyProfileApplicationService service = new PlatformProxyProfileApplicationService(profiles, assets);
+        PlatformProxyProfileApplicationService service = new PlatformProxyProfileApplicationService(
+                profiles,
+                assets,
+                new InMemoryPlatformProxyAssetCandidateQueryPort()
+        );
 
         assertThrows(PlatformProxyProfileDomainException.class, () -> service.bindProxyProfile(
                 new BindProxyProfileCommand("OWNER", "weather-forecast", disabled.getId().getValue())));
@@ -104,13 +113,53 @@ class PlatformProxyProfileApplicationServiceTest {
                 AssetType.STANDARD_API,
                 "Weather Forecast"
         ));
-        PlatformProxyProfileApplicationService service = new PlatformProxyProfileApplicationService(profiles, assets);
+        PlatformProxyProfileApplicationService service = new PlatformProxyProfileApplicationService(
+                profiles,
+                assets,
+                new InMemoryPlatformProxyAssetCandidateQueryPort()
+        );
 
         AssetProxyBindingModel binding = service.bindProxyProfile(
                 new BindProxyProfileCommand("OWNER", "weather-forecast", profile.getId().getValue()));
 
         assertEquals(profile.getId().getValue(), binding.getProxyProfileId());
         assertEquals(profile.getId().getValue(), assets.findByCode(ApiCode.of("weather-forecast")).orElseThrow().getProxyProfileId());
+    }
+
+    @Test
+    @DisplayName("asset candidate search should require admin and normalize filters and pagination")
+    void shouldSearchAssetBindingCandidatesWithAdminAndNormalizedFilters() {
+        InMemoryPlatformProxyAssetCandidateQueryPort candidates = new InMemoryPlatformProxyAssetCandidateQueryPort();
+        candidates.items.add(new PlatformProxyAssetCandidateModel(
+                "weather-forecast",
+                "Weather Forecast",
+                "STANDARD_API",
+                "PUBLISHED",
+                "Owner",
+                "profile-1",
+                "default-cn",
+                "Default CN",
+                "2026-05-01T08:00:00Z",
+                "2026-05-02T08:00:00Z"
+        ));
+        PlatformProxyProfileApplicationService service = new PlatformProxyProfileApplicationService(
+                new InMemoryProxyProfileRepositoryPort(),
+                new InMemoryApiAssetRepositoryPort(),
+                candidates
+        );
+
+        assertThrows(PlatformProxyProfileDomainException.class, () -> service.listAssetBindingCandidates(
+                new ListPlatformProxyAssetCandidateQuery("USER", "weather", "PUBLISHED", "profile-1", 1, 20)));
+
+        PlatformProxyAssetCandidatePageResult result = service.listAssetBindingCandidates(
+                new ListPlatformProxyAssetCandidateQuery("OWNER", " weather ", " PUBLISHED ", " profile-1 ", 0, 200));
+
+        assertEquals(1, result.getItems().size());
+        assertEquals(1, result.getPage());
+        assertEquals(100, result.getSize());
+        assertEquals("weather", candidates.lastKeyword);
+        assertEquals("PUBLISHED", candidates.lastStatus);
+        assertEquals("profile-1", candidates.lastBoundProfileId);
     }
 
     private CreatePlatformProxyProfileCommand createCommand(String role) {
@@ -184,6 +233,36 @@ class PlatformProxyProfileApplicationServiceTest {
         @Override
         public void save(ApiAssetAggregate aggregate) {
             assets.put(aggregate.getCode().getValue(), aggregate);
+        }
+    }
+
+    private static final class InMemoryPlatformProxyAssetCandidateQueryPort
+            implements PlatformProxyAssetCandidateQueryPort {
+
+        private final List<PlatformProxyAssetCandidateModel> items = new java.util.ArrayList<>();
+        private String lastKeyword;
+        private String lastStatus;
+        private String lastBoundProfileId;
+
+        @Override
+        public List<PlatformProxyAssetCandidateModel> findPage(
+                String keyword,
+                String status,
+                String boundProfileId,
+                int page,
+                int size) {
+            lastKeyword = keyword;
+            lastStatus = status;
+            lastBoundProfileId = boundProfileId;
+            return items;
+        }
+
+        @Override
+        public long count(String keyword, String status, String boundProfileId) {
+            lastKeyword = keyword;
+            lastStatus = status;
+            lastBoundProfileId = boundProfileId;
+            return items.size();
         }
     }
 }

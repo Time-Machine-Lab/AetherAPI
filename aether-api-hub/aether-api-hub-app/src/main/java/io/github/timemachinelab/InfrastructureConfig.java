@@ -52,6 +52,7 @@ import io.github.timemachinelab.service.port.out.CatalogDiscoveryQueryPort;
 import io.github.timemachinelab.service.port.out.CategoryRepositoryPort;
 import io.github.timemachinelab.service.port.out.ConsoleSessionSettingsPort;
 import io.github.timemachinelab.service.port.out.ConsumerIdentityRepositoryPort;
+import io.github.timemachinelab.service.port.out.PlatformProxyAssetCandidateQueryPort;
 import io.github.timemachinelab.service.port.out.PlatformProxyProfileRepositoryPort;
 import io.github.timemachinelab.service.port.out.UnifiedAccessDownstreamProxyPort;
 import io.github.timemachinelab.service.port.out.UserConsumerMappingRepositoryPort;
@@ -215,8 +216,13 @@ public class InfrastructureConfig {
     @Bean
     public PlatformProxyProfileUseCase platformProxyProfileUseCase(
             PlatformProxyProfileRepositoryPort platformProxyProfileRepositoryPort,
-            ApiAssetRepositoryPort apiAssetRepositoryPort) {
-        return new PlatformProxyProfileApplicationService(platformProxyProfileRepositoryPort, apiAssetRepositoryPort);
+            ApiAssetRepositoryPort apiAssetRepositoryPort,
+            PlatformProxyAssetCandidateQueryPort assetCandidateQueryPort) {
+        return new PlatformProxyProfileApplicationService(
+                platformProxyProfileRepositoryPort,
+                apiAssetRepositoryPort,
+                assetCandidateQueryPort
+        );
     }
 
     @Bean

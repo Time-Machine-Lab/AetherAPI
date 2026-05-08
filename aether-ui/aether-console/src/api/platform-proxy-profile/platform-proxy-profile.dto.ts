@@ -52,3 +52,34 @@ export interface ListPlatformProxyProfilesQueryDto {
   page?: number
   size?: number
 }
+
+export type PlatformProxyAssetStatusDto = 'DRAFT' | 'PUBLISHED' | 'UNPUBLISHED'
+export type PlatformProxyAssetTypeDto = 'STANDARD_API' | 'AI_API'
+
+export interface ListPlatformProxyAssetCandidatesQueryDto {
+  keyword?: string
+  status?: PlatformProxyAssetStatusDto
+  boundProfileId?: string
+  page?: number
+  size?: number
+}
+
+export interface PlatformProxyAssetCandidateRespDto {
+  apiCode?: string
+  assetName?: string | null
+  assetType?: PlatformProxyAssetTypeDto
+  status?: PlatformProxyAssetStatusDto
+  publisherDisplayName?: string | null
+  proxyProfileId?: string | null
+  proxyProfileCode?: string | null
+  proxyProfileName?: string | null
+  createdAt?: string | null
+  updatedAt?: string | null
+}
+
+export interface PlatformProxyAssetCandidatePageRespDto {
+  items?: PlatformProxyAssetCandidateRespDto[]
+  page?: number
+  size?: number
+  total?: number
+}

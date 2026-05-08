@@ -4,8 +4,10 @@ import io.github.timemachinelab.adapter.web.auth.ConsoleSessionPrincipal;
 import io.github.timemachinelab.adapter.web.delegate.PlatformProxyProfileWebDelegate;
 import io.github.timemachinelab.api.req.BindProxyProfileReq;
 import io.github.timemachinelab.api.req.CreatePlatformProxyProfileReq;
+import io.github.timemachinelab.api.req.ListPlatformProxyAssetCandidateReq;
 import io.github.timemachinelab.api.req.UpdatePlatformProxyProfileReq;
 import io.github.timemachinelab.api.resp.AssetProxyBindingResp;
+import io.github.timemachinelab.api.resp.PlatformProxyAssetCandidatePageResp;
 import io.github.timemachinelab.api.resp.PlatformProxyProfilePageResp;
 import io.github.timemachinelab.api.resp.PlatformProxyProfileResp;
 import io.github.timemachinelab.common.annotation.AutoResp;
@@ -47,6 +49,14 @@ public class PlatformProxyProfileController {
             @RequestAttribute(name = ConsoleSessionPrincipal.REQUEST_ATTRIBUTE, required = false)
             ConsoleSessionPrincipal principal) {
         return delegate.listProfiles(role(principal), enabled, keyword, page, size);
+    }
+
+    @GetMapping("/asset-binding-candidates")
+    public PlatformProxyAssetCandidatePageResp listAssetBindingCandidates(
+            @Valid ListPlatformProxyAssetCandidateReq req,
+            @RequestAttribute(name = ConsoleSessionPrincipal.REQUEST_ATTRIBUTE, required = false)
+            ConsoleSessionPrincipal principal) {
+        return delegate.listAssetBindingCandidates(role(principal), req);
     }
 
     @GetMapping("/{profileId}")

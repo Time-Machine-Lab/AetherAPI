@@ -3,6 +3,7 @@ import type {
   AssetProxyBindingRespDto,
   BindProxyProfileReqDto,
   CreatePlatformProxyProfileReqDto,
+  PlatformProxyAssetCandidateRespDto,
   PlatformProxyProfileRespDto,
 } from './platform-proxy-profile.dto'
 
@@ -61,6 +62,57 @@ const assetBindings = new Map<string, AssetProxyBindingRespDto>([
   ],
 ])
 
+const assetCandidates: PlatformProxyAssetCandidateRespDto[] = [
+  {
+    apiCode: 'baidu-search',
+    assetName: 'Baidu Search',
+    assetType: 'STANDARD_API',
+    status: 'PUBLISHED',
+    publisherDisplayName: 'Search Platform',
+    proxyProfileId: 'proxy-corp-egress',
+    proxyProfileCode: 'corp-egress',
+    proxyProfileName: 'Corporate egress',
+    createdAt: '2026-05-06T00:00:00Z',
+    updatedAt: '2026-05-08T00:00:00Z',
+  },
+  {
+    apiCode: 'weather-api',
+    assetName: 'Weather API',
+    assetType: 'STANDARD_API',
+    status: 'PUBLISHED',
+    publisherDisplayName: 'Operations Team',
+    proxyProfileId: null,
+    proxyProfileCode: null,
+    proxyProfileName: null,
+    createdAt: '2026-05-05T00:00:00Z',
+    updatedAt: '2026-05-07T00:00:00Z',
+  },
+  {
+    apiCode: 'deepseek-v3',
+    assetName: 'DeepSeek V3',
+    assetType: 'AI_API',
+    status: 'DRAFT',
+    publisherDisplayName: 'AI Lab',
+    proxyProfileId: null,
+    proxyProfileCode: null,
+    proxyProfileName: null,
+    createdAt: '2026-05-04T00:00:00Z',
+    updatedAt: '2026-05-04T00:00:00Z',
+  },
+  {
+    apiCode: 'legacy-stock',
+    assetName: 'Legacy Stock Quote',
+    assetType: 'STANDARD_API',
+    status: 'UNPUBLISHED',
+    publisherDisplayName: 'Finance Team',
+    proxyProfileId: 'proxy-disabled',
+    proxyProfileCode: 'disabled-lab',
+    proxyProfileName: 'Disabled lab proxy',
+    createdAt: '2026-05-03T00:00:00Z',
+    updatedAt: '2026-05-03T00:00:00Z',
+  },
+]
+
 function ok<T>(data: T): AxiosResponse<T> {
   return {
     data,
@@ -89,6 +141,31 @@ function page(items: PlatformProxyProfileRespDto[], params: Record<string, strin
     if (enabled === 'false' && profile.enabled) return false
     if (!keyword) return true
     return [profile.profileCode, profile.profileName, profile.proxyHost]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(keyword))
+  })
+  return {
+    items: filtered.slice((pageNumber - 1) * size, pageNumber * size),
+    total: filtered.length,
+    page: pageNumber,
+    size,
+  }
+}
+
+function assetCandidatePage(
+  items: PlatformProxyAssetCandidateRespDto[],
+  params: Record<string, string>,
+) {
+  const pageNumber = Number(params.page ?? 1)
+  const size = Number(params.size ?? 20)
+  const keyword = (params.keyword ?? '').toLowerCase()
+  const status = params.status
+  const boundProfileId = params.boundProfileId
+  const filtered = items.filter((candidate) => {
+    if (status && candidate.status !== status) return false
+    if (boundProfileId && candidate.proxyProfileId !== boundProfileId) return false
+    if (!keyword) return true
+    return [candidate.apiCode, candidate.assetName, candidate.publisherDisplayName]
       .filter(Boolean)
       .some((value) => String(value).toLowerCase().includes(keyword))
   })
@@ -148,6 +225,11 @@ export const platformProxyProfileMockRoutes: MockRoute[] = [
     method: 'GET',
     pattern: /^\/api\/v1\/platform\/proxy-profiles$/,
     handler: (params) => ok(page(proxyProfiles, params)),
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/v1\/platform\/proxy-profiles\/asset-binding-candidates$/,
+    handler: (params) => ok(assetCandidatePage(assetCandidates, params)),
   },
   {
     method: 'POST',

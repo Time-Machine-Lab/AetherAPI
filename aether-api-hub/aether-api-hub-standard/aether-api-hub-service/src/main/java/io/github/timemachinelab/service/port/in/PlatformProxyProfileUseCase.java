@@ -4,7 +4,9 @@ import io.github.timemachinelab.service.model.AssetProxyBindingModel;
 import io.github.timemachinelab.service.model.BindProxyProfileCommand;
 import io.github.timemachinelab.service.model.CreatePlatformProxyProfileCommand;
 import io.github.timemachinelab.service.model.GetPlatformProxyProfileQuery;
+import io.github.timemachinelab.service.model.ListPlatformProxyAssetCandidateQuery;
 import io.github.timemachinelab.service.model.ListPlatformProxyProfileQuery;
+import io.github.timemachinelab.service.model.PlatformProxyAssetCandidatePageResult;
 import io.github.timemachinelab.service.model.PlatformProxyProfileModel;
 import io.github.timemachinelab.service.model.PlatformProxyProfilePageResult;
 import io.github.timemachinelab.service.model.PlatformProxyProfileStateCommand;
@@ -17,6 +19,8 @@ import io.github.timemachinelab.service.model.UpdatePlatformProxyProfileCommand;
 public interface PlatformProxyProfileUseCase {
 
     PlatformProxyProfilePageResult listProfiles(ListPlatformProxyProfileQuery query);
+
+    PlatformProxyAssetCandidatePageResult listAssetBindingCandidates(ListPlatformProxyAssetCandidateQuery query);
 
     PlatformProxyProfileModel getProfile(GetPlatformProxyProfileQuery query);
 

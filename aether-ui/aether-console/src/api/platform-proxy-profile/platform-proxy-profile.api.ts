@@ -3,7 +3,10 @@ import type {
   AssetProxyBindingRespDto,
   BindProxyProfileReqDto,
   CreatePlatformProxyProfileReqDto,
+  ListPlatformProxyAssetCandidatesQueryDto,
   ListPlatformProxyProfilesQueryDto,
+  PlatformProxyAssetCandidatePageRespDto,
+  PlatformProxyAssetCandidateRespDto,
   PlatformProxyProfilePageRespDto,
   PlatformProxyProfileRespDto,
   UpdatePlatformProxyProfileReqDto,
@@ -11,7 +14,10 @@ import type {
 import type {
   AssetProxyBinding,
   BindProxyProfileBody,
+  ListPlatformProxyAssetCandidatesQuery,
   ListPlatformProxyProfilesQuery,
+  PlatformProxyAssetCandidate,
+  PlatformProxyAssetCandidatePage,
   PlatformProxyProfile,
   PlatformProxyProfilePage,
   SavePlatformProxyProfileBody,
@@ -43,6 +49,21 @@ function mapBinding(dto: AssetProxyBindingRespDto): AssetProxyBinding {
   }
 }
 
+function mapAssetCandidate(dto: PlatformProxyAssetCandidateRespDto): PlatformProxyAssetCandidate {
+  return {
+    apiCode: dto.apiCode ?? '',
+    assetName: dto.assetName ?? null,
+    assetType: dto.assetType ?? 'STANDARD_API',
+    status: dto.status ?? 'DRAFT',
+    publisherDisplayName: dto.publisherDisplayName ?? null,
+    proxyProfileId: dto.proxyProfileId ?? null,
+    proxyProfileCode: dto.proxyProfileCode ?? null,
+    proxyProfileName: dto.proxyProfileName ?? null,
+    createdAt: dto.createdAt ?? null,
+    updatedAt: dto.updatedAt ?? null,
+  }
+}
+
 function toSaveReq(body: SavePlatformProxyProfileBody): CreatePlatformProxyProfileReqDto {
   return {
     profileCode: body.profileCode,
@@ -65,6 +86,22 @@ export async function listPlatformProxyProfiles(
   })
   return {
     items: (data.items ?? []).map(mapProfile),
+    page: data.page ?? query?.page ?? 1,
+    pageSize: data.size ?? query?.size ?? 20,
+    total: data.total ?? 0,
+  }
+}
+
+export async function listPlatformProxyAssetCandidates(
+  query?: ListPlatformProxyAssetCandidatesQuery,
+): Promise<PlatformProxyAssetCandidatePage> {
+  const params: ListPlatformProxyAssetCandidatesQueryDto | undefined = query
+  const { data } = await http.get<PlatformProxyAssetCandidatePageRespDto>(
+    'v1/platform/proxy-profiles/asset-binding-candidates',
+    { params },
+  )
+  return {
+    items: (data.items ?? []).map(mapAssetCandidate),
     page: data.page ?? query?.page ?? 1,
     pageSize: data.size ?? query?.size ?? 20,
     total: data.total ?? 0,
