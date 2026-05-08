@@ -96,6 +96,7 @@
     "useI18n": "readonly",
     "useId": "readonly",
     "useModel": "readonly",
+    "usePlatformProxyProfiles": "readonly",
     "useRoute": "readonly",
     "useRouter": "readonly",
     "useSignInForm": "readonly",

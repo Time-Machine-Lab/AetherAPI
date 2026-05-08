@@ -7,6 +7,7 @@ import { useWorkspaceCatalog } from '@/composables/useWorkspaceCatalog'
 import CredentialWorkspace from '@/features/credential/CredentialWorkspace.vue'
 import ApiCallLogWorkspace from '@/features/api-call-log/ApiCallLogWorkspace.vue'
 import ApiSubscriptionWorkspace from '@/features/subscription/ApiSubscriptionWorkspace.vue'
+import PlatformProxyWorkspace from '@/features/platform-proxy/PlatformProxyWorkspace.vue'
 import { defaultConsoleWorkspaceHash, isHiddenConsoleNavId } from '@/features/console/console-shell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -30,6 +31,7 @@ const router = useRouter()
 const isCredentialsSection = computed(() => route.hash === '#credentials')
 const isApiCallLogsSection = computed(() => route.hash === '#api-call-logs')
 const isApiSubscriptionsSection = computed(() => route.hash === '#api-subscriptions')
+const isPlatformProxySection = computed(() => route.hash === '#platform-proxy-profiles')
 
 watch(
   () => route.hash,
@@ -143,6 +145,7 @@ function confirmDeleteAsset() {
   <CredentialWorkspace v-if="isCredentialsSection" />
   <ApiSubscriptionWorkspace v-else-if="isApiSubscriptionsSection" />
   <ApiCallLogWorkspace v-else-if="isApiCallLogsSection" />
+  <PlatformProxyWorkspace v-else-if="isPlatformProxySection" />
   <div v-else class="space-y-6">
     <section>
       <p class="console-kicker">{{ t('console.navigation.catalogManage') }}</p>

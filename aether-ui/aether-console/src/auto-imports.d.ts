@@ -86,6 +86,7 @@ declare global {
   const useI18n: typeof import('vue-i18n').useI18n
   const useId: typeof import('vue').useId
   const useModel: typeof import('vue').useModel
+  const usePlatformProxyProfiles: typeof import('./composables/usePlatformProxyProfiles').usePlatformProxyProfiles
   const useRoute: typeof import('vue-router').useRoute
   const useRouter: typeof import('vue-router').useRouter
   const useSignInForm: typeof import('./composables/useSignInForm').useSignInForm
@@ -189,6 +190,7 @@ declare module 'vue' {
     readonly useI18n: UnwrapRef<typeof import('vue-i18n')['useI18n']>
     readonly useId: UnwrapRef<typeof import('vue')['useId']>
     readonly useModel: UnwrapRef<typeof import('vue')['useModel']>
+    readonly usePlatformProxyProfiles: UnwrapRef<typeof import('./composables/usePlatformProxyProfiles')['usePlatformProxyProfiles']>
     readonly useRoute: UnwrapRef<typeof import('vue-router')['useRoute']>
     readonly useRouter: UnwrapRef<typeof import('vue-router')['useRouter']>
     readonly useSignInForm: UnwrapRef<typeof import('./composables/useSignInForm')['useSignInForm']>

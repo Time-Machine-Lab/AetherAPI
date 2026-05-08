@@ -7,6 +7,7 @@ export type ConsoleVisibleNavId =
   | 'credentials'
   | 'api-subscriptions'
   | 'api-call-logs'
+  | 'platform-proxy-profiles'
 export type ConsoleHiddenNavId = 'category-manage' | 'usage' | 'orders' | 'billing' | 'docs'
 export type ConsoleNavId = ConsoleVisibleNavId | ConsoleHiddenNavId
 
@@ -55,6 +56,7 @@ const visibleConsoleWorkspaceNavIds = [
   'credentials',
   'api-subscriptions',
   'api-call-logs',
+  'platform-proxy-profiles',
 ] as const
 
 export const defaultConsoleWorkspaceHash = '#catalog-manage'
@@ -125,6 +127,12 @@ export const consoleSidebarGroups: ConsoleSidebarGroup[] = [
         labelKey: 'console.navigation.apiCallLogs',
         routeName: 'console-workspace',
         hash: '#api-call-logs',
+      },
+      {
+        id: 'platform-proxy-profiles',
+        labelKey: 'console.navigation.platformProxyProfiles',
+        routeName: 'console-workspace',
+        hash: '#platform-proxy-profiles',
       },
     ],
   },

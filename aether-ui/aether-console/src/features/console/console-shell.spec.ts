@@ -12,12 +12,20 @@ describe('console shell blueprint', () => {
     expect(operationsGroup).toBeDefined()
 
     const operationIds = operationsGroup!.items.map((item) => item.id)
-    expect(operationIds).toEqual(['credentials', 'api-subscriptions', 'api-call-logs'])
+    expect(operationIds).toEqual([
+      'credentials',
+      'api-subscriptions',
+      'api-call-logs',
+      'platform-proxy-profiles',
+    ])
     expect(operationsGroup!.items.find((item) => item.id === 'api-subscriptions')?.hash).toBe(
       '#api-subscriptions',
     )
     expect(operationsGroup!.items.find((item) => item.id === 'api-call-logs')?.hash).toBe(
       '#api-call-logs',
+    )
+    expect(operationsGroup!.items.find((item) => item.id === 'platform-proxy-profiles')?.hash).toBe(
+      '#platform-proxy-profiles',
     )
   })
 

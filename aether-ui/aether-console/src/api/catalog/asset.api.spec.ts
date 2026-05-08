@@ -81,6 +81,31 @@ describe('asset api', () => {
     )
   })
 
+  it('does not map platform proxy metadata into current-user asset shape', async () => {
+    mockedGet.mockResolvedValueOnce({
+      data: {
+        apiCode: 'weather-api',
+        assetName: 'Weather API',
+        assetType: 'STANDARD_API',
+        categoryCode: 'tools',
+        status: 'PUBLISHED',
+        proxyProfileId: 'proxy-1',
+        proxyHost: 'proxy.internal',
+        proxyPort: 8080,
+        proxyUsername: 'operator',
+        proxyPassword: 'secret',
+      },
+    })
+
+    const result = await getAsset('weather-api')
+
+    expect(result).not.toHaveProperty('proxyProfileId')
+    expect(result).not.toHaveProperty('proxyHost')
+    expect(result).not.toHaveProperty('proxyPort')
+    expect(result).not.toHaveProperty('proxyUsername')
+    expect(result).not.toHaveProperty('proxyPassword')
+  })
+
   it('maps frontend register payload to backend assetName contract', async () => {
     mockedPost.mockResolvedValueOnce({
       data: {

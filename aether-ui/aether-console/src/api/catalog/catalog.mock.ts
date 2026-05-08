@@ -13,6 +13,7 @@ import type {
 } from '@/api/subscription/subscription.dto'
 import { credentialMockRoutes } from '@/api/credential/credential.mock'
 import { apiCallLogMockRoutes } from '@/api/api-call-log/api-call-log.mock'
+import { platformProxyProfileMockRoutes } from '@/api/platform-proxy-profile/platform-proxy-profile.mock'
 
 // ── Seed data ────────────────────────────────────────────────
 
@@ -535,7 +536,12 @@ export function mockAdapter(config: AxiosRequestConfig): Promise<AxiosResponse> 
     }
   }
 
-  const allRoutes = [...routes, ...credentialMockRoutes, ...apiCallLogMockRoutes]
+  const allRoutes = [
+    ...routes,
+    ...credentialMockRoutes,
+    ...apiCallLogMockRoutes,
+    ...platformProxyProfileMockRoutes,
+  ]
   for (const route of allRoutes) {
     if (route.method !== method) continue
     const match = url.match(route.pattern)
