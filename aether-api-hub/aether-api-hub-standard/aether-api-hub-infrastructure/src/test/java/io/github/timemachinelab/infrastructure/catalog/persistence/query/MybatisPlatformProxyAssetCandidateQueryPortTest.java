@@ -82,13 +82,22 @@ class MybatisPlatformProxyAssetCandidateQueryPortTest {
 
         String selectSql = annotationSql(selectPage);
         assertTrue(selectSql.contains("WHERE a.is_deleted = FALSE"));
-        assertTrue(selectSql.contains("a.proxy_profile_id = #{boundProfileId}"));
+        assertTrue(selectSql.contains(
+                "p.id COLLATE utf8mb4_unicode_ci = a.proxy_profile_id COLLATE utf8mb4_unicode_ci"
+        ));
+        assertTrue(selectSql.contains(
+                "a.proxy_profile_id COLLATE utf8mb4_unicode_ci = #{boundProfileId} COLLATE utf8mb4_unicode_ci"
+        ));
         assertTrue(selectSql.contains("a.publisher_display_name"));
         assertFalse(selectSql.contains("proxy_host"));
         assertFalse(selectSql.contains("proxy_port"));
         assertFalse(selectSql.contains("username"));
         assertFalse(selectSql.contains("password_secret"));
-        assertTrue(annotationSql(count).contains("WHERE a.is_deleted = FALSE"));
+        String countSql = annotationSql(count);
+        assertTrue(countSql.contains("WHERE a.is_deleted = FALSE"));
+        assertTrue(countSql.contains(
+                "a.proxy_profile_id COLLATE utf8mb4_unicode_ci = #{boundProfileId} COLLATE utf8mb4_unicode_ci"
+        ));
         assertFalse(Arrays.stream(PlatformProxyAssetCandidateModel.class.getMethods())
                 .anyMatch(method -> method.getName().equals("getProxyHost")
                         || method.getName().equals("getProxyPort")

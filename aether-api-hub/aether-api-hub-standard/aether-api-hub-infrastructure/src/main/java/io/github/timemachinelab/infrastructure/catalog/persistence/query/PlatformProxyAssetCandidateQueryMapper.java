@@ -27,7 +27,7 @@ public interface PlatformProxyAssetCandidateQueryMapper {
             "  a.updated_at AS updatedAt",
             "FROM api_asset a",
             "LEFT JOIN platform_proxy_profile p",
-            "  ON p.id = a.proxy_profile_id",
+            "  ON p.id COLLATE utf8mb4_unicode_ci = a.proxy_profile_id COLLATE utf8mb4_unicode_ci",
             " AND p.is_deleted = FALSE",
             "WHERE a.is_deleted = FALSE",
             "  <if test='keyword != null and keyword != \"\"'>",
@@ -41,7 +41,7 @@ public interface PlatformProxyAssetCandidateQueryMapper {
             "    AND a.status = #{status}",
             "  </if>",
             "  <if test='boundProfileId != null and boundProfileId != \"\"'>",
-            "    AND a.proxy_profile_id = #{boundProfileId}",
+            "    AND a.proxy_profile_id COLLATE utf8mb4_unicode_ci = #{boundProfileId} COLLATE utf8mb4_unicode_ci",
             "  </if>",
             "ORDER BY a.updated_at DESC, a.created_at DESC",
             "LIMIT #{size} OFFSET #{offset}",
@@ -70,7 +70,7 @@ public interface PlatformProxyAssetCandidateQueryMapper {
             "    AND a.status = #{status}",
             "  </if>",
             "  <if test='boundProfileId != null and boundProfileId != \"\"'>",
-            "    AND a.proxy_profile_id = #{boundProfileId}",
+            "    AND a.proxy_profile_id COLLATE utf8mb4_unicode_ci = #{boundProfileId} COLLATE utf8mb4_unicode_ci",
             "  </if>",
             "</script>"
     })
