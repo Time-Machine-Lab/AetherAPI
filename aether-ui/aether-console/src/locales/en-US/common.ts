@@ -543,6 +543,15 @@ export default {
       requestBodyHint:
         'The body will be sent with the Content-Type specified (defaults to application/json).',
       requestBodyPlaceholder: 'Enter JSON request body',
+      taskQueryTitle: 'Async Task Query',
+      taskQueryDescription:
+        'When an upstream async API returns a taskId, query its status or result here through Unified Access.',
+      fieldTaskId: 'Task ID',
+      taskIdHint: 'Use the task identifier returned by the upstream submit response.',
+      taskIdPlaceholder: 'Enter taskId',
+      taskQueryAction: 'Query Task',
+      taskQueryRunning: 'Querying…',
+      taskQueryResponseLabel: 'Task query',
       fieldExtraHeaders: 'Extra Headers (optional)',
       extraHeadersHint: 'Enter additional headers as a JSON object.',
       invoke: 'Send Request',
@@ -577,6 +586,10 @@ export default {
           'No published target API could be resolved for this API Code. Verify the API exists and is published.',
         TARGET_UNAVAILABLE:
           'The target API exists but is currently unavailable, possibly under maintenance or unpublished.',
+        ASYNC_TASK_QUERY_UNAVAILABLE:
+          'This API does not have an async task query channel configured, or the configuration is incomplete. Check the asset asyncTaskConfig before retrying.',
+        INVALID_TASK_ID:
+          'The Task ID is empty, invalid, or cannot be used for this upstream task query. Check the task identifier returned by the submit response.',
       },
       guidanceCompactHint:
         'Click "Usage Guide" above for Unified Access documentation and failure type reference.',

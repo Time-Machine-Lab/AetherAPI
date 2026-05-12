@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useUnifiedAccessPlayground } from './useUnifiedAccessPlayground'
 import { getDiscoveryAssetDetail, listDiscoveryAssets } from '@/api/catalog/discovery.api'
-import { invokeUnifiedAccess } from '@/api/unified-access/unified-access.api'
+import {
+  invokeUnifiedAccess,
+  queryUnifiedAccessTask,
+} from '@/api/unified-access/unified-access.api'
 import { getCurrentUserApiSubscriptionStatus } from '@/api/subscription/subscription.api'
 import type { DiscoveryAsset, DiscoveryAssetDetail } from '@/api/catalog/catalog.types'
 import type { UnifiedAccessResult } from '@/api/unified-access/unified-access.types'
@@ -13,6 +16,7 @@ vi.mock('@/api/catalog/discovery.api', () => ({
 
 vi.mock('@/api/unified-access/unified-access.api', () => ({
   invokeUnifiedAccess: vi.fn(),
+  queryUnifiedAccessTask: vi.fn(),
 }))
 
 vi.mock('@/api/subscription/subscription.api', () => ({
@@ -22,6 +26,7 @@ vi.mock('@/api/subscription/subscription.api', () => ({
 const mockedListDiscoveryAssets = vi.mocked(listDiscoveryAssets)
 const mockedGetDiscoveryAssetDetail = vi.mocked(getDiscoveryAssetDetail)
 const mockedInvokeUnifiedAccess = vi.mocked(invokeUnifiedAccess)
+const mockedQueryUnifiedAccessTask = vi.mocked(queryUnifiedAccessTask)
 const mockedGetCurrentUserApiSubscriptionStatus = vi.mocked(getCurrentUserApiSubscriptionStatus)
 
 function asset(overrides: Partial<DiscoveryAsset> = {}): DiscoveryAsset {
@@ -60,6 +65,7 @@ describe('useUnifiedAccessPlayground', () => {
     mockedListDiscoveryAssets.mockReset()
     mockedGetDiscoveryAssetDetail.mockReset()
     mockedInvokeUnifiedAccess.mockReset()
+    mockedQueryUnifiedAccessTask.mockReset()
     mockedGetCurrentUserApiSubscriptionStatus.mockReset()
     mockedGetCurrentUserApiSubscriptionStatus.mockResolvedValue({
       apiCode: 'weather-api',
@@ -206,6 +212,72 @@ describe('useUnifiedAccessPlayground', () => {
     expect(playground.result.value?.platformFailure?.failureType).toBe('SUBSCRIPTION_REQUIRED')
   })
 
+  it('queries async task status with current api code and api key', async () => {
+    mockedQueryUnifiedAccessTask.mockResolvedValueOnce(
+      jsonResult({
+        jsonBody: {
+          data: {
+            status: 'succeeded',
+          },
+        },
+      }),
+    )
+    const playground = useUnifiedAccessPlayground()
+    playground.apiCode.value = 'image-generate'
+    playground.apiKey.value = 'ak_live_valid'
+    playground.taskId.value = 'task-123'
+
+    await playground.queryTask()
+
+    expect(mockedQueryUnifiedAccessTask).toHaveBeenCalledWith(
+      'image-generate',
+      'task-123',
+      'ak_live_valid',
+    )
+    expect(playground.resultSource.value).toBe('task-query')
+    expect(playground.result.value?.kind).toBe('json')
+    expect(playground.queryingTask.value).toBe(false)
+  })
+
+  it('does not query async task when required task fields are missing', async () => {
+    const playground = useUnifiedAccessPlayground()
+    playground.apiCode.value = 'image-generate'
+    playground.apiKey.value = 'ak_live_valid'
+
+    await playground.queryTask()
+
+    expect(mockedQueryUnifiedAccessTask).not.toHaveBeenCalled()
+    expect(playground.canQueryTask.value).toBe(false)
+  })
+
+  it('exposes task-query-specific platform failures as query results', async () => {
+    mockedQueryUnifiedAccessTask.mockResolvedValueOnce(
+      jsonResult({
+        kind: 'platform-failure',
+        status: 400,
+        platformFailure: {
+          code: 'ASYNC_TASK_QUERY_UNAVAILABLE',
+          message: 'Async task query is unavailable for apiCode image-generate',
+          failureType: 'ASYNC_TASK_QUERY_UNAVAILABLE',
+          traceId: 'trace-task-query',
+          apiCode: 'image-generate',
+        },
+      }),
+    )
+    const playground = useUnifiedAccessPlayground()
+    playground.apiCode.value = 'image-generate'
+    playground.apiKey.value = 'ak_live_valid'
+    playground.taskId.value = 'task-123'
+
+    await playground.queryTask()
+
+    expect(playground.resultSource.value).toBe('task-query')
+    expect(playground.result.value?.kind).toBe('platform-failure')
+    expect(playground.result.value?.platformFailure?.failureType).toBe(
+      'ASYNC_TASK_QUERY_UNAVAILABLE',
+    )
+  })
+
   it('blocks invocation on invalid extra header JSON and keeps result empty', async () => {
     const playground = useUnifiedAccessPlayground()
     playground.apiCode.value = 'weather-api'
@@ -223,7 +295,9 @@ describe('useUnifiedAccessPlayground', () => {
     const playground = useUnifiedAccessPlayground()
     playground.apiCode.value = 'weather-api'
     playground.apiKey.value = 'ak_live_valid'
+    playground.taskId.value = 'task-123'
     playground.result.value = jsonResult()
+    playground.resultSource.value = 'task-query'
 
     playground.clearApiKey()
     expect(playground.apiKey.value).toBe('')
@@ -234,5 +308,7 @@ describe('useUnifiedAccessPlayground', () => {
     playground.resetForm()
     expect(playground.apiCode.value).toBe('')
     expect(playground.method.value).toBe('POST')
+    expect(playground.taskId.value).toBe('')
+    expect(playground.resultSource.value).toBe('invoke')
   })
 })

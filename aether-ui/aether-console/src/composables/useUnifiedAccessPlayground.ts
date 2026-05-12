@@ -1,5 +1,8 @@
 import { ref, computed } from 'vue'
-import { invokeUnifiedAccess } from '@/api/unified-access/unified-access.api'
+import {
+  invokeUnifiedAccess,
+  queryUnifiedAccessTask,
+} from '@/api/unified-access/unified-access.api'
 import { listDiscoveryAssets, getDiscoveryAssetDetail } from '@/api/catalog/discovery.api'
 import { getCurrentUserApiSubscriptionStatus } from '@/api/subscription/subscription.api'
 import type { DiscoveryAsset, DiscoveryAssetDetail } from '@/api/catalog/catalog.types'
@@ -16,6 +19,7 @@ export function useUnifiedAccessPlayground() {
   const apiKey = ref('')
   const requestBody = ref('')
   const extraHeaders = ref('')
+  const taskId = ref('')
 
   // ── Discovery assist ────────────────────────────────────
   const discoveryAssets = ref<DiscoveryAsset[]>([])
@@ -29,7 +33,9 @@ export function useUnifiedAccessPlayground() {
 
   // ── Invocation state ────────────────────────────────────
   const invoking = ref(false)
+  const queryingTask = ref(false)
   const result = ref<UnifiedAccessResult | null>(null)
+  const resultSource = ref<'invoke' | 'task-query'>('invoke')
   const invokeError = ref('')
   const elapsedMs = ref(0)
 
@@ -37,6 +43,12 @@ export function useUnifiedAccessPlayground() {
   const methodSupportsBody = computed(() => !['GET', 'DELETE'].includes(method.value))
   const canInvoke = computed(
     () => apiCode.value.trim().length > 0 && apiKey.value.trim().length > 0,
+  )
+  const canQueryTask = computed(
+    () =>
+      apiCode.value.trim().length > 0 &&
+      apiKey.value.trim().length > 0 &&
+      taskId.value.trim().length > 0,
   )
 
   // ── Discovery helpers ───────────────────────────────────
@@ -103,6 +115,7 @@ export function useUnifiedAccessPlayground() {
     invoking.value = true
     invokeError.value = ''
     result.value = null
+    resultSource.value = 'invoke'
     const start = performance.now()
 
     let parsedHeaders: Record<string, string> | undefined
@@ -132,6 +145,28 @@ export function useUnifiedAccessPlayground() {
     }
   }
 
+  async function queryTask() {
+    if (!canQueryTask.value) return
+    queryingTask.value = true
+    invokeError.value = ''
+    result.value = null
+    resultSource.value = 'task-query'
+    const start = performance.now()
+
+    try {
+      result.value = await queryUnifiedAccessTask(
+        apiCode.value.trim(),
+        taskId.value.trim(),
+        apiKey.value.trim(),
+      )
+    } catch (err: unknown) {
+      invokeError.value = err instanceof Error ? err.message : String(err)
+    } finally {
+      elapsedMs.value = Math.round(performance.now() - start)
+      queryingTask.value = false
+    }
+  }
+
   // ── Reset helpers ───────────────────────────────────────
   function resetForm() {
     apiCode.value = ''
@@ -139,7 +174,9 @@ export function useUnifiedAccessPlayground() {
     apiKey.value = ''
     requestBody.value = ''
     extraHeaders.value = ''
+    taskId.value = ''
     result.value = null
+    resultSource.value = 'invoke'
     invokeError.value = ''
     selectedAssetDetail.value = null
     subscriptionStatus.value = null
@@ -153,6 +190,7 @@ export function useUnifiedAccessPlayground() {
   function clearResult() {
     result.value = null
     invokeError.value = ''
+    resultSource.value = 'invoke'
   }
 
   return {
@@ -162,6 +200,7 @@ export function useUnifiedAccessPlayground() {
     apiKey,
     requestBody,
     extraHeaders,
+    taskId,
     // discovery
     discoveryAssets,
     discoveryLoading,
@@ -177,14 +216,18 @@ export function useUnifiedAccessPlayground() {
     loadSubscriptionStatus,
     // invocation
     invoking,
+    queryingTask,
     result,
+    resultSource,
     invokeError,
     elapsedMs,
     // computed
     methodSupportsBody,
     canInvoke,
+    canQueryTask,
     // actions
     invoke,
+    queryTask,
     resetForm,
     clearApiKey,
     clearResult,

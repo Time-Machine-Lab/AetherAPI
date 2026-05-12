@@ -509,6 +509,15 @@ export default {
       fieldRequestBody: '请求体',
       requestBodyHint: '请求体将以 Content-Type 指定的格式发送（默认 application/json）。',
       requestBodyPlaceholder: '输入 JSON 请求体',
+      taskQueryTitle: '异步任务查询',
+      taskQueryDescription:
+        '当上游异步 API 返回 taskId 后，可在这里通过统一接入查询任务状态或结果。',
+      fieldTaskId: 'Task ID',
+      taskIdHint: '使用上游提交响应中返回的任务标识。',
+      taskIdPlaceholder: '输入 taskId',
+      taskQueryAction: '查询任务',
+      taskQueryRunning: '查询中…',
+      taskQueryResponseLabel: '任务查询',
       fieldExtraHeaders: '附加请求头（可选）',
       extraHeadersHint: '以 JSON 对象格式输入需要附加的请求头。',
       invoke: '发起调用',
@@ -540,6 +549,10 @@ export default {
         TARGET_NOT_FOUND:
           '无法根据该 API Code 解析到已发布的目标 API。请确认该 API 是否存在且已发布。',
         TARGET_UNAVAILABLE: '目标 API 存在但当前不可用，可能正在维护或已被下架。',
+        ASYNC_TASK_QUERY_UNAVAILABLE:
+          '该 API 尚未配置异步任务查询通道，或配置不完整。请确认资产的 asyncTaskConfig 后再查询。',
+        INVALID_TASK_ID:
+          'Task ID 为空、格式不合法或无法用于该上游任务查询。请检查提交响应中的任务标识。',
       },
       guidanceCompactHint: '点击右上方「使用帮助」查看统一接入说明与失败类型参考。',
       guidanceTitle: '统一接入使用指引',

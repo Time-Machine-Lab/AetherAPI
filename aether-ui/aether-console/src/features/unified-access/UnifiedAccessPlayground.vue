@@ -26,6 +26,7 @@ import {
   Trash2,
   Download,
   Copy,
+  Search,
   CheckCircle2,
   XCircle,
   AlertTriangle,
@@ -42,6 +43,7 @@ const {
   apiKey,
   requestBody,
   extraHeaders,
+  taskId,
   discoveryAssets,
   discoveryLoading,
   discoveryError,
@@ -54,12 +56,16 @@ const {
   selectDiscoveryAsset,
   loadSelectedAssetDetail,
   invoking,
+  queryingTask,
   result,
+  resultSource,
   invokeError,
   elapsedMs,
   methodSupportsBody,
   canInvoke,
+  canQueryTask,
   invoke,
+  queryTask,
   resetForm,
   clearApiKey,
   clearResult,
@@ -403,6 +409,33 @@ watch(
           />
         </FieldGroup>
 
+        <!-- Async task query card -->
+        <FieldGroup
+          :title="t('console.playground.taskQueryTitle')"
+          :description="t('console.playground.taskQueryDescription')"
+        >
+          <div class="grid gap-3 sm:grid-cols-[1fr_auto]">
+            <div class="space-y-2">
+              <FieldLabel
+                :label="t('console.playground.fieldTaskId')"
+                :hint="t('console.playground.taskIdHint')"
+              />
+              <Input v-model="taskId" :placeholder="t('console.playground.taskIdPlaceholder')" />
+            </div>
+            <div class="flex items-end">
+              <Button :disabled="!canQueryTask || queryingTask" @click="queryTask">
+                <Loader2 v-if="queryingTask" class="mr-2 h-4 w-4 animate-spin" />
+                <Search v-else class="mr-2 h-4 w-4" />
+                {{
+                  queryingTask
+                    ? t('console.playground.taskQueryRunning')
+                    : t('console.playground.taskQueryAction')
+                }}
+              </Button>
+            </div>
+          </div>
+        </FieldGroup>
+
         <!-- Extra headers card (optional, collapsed by default) -->
         <FieldGroup
           :title="t('console.playground.fieldExtraHeaders')"
@@ -439,6 +472,9 @@ watch(
           <CardHeader>
             <CardTitle class="flex items-center gap-3">
               {{ t('console.playground.responseTitle') }}
+              <span v-if="resultSource === 'task-query'" class="text-sm font-medium text-primary">
+                {{ t('console.playground.taskQueryResponseLabel') }}
+              </span>
               <DisplayTag
                 v-if="result"
                 :tone="responseTone(result.status)"
