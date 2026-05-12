@@ -16,6 +16,7 @@ public class ApiAssetManagementQueryRecord {
     private String publisherDisplayName;
     private LocalDateTime publishedAt;
     private LocalDateTime updatedAt;
+    private Boolean asyncTaskQueryEnabled;
 
     public String getApiCode() {
         return apiCode;
@@ -87,5 +88,13 @@ public class ApiAssetManagementQueryRecord {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Boolean getAsyncTaskQueryEnabled() {
+        return asyncTaskQueryEnabled;
+    }
+
+    public void setAsyncTaskQueryEnabled(Boolean asyncTaskQueryEnabled) {
+        this.asyncTaskQueryEnabled = asyncTaskQueryEnabled;
     }
 }

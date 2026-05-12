@@ -38,6 +38,16 @@ public class UnifiedAccessController {
         delegate.invokeToResponse(apiCode, "GET", headers, queryParameters, null, headers.getFirst(HttpHeaders.CONTENT_TYPE), response);
     }
 
+    @GetMapping("/{apiCode}/tasks/{taskId}")
+    public void queryTask(
+            @PathVariable("apiCode") String apiCode,
+            @PathVariable("taskId") String taskId,
+            @RequestHeader HttpHeaders headers,
+            @RequestParam MultiValueMap<String, String> queryParameters,
+            HttpServletResponse response) {
+        delegate.queryTaskToResponse(apiCode, taskId, headers, queryParameters, response);
+    }
+
     @PostMapping("/{apiCode}")
     public void post(
             @PathVariable("apiCode") String apiCode,

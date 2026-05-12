@@ -3,6 +3,8 @@ package io.github.timemachinelab.infrastructure.catalog.persistence.repository;
 import io.github.timemachinelab.domain.catalog.model.ApiAssetAggregate;
 import io.github.timemachinelab.domain.catalog.model.ApiCode;
 import io.github.timemachinelab.domain.catalog.model.AiCapabilityProfile;
+import io.github.timemachinelab.domain.catalog.model.AsyncTaskAuthMode;
+import io.github.timemachinelab.domain.catalog.model.AsyncTaskConfig;
 import io.github.timemachinelab.domain.catalog.model.AssetDomainException;
 import io.github.timemachinelab.domain.catalog.model.AssetId;
 import io.github.timemachinelab.domain.catalog.model.AssetStatus;
@@ -92,6 +94,24 @@ class MybatisApiAssetRepositoryTest {
         assertEquals("gpt-4.1", saved.getAiModel());
         assertEquals(Boolean.TRUE, saved.getAiStreamingSupported());
         assertEquals("[\"chat\",\"vision\"]", saved.getAiCapabilityTagsJson());
+    }
+
+    @Test
+    @DisplayName("update should persist async task config as nullable asset field")
+    void shouldPersistAsyncTaskConfigAsAssetField() {
+        ApiAssetDo existing = existingDo();
+        when(mapper.selectByCodeIncludingDeleted("weather-forecast")).thenReturn(existing);
+        when(mapper.updateById(existing)).thenReturn(1);
+
+        repository.save(asyncTaskAggregate(1L));
+
+        ArgumentCaptor<ApiAssetDo> captor = ArgumentCaptor.forClass(ApiAssetDo.class);
+        verify(mapper).updateById(captor.capture());
+        String savedConfig = captor.getValue().getAsyncTaskConfig();
+        assertEquals(
+                "{\"enabled\":true,\"queryMethod\":\"GET\",\"queryUrlTemplate\":\"https://upstream.example.com/weather/tasks/{taskId}\",\"authMode\":\"SAME_AS_SUBMIT\",\"statusPath\":\"$.status\",\"resultPath\":\"$.result\",\"errorPath\":\"$.error\"}",
+                savedConfig
+        );
     }
 
     @Test
@@ -198,6 +218,46 @@ class MybatisApiAssetRepositoryTest {
                 "template",
                 ExampleSnapshot.of("{\"city\":\"Shanghai\"}", "{\"temperature\":26}"),
                 AiCapabilityProfile.of("OpenAI", "gpt-4.1", true, List.of("chat", "vision")),
+                null,
+                now,
+                now,
+                false,
+                version
+        );
+    }
+
+    private ApiAssetAggregate asyncTaskAggregate(long version) {
+        Instant now = Instant.now();
+        return ApiAssetAggregate.reconstitute(
+                AssetId.of("550e8400-e29b-41d4-a716-446655440000"),
+                ApiCode.of("weather-forecast"),
+                "user-1",
+                "Alice",
+                "Weather Forecast",
+                AssetType.STANDARD_API,
+                CategoryRef.of("tools"),
+                AssetStatus.DRAFT,
+                null,
+                UpstreamEndpointConfig.of(
+                        RequestMethod.GET,
+                        "https://upstream.example.com/weather",
+                        AuthScheme.NONE,
+                        null
+                ),
+                "template",
+                ExampleSnapshot.of("{\"city\":\"Shanghai\"}", "{\"temperature\":26}"),
+                AsyncTaskConfig.of(
+                        true,
+                        RequestMethod.GET,
+                        "https://upstream.example.com/weather/tasks/{taskId}",
+                        AsyncTaskAuthMode.SAME_AS_SUBMIT,
+                        null,
+                        null,
+                        "$.status",
+                        "$.result",
+                        "$.error"
+                ),
+                null,
                 null,
                 now,
                 now,

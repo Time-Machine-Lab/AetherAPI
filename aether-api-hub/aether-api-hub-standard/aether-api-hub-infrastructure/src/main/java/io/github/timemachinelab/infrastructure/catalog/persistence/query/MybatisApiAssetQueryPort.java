@@ -52,7 +52,8 @@ public class MybatisApiAssetQueryPort implements ApiAssetQueryPort {
                 record.getStatus(),
                 record.getPublisherDisplayName(),
                 formatInstant(record.getPublishedAt()),
-                formatInstant(record.getUpdatedAt())
+                formatInstant(record.getUpdatedAt()),
+                Boolean.TRUE.equals(record.getAsyncTaskQueryEnabled())
         );
     }
 

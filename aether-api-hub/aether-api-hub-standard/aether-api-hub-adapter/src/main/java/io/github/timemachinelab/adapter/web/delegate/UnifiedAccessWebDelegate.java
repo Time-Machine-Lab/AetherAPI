@@ -1,6 +1,7 @@
 package io.github.timemachinelab.adapter.web.delegate;
 
 import io.github.timemachinelab.service.model.ResolveUnifiedAccessInvocationCommand;
+import io.github.timemachinelab.service.model.ResolveUnifiedAccessTaskQueryCommand;
 import io.github.timemachinelab.service.model.UnifiedAccessProxyResponseModel;
 import io.github.timemachinelab.service.port.in.UnifiedAccessUseCase;
 import jakarta.servlet.http.HttpServletResponse;
@@ -32,6 +33,7 @@ public class UnifiedAccessWebDelegate {
     private static final Logger log = LoggerFactory.getLogger(UnifiedAccessWebDelegate.class);
     private static final String API_KEY_HEADER = "X-Aether-Api-Key";
     private static final String DEFAULT_ACCESS_CHANNEL = "UNIFIED_ACCESS";
+    private static final String TASK_QUERY_ACCESS_CHANNEL = "UNIFIED_ACCESS_TASK_QUERY";
     private static final int STREAM_BUFFER_SIZE = 8192;
     private static final Set<String> ADAPTER_CONTROLLED_RESPONSE_HEADERS = Set.of(
             "content-type",
@@ -94,6 +96,27 @@ public class UnifiedAccessWebDelegate {
                 DEFAULT_ACCESS_CHANNEL
         );
         UnifiedAccessProxyResponseModel response = unifiedAccessUseCase.invoke(command);
+        writeServletResponse(response, servletResponse);
+    }
+
+    public void queryTaskToResponse(
+            String apiCode,
+            String taskId,
+            HttpHeaders headers,
+            MultiValueMap<String, String> queryParameters,
+            HttpServletResponse servletResponse) {
+        ResolveUnifiedAccessTaskQueryCommand command = new ResolveUnifiedAccessTaskQueryCommand(
+                apiCode,
+                taskId,
+                headers == null ? null : headers.getFirst(API_KEY_HEADER),
+                "GET",
+                copyMultiValueMap(headers),
+                copyMultiValueMap(queryParameters),
+                null,
+                headers == null ? null : headers.getFirst(HttpHeaders.CONTENT_TYPE),
+                TASK_QUERY_ACCESS_CHANNEL
+        );
+        UnifiedAccessProxyResponseModel response = unifiedAccessUseCase.queryTask(command);
         writeServletResponse(response, servletResponse);
     }
 

@@ -89,6 +89,18 @@ class MybatisApiAssetQueryPortTest {
     }
 
     @Test
+    @DisplayName("management list should expose async task query enabled flag")
+    void shouldExposeAsyncTaskQueryEnabledFlag() {
+        ApiAssetManagementQueryRecord record = record("image-generation", "PUBLISHED", "STANDARD_API", "2026-04-24T08:00:00");
+        record.setAsyncTaskQueryEnabled(true);
+        when(mapper.selectPage(OWNER_USER_ID, null, null, "image", 20, 0)).thenReturn(List.of(record));
+
+        ApiAssetSummaryModel result = queryPort.findPage(OWNER_USER_ID, null, null, "image", 1, 20).get(0);
+
+        assertTrue(result.isAsyncTaskQueryEnabled());
+    }
+
+    @Test
     @DisplayName("management active read SQL should exclude deleted assets")
     void shouldKeepDeletedAssetsOutOfManagementActiveReadSql() throws NoSuchMethodException {
         Method selectPage = ApiAssetManagementQueryMapper.class.getMethod(

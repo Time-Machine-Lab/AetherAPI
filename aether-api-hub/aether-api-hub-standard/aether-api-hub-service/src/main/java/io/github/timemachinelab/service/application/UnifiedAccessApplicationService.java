@@ -14,10 +14,12 @@ import io.github.timemachinelab.domain.platformproxy.model.PlatformProxyProfileA
 import io.github.timemachinelab.domain.platformproxy.model.PlatformProxyProfileId;
 import io.github.timemachinelab.service.model.ConsumerContextModel;
 import io.github.timemachinelab.service.model.CredentialValidationResult;
+import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
 import io.github.timemachinelab.service.model.PlatformPreForwardFailureType;
 import io.github.timemachinelab.service.model.ProxyProfileSnapshotModel;
 import io.github.timemachinelab.service.model.RecordApiCallLogCommand;
 import io.github.timemachinelab.service.model.ResolveUnifiedAccessInvocationCommand;
+import io.github.timemachinelab.service.model.ResolveUnifiedAccessTaskQueryCommand;
 import io.github.timemachinelab.service.model.TargetApiSnapshotModel;
 import io.github.timemachinelab.service.model.UnifiedAccessInvocationModel;
 import io.github.timemachinelab.service.model.UnifiedAccessExecutionOutcomeType;
@@ -36,6 +38,8 @@ import io.github.timemachinelab.service.port.out.PlatformProxyProfileRepositoryP
 
 import java.time.Duration;
 import java.time.Instant;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -105,6 +109,20 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
     }
 
     @Override
+    public UnifiedAccessProxyResponseModel queryTask(ResolveUnifiedAccessTaskQueryCommand command) {
+        Instant invocationStartedAt = Instant.now();
+        try {
+            UnifiedAccessInvocationModel invocation = resolveTaskQueryInvocation(command);
+            UnifiedAccessProxyResponseModel response = unifiedAccessDownstreamProxyPort.forward(invocation);
+            observabilityUseCase.recordApiCallLog(toCompletionLogCommand(invocation, response, invocationStartedAt));
+            return response;
+        } catch (UnifiedAccessPlatformFailureException ex) {
+            recordPlatformFailureBestEffort(command, ex.getFailure(), invocationStartedAt);
+            throw ex;
+        }
+    }
+
+    @Override
     public UnifiedAccessInvocationModel resolveInvocation(ResolveUnifiedAccessInvocationCommand command) {
         Objects.requireNonNull(command, "Unified access invocation command must not be null");
 
@@ -153,6 +171,32 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
                 command.getRequestBody(),
                 command.getContentType(),
                 accessChannel
+        );
+    }
+
+    @Override
+    public UnifiedAccessInvocationModel resolveTaskQueryInvocation(ResolveUnifiedAccessTaskQueryCommand command) {
+        Objects.requireNonNull(command, "Unified access task query command must not be null");
+        UnifiedAccessInvocationModel baseInvocation = resolveInvocation(command);
+        String taskId = normalizeTaskId(
+                command.getTaskId(),
+                baseInvocation.getTargetApi().getApiCode(),
+                baseInvocation.getConsumerContext()
+        );
+        TargetApiSnapshotModel taskTarget = toTaskQueryTarget(
+                baseInvocation.getTargetApi(),
+                taskId,
+                baseInvocation.getConsumerContext()
+        );
+        return new UnifiedAccessInvocationModel(
+                baseInvocation.getConsumerContext(),
+                taskTarget,
+                taskTarget.getRequestMethod(),
+                baseInvocation.getHeaders(),
+                baseInvocation.getQueryParameters(),
+                command.getRequestBody(),
+                command.getContentType(),
+                baseInvocation.getAccessChannel()
         );
     }
 
@@ -220,8 +264,103 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
                 targetApi.getAiCapabilityProfile() == null ? null : targetApi.getAiCapabilityProfile().getProvider(),
                 targetApi.getAiCapabilityProfile() == null ? null : targetApi.getAiCapabilityProfile().getModel(),
                 targetApi.getProxyProfileId(),
-                resolveProxyProfileSnapshot(targetApi)
+                resolveProxyProfileSnapshot(targetApi),
+                toAsyncTaskConfigModel(targetApi.getAsyncTaskConfig())
         );
+    }
+
+    private AsyncTaskConfigModel toAsyncTaskConfigModel(io.github.timemachinelab.domain.catalog.model.AsyncTaskConfig config) {
+        if (config == null) {
+            return null;
+        }
+        return new AsyncTaskConfigModel(
+                config.isEnabled(),
+                config.getQueryMethod() == null ? null : config.getQueryMethod().name(),
+                config.getQueryUrlTemplate(),
+                config.getAuthMode() == null ? null : config.getAuthMode().name(),
+                config.getAuthScheme() == null ? null : config.getAuthScheme().name(),
+                config.getAuthConfig(),
+                config.getStatusPath(),
+                config.getResultPath(),
+                config.getErrorPath()
+        );
+    }
+
+    private TargetApiSnapshotModel toTaskQueryTarget(
+            TargetApiSnapshotModel baseTarget,
+            String taskId,
+            ConsumerContextModel consumerContext) {
+        AsyncTaskConfigModel config = baseTarget.getAsyncTaskConfig();
+        if (config == null || !Boolean.TRUE.equals(config.getEnabled())) {
+            throw platformFailure(
+                    UnifiedAccessErrorCodes.ASYNC_TASK_QUERY_UNAVAILABLE,
+                    "Async task query is unavailable for apiCode " + baseTarget.getApiCode(),
+                    PlatformPreForwardFailureType.ASYNC_TASK_QUERY_UNAVAILABLE,
+                    baseTarget.getApiCode(),
+                    400,
+                    consumerContext
+            );
+        }
+        if (config.getQueryMethod() == null
+                || config.getQueryUrlTemplate() == null
+                || !config.getQueryUrlTemplate().contains("{taskId}")) {
+            throw platformFailure(
+                    UnifiedAccessErrorCodes.ASYNC_TASK_QUERY_UNAVAILABLE,
+                    "Async task query configuration is incomplete for apiCode " + baseTarget.getApiCode(),
+                    PlatformPreForwardFailureType.ASYNC_TASK_QUERY_UNAVAILABLE,
+                    baseTarget.getApiCode(),
+                    400,
+                    consumerContext
+            );
+        }
+        String authMode = config.getAuthMode() == null ? "SAME_AS_SUBMIT" : config.getAuthMode();
+        String authScheme = "OVERRIDE".equalsIgnoreCase(authMode) ? config.getAuthScheme() : baseTarget.getAuthScheme();
+        String authConfig = "OVERRIDE".equalsIgnoreCase(authMode) ? config.getAuthConfig() : baseTarget.getAuthConfig();
+        return new TargetApiSnapshotModel(
+                baseTarget.getAssetId(),
+                baseTarget.getApiCode(),
+                baseTarget.getAssetName(),
+                baseTarget.getAssetType(),
+                config.getQueryMethod(),
+                renderTaskQueryUrl(config.getQueryUrlTemplate(), taskId),
+                authScheme,
+                authConfig,
+                false,
+                baseTarget.getAiProvider(),
+                baseTarget.getAiModel(),
+                baseTarget.getProxyProfileId(),
+                baseTarget.getProxyProfile(),
+                config
+        );
+    }
+
+    private String renderTaskQueryUrl(String template, String taskId) {
+        return template.replace("{taskId}", URLEncoder.encode(taskId, StandardCharsets.UTF_8));
+    }
+
+    private String normalizeTaskId(String taskId, String apiCode, ConsumerContextModel consumerContext) {
+        if (taskId == null || taskId.isBlank()) {
+            throw platformFailure(
+                    UnifiedAccessErrorCodes.INVALID_TASK_ID,
+                    "Task id must not be blank",
+                    PlatformPreForwardFailureType.INVALID_TASK_ID,
+                    apiCode,
+                    400,
+                    consumerContext
+            );
+        }
+        String normalized = taskId.trim();
+        if (normalized.length() > 256) {
+            throw platformFailure(
+                    UnifiedAccessErrorCodes.INVALID_TASK_ID,
+                    "Task id must not exceed 256 characters",
+                    PlatformPreForwardFailureType.INVALID_TASK_ID,
+                    apiCode,
+                    400,
+                    consumerContext
+            );
+        }
+        return normalized;
     }
 
     private ProxyProfileSnapshotModel resolveProxyProfileSnapshot(ApiAssetAggregate targetApi) {

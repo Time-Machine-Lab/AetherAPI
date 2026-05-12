@@ -1,6 +1,8 @@
 package io.github.timemachinelab.service.application;
 
 import io.github.timemachinelab.domain.catalog.model.AiCapabilityProfile;
+import io.github.timemachinelab.domain.catalog.model.AsyncTaskAuthMode;
+import io.github.timemachinelab.domain.catalog.model.AsyncTaskConfig;
 import io.github.timemachinelab.domain.catalog.model.ApiAssetAggregate;
 import io.github.timemachinelab.domain.catalog.model.ApiCode;
 import io.github.timemachinelab.domain.catalog.model.AssetDomainException;
@@ -15,6 +17,7 @@ import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 import io.github.timemachinelab.domain.catalog.model.UpstreamEndpointConfig;
 import io.github.timemachinelab.service.model.ApiAssetModel;
 import io.github.timemachinelab.service.model.ApiAssetPageResult;
+import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
 import io.github.timemachinelab.service.model.AttachAiCapabilityProfileCommand;
 import io.github.timemachinelab.service.model.ListApiAssetQuery;
 import io.github.timemachinelab.service.model.RegisterApiAssetCommand;
@@ -81,6 +84,18 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
                 assetType,
                 command.getAssetName()
         );
+        if (command.getAsyncTaskConfig() != null) {
+            aggregate.revise(
+                    aggregate.getName(),
+                    aggregate.getType(),
+                    aggregate.getCategoryRef(),
+                    aggregate.getUpstreamConfig(),
+                    aggregate.getRequestTemplate(),
+                    aggregate.getExampleSnapshot(),
+                    toAsyncTaskConfig(command.getAsyncTaskConfig()),
+                    aggregate.getPublisherDisplayName()
+            );
+        }
         apiAssetRepositoryPort.save(aggregate);
         return toModel(aggregate);
     }
@@ -101,6 +116,9 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
                 ? command.getRequestTemplate()
                 : aggregate.getRequestTemplate();
         ExampleSnapshot exampleSnapshot = mergeExamples(aggregate, command);
+        AsyncTaskConfig asyncTaskConfig = command.isAsyncTaskConfigSet()
+                ? toAsyncTaskConfig(command.getAsyncTaskConfig())
+                : aggregate.getAsyncTaskConfig();
 
         aggregate.revise(
                 assetName,
@@ -109,6 +127,7 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
                 upstreamConfig,
                 requestTemplate,
                 exampleSnapshot,
+                asyncTaskConfig,
                 normalizePublisherDisplayName(command.getPublisherDisplayName(), command.getOwnerUserId())
         );
         apiAssetRepositoryPort.save(aggregate);
@@ -269,6 +288,7 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
                 aggregate.getRequestTemplate(),
                 aggregate.getExampleSnapshot() == null ? null : aggregate.getExampleSnapshot().getRequestExample(),
                 aggregate.getExampleSnapshot() == null ? null : aggregate.getExampleSnapshot().getResponseExample(),
+                toAsyncTaskConfigModel(aggregate.getAsyncTaskConfig()),
                 aggregate.getAiCapabilityProfile() == null ? null : aggregate.getAiCapabilityProfile().getProvider(),
                 aggregate.getAiCapabilityProfile() == null ? null : aggregate.getAiCapabilityProfile().getModel(),
                 aggregate.getAiCapabilityProfile() == null ? null : aggregate.getAiCapabilityProfile().isStreamingSupported(),
@@ -281,5 +301,39 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
 
     private String formatInstant(Instant instant, DateTimeFormatter formatter) {
         return instant == null ? null : formatter.format(instant);
+    }
+
+    private AsyncTaskConfig toAsyncTaskConfig(AsyncTaskConfigModel model) {
+        if (model == null) {
+            return null;
+        }
+        return AsyncTaskConfig.of(
+                model.getEnabled(),
+                model.getQueryMethod() == null ? null : RequestMethod.valueOf(model.getQueryMethod().trim().toUpperCase(Locale.ROOT)),
+                model.getQueryUrlTemplate(),
+                model.getAuthMode() == null ? null : AsyncTaskAuthMode.valueOf(model.getAuthMode().trim().toUpperCase(Locale.ROOT)),
+                model.getAuthScheme() == null ? null : AuthScheme.valueOf(model.getAuthScheme().trim().toUpperCase(Locale.ROOT)),
+                model.getAuthConfig(),
+                model.getStatusPath(),
+                model.getResultPath(),
+                model.getErrorPath()
+        );
+    }
+
+    private AsyncTaskConfigModel toAsyncTaskConfigModel(AsyncTaskConfig config) {
+        if (config == null) {
+            return null;
+        }
+        return new AsyncTaskConfigModel(
+                config.isEnabled(),
+                config.getQueryMethod() == null ? null : config.getQueryMethod().name(),
+                config.getQueryUrlTemplate(),
+                config.getAuthMode() == null ? null : config.getAuthMode().name(),
+                config.getAuthScheme() == null ? null : config.getAuthScheme().name(),
+                config.getAuthConfig(),
+                config.getStatusPath(),
+                config.getResultPath(),
+                config.getErrorPath()
+        );
     }
 }

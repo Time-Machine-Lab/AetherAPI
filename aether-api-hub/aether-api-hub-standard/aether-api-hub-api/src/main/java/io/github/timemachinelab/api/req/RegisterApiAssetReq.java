@@ -24,6 +24,9 @@ public class RegisterApiAssetReq {
     @JsonProperty("assetName")
     private String assetName;
 
+    @JsonProperty("asyncTaskConfig")
+    private AsyncTaskConfigReq asyncTaskConfig;
+
     public RegisterApiAssetReq() {
     }
 
@@ -55,6 +58,14 @@ public class RegisterApiAssetReq {
 
     public void setAssetName(String assetName) {
         this.assetName = assetName;
+    }
+
+    public AsyncTaskConfigReq getAsyncTaskConfig() {
+        return asyncTaskConfig;
+    }
+
+    public void setAsyncTaskConfig(AsyncTaskConfigReq asyncTaskConfig) {
+        this.asyncTaskConfig = asyncTaskConfig;
     }
 }
 

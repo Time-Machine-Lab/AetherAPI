@@ -11,6 +11,7 @@ import io.github.timemachinelab.service.application.ApiAssetApplicationService;
 import io.github.timemachinelab.service.model.ApiAssetModel;
 import io.github.timemachinelab.service.model.ApiAssetPageResult;
 import io.github.timemachinelab.service.model.ApiAssetSummaryModel;
+import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
 import io.github.timemachinelab.service.model.AttachAiCapabilityProfileCommand;
 import io.github.timemachinelab.service.model.ListApiAssetQuery;
 import io.github.timemachinelab.service.model.RegisterApiAssetCommand;
@@ -235,6 +236,56 @@ class ApiAssetApplicationServiceTest {
         }
 
         @Test
+        @DisplayName("should carry async task config through revise and detail models")
+        void shouldCarryAsyncTaskConfigThroughReviseAndDetailModels() {
+            ApiAssetApplicationService lifecycleService = lifecycleService(categoryRef -> true);
+            lifecycleService.registerAsset(new RegisterApiAssetCommand(
+                    CURRENT_USER_ID,
+                    PUBLISHER_DISPLAY_NAME,
+                    "image-generation",
+                    AssetType.STANDARD_API,
+                    "Image Generation"));
+
+            ApiAssetModel revised = lifecycleService.reviseAsset(new ReviseApiAssetCommand(
+                    CURRENT_USER_ID,
+                    PUBLISHER_DISPLAY_NAME,
+                    "image-generation",
+                    "Image Generation",
+                    true,
+                    AssetType.STANDARD_API,
+                    true,
+                    "tools",
+                    true,
+                    RequestMethod.POST,
+                    true,
+                    "https://upstream.example.com/images",
+                    true,
+                    AuthScheme.HEADER_TOKEN,
+                    true,
+                    "Authorization: Bearer upstream-token",
+                    true,
+                    "{\"prompt\":\"demo\"}",
+                    true,
+                    "{\"prompt\":\"cat\"}",
+                    true,
+                    "{\"taskId\":\"task_123\"}",
+                    true,
+                    completeAsyncTaskConfigModel(),
+                    true
+            ));
+
+            ApiAssetModel detail = lifecycleService.getAssetByCode(CURRENT_USER_ID, "image-generation");
+
+            assertEquals(Boolean.TRUE, revised.getAsyncTaskConfig().getEnabled());
+            assertEquals("GET", revised.getAsyncTaskConfig().getQueryMethod());
+            assertEquals("https://upstream.example.com/images/tasks/{taskId}", revised.getAsyncTaskConfig().getQueryUrlTemplate());
+            assertEquals("SAME_AS_SUBMIT", revised.getAsyncTaskConfig().getAuthMode());
+            assertEquals("$.status", detail.getAsyncTaskConfig().getStatusPath());
+            assertEquals("$.result", detail.getAsyncTaskConfig().getResultPath());
+            assertEquals("$.error", detail.getAsyncTaskConfig().getErrorPath());
+        }
+
+        @Test
         @DisplayName("should reject publish when asset is incomplete")
         void shouldRejectPublishWhenAssetIsIncomplete() {
             ApiAssetApplicationService lifecycleService = lifecycleService(categoryRef -> true);
@@ -405,6 +456,20 @@ class ApiAssetApplicationServiceTest {
                 true,
                 "{\"choices\":[{\"message\":{\"content\":\"hello\"}}]}",
                 true
+        );
+    }
+
+    private AsyncTaskConfigModel completeAsyncTaskConfigModel() {
+        return new AsyncTaskConfigModel(
+                true,
+                "GET",
+                "https://upstream.example.com/images/tasks/{taskId}",
+                "SAME_AS_SUBMIT",
+                null,
+                null,
+                "$.status",
+                "$.result",
+                "$.error"
         );
     }
 

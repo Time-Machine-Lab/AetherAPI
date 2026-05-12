@@ -1,6 +1,7 @@
 package io.github.timemachinelab.adapter.web.delegate;
 
 import io.github.timemachinelab.service.model.ResolveUnifiedAccessInvocationCommand;
+import io.github.timemachinelab.service.model.ResolveUnifiedAccessTaskQueryCommand;
 import io.github.timemachinelab.service.model.UnifiedAccessInvocationModel;
 import io.github.timemachinelab.service.model.UnifiedAccessProxyResponseModel;
 import io.github.timemachinelab.service.port.in.UnifiedAccessUseCase;
@@ -249,10 +250,51 @@ class UnifiedAccessWebDelegateTest {
         assertEquals(List.of("Bearer console-session-token"), useCase.lastCommand.getHeaders().get(HttpHeaders.AUTHORIZATION));
     }
 
+    @Test
+    @DisplayName("queryTaskToResponse should call task query use case with task-query access channel")
+    void shouldMapTaskQueryToTaskQueryCommand() throws Exception {
+        byte[] upstreamBody = "{\"status\":\"succeeded\"}".getBytes(StandardCharsets.UTF_8);
+        StubUnifiedAccessUseCase useCase = new StubUnifiedAccessUseCase(
+                UnifiedAccessProxyResponseModel.success(
+                        200,
+                        Map.of("X-Upstream-Trace", List.of("up-task-1")),
+                        upstreamBody,
+                        "application/json",
+                        false
+                )
+        );
+        UnifiedAccessWebDelegate delegate = new UnifiedAccessWebDelegate(useCase);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-Aether-Api-Key", "ak_live_validation_key");
+        LinkedMultiValueMap<String, String> queryParameters = new LinkedMultiValueMap<>();
+        queryParameters.add("verbose", "true");
+        MockHttpServletResponse servletResponse = new MockHttpServletResponse();
+
+        delegate.queryTaskToResponse(
+                "image-generation",
+                "task_123",
+                headers,
+                queryParameters,
+                servletResponse
+        );
+
+        assertEquals(200, servletResponse.getStatus());
+        assertEquals("application/json", servletResponse.getContentType());
+        assertEquals("up-task-1", servletResponse.getHeader("X-Upstream-Trace"));
+        assertArrayEquals(upstreamBody, servletResponse.getContentAsByteArray());
+        assertEquals("image-generation", useCase.lastTaskCommand.getApiCode());
+        assertEquals("task_123", useCase.lastTaskCommand.getTaskId());
+        assertEquals("ak_live_validation_key", useCase.lastTaskCommand.getPlaintextApiKey());
+        assertEquals("GET", useCase.lastTaskCommand.getHttpMethod());
+        assertEquals("UNIFIED_ACCESS_TASK_QUERY", useCase.lastTaskCommand.getAccessChannel());
+        assertEquals(List.of("true"), useCase.lastTaskCommand.getQueryParameters().get("verbose"));
+    }
+
     private static final class StubUnifiedAccessUseCase implements UnifiedAccessUseCase {
 
         private final UnifiedAccessProxyResponseModel response;
         private ResolveUnifiedAccessInvocationCommand lastCommand;
+        private ResolveUnifiedAccessTaskQueryCommand lastTaskCommand;
 
         private StubUnifiedAccessUseCase(UnifiedAccessProxyResponseModel response) {
             this.response = response;
@@ -266,6 +308,12 @@ class UnifiedAccessWebDelegateTest {
         @Override
         public UnifiedAccessProxyResponseModel invoke(ResolveUnifiedAccessInvocationCommand command) {
             this.lastCommand = command;
+            return response;
+        }
+
+        @Override
+        public UnifiedAccessProxyResponseModel queryTask(ResolveUnifiedAccessTaskQueryCommand command) {
+            this.lastTaskCommand = command;
             return response;
         }
     }

@@ -19,6 +19,33 @@ security:
   - aetherApiKey: []
 
 paths:
+  /access/{apiCode}/tasks/{taskId}:
+    get:
+      summary: 通过统一入口查询异步任务状态或结果
+      operationId: queryUnifiedAccessAsyncTask
+      tags:
+        - UnifiedAccess
+      parameters:
+        - $ref: '#/components/parameters/ApiCodePath'
+        - $ref: '#/components/parameters/TaskIdPath'
+      responses:
+        '2XX':
+          $ref: '#/components/responses/UnifiedAccessSuccess'
+        '400':
+          $ref: '#/components/responses/InvalidTaskQueryFailure'
+        '401':
+          $ref: '#/components/responses/InvalidCredentialFailure'
+        '403':
+          $ref: '#/components/responses/SubscriptionRequiredFailure'
+        '404':
+          $ref: '#/components/responses/TargetNotFoundFailure'
+        '502':
+          $ref: '#/components/responses/UpstreamExecutionFailure'
+        '504':
+          $ref: '#/components/responses/UpstreamTimeoutFailure'
+        '503':
+          $ref: '#/components/responses/TargetUnavailableFailure'
+
   /access/{apiCode}:
     get:
       summary: 通过统一入口调用已启用目标 API
@@ -168,6 +195,17 @@ components:
         pattern: '^[a-z0-9][a-z0-9_-]*[a-z0-9]$|^[a-z0-9]$'
       example: chat-completions
 
+    TaskIdPath:
+      name: taskId
+      in: path
+      required: true
+      description: 上游异步任务标识。Unified Access 不在一期托管任务归属，仅用于渲染资产的任务查询 URL 模板。
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 256
+      example: task_123
+
   requestBodies:
     UnifiedAccessPayload:
       required: false
@@ -271,6 +309,18 @@ components:
             failureType: TARGET_UNAVAILABLE
             traceId: null
             apiCode: chat-completions
+    InvalidTaskQueryFailure:
+      description: 异步任务查询请求非法，或目标 API 未声明可用的任务查询配置
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UnifiedAccessPlatformFailureResp'
+          example:
+            code: ASYNC_TASK_QUERY_UNAVAILABLE
+            message: Async task query is unavailable for apiCode image-generate
+            failureType: ASYNC_TASK_QUERY_UNAVAILABLE
+            traceId: null
+            apiCode: image-generate
     UpstreamExecutionFailure:
       description: 上游执行失败。目标 API 已解析并进入转发阶段，但上游请求构造、连接或执行失败。
       content:
@@ -323,6 +373,8 @@ components:
             - SUBSCRIPTION_REQUIRED
             - TARGET_NOT_FOUND
             - TARGET_UNAVAILABLE
+            - ASYNC_TASK_QUERY_UNAVAILABLE
+            - INVALID_TASK_ID
           description: 统一入口在转发前给出的失败分类
         traceId:
           type: string

@@ -56,6 +56,9 @@ public class ApiAssetResp {
     @JsonProperty("responseExample")
     private String responseExample;
 
+    @JsonProperty("asyncTaskConfig")
+    private AsyncTaskConfigResp asyncTaskConfig;
+
     @JsonProperty("aiCapabilityProfile")
     private AiCapabilityProfileResp aiCapabilityProfile;
 
@@ -91,6 +94,51 @@ public class ApiAssetResp {
             boolean deleted,
             String createdAt,
             String updatedAt) {
+        this(
+                id,
+                apiCode,
+                assetName,
+                assetType,
+                categoryCode,
+                status,
+                publisherDisplayName,
+                publishedAt,
+                requestMethod,
+                upstreamUrl,
+                authScheme,
+                authConfig,
+                requestTemplate,
+                requestExample,
+                responseExample,
+                null,
+                aiCapabilityProfile,
+                deleted,
+                createdAt,
+                updatedAt
+        );
+    }
+
+    public ApiAssetResp(
+            String id,
+            String apiCode,
+            String assetName,
+            AssetType assetType,
+            String categoryCode,
+            AssetStatus status,
+            String publisherDisplayName,
+            String publishedAt,
+            RequestMethod requestMethod,
+            String upstreamUrl,
+            AuthScheme authScheme,
+            String authConfig,
+            String requestTemplate,
+            String requestExample,
+            String responseExample,
+            AsyncTaskConfigResp asyncTaskConfig,
+            AiCapabilityProfileResp aiCapabilityProfile,
+            boolean deleted,
+            String createdAt,
+            String updatedAt) {
         this.id = id;
         this.apiCode = apiCode;
         this.assetName = assetName;
@@ -106,6 +154,7 @@ public class ApiAssetResp {
         this.requestTemplate = requestTemplate;
         this.requestExample = requestExample;
         this.responseExample = responseExample;
+        this.asyncTaskConfig = asyncTaskConfig;
         this.aiCapabilityProfile = aiCapabilityProfile;
         this.deleted = deleted;
         this.createdAt = createdAt;
@@ -234,6 +283,14 @@ public class ApiAssetResp {
 
     public AiCapabilityProfileResp getAiCapabilityProfile() {
         return aiCapabilityProfile;
+    }
+
+    public AsyncTaskConfigResp getAsyncTaskConfig() {
+        return asyncTaskConfig;
+    }
+
+    public void setAsyncTaskConfig(AsyncTaskConfigResp asyncTaskConfig) {
+        this.asyncTaskConfig = asyncTaskConfig;
     }
 
     public void setAiCapabilityProfile(AiCapabilityProfileResp aiCapabilityProfile) {

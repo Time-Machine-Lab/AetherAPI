@@ -14,6 +14,7 @@ public class ApiAssetSummaryModel {
     private final String publisherDisplayName;
     private final String publishedAt;
     private final String updatedAt;
+    private final boolean asyncTaskQueryEnabled;
 
     public ApiAssetSummaryModel(
             String apiCode,
@@ -25,6 +26,20 @@ public class ApiAssetSummaryModel {
             String publisherDisplayName,
             String publishedAt,
             String updatedAt) {
+        this(apiCode, assetName, assetType, categoryCode, categoryName, status, publisherDisplayName, publishedAt, updatedAt, false);
+    }
+
+    public ApiAssetSummaryModel(
+            String apiCode,
+            String assetName,
+            String assetType,
+            String categoryCode,
+            String categoryName,
+            String status,
+            String publisherDisplayName,
+            String publishedAt,
+            String updatedAt,
+            boolean asyncTaskQueryEnabled) {
         this.apiCode = apiCode;
         this.assetName = assetName;
         this.assetType = assetType;
@@ -34,6 +49,7 @@ public class ApiAssetSummaryModel {
         this.publisherDisplayName = publisherDisplayName;
         this.publishedAt = publishedAt;
         this.updatedAt = updatedAt;
+        this.asyncTaskQueryEnabled = asyncTaskQueryEnabled;
     }
 
     public String getApiCode() {
@@ -70,5 +86,9 @@ public class ApiAssetSummaryModel {
 
     public String getUpdatedAt() {
         return updatedAt;
+    }
+
+    public boolean isAsyncTaskQueryEnabled() {
+        return asyncTaskQueryEnabled;
     }
 }

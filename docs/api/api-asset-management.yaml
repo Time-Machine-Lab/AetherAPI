@@ -323,6 +323,8 @@ components:
           maxLength: 128
           nullable: true
           example: Weather Forecast API
+        asyncTaskConfig:
+          $ref: '#/components/schemas/AsyncTaskConfig'
 
     ReviseApiAssetReq:
       type: object
@@ -374,6 +376,8 @@ components:
         responseExample:
           type: string
           nullable: true
+        asyncTaskConfig:
+          $ref: '#/components/schemas/AsyncTaskConfig'
 
     AttachAiCapabilityProfileReq:
       type: object
@@ -449,6 +453,9 @@ components:
         updatedAt:
           type: string
           format: date-time
+        asyncTaskQueryEnabled:
+          type: boolean
+          description: 当前资产是否声明 Unified Access 异步任务查询通道
 
     ApiAssetPageResp:
       type: object
@@ -518,6 +525,8 @@ components:
         responseExample:
           type: string
           nullable: true
+        asyncTaskConfig:
+          $ref: '#/components/schemas/AsyncTaskConfig'
         aiCapabilityProfile:
           $ref: '#/components/schemas/AiCapabilityProfileResp'
         deleted:
@@ -536,3 +545,67 @@ components:
           type: string
         message:
           type: string
+
+    AsyncTaskConfig:
+      type: object
+      nullable: true
+      description: |
+        API 资产的异步任务查询配置。为空表示该资产不声明 Unified Access 任务查询通道。
+        一期仅用于根据 taskId 构造上游任务查询请求；成功查询响应仍由 Unified Access 透传上游语义。
+      properties:
+        enabled:
+          type: boolean
+          description: 是否启用该资产的异步任务查询通道
+        queryMethod:
+          type: string
+          description: 上游任务查询请求方法。一期推荐 GET。
+          enum:
+            - GET
+            - POST
+        queryUrlTemplate:
+          type: string
+          maxLength: 512
+          description: 上游任务查询 URL 模板，必须包含 `{taskId}` 占位符
+          example: https://provider.example.com/v1/tasks/{taskId}
+        authMode:
+          type: string
+          description: 任务查询鉴权模式。SAME_AS_SUBMIT 表示复用资产上游鉴权配置。
+          enum:
+            - SAME_AS_SUBMIT
+            - OVERRIDE
+          default: SAME_AS_SUBMIT
+        authScheme:
+          type: string
+          nullable: true
+          description: authMode 为 OVERRIDE 时使用的任务查询鉴权方案
+          enum:
+            - NONE
+            - HEADER_TOKEN
+            - QUERY_TOKEN
+        authConfig:
+          type: string
+          nullable: true
+          description: authMode 为 OVERRIDE 时使用的任务查询鉴权配置
+        statusPath:
+          type: string
+          nullable: true
+          description: 预留字段：上游任务状态字段 JSONPath，一期不强制规范化响应
+          example: $.data.status
+        resultPath:
+          type: string
+          nullable: true
+          description: 预留字段：上游任务结果字段 JSONPath
+          example: $.data.result
+        errorPath:
+          type: string
+          nullable: true
+          description: 预留字段：上游任务错误字段 JSONPath
+          example: $.data.error
+      example:
+        enabled: true
+        queryMethod: GET
+        queryUrlTemplate: https://provider.example.com/v1/tasks/{taskId}
+        authMode: SAME_AS_SUBMIT
+        statusPath: $.data.status
+        resultPath: $.data.result
+        errorPath: $.data.error

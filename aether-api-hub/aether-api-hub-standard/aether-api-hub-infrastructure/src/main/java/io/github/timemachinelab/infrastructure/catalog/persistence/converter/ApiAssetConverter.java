@@ -1,6 +1,8 @@
 package io.github.timemachinelab.infrastructure.catalog.persistence.converter;
 
 import io.github.timemachinelab.domain.catalog.model.AiCapabilityProfile;
+import io.github.timemachinelab.domain.catalog.model.AsyncTaskAuthMode;
+import io.github.timemachinelab.domain.catalog.model.AsyncTaskConfig;
 import io.github.timemachinelab.domain.catalog.model.ApiAssetAggregate;
 import io.github.timemachinelab.domain.catalog.model.ApiCode;
 import io.github.timemachinelab.domain.catalog.model.AssetId;
@@ -52,6 +54,7 @@ public final class ApiAssetConverter {
                 ),
                 source.getRequestTemplate(),
                 ExampleSnapshot.of(source.getRequestExample(), source.getResponseExample()),
+                toAsyncTaskConfig(source.getAsyncTaskConfig()),
                 toAiCapabilityProfile(source),
                 source.getProxyProfileId(),
                 toInstant(source.getCreatedAt()),
@@ -98,6 +101,7 @@ public final class ApiAssetConverter {
         target.setRequestTemplate(source.getRequestTemplate());
         target.setRequestExample(source.getExampleSnapshot() == null ? null : source.getExampleSnapshot().getRequestExample());
         target.setResponseExample(source.getExampleSnapshot() == null ? null : source.getExampleSnapshot().getResponseExample());
+        target.setAsyncTaskConfig(serializeAsyncTaskConfig(source.getAsyncTaskConfig()));
         target.setAiProvider(source.getAiCapabilityProfile() == null ? null : source.getAiCapabilityProfile().getProvider());
         target.setAiModel(source.getAiCapabilityProfile() == null ? null : source.getAiCapabilityProfile().getModel());
         target.setAiStreamingSupported(source.getAiCapabilityProfile() == null ? null : source.getAiCapabilityProfile().isStreamingSupported());
@@ -123,6 +127,101 @@ public final class ApiAssetConverter {
                 source.getAiStreamingSupported(),
                 tags
         );
+    }
+
+    private static AsyncTaskConfig toAsyncTaskConfig(String json) {
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+        try {
+            return AsyncTaskConfig.of(
+                    extractJsonBoolean(json, "enabled"),
+                    toRequestMethod(extractJsonString(json, "queryMethod")),
+                    extractJsonString(json, "queryUrlTemplate"),
+                    toAsyncTaskAuthMode(extractJsonString(json, "authMode")),
+                    toAuthScheme(extractJsonString(json, "authScheme")),
+                    extractJsonString(json, "authConfig"),
+                    extractJsonString(json, "statusPath"),
+                    extractJsonString(json, "resultPath"),
+                    extractJsonString(json, "errorPath")
+            );
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalStateException("Stored async task config is invalid", ex);
+        }
+    }
+
+    private static String serializeAsyncTaskConfig(AsyncTaskConfig config) {
+        if (config == null) {
+            return null;
+        }
+        StringBuilder builder = new StringBuilder("{");
+        appendJsonBoolean(builder, "enabled", config.isEnabled());
+        appendJsonString(builder, "queryMethod", config.getQueryMethod() == null ? null : config.getQueryMethod().name());
+        appendJsonString(builder, "queryUrlTemplate", config.getQueryUrlTemplate());
+        appendJsonString(builder, "authMode", config.getAuthMode() == null ? null : config.getAuthMode().name());
+        appendJsonString(builder, "authScheme", config.getAuthScheme() == null ? null : config.getAuthScheme().name());
+        appendJsonString(builder, "authConfig", config.getAuthConfig());
+        appendJsonString(builder, "statusPath", config.getStatusPath());
+        appendJsonString(builder, "resultPath", config.getResultPath());
+        appendJsonString(builder, "errorPath", config.getErrorPath());
+        builder.append('}');
+        return builder.toString();
+    }
+
+    private static void appendJsonBoolean(StringBuilder builder, String fieldName, boolean value) {
+        appendCommaIfNeeded(builder);
+        builder.append('"').append(fieldName).append("\":").append(value);
+    }
+
+    private static void appendJsonString(StringBuilder builder, String fieldName, String value) {
+        if (value == null) {
+            return;
+        }
+        appendCommaIfNeeded(builder);
+        builder.append('"').append(fieldName).append("\":\"").append(escapeJson(value)).append('"');
+    }
+
+    private static void appendCommaIfNeeded(StringBuilder builder) {
+        if (builder.length() > 1) {
+            builder.append(',');
+        }
+    }
+
+    private static Boolean extractJsonBoolean(String json, String fieldName) {
+        Matcher matcher = Pattern.compile("\"" + Pattern.quote(fieldName) + "\"\\s*:\\s*(true|false)").matcher(json);
+        return matcher.find() ? Boolean.valueOf(matcher.group(1)) : null;
+    }
+
+    private static String extractJsonString(String json, String fieldName) {
+        Matcher matcher = Pattern.compile("\"" + Pattern.quote(fieldName) + "\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"").matcher(json);
+        if (!matcher.find()) {
+            return null;
+        }
+        return unescapeJson(matcher.group(1));
+    }
+
+    private static RequestMethod toRequestMethod(String value) {
+        return value == null ? null : RequestMethod.valueOf(value);
+    }
+
+    private static AsyncTaskAuthMode toAsyncTaskAuthMode(String value) {
+        return value == null ? null : AsyncTaskAuthMode.valueOf(value);
+    }
+
+    private static AuthScheme toAuthScheme(String value) {
+        return value == null ? null : AuthScheme.valueOf(value);
+    }
+
+    private static String escapeJson(String value) {
+        return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"");
+    }
+
+    private static String unescapeJson(String value) {
+        return value
+                .replace("\\\"", "\"")
+                .replace("\\\\", "\\");
     }
 
     private static java.time.Instant toInstant(LocalDateTime value) {
@@ -158,4 +257,5 @@ public final class ApiAssetConverter {
         }
         return result;
     }
+
 }

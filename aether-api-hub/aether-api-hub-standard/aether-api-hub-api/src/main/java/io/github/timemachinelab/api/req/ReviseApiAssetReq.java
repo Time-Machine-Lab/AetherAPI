@@ -55,6 +55,10 @@ public class ReviseApiAssetReq {
     private String responseExample;
     private boolean responseExampleSet;
 
+    @JsonProperty("asyncTaskConfig")
+    private AsyncTaskConfigReq asyncTaskConfig;
+    private boolean asyncTaskConfigSet;
+
     @JsonSetter("assetName")
     public void setAssetName(String assetName) {
         this.assetName = assetName;
@@ -113,6 +117,12 @@ public class ReviseApiAssetReq {
     public void setResponseExample(String responseExample) {
         this.responseExample = responseExample;
         this.responseExampleSet = true;
+    }
+
+    @JsonSetter("asyncTaskConfig")
+    public void setAsyncTaskConfig(AsyncTaskConfigReq asyncTaskConfig) {
+        this.asyncTaskConfig = asyncTaskConfig;
+        this.asyncTaskConfigSet = true;
     }
 
     public String getAssetName() {
@@ -193,6 +203,14 @@ public class ReviseApiAssetReq {
 
     public boolean isResponseExampleSet() {
         return responseExampleSet;
+    }
+
+    public AsyncTaskConfigReq getAsyncTaskConfig() {
+        return asyncTaskConfig;
+    }
+
+    public boolean isAsyncTaskConfigSet() {
+        return asyncTaskConfigSet;
     }
 }
 

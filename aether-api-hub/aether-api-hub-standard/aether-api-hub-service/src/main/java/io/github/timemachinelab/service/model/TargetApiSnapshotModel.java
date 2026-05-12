@@ -18,6 +18,7 @@ public class TargetApiSnapshotModel {
     private final String aiModel;
     private final String proxyProfileId;
     private final ProxyProfileSnapshotModel proxyProfile;
+    private final AsyncTaskConfigModel asyncTaskConfig;
 
     public TargetApiSnapshotModel(
             String assetId,
@@ -44,6 +45,7 @@ public class TargetApiSnapshotModel {
                 aiProvider,
                 aiModel,
                 null,
+                null,
                 null
         );
     }
@@ -62,6 +64,39 @@ public class TargetApiSnapshotModel {
             String aiModel,
             String proxyProfileId,
             ProxyProfileSnapshotModel proxyProfile) {
+        this(
+                assetId,
+                apiCode,
+                assetName,
+                assetType,
+                requestMethod,
+                upstreamUrl,
+                authScheme,
+                authConfig,
+                streamingSupported,
+                aiProvider,
+                aiModel,
+                proxyProfileId,
+                proxyProfile,
+                null
+        );
+    }
+
+    public TargetApiSnapshotModel(
+            String assetId,
+            String apiCode,
+            String assetName,
+            String assetType,
+            String requestMethod,
+            String upstreamUrl,
+            String authScheme,
+            String authConfig,
+            boolean streamingSupported,
+            String aiProvider,
+            String aiModel,
+            String proxyProfileId,
+            ProxyProfileSnapshotModel proxyProfile,
+            AsyncTaskConfigModel asyncTaskConfig) {
         this.assetId = assetId;
         this.apiCode = apiCode;
         this.assetName = assetName;
@@ -75,6 +110,7 @@ public class TargetApiSnapshotModel {
         this.aiModel = aiModel;
         this.proxyProfileId = proxyProfileId;
         this.proxyProfile = proxyProfile;
+        this.asyncTaskConfig = asyncTaskConfig;
     }
 
     public String getAssetId() {
@@ -127,5 +163,9 @@ public class TargetApiSnapshotModel {
 
     public ProxyProfileSnapshotModel getProxyProfile() {
         return proxyProfile;
+    }
+
+    public AsyncTaskConfigModel getAsyncTaskConfig() {
+        return asyncTaskConfig;
     }
 }

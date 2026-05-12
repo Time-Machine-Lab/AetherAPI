@@ -1,13 +1,18 @@
 package io.github.timemachinelab.adapter.web.delegate;
 
 import io.github.timemachinelab.api.req.AttachAiCapabilityProfileReq;
+import io.github.timemachinelab.api.req.AsyncTaskConfigReq;
+import io.github.timemachinelab.api.req.RegisterApiAssetReq;
 import io.github.timemachinelab.api.resp.ApiAssetResp;
+import io.github.timemachinelab.domain.catalog.model.AsyncTaskAuthMode;
 import io.github.timemachinelab.domain.catalog.model.AssetStatus;
 import io.github.timemachinelab.domain.catalog.model.AssetType;
 import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 import io.github.timemachinelab.service.model.ApiAssetModel;
+import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
 import io.github.timemachinelab.service.model.AttachAiCapabilityProfileCommand;
+import io.github.timemachinelab.service.model.RegisterApiAssetCommand;
 import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,6 +27,43 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ApiAssetWebDelegateTest {
+
+    @Test
+    @DisplayName("register binding should carry async task config to use case and response")
+    void shouldBindAsyncTaskConfigWhenRegisteringAsset() {
+        ApiAssetUseCase useCase = mock(ApiAssetUseCase.class);
+        when(useCase.registerAsset(any(RegisterApiAssetCommand.class))).thenReturn(asyncAssetModel());
+        ApiAssetWebDelegate delegate = new ApiAssetWebDelegate(useCase);
+        RegisterApiAssetReq req = new RegisterApiAssetReq("image-generation", AssetType.STANDARD_API, "Image Generation");
+        AsyncTaskConfigReq asyncTaskConfig = new AsyncTaskConfigReq();
+        asyncTaskConfig.setEnabled(true);
+        asyncTaskConfig.setQueryMethod(RequestMethod.GET);
+        asyncTaskConfig.setQueryUrlTemplate("https://provider.example.com/tasks/{taskId}");
+        asyncTaskConfig.setAuthMode(AsyncTaskAuthMode.SAME_AS_SUBMIT);
+        asyncTaskConfig.setStatusPath("$.status");
+        asyncTaskConfig.setResultPath("$.result");
+        asyncTaskConfig.setErrorPath("$.error");
+        req.setAsyncTaskConfig(asyncTaskConfig);
+
+        ApiAssetResp response = delegate.registerAsset("user-1", "Alice", req);
+
+        ArgumentCaptor<RegisterApiAssetCommand> commandCaptor =
+                ArgumentCaptor.forClass(RegisterApiAssetCommand.class);
+        verify(useCase).registerAsset(commandCaptor.capture());
+        AsyncTaskConfigModel commandConfig = commandCaptor.getValue().getAsyncTaskConfig();
+        assertEquals(Boolean.TRUE, commandConfig.getEnabled());
+        assertEquals("GET", commandConfig.getQueryMethod());
+        assertEquals("https://provider.example.com/tasks/{taskId}", commandConfig.getQueryUrlTemplate());
+        assertEquals("SAME_AS_SUBMIT", commandConfig.getAuthMode());
+        assertEquals("$.status", commandConfig.getStatusPath());
+        assertEquals("$.result", commandConfig.getResultPath());
+        assertEquals("$.error", commandConfig.getErrorPath());
+
+        assertEquals(Boolean.TRUE, response.getAsyncTaskConfig().getEnabled());
+        assertEquals(RequestMethod.GET, response.getAsyncTaskConfig().getQueryMethod());
+        assertEquals("https://provider.example.com/tasks/{taskId}", response.getAsyncTaskConfig().getQueryUrlTemplate());
+        assertEquals(AsyncTaskAuthMode.SAME_AS_SUBMIT, response.getAsyncTaskConfig().getAuthMode());
+    }
 
     @Test
     @DisplayName("ai profile binding should return complete asset response")
@@ -90,6 +132,44 @@ class ApiAssetWebDelegateTest {
                 "gpt-4.1",
                 true,
                 List.of("chat", "vision"),
+                false,
+                "2026-04-29T08:00:00Z",
+                "2026-04-29T08:30:00Z"
+        );
+    }
+
+    private ApiAssetModel asyncAssetModel() {
+        return new ApiAssetModel(
+                "asset-2",
+                "image-generation",
+                "Image Generation",
+                "STANDARD_API",
+                null,
+                "DRAFT",
+                "Alice",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                new AsyncTaskConfigModel(
+                        true,
+                        "GET",
+                        "https://provider.example.com/tasks/{taskId}",
+                        "SAME_AS_SUBMIT",
+                        null,
+                        null,
+                        "$.status",
+                        "$.result",
+                        "$.error"
+                ),
+                null,
+                null,
+                null,
+                null,
                 false,
                 "2026-04-29T08:00:00Z",
                 "2026-04-29T08:30:00Z"

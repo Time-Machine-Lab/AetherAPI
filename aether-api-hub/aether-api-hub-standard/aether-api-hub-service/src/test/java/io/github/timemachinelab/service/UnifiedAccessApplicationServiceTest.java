@@ -1,6 +1,8 @@
 package io.github.timemachinelab.service;
 
 import io.github.timemachinelab.domain.catalog.model.AiCapabilityProfile;
+import io.github.timemachinelab.domain.catalog.model.AsyncTaskAuthMode;
+import io.github.timemachinelab.domain.catalog.model.AsyncTaskConfig;
 import io.github.timemachinelab.domain.catalog.model.ApiAssetAggregate;
 import io.github.timemachinelab.domain.catalog.model.ApiCode;
 import io.github.timemachinelab.domain.catalog.model.AssetId;
@@ -12,12 +14,16 @@ import io.github.timemachinelab.domain.catalog.model.UpstreamEndpointConfig;
 import io.github.timemachinelab.domain.consumerauth.model.ConsumerId;
 import io.github.timemachinelab.domain.consumerauth.model.CredentialValidationFailureReason;
 import io.github.timemachinelab.domain.consumerauth.model.UserConsumerMapping;
+import io.github.timemachinelab.domain.platformproxy.model.PlatformProxyProfileAggregate;
+import io.github.timemachinelab.domain.platformproxy.model.PlatformProxyProfileId;
+import io.github.timemachinelab.domain.platformproxy.model.ProxyType;
 import io.github.timemachinelab.service.application.UnifiedAccessApplicationService;
 import io.github.timemachinelab.service.model.ConsumerContextModel;
 import io.github.timemachinelab.service.model.CredentialValidationResult;
 import io.github.timemachinelab.service.model.PlatformPreForwardFailureType;
 import io.github.timemachinelab.service.model.RecordApiCallLogCommand;
 import io.github.timemachinelab.service.model.ResolveUnifiedAccessInvocationCommand;
+import io.github.timemachinelab.service.model.ResolveUnifiedAccessTaskQueryCommand;
 import io.github.timemachinelab.service.model.UnifiedAccessExecutionOutcomeType;
 import io.github.timemachinelab.service.model.UnifiedAccessInvocationModel;
 import io.github.timemachinelab.service.model.UnifiedAccessPlatformFailureException;
@@ -27,6 +33,7 @@ import io.github.timemachinelab.service.port.in.CredentialValidationUseCase;
 import io.github.timemachinelab.service.port.in.ObservabilityUseCase;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiSubscriptionEntitlementPort;
+import io.github.timemachinelab.service.port.out.PlatformProxyProfileRepositoryPort;
 import io.github.timemachinelab.service.port.out.UnifiedAccessDownstreamProxyPort;
 import io.github.timemachinelab.service.port.out.UserConsumerMappingRepositoryPort;
 import org.junit.jupiter.api.DisplayName;
@@ -538,6 +545,255 @@ class UnifiedAccessApplicationServiceTest {
         assertEquals(1, downstreamProxyPort.invocationCount);
     }
 
+    @Test
+    @DisplayName("queryTask renders configured task url and records task-query access channel")
+    void shouldQueryAsyncTaskThroughConfiguredTarget() {
+        InMemoryCredentialValidationUseCase credentialValidationUseCase = validCredentialUseCase();
+        InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
+        InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
+        InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
+        apiAssetRepositoryPort.save(publishedAsyncAsset("image-generation"));
+
+        UnifiedAccessApplicationService service = newService(
+                credentialValidationUseCase,
+                apiAssetRepositoryPort,
+                downstreamProxyPort,
+                observabilityUseCase
+        );
+
+        UnifiedAccessProxyResponseModel response = service.queryTask(new ResolveUnifiedAccessTaskQueryCommand(
+                "image-generation",
+                "task 123",
+                "ak_live_validation_key",
+                "GET",
+                Map.of("X-Trace-Id", List.of("trace-async")),
+                Map.of("verbose", List.of("true")),
+                null,
+                null,
+                "UNIFIED_ACCESS_TASK_QUERY"
+        ));
+
+        assertEquals(UnifiedAccessExecutionOutcomeType.SUCCESS, response.getOutcomeType());
+        assertEquals(1, downstreamProxyPort.invocationCount);
+        UnifiedAccessInvocationModel invocation = downstreamProxyPort.lastInvocation;
+        assertEquals("GET", invocation.getHttpMethod());
+        assertEquals("https://upstream.example.com/v1/image-generation/tasks/task+123", invocation.getTargetApi().getUpstreamUrl());
+        assertEquals("UNIFIED_ACCESS_TASK_QUERY", invocation.getAccessChannel());
+        assertEquals("HEADER_TOKEN", invocation.getTargetApi().getAuthScheme());
+        assertEquals("Authorization: Bearer upstream-token", invocation.getTargetApi().getAuthConfig());
+        assertEquals(List.of("true"), invocation.getQueryParameters().get("verbose"));
+        assertEquals(1, observabilityUseCase.recordedCommands.size());
+        RecordApiCallLogCommand logCommand = observabilityUseCase.recordedCommands.get(0);
+        assertEquals("UNIFIED_ACCESS_TASK_QUERY", logCommand.getAccessChannel());
+        assertEquals("image-generation", logCommand.getTargetApiCode());
+        assertEquals("GET", logCommand.getRequestMethod());
+        assertTrue(logCommand.isSuccess());
+    }
+
+    @Test
+    @DisplayName("queryTask rejects assets without async task config before forwarding")
+    void shouldRejectTaskQueryForAssetWithoutAsyncConfig() {
+        InMemoryCredentialValidationUseCase credentialValidationUseCase = validCredentialUseCase();
+        InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
+        InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
+        InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
+        apiAssetRepositoryPort.save(publishedAsset("weather-api", AssetType.STANDARD_API, false));
+
+        UnifiedAccessApplicationService service = newService(
+                credentialValidationUseCase,
+                apiAssetRepositoryPort,
+                downstreamProxyPort,
+                observabilityUseCase
+        );
+
+        UnifiedAccessPlatformFailureException ex = assertThrows(UnifiedAccessPlatformFailureException.class, () -> service.queryTask(
+                new ResolveUnifiedAccessTaskQueryCommand(
+                        "weather-api",
+                        "task_123",
+                        "ak_live_validation_key",
+                        "GET",
+                        Map.of(),
+                        Map.of(),
+                        null,
+                        null,
+                        "UNIFIED_ACCESS_TASK_QUERY"
+                )
+        ));
+
+        assertEquals("ASYNC_TASK_QUERY_UNAVAILABLE", ex.getFailure().getCode());
+        assertEquals(PlatformPreForwardFailureType.ASYNC_TASK_QUERY_UNAVAILABLE, ex.getFailure().getFailureType());
+        assertEquals(0, downstreamProxyPort.invocationCount);
+        assertEquals(1, observabilityUseCase.recordedCommands.size());
+        assertEquals("UNIFIED_ACCESS_TASK_QUERY", observabilityUseCase.recordedCommands.get(0).getAccessChannel());
+    }
+
+    @Test
+    @DisplayName("queryTask rejects blank task id before forwarding")
+    void shouldRejectBlankTaskIdBeforeForwarding() {
+        InMemoryCredentialValidationUseCase credentialValidationUseCase = validCredentialUseCase();
+        InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
+        InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
+        InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
+        apiAssetRepositoryPort.save(publishedAsyncAsset("image-generation"));
+
+        UnifiedAccessApplicationService service = newService(
+                credentialValidationUseCase,
+                apiAssetRepositoryPort,
+                downstreamProxyPort,
+                observabilityUseCase
+        );
+
+        UnifiedAccessPlatformFailureException ex = assertThrows(UnifiedAccessPlatformFailureException.class, () -> service.queryTask(
+                new ResolveUnifiedAccessTaskQueryCommand(
+                        "image-generation",
+                        "   ",
+                        "ak_live_validation_key",
+                        "GET",
+                        Map.of(),
+                        Map.of(),
+                        null,
+                        null,
+                        "UNIFIED_ACCESS_TASK_QUERY"
+                )
+        ));
+
+        assertEquals("INVALID_TASK_ID", ex.getFailure().getCode());
+        assertEquals(PlatformPreForwardFailureType.INVALID_TASK_ID, ex.getFailure().getFailureType());
+        assertEquals(0, downstreamProxyPort.invocationCount);
+        assertEquals(1, observabilityUseCase.recordedCommands.size());
+    }
+
+    @Test
+    @DisplayName("queryTask applies subscription entitlement before forwarding")
+    void shouldRejectTaskQueryWithoutSubscriptionBeforeForwarding() {
+        InMemoryCredentialValidationUseCase credentialValidationUseCase = validCredentialUseCase();
+        InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
+        InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
+        InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
+        apiAssetRepositoryPort.save(publishedAsyncAsset("image-generation"));
+
+        UnifiedAccessApplicationService service = newService(
+                credentialValidationUseCase,
+                apiAssetRepositoryPort,
+                new InMemoryApiSubscriptionEntitlementPort(false),
+                new InMemoryUserConsumerMappingRepositoryPort("consumer-1", "subscriber-user-1"),
+                downstreamProxyPort,
+                observabilityUseCase
+        );
+
+        UnifiedAccessPlatformFailureException ex = assertThrows(UnifiedAccessPlatformFailureException.class, () -> service.queryTask(
+                new ResolveUnifiedAccessTaskQueryCommand(
+                        "image-generation",
+                        "task_123",
+                        "ak_live_validation_key",
+                        "GET",
+                        Map.of(),
+                        Map.of(),
+                        null,
+                        null,
+                        "UNIFIED_ACCESS_TASK_QUERY"
+                )
+        ));
+
+        assertEquals("API_SUBSCRIPTION_REQUIRED", ex.getFailure().getCode());
+        assertEquals(PlatformPreForwardFailureType.SUBSCRIPTION_REQUIRED, ex.getFailure().getFailureType());
+        assertEquals(403, ex.getFailure().getHttpStatus());
+        assertEquals(0, downstreamProxyPort.invocationCount);
+    }
+
+    @Test
+    @DisplayName("queryTask preserves upstream timeout classification")
+    void shouldPreserveTaskQueryUpstreamTimeoutClassification() {
+        InMemoryCredentialValidationUseCase credentialValidationUseCase = validCredentialUseCase();
+        InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
+        InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
+        InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
+        downstreamProxyPort.response = UnifiedAccessProxyResponseModel.upstreamTimeout(
+                504,
+                "{\"code\":\"UPSTREAM_TIMEOUT\"}".getBytes(),
+                "application/json",
+                "Upstream task query timed out"
+        );
+        apiAssetRepositoryPort.save(publishedAsyncAsset("image-generation"));
+
+        UnifiedAccessApplicationService service = newService(
+                credentialValidationUseCase,
+                apiAssetRepositoryPort,
+                downstreamProxyPort,
+                observabilityUseCase
+        );
+
+        UnifiedAccessProxyResponseModel response = service.queryTask(new ResolveUnifiedAccessTaskQueryCommand(
+                "image-generation",
+                "task_123",
+                "ak_live_validation_key",
+                "GET",
+                Map.of(),
+                Map.of(),
+                null,
+                null,
+                "UNIFIED_ACCESS_TASK_QUERY"
+        ));
+
+        assertEquals(UnifiedAccessExecutionOutcomeType.UPSTREAM_TIMEOUT, response.getOutcomeType());
+        assertEquals(504, response.getStatusCode());
+        RecordApiCallLogCommand logCommand = observabilityUseCase.recordedCommands.get(0);
+        assertEquals("UNIFIED_ACCESS_TASK_QUERY", logCommand.getAccessChannel());
+        assertEquals("UPSTREAM_TIMEOUT", logCommand.getResultType());
+        assertEquals("UPSTREAM_TIMEOUT", logCommand.getErrorType());
+        assertEquals("Upstream task query timed out", logCommand.getErrorSummary());
+    }
+
+    @Test
+    @DisplayName("queryTask keeps configured proxy profile on resolved task target")
+    void shouldKeepProxyProfileOnTaskQueryTarget() {
+        InMemoryCredentialValidationUseCase credentialValidationUseCase = validCredentialUseCase();
+        InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
+        InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
+        InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
+        InMemoryPlatformProxyProfileRepositoryPort proxyProfiles = new InMemoryPlatformProxyProfileRepositoryPort();
+        ApiAssetAggregate asset = publishedAsyncAsset("image-generation");
+        asset.bindProxyProfile("proxy-1");
+        apiAssetRepositoryPort.save(asset);
+        proxyProfiles.save(PlatformProxyProfileAggregate.create(
+                PlatformProxyProfileId.of("proxy-1"),
+                "proxy_cn",
+                "CN Proxy",
+                ProxyType.HTTP,
+                "127.0.0.1",
+                8080,
+                "proxy-user",
+                "proxy-secret",
+                true
+        ));
+
+        UnifiedAccessApplicationService service = newService(
+                credentialValidationUseCase,
+                apiAssetRepositoryPort,
+                new InMemoryApiSubscriptionEntitlementPort(true),
+                new InMemoryUserConsumerMappingRepositoryPort("consumer-1", "subscriber-user-1"),
+                downstreamProxyPort,
+                observabilityUseCase,
+                proxyProfiles
+        );
+
+        service.queryTask(new ResolveUnifiedAccessTaskQueryCommand(
+                "image-generation",
+                "task_123",
+                "ak_live_validation_key",
+                "GET",
+                Map.of(),
+                Map.of(),
+                null,
+                null,
+                "UNIFIED_ACCESS_TASK_QUERY"
+        ));
+
+        assertEquals("proxy-1", downstreamProxyPort.lastInvocation.getTargetApi().getProxyProfileId());
+        assertEquals("proxy_cn", downstreamProxyPort.lastInvocation.getTargetApi().getProxyProfile().getProfileCode());
+        assertEquals(1, proxyProfiles.findByIdCount);
+    }
+
     private UnifiedAccessApplicationService newService(
             CredentialValidationUseCase credentialValidationUseCase,
             ApiAssetRepositoryPort apiAssetRepositoryPort,
@@ -560,13 +816,33 @@ class UnifiedAccessApplicationServiceTest {
             UserConsumerMappingRepositoryPort userConsumerMappingRepositoryPort,
             UnifiedAccessDownstreamProxyPort downstreamProxyPort,
             ObservabilityUseCase observabilityUseCase) {
+        return newService(
+                credentialValidationUseCase,
+                apiAssetRepositoryPort,
+                apiSubscriptionEntitlementPort,
+                userConsumerMappingRepositoryPort,
+                downstreamProxyPort,
+                observabilityUseCase,
+                null
+        );
+    }
+
+    private UnifiedAccessApplicationService newService(
+            CredentialValidationUseCase credentialValidationUseCase,
+            ApiAssetRepositoryPort apiAssetRepositoryPort,
+            ApiSubscriptionEntitlementPort apiSubscriptionEntitlementPort,
+            UserConsumerMappingRepositoryPort userConsumerMappingRepositoryPort,
+            UnifiedAccessDownstreamProxyPort downstreamProxyPort,
+            ObservabilityUseCase observabilityUseCase,
+            PlatformProxyProfileRepositoryPort platformProxyProfileRepositoryPort) {
         return new UnifiedAccessApplicationService(
                 credentialValidationUseCase,
                 apiAssetRepositoryPort,
                 apiSubscriptionEntitlementPort,
                 userConsumerMappingRepositoryPort,
                 downstreamProxyPort,
-                observabilityUseCase
+                observabilityUseCase,
+                platformProxyProfileRepositoryPort
         );
     }
 
@@ -609,6 +885,46 @@ class UnifiedAccessApplicationServiceTest {
                 assetType == AssetType.AI_API
                         ? AiCapabilityProfile.of("OpenAI", "gpt-4.1", streamingSupported, List.of("chat"))
                         : null,
+                null,
+                now.minusSeconds(300),
+                now.minusSeconds(120),
+                false,
+                0L
+        );
+    }
+
+    private ApiAssetAggregate publishedAsyncAsset(String apiCode) {
+        Instant now = Instant.now();
+        return ApiAssetAggregate.reconstitute(
+                AssetId.generate(),
+                ApiCode.of(apiCode),
+                "publisher-user-1",
+                "Image Generation",
+                "Image Generation",
+                AssetType.STANDARD_API,
+                null,
+                AssetStatus.PUBLISHED,
+                now.minusSeconds(120),
+                UpstreamEndpointConfig.of(
+                        RequestMethod.POST,
+                        "https://upstream.example.com/v1/" + apiCode,
+                        AuthScheme.HEADER_TOKEN,
+                        "Authorization: Bearer upstream-token"
+                ),
+                "{\"prompt\":\"demo\"}",
+                null,
+                AsyncTaskConfig.of(
+                        true,
+                        RequestMethod.GET,
+                        "https://upstream.example.com/v1/" + apiCode + "/tasks/{taskId}",
+                        AsyncTaskAuthMode.SAME_AS_SUBMIT,
+                        null,
+                        null,
+                        "$.status",
+                        "$.result",
+                        "$.error"
+                ),
+                null,
                 null,
                 now.minusSeconds(300),
                 now.minusSeconds(120),
@@ -782,6 +1098,45 @@ class UnifiedAccessApplicationServiceTest {
         @Override
         public void save(UserConsumerMapping mapping) {
             throw new UnsupportedOperationException("save is not used in this test");
+        }
+    }
+
+    private static final class InMemoryPlatformProxyProfileRepositoryPort implements PlatformProxyProfileRepositoryPort {
+
+        private final Map<String, PlatformProxyProfileAggregate> storage = new HashMap<>();
+        private int findByIdCount;
+
+        @Override
+        public Optional<PlatformProxyProfileAggregate> findById(PlatformProxyProfileId id) {
+            findByIdCount++;
+            return Optional.ofNullable(storage.get(id.getValue()));
+        }
+
+        @Override
+        public Optional<PlatformProxyProfileAggregate> findByCode(String profileCode) {
+            return storage.values().stream()
+                    .filter(profile -> profile.getProfileCode().equals(profileCode))
+                    .findFirst();
+        }
+
+        @Override
+        public List<PlatformProxyProfileAggregate> findPage(Boolean enabled, String keyword, int page, int size) {
+            return List.copyOf(storage.values());
+        }
+
+        @Override
+        public long count(Boolean enabled, String keyword) {
+            return storage.size();
+        }
+
+        @Override
+        public boolean existsByCode(String profileCode) {
+            return storage.values().stream().anyMatch(profile -> profile.getProfileCode().equals(profileCode));
+        }
+
+        @Override
+        public void save(PlatformProxyProfileAggregate aggregate) {
+            storage.put(aggregate.getId().getValue(), aggregate);
         }
     }
 }

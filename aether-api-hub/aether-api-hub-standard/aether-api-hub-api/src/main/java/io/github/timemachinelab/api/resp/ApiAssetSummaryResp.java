@@ -36,6 +36,9 @@ public class ApiAssetSummaryResp {
     @JsonProperty("updatedAt")
     private String updatedAt;
 
+    @JsonProperty("asyncTaskQueryEnabled")
+    private boolean asyncTaskQueryEnabled;
+
     public ApiAssetSummaryResp() {
     }
 
@@ -49,6 +52,20 @@ public class ApiAssetSummaryResp {
             String publisherDisplayName,
             String publishedAt,
             String updatedAt) {
+        this(apiCode, assetName, assetType, categoryCode, categoryName, status, publisherDisplayName, publishedAt, updatedAt, false);
+    }
+
+    public ApiAssetSummaryResp(
+            String apiCode,
+            String assetName,
+            AssetType assetType,
+            String categoryCode,
+            String categoryName,
+            AssetStatus status,
+            String publisherDisplayName,
+            String publishedAt,
+            String updatedAt,
+            boolean asyncTaskQueryEnabled) {
         this.apiCode = apiCode;
         this.assetName = assetName;
         this.assetType = assetType;
@@ -58,6 +75,7 @@ public class ApiAssetSummaryResp {
         this.publisherDisplayName = publisherDisplayName;
         this.publishedAt = publishedAt;
         this.updatedAt = updatedAt;
+        this.asyncTaskQueryEnabled = asyncTaskQueryEnabled;
     }
 
     public String getApiCode() {
@@ -130,5 +148,13 @@ public class ApiAssetSummaryResp {
 
     public void setUpdatedAt(String updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public boolean isAsyncTaskQueryEnabled() {
+        return asyncTaskQueryEnabled;
+    }
+
+    public void setAsyncTaskQueryEnabled(boolean asyncTaskQueryEnabled) {
+        this.asyncTaskQueryEnabled = asyncTaskQueryEnabled;
     }
 }

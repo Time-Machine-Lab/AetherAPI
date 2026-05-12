@@ -22,6 +22,7 @@ public class ApiAssetModel {
     private final String requestTemplate;
     private final String requestExample;
     private final String responseExample;
+    private final AsyncTaskConfigModel asyncTaskConfig;
     private final String aiProvider;
     private final String aiModel;
     private final Boolean aiStreamingSupported;
@@ -53,6 +54,57 @@ public class ApiAssetModel {
             boolean deleted,
             String createdAt,
             String updatedAt) {
+        this(
+                id,
+                apiCode,
+                assetName,
+                assetType,
+                categoryCode,
+                status,
+                publisherDisplayName,
+                publishedAt,
+                requestMethod,
+                upstreamUrl,
+                authScheme,
+                authConfig,
+                requestTemplate,
+                requestExample,
+                responseExample,
+                null,
+                aiProvider,
+                aiModel,
+                aiStreamingSupported,
+                aiCapabilityTags,
+                deleted,
+                createdAt,
+                updatedAt
+        );
+    }
+
+    public ApiAssetModel(
+            String id,
+            String apiCode,
+            String assetName,
+            String assetType,
+            String categoryCode,
+            String status,
+            String publisherDisplayName,
+            String publishedAt,
+            String requestMethod,
+            String upstreamUrl,
+            String authScheme,
+            String authConfig,
+            String requestTemplate,
+            String requestExample,
+            String responseExample,
+            AsyncTaskConfigModel asyncTaskConfig,
+            String aiProvider,
+            String aiModel,
+            Boolean aiStreamingSupported,
+            List<String> aiCapabilityTags,
+            boolean deleted,
+            String createdAt,
+            String updatedAt) {
         this.id = id;
         this.apiCode = apiCode;
         this.assetName = assetName;
@@ -68,6 +120,7 @@ public class ApiAssetModel {
         this.requestTemplate = requestTemplate;
         this.requestExample = requestExample;
         this.responseExample = responseExample;
+        this.asyncTaskConfig = asyncTaskConfig;
         this.aiProvider = aiProvider;
         this.aiModel = aiModel;
         this.aiStreamingSupported = aiStreamingSupported;
@@ -135,6 +188,10 @@ public class ApiAssetModel {
 
     public String getResponseExample() {
         return responseExample;
+    }
+
+    public AsyncTaskConfigModel getAsyncTaskConfig() {
+        return asyncTaskConfig;
     }
 
     public String getAiProvider() {

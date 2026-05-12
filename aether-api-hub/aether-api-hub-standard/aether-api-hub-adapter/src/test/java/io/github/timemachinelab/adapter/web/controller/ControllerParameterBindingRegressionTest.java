@@ -153,6 +153,25 @@ class ControllerParameterBindingRegressionTest {
     }
 
     @Test
+    void unifiedAccessTaskQueryBindsApiCodeAndTaskIdPathVariables() throws Exception {
+        UnifiedAccessWebDelegate delegate = mock(UnifiedAccessWebDelegate.class);
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new UnifiedAccessController(delegate)).build();
+
+        mockMvc.perform(get("/api/v1/access/image-generation/tasks/task_123")
+                        .header("X-Aether-Api-Key", "ak_live_validation_key")
+                        .param("verbose", "true"))
+                .andExpect(status().isOk());
+
+        verify(delegate).queryTaskToResponse(
+                eq("image-generation"),
+                eq("task_123"),
+                any(),
+                any(),
+                any()
+        );
+    }
+
+    @Test
     @DisplayName("unified access should write streaming responses without Spring MVC message conversion")
     void unifiedAccessStreamingResponseDoesNotBecomeMvcServerError() throws Exception {
         UnifiedAccessWebDelegate delegate = mock(UnifiedAccessWebDelegate.class);

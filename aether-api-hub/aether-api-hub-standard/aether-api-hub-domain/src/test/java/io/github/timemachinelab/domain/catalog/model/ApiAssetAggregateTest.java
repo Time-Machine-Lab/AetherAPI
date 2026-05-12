@@ -118,6 +118,73 @@ class ApiAssetAggregateTest {
     }
 
     @Nested
+    @DisplayName("async task config")
+    class AsyncTaskConfigTests {
+
+        @Test
+        @DisplayName("should reject enabled async config without task id placeholder")
+        void shouldRejectEnabledAsyncConfigWithoutTaskIdPlaceholder() {
+            AssetDomainException exception = assertThrows(
+                    AssetDomainException.class,
+                    () -> AsyncTaskConfig.of(
+                            true,
+                            RequestMethod.GET,
+                            "https://example.com/tasks/latest",
+                            AsyncTaskAuthMode.SAME_AS_SUBMIT,
+                            null,
+                            null,
+                            "$.status",
+                            "$.result",
+                            "$.error"
+                    )
+            );
+
+            assertTrue(exception.getMessage().contains("{taskId}"));
+        }
+
+        @Test
+        @DisplayName("should preserve async task config on aggregate")
+        void shouldPreserveAsyncTaskConfigOnAggregate() {
+            AsyncTaskConfig config = completeAsyncTaskConfig();
+            ApiAssetAggregate aggregate = configuredAggregate(AssetType.STANDARD_API, AssetStatus.DRAFT);
+
+            aggregate.revise(
+                    aggregate.getName(),
+                    aggregate.getType(),
+                    aggregate.getCategoryRef(),
+                    aggregate.getUpstreamConfig(),
+                    aggregate.getRequestTemplate(),
+                    aggregate.getExampleSnapshot(),
+                    config,
+                    aggregate.getPublisherDisplayName()
+            );
+
+            assertEquals(config, aggregate.getAsyncTaskConfig());
+            assertTrue(aggregate.getAsyncTaskConfig().isCompleteForQuery());
+        }
+
+        @Test
+        @DisplayName("should move published asset to unpublished after async task config change")
+        void shouldMovePublishedAssetToUnpublishedAfterAsyncTaskConfigChange() {
+            ApiAssetAggregate aggregate = configuredAggregate(AssetType.STANDARD_API, AssetStatus.PUBLISHED);
+
+            aggregate.revise(
+                    aggregate.getName(),
+                    aggregate.getType(),
+                    aggregate.getCategoryRef(),
+                    aggregate.getUpstreamConfig(),
+                    aggregate.getRequestTemplate(),
+                    aggregate.getExampleSnapshot(),
+                    completeAsyncTaskConfig(),
+                    aggregate.getPublisherDisplayName()
+            );
+
+            assertEquals(AssetStatus.UNPUBLISHED, aggregate.getStatus());
+            assertNull(aggregate.getPublishedAt());
+        }
+    }
+
+    @Nested
     @DisplayName("ai profile")
     class AiCapabilityTests {
 
@@ -251,6 +318,20 @@ class ApiAssetAggregateTest {
                 now.minusSeconds(60),
                 false,
                 0L
+        );
+    }
+
+    private AsyncTaskConfig completeAsyncTaskConfig() {
+        return AsyncTaskConfig.of(
+                true,
+                RequestMethod.GET,
+                "https://example.com/tasks/{taskId}",
+                AsyncTaskAuthMode.SAME_AS_SUBMIT,
+                null,
+                null,
+                "$.status",
+                "$.result",
+                "$.error"
         );
     }
 }
