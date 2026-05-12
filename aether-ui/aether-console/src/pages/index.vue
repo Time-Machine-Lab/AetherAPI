@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { watch } from 'vue'
+import { computed, watch } from 'vue'
 import {
   CalendarClock,
+  Download,
   Folder,
   KeyRound,
+  Loader2,
   MousePointerClick,
   Play,
   Search,
@@ -13,7 +15,9 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { getAiCapabilityLabels } from '@/features/catalog/catalog-helpers'
 import { useCatalogDiscovery } from '@/composables/useCatalogDiscovery'
+import { useCatalogDocExport } from '@/composables/useCatalogDocExport'
 import { useApiSubscriptionStatus } from '@/composables/useApiSubscriptionStatus'
+import type { CatalogDocLabels } from '@/features/catalog/catalog-doc-export'
 import type { ApiSubscriptionAccessStatus } from '@/api/subscription/subscription.types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -55,6 +59,66 @@ const {
   cancel: cancelSubscription,
   resetStatus: resetSubscriptionStatus,
 } = useApiSubscriptionStatus()
+const catalogDocLabels = computed<CatalogDocLabels>(() => ({
+  exportTitle: t('console.home.docExport.markdown.exportTitle'),
+  generatedAt: t('console.home.docExport.markdown.generatedAt'),
+  exportSummary: t('console.home.docExport.markdown.exportSummary'),
+  successCount: t('console.home.docExport.markdown.successCount'),
+  failedCount: t('console.home.docExport.markdown.failedCount'),
+  failedItems: t('console.home.docExport.markdown.failedItems'),
+  basicInfo: t('console.home.docExport.markdown.basicInfo'),
+  apiCode: t('console.home.docExport.markdown.apiCode'),
+  displayName: t('console.home.docExport.markdown.displayName'),
+  assetType: t('console.home.docExport.markdown.assetType'),
+  category: t('console.home.docExport.markdown.category'),
+  publisher: t('console.home.docExport.markdown.publisher'),
+  publishedAt: t('console.home.docExport.markdown.publishedAt'),
+  platformUnifiedAccessUrl: t('console.home.docExport.markdown.platformUnifiedAccessUrl'),
+  description: t('console.home.docExport.markdown.description'),
+  request: t('console.home.docExport.markdown.request'),
+  requestMethod: t('console.home.docExport.markdown.requestMethod'),
+  authScheme: t('console.home.docExport.markdown.authScheme'),
+  requestTemplate: t('console.home.docExport.markdown.requestTemplate'),
+  requestExample: t('console.home.docExport.markdown.requestExample'),
+  responseExample: t('console.home.docExport.markdown.responseExample'),
+  aiCapability: t('console.home.docExport.markdown.aiCapability'),
+  provider: t('console.home.docExport.markdown.provider'),
+  model: t('console.home.docExport.markdown.model'),
+  streaming: t('console.home.docExport.markdown.streaming'),
+  tags: t('console.home.docExport.markdown.tags'),
+  unavailable: t('console.home.docExport.markdown.unavailable'),
+  yes: t('console.home.docExport.markdown.yes'),
+  no: t('console.home.docExport.markdown.no'),
+  detailLoadFailed: t('console.home.docExport.markdown.detailLoadFailed'),
+}))
+const {
+  selectedCount: exportSelectedCount,
+  exporting: docExporting,
+  exportFeedback,
+  lastFailureCount,
+  toggleExportSelection,
+  clearExportSelection,
+  isSelectedForExport,
+  exportCurrentDetail,
+  exportSelectedDocs,
+} = useCatalogDocExport({
+  getLabels: () => catalogDocLabels.value,
+})
+
+const exportFeedbackMessage = computed(() => {
+  if (exportFeedback.value === 'success') return t('console.home.docExport.success')
+  if (exportFeedback.value === 'partial') {
+    return t('console.home.docExport.partialSuccess', { count: lastFailureCount.value })
+  }
+  if (exportFeedback.value === 'failed') return t('console.home.docExport.failed')
+  return ''
+})
+
+const exportFeedbackClass = computed(() =>
+  exportFeedback.value === 'success' || exportFeedback.value === 'partial'
+    ? 'text-primary'
+    : 'text-destructive',
+)
 
 loadList()
 
@@ -140,6 +204,39 @@ watch(
     <section class="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
       <!-- Asset list -->
       <div>
+        <div
+          v-if="exportSelectedCount > 0"
+          class="mb-4 flex flex-col gap-3 rounded-[14px] border border-primary/15 bg-[color-mix(in_srgb,var(--primary)_6%,white)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div>
+            <p class="text-sm font-semibold text-foreground">
+              {{ t('console.home.docExport.selectedCount', { count: exportSelectedCount }) }}
+            </p>
+            <p v-if="exportFeedbackMessage" class="mt-1 text-xs" :class="exportFeedbackClass">
+              {{ exportFeedbackMessage }}
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="xs"
+              variant="ghost"
+              :disabled="docExporting"
+              @click="clearExportSelection"
+            >
+              {{ t('console.home.docExport.clearSelection') }}
+            </Button>
+            <Button type="button" size="xs" :disabled="docExporting" @click="exportSelectedDocs">
+              <Loader2 v-if="docExporting" class="size-3.5 animate-spin" />
+              <Download v-else class="size-3.5" />
+              {{
+                docExporting
+                  ? t('console.home.docExport.exporting')
+                  : t('console.home.docExport.exportSelected')
+              }}
+            </Button>
+          </div>
+        </div>
         <StateBlock v-if="listLoading" tone="loading" :title="t('console.home.loading')" />
         <StateBlock v-else-if="listError" tone="error" :title="t('console.home.listError')" />
         <StateBlock v-else-if="assets.length === 0" tone="empty" :title="t('console.home.empty')" />
@@ -148,11 +245,12 @@ watch(
             v-for="asset in assets"
             :key="asset.apiCode"
             class="cursor-pointer transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-px hover:shadow-console-hover"
-            :class="
+            :class="[
               selectedAsset?.apiCode === asset.apiCode
                 ? 'ring-2 ring-primary/40 border-primary/25 shadow-console-hover'
-                : ''
-            "
+                : '',
+              isSelectedForExport(asset.apiCode) ? 'border-primary/40 bg-primary/5' : '',
+            ]"
             @click="selectAsset(asset)"
           >
             <CardContent class="p-5">
@@ -160,10 +258,23 @@ watch(
                 <p class="truncate text-sm font-semibold text-foreground">
                   {{ asset.displayName }}
                 </p>
-                <DisplayTag
-                  :tone="assetTypeTone(asset.assetType)"
-                  :label="asset.assetType === 'AI_API' ? 'AI' : 'API'"
-                />
+                <div class="flex shrink-0 items-center gap-2">
+                  <input
+                    type="checkbox"
+                    class="size-4 rounded border-[rgb(34_34_34_/_0.18)] text-primary accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+                    :checked="isSelectedForExport(asset.apiCode)"
+                    :disabled="docExporting"
+                    :aria-label="
+                      t('console.home.docExport.selectLabel', { name: asset.displayName })
+                    "
+                    @click.stop
+                    @change.stop="toggleExportSelection(asset)"
+                  />
+                  <DisplayTag
+                    :tone="assetTypeTone(asset.assetType)"
+                    :label="asset.assetType === 'AI_API' ? 'AI' : 'API'"
+                  />
+                </div>
               </div>
               <p class="mt-1 text-xs text-muted-foreground">{{ asset.apiCode }}</p>
               <div class="mt-3 flex flex-wrap gap-1.5">
@@ -300,11 +411,29 @@ watch(
                   </div>
                 </div>
                 <div class="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    :disabled="docExporting"
+                    @click="exportCurrentDetail(detail)"
+                  >
+                    <Loader2 v-if="docExporting" class="size-4 animate-spin" />
+                    <Download v-else class="size-4" />
+                    {{
+                      docExporting
+                        ? t('console.home.docExport.exporting')
+                        : t('console.home.docExport.exportCurrent')
+                    }}
+                  </Button>
                   <Button size="sm" @click="openPlayground(detail.apiCode)">
                     <Play class="size-4" />
                     {{ t('console.home.tryInPlayground') }}
                   </Button>
                 </div>
+                <p v-if="exportFeedbackMessage" class="text-xs" :class="exportFeedbackClass">
+                  {{ exportFeedbackMessage }}
+                </p>
                 <FieldGroup :title="t('console.home.detailTitle')">
                   <div class="grid grid-cols-2 gap-3">
                     <MetaItem

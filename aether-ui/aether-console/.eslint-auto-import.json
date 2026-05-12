@@ -1,5 +1,6 @@
 {
   "globals": {
+    "CatalogDocExportFeedback": "readonly",
     "Component": "readonly",
     "ComponentPublicInstance": "readonly",
     "ComputedRef": "readonly",
@@ -89,6 +90,7 @@
     "useAttrs": "readonly",
     "useAuthStore": "readonly",
     "useCatalogDiscovery": "readonly",
+    "useCatalogDocExport": "readonly",
     "useConsoleAuth": "readonly",
     "useCredentialWorkspace": "readonly",
     "useCssModule": "readonly",

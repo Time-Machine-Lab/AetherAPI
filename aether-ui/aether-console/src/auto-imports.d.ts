@@ -79,6 +79,7 @@ declare global {
   const useAttrs: typeof import('vue').useAttrs
   const useAuthStore: typeof import('./stores/useAuthStore').useAuthStore
   const useCatalogDiscovery: typeof import('./composables/useCatalogDiscovery').useCatalogDiscovery
+  const useCatalogDocExport: typeof import('./composables/useCatalogDocExport').useCatalogDocExport
   const useConsoleAuth: typeof import('./composables/useConsoleAuth').useConsoleAuth
   const useCredentialWorkspace: typeof import('./composables/useCredentialWorkspace').useCredentialWorkspace
   const useCssModule: typeof import('vue').useCssModule
@@ -104,6 +105,9 @@ declare global {
   // @ts-ignore
   export type { Component, Slot, Slots, ComponentPublicInstance, ComputedRef, DirectiveBinding, ExtractDefaultPropTypes, ExtractPropTypes, ExtractPublicPropTypes, InjectionKey, PropType, Ref, ShallowRef, MaybeRef, MaybeRefOrGetter, VNode, WritableComputedRef } from 'vue'
   import('vue')
+  // @ts-ignore
+  export type { CatalogDocExportFeedback } from './composables/useCatalogDocExport'
+  import('./composables/useCatalogDocExport')
 }
 
 // for vue template auto import
@@ -183,6 +187,7 @@ declare module 'vue' {
     readonly useAttrs: UnwrapRef<typeof import('vue')['useAttrs']>
     readonly useAuthStore: UnwrapRef<typeof import('./stores/useAuthStore')['useAuthStore']>
     readonly useCatalogDiscovery: UnwrapRef<typeof import('./composables/useCatalogDiscovery')['useCatalogDiscovery']>
+    readonly useCatalogDocExport: UnwrapRef<typeof import('./composables/useCatalogDocExport')['useCatalogDocExport']>
     readonly useConsoleAuth: UnwrapRef<typeof import('./composables/useConsoleAuth')['useConsoleAuth']>
     readonly useCredentialWorkspace: UnwrapRef<typeof import('./composables/useCredentialWorkspace')['useCredentialWorkspace']>
     readonly useCssModule: UnwrapRef<typeof import('vue')['useCssModule']>
