@@ -3,12 +3,13 @@ import type {
   AssetDto,
   AssetPageDto,
   AssetSummaryDto,
+  AsyncTaskConfigDto,
   BindAiProfileBody,
   ListAssetsQuery,
   RegisterAssetBody,
   ReviseAssetBody,
 } from './catalog.dto'
-import type { ApiAsset, ApiAssetSummary, PageResult } from './catalog.types'
+import type { ApiAsset, ApiAssetSummary, AsyncTaskConfig, PageResult } from './catalog.types'
 
 function mapAiProfile(dto: AssetDto): ApiAsset['aiProfile'] {
   const profile = dto.aiCapabilityProfile ?? dto.aiProfile
@@ -21,6 +22,24 @@ function mapAiProfile(dto: AssetDto): ApiAsset['aiProfile'] {
     model: profile.model,
     streaming: 'streamingSupported' in profile ? profile.streamingSupported : profile.streaming,
     tags: 'capabilityTags' in profile ? profile.capabilityTags : profile.tags,
+  }
+}
+
+function mapAsyncTaskConfig(dto?: AsyncTaskConfigDto | null): AsyncTaskConfig | undefined {
+  if (!dto) {
+    return undefined
+  }
+
+  return {
+    enabled: dto.enabled,
+    queryMethod: dto.queryMethod,
+    queryUrlTemplate: dto.queryUrlTemplate ?? undefined,
+    authMode: dto.authMode,
+    authScheme: dto.authScheme,
+    authConfig: dto.authConfig,
+    statusPath: dto.statusPath,
+    resultPath: dto.resultPath,
+    errorPath: dto.errorPath,
   }
 }
 
@@ -42,6 +61,7 @@ function mapAsset(dto: AssetDto): ApiAsset {
     requestTemplate: dto.requestTemplate ?? undefined,
     requestExample: dto.requestExample ?? undefined,
     responseExample: dto.responseExample ?? undefined,
+    asyncTaskConfig: mapAsyncTaskConfig(dto.asyncTaskConfig),
     aiProfile: mapAiProfile(dto),
     deleted: dto.deleted,
     createdAt: dto.createdAt,
@@ -60,6 +80,7 @@ function mapAssetSummary(dto: AssetSummaryDto): ApiAssetSummary {
     publisherDisplayName: dto.publisherDisplayName,
     publishedAt: dto.publishedAt,
     updatedAt: dto.updatedAt,
+    asyncTaskQueryEnabled: dto.asyncTaskQueryEnabled,
   }
 }
 

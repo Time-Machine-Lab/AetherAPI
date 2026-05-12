@@ -6,6 +6,8 @@ export type UnifiedAccessFailureType =
   | 'SUBSCRIPTION_REQUIRED'
   | 'TARGET_NOT_FOUND'
   | 'TARGET_UNAVAILABLE'
+  | 'ASYNC_TASK_QUERY_UNAVAILABLE'
+  | 'INVALID_TASK_ID'
 
 export interface UnifiedAccessPlatformFailure {
   code: string

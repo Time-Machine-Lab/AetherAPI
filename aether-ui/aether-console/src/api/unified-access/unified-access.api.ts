@@ -8,6 +8,12 @@ import type {
   UnifiedAccessResult,
 } from './unified-access.types'
 
+interface UnifiedAccessHttpResponse {
+  status: number
+  headers: Record<string, unknown>
+  data: ArrayBuffer
+}
+
 /**
  * Standalone axios instance for Unified Access calls.
  *
@@ -47,38 +53,9 @@ function collectHeaders(headers: Record<string, unknown>): Record<string, string
   return out
 }
 
-export async function invokeUnifiedAccess(
-  apiCode: string,
-  method: UnifiedAccessMethod,
-  apiKey: string,
-  payload?: string,
-  extraHeaders?: Record<string, string>,
-): Promise<UnifiedAccessResult> {
-  const url = `v1/access/${encodeURIComponent(apiCode)}`
-  const hasBody = !['GET', 'DELETE'].includes(method)
-
-  const headers: Record<string, string> = {
-    'X-Aether-Api-Key': apiKey,
-    ...extraHeaders,
-  }
-
-  if (hasBody && payload) {
-    headers['Content-Type'] = headers['Content-Type'] ?? 'application/json'
-  }
-
-  const response = await uaHttp.request({
-    url,
-    method: method.toLowerCase(),
-    headers,
-    data: hasBody && payload ? payload : undefined,
-    timeout: 0,
-    onDownloadProgress: () => {
-      // Keep axios on the browser download-progress path for streaming responses.
-    },
-  })
-
+function parseUnifiedAccessResponse(response: UnifiedAccessHttpResponse): UnifiedAccessResult {
   const status: number = response.status
-  const ct = parseContentType(response.headers['content-type'])
+  const ct = parseContentType(response.headers['content-type'] as string | undefined)
   const rawHeaders = collectHeaders(response.headers)
   const buffer: ArrayBuffer = response.data
 
@@ -129,4 +106,57 @@ export async function invokeUnifiedAccess(
     blobBody: new Blob([buffer], { type: ct }),
     rawHeaders,
   }
+}
+
+export async function invokeUnifiedAccess(
+  apiCode: string,
+  method: UnifiedAccessMethod,
+  apiKey: string,
+  payload?: string,
+  extraHeaders?: Record<string, string>,
+): Promise<UnifiedAccessResult> {
+  const url = `v1/access/${encodeURIComponent(apiCode)}`
+  const hasBody = !['GET', 'DELETE'].includes(method)
+
+  const headers: Record<string, string> = {
+    'X-Aether-Api-Key': apiKey,
+    ...extraHeaders,
+  }
+
+  if (hasBody && payload) {
+    headers['Content-Type'] = headers['Content-Type'] ?? 'application/json'
+  }
+
+  const response = await uaHttp.request({
+    url,
+    method: method.toLowerCase(),
+    headers,
+    data: hasBody && payload ? payload : undefined,
+    timeout: 0,
+    onDownloadProgress: () => {
+      // Keep axios on the browser download-progress path for streaming responses.
+    },
+  })
+
+  return parseUnifiedAccessResponse(response)
+}
+
+export async function queryUnifiedAccessTask(
+  apiCode: string,
+  taskId: string,
+  apiKey: string,
+): Promise<UnifiedAccessResult> {
+  const response = await uaHttp.request({
+    url: `v1/access/${encodeURIComponent(apiCode)}/tasks/${encodeURIComponent(taskId)}`,
+    method: 'get',
+    headers: {
+      'X-Aether-Api-Key': apiKey,
+    },
+    timeout: 0,
+    onDownloadProgress: () => {
+      // Keep axios on the browser download-progress path for streaming responses.
+    },
+  })
+
+  return parseUnifiedAccessResponse(response)
 }

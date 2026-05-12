@@ -23,6 +23,18 @@ export interface AiProfileDto {
   tags: string[]
 }
 
+export interface AsyncTaskConfigDto {
+  enabled?: boolean
+  queryMethod?: 'GET' | 'POST'
+  queryUrlTemplate?: string | null
+  authMode?: 'SAME_AS_SUBMIT' | 'OVERRIDE'
+  authScheme?: 'NONE' | 'HEADER_TOKEN' | 'QUERY_TOKEN' | null
+  authConfig?: string | null
+  statusPath?: string | null
+  resultPath?: string | null
+  errorPath?: string | null
+}
+
 export interface DiscoveryExampleSnapshotDto {
   requestExample?: string | null
   responseExample?: string | null
@@ -71,6 +83,7 @@ export interface AssetDto {
   requestTemplate?: string | null
   requestExample?: string | null
   responseExample?: string | null
+  asyncTaskConfig?: AsyncTaskConfigDto | null
   aiProfile?: AiProfileDto
   aiCapabilityProfile?: {
     provider: string
@@ -151,6 +164,7 @@ export interface AssetSummaryDto {
   publisherDisplayName?: string | null
   publishedAt?: string | null
   updatedAt: string
+  asyncTaskQueryEnabled?: boolean
 }
 
 export interface AssetPageDto {

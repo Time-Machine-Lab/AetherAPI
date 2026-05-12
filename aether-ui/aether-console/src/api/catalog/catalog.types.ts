@@ -9,6 +9,18 @@ export interface AiProfile {
   tags: string[]
 }
 
+export interface AsyncTaskConfig {
+  enabled?: boolean
+  queryMethod?: 'GET' | 'POST'
+  queryUrlTemplate?: string
+  authMode?: 'SAME_AS_SUBMIT' | 'OVERRIDE'
+  authScheme?: 'NONE' | 'HEADER_TOKEN' | 'QUERY_TOKEN' | null
+  authConfig?: string | null
+  statusPath?: string | null
+  resultPath?: string | null
+  errorPath?: string | null
+}
+
 export interface ApiAsset {
   id?: string
   apiCode: string
@@ -26,6 +38,7 @@ export interface ApiAsset {
   requestTemplate?: string
   requestExample?: string
   responseExample?: string
+  asyncTaskConfig?: AsyncTaskConfig
   aiProfile?: AiProfile
   deleted?: boolean
   createdAt?: string
@@ -81,4 +94,5 @@ export interface ApiAssetSummary {
   publisherDisplayName?: string | null
   publishedAt?: string | null
   updatedAt: string
+  asyncTaskQueryEnabled?: boolean
 }

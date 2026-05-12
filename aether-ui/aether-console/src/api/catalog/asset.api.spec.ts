@@ -14,6 +14,7 @@ import { http } from '@/api/http'
 import {
   deleteAsset,
   getAsset,
+  listAssets,
   publishAsset,
   registerAsset,
   reviseAsset,
@@ -49,6 +50,17 @@ describe('asset api', () => {
         upstreamUrl: 'https://upstream.example.com/weather',
         authScheme: 'HEADER_TOKEN',
         authConfig: 'Authorization: Bearer upstream-token',
+        asyncTaskConfig: {
+          enabled: true,
+          queryMethod: 'GET',
+          queryUrlTemplate: 'http://provider.example.com/v1/tasks/{taskId}',
+          authMode: 'SAME_AS_SUBMIT',
+          authScheme: null,
+          authConfig: null,
+          statusPath: '$.data.status',
+          resultPath: '$.data.result',
+          errorPath: '$.data.error',
+        },
         aiCapabilityProfile: {
           provider: 'OpenAI',
           model: 'gpt-4.1',
@@ -71,6 +83,17 @@ describe('asset api', () => {
         upstreamUrl: 'https://upstream.example.com/weather',
         authScheme: 'HEADER_TOKEN',
         authConfig: 'Authorization: Bearer upstream-token',
+        asyncTaskConfig: {
+          enabled: true,
+          queryMethod: 'GET',
+          queryUrlTemplate: 'http://provider.example.com/v1/tasks/{taskId}',
+          authMode: 'SAME_AS_SUBMIT',
+          authScheme: null,
+          authConfig: null,
+          statusPath: '$.data.status',
+          resultPath: '$.data.result',
+          errorPath: '$.data.error',
+        },
         aiProfile: {
           provider: 'OpenAI',
           model: 'gpt-4.1',
@@ -104,6 +127,41 @@ describe('asset api', () => {
     expect(result).not.toHaveProperty('proxyPort')
     expect(result).not.toHaveProperty('proxyUsername')
     expect(result).not.toHaveProperty('proxyPassword')
+  })
+
+  it('maps asset summary async task query availability', async () => {
+    mockedGet.mockResolvedValueOnce({
+      data: {
+        items: [
+          {
+            apiCode: 'image-generate',
+            assetName: 'Image Generate',
+            assetType: 'AI_API',
+            categoryCode: 'image',
+            categoryName: 'Image',
+            status: 'PUBLISHED',
+            updatedAt: '2026-05-13T01:00:00Z',
+            asyncTaskQueryEnabled: true,
+          },
+        ],
+        page: 1,
+        size: 10,
+        total: 1,
+      },
+    })
+
+    const result = await listAssets({ status: 'PUBLISHED' })
+
+    expect(mockedGet).toHaveBeenCalledWith('v1/current-user/assets', {
+      params: { status: 'PUBLISHED' },
+    })
+    expect(result.items[0]).toEqual(
+      expect.objectContaining({
+        apiCode: 'image-generate',
+        assetName: 'Image Generate',
+        asyncTaskQueryEnabled: true,
+      }),
+    )
   })
 
   it('maps frontend register payload to backend assetName contract', async () => {

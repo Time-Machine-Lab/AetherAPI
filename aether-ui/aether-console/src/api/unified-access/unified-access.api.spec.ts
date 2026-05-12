@@ -31,7 +31,7 @@ vi.mock('@/app/app-config', () => ({
   },
 }))
 
-import { invokeUnifiedAccess } from './unified-access.api'
+import { invokeUnifiedAccess, queryUnifiedAccessTask } from './unified-access.api'
 
 function jsonBuffer(payload: unknown) {
   return new TextEncoder().encode(JSON.stringify(payload)).buffer
@@ -213,6 +213,86 @@ describe('unified access api', () => {
       status: 200,
       contentType: 'text/event-stream',
       textBody: 'data: hello\n\ndata: world\n\n',
+    })
+  })
+
+  it('queries unified access async tasks with encoded path variables', async () => {
+    uaHarness.requestMock.mockResolvedValueOnce({
+      status: 200,
+      headers: {
+        'content-type': 'application/json',
+      },
+      data: jsonBuffer({
+        data: {
+          status: 'succeeded',
+          result: {
+            url: 'http://provider.example.com/result.png',
+          },
+        },
+      }),
+    })
+
+    const result = await queryUnifiedAccessTask(
+      'image-generate',
+      'task/run/123',
+      'ak_live_plaintext_1234',
+    )
+
+    expect(uaHarness.requestMock).toHaveBeenCalledWith({
+      url: 'v1/access/image-generate/tasks/task%2Frun%2F123',
+      method: 'get',
+      headers: {
+        'X-Aether-Api-Key': 'ak_live_plaintext_1234',
+      },
+      timeout: 0,
+      onDownloadProgress: expect.any(Function),
+    })
+    expect(result).toMatchObject({
+      kind: 'json',
+      status: 200,
+      contentType: 'application/json',
+      jsonBody: {
+        data: {
+          status: 'succeeded',
+          result: {
+            url: 'http://provider.example.com/result.png',
+          },
+        },
+      },
+    })
+  })
+
+  it('classifies async task query platform failures', async () => {
+    uaHarness.requestMock.mockResolvedValueOnce({
+      status: 400,
+      headers: {
+        'content-type': 'application/json',
+      },
+      data: jsonBuffer({
+        code: 'ASYNC_TASK_QUERY_UNAVAILABLE',
+        message: 'Async task query is unavailable for apiCode image-generate',
+        failureType: 'ASYNC_TASK_QUERY_UNAVAILABLE',
+        traceId: 'trace-task-query',
+        apiCode: 'image-generate',
+      }),
+    })
+
+    const result = await queryUnifiedAccessTask(
+      'image-generate',
+      'task-123',
+      'ak_live_plaintext_1234',
+    )
+
+    expect(result).toMatchObject({
+      kind: 'platform-failure',
+      status: 400,
+      contentType: 'application/json',
+      platformFailure: {
+        code: 'ASYNC_TASK_QUERY_UNAVAILABLE',
+        failureType: 'ASYNC_TASK_QUERY_UNAVAILABLE',
+        traceId: 'trace-task-query',
+        apiCode: 'image-generate',
+      },
     })
   })
 })
