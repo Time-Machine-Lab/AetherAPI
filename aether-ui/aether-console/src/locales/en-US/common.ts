@@ -230,6 +230,35 @@ export default {
       fieldResponseExample: 'Response example',
       fieldResponseExampleHint:
         'Example is a possible upstream response payload, usually showing successful structure or key fields.',
+      asyncTaskConfigGroup: 'Async task query',
+      asyncTaskConfigDescription:
+        'Configure how Unified Access queries an upstream task after an async submit response returns a task id.',
+      asyncTaskQueryUrlRequired:
+        'Async task query URL template is required when task query is enabled.',
+      fieldAsyncTaskEnabled: 'Enable async task query',
+      fieldAsyncTaskEnabledHint:
+        'When disabled, this asset does not expose a Unified Access task query channel.',
+      fieldAsyncTaskQueryMethod: 'Task query method',
+      fieldAsyncTaskQueryMethodHint: 'GET is recommended for the first phase.',
+      fieldAsyncTaskQueryUrlTemplate: 'Task query URL template',
+      fieldAsyncTaskQueryUrlTemplateHint:
+        'The upstream URL template must include the {taskId} placeholder.',
+      fieldAsyncTaskQueryUrlTemplatePlaceholder: 'http://provider.example.com/v1/tasks/{taskId}',
+      fieldAsyncTaskAuthMode: 'Task query auth mode',
+      fieldAsyncTaskAuthModeHint:
+        'Reuse submit auth by default, or override the upstream credential for task queries.',
+      fieldAsyncTaskAuthScheme: 'Task query auth scheme',
+      fieldAsyncTaskAuthSchemeHint:
+        'Only used when auth mode is OVERRIDE. This is upstream auth, not X-Aether-Api-Key.',
+      fieldAsyncTaskAuthConfig: 'Task query auth config',
+      fieldAsyncTaskAuthConfigHint: 'Only used when auth mode is OVERRIDE.',
+      fieldAsyncTaskAuthConfigPlaceholder: 'Authorization: Bearer token or access_token=token',
+      fieldAsyncTaskStatusPath: 'Status path',
+      fieldAsyncTaskStatusPathHint: 'Reserved JSONPath for future normalized task status display.',
+      fieldAsyncTaskResultPath: 'Result path',
+      fieldAsyncTaskResultPathHint: 'Reserved JSONPath for future normalized task result display.',
+      fieldAsyncTaskErrorPath: 'Error path',
+      fieldAsyncTaskErrorPathHint: 'Reserved JSONPath for future normalized task error display.',
       fieldUpstreamUrlHint:
         'The upstream URL is the owner target service. Callers should use the platform Unified Access URL.',
       fieldRequestMethodHint:

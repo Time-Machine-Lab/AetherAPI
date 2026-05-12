@@ -129,6 +129,7 @@ export interface ReviseAssetBody {
   requestTemplate?: string | null
   requestExample?: string | null
   responseExample?: string | null
+  asyncTaskConfig?: AsyncTaskConfigDto | null
 }
 
 export interface BindAiProfileBody {

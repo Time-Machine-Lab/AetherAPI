@@ -121,6 +121,7 @@ export async function reviseAsset(apiCode: string, body: ReviseAssetBody): Promi
     requestTemplate: body.requestTemplate,
     requestExample: body.requestExample,
     responseExample: body.responseExample,
+    asyncTaskConfig: body.asyncTaskConfig,
   })
   return mapAsset(data)
 }

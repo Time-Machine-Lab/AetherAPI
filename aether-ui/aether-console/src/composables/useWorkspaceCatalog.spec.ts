@@ -304,6 +304,17 @@ describe('useWorkspaceCatalog', () => {
       status: 'UNPUBLISHED',
       requestMethod: 'POST',
       upstreamUrl: 'https://upstream.example.com/weather/v2',
+      asyncTaskConfig: {
+        enabled: true,
+        queryMethod: 'GET',
+        queryUrlTemplate: 'http://provider.example.com/v1/tasks/{taskId}',
+        authMode: 'OVERRIDE',
+        authScheme: 'HEADER_TOKEN',
+        authConfig: 'Authorization: Bearer task-token',
+        statusPath: '$.data.status',
+        resultPath: '$.data.result',
+        errorPath: '$.data.error',
+      },
     })
     const reviseAsset = vi.fn().mockResolvedValueOnce(revisedAsset)
     const workspace = useWorkspaceCatalog({
@@ -319,6 +330,16 @@ describe('useWorkspaceCatalog', () => {
     workspace.assetConfigForm.value.upstreamUrl = 'https://upstream.example.com/weather/v2'
     workspace.assetConfigForm.value.authScheme = 'QUERY_TOKEN'
     workspace.assetConfigForm.value.authConfig = ' access_token=upstream-token '
+    workspace.assetConfigForm.value.asyncTaskEnabled = true
+    workspace.assetConfigForm.value.asyncTaskQueryMethod = 'GET'
+    workspace.assetConfigForm.value.asyncTaskQueryUrlTemplate =
+      ' http://provider.example.com/v1/tasks/{taskId} '
+    workspace.assetConfigForm.value.asyncTaskAuthMode = 'OVERRIDE'
+    workspace.assetConfigForm.value.asyncTaskAuthScheme = 'HEADER_TOKEN'
+    workspace.assetConfigForm.value.asyncTaskAuthConfig = ' Authorization: Bearer task-token '
+    workspace.assetConfigForm.value.asyncTaskStatusPath = ' $.data.status '
+    workspace.assetConfigForm.value.asyncTaskResultPath = ' $.data.result '
+    workspace.assetConfigForm.value.asyncTaskErrorPath = ' $.data.error '
 
     await workspace.handleSaveAssetConfig()
 
@@ -332,12 +353,24 @@ describe('useWorkspaceCatalog', () => {
       requestTemplate: null,
       requestExample: null,
       responseExample: null,
+      asyncTaskConfig: {
+        enabled: true,
+        queryMethod: 'GET',
+        queryUrlTemplate: 'http://provider.example.com/v1/tasks/{taskId}',
+        authMode: 'OVERRIDE',
+        authScheme: 'HEADER_TOKEN',
+        authConfig: 'Authorization: Bearer task-token',
+        statusPath: '$.data.status',
+        resultPath: '$.data.result',
+        errorPath: '$.data.error',
+      },
     })
     expect(workspace.currentAsset.value?.status).toBe('UNPUBLISHED')
     expect(workspace.currentAsset.value?.requestMethod).toBe('POST')
     expect(workspace.currentAsset.value?.upstreamUrl).toBe(
       'https://upstream.example.com/weather/v2',
     )
+    expect(workspace.currentAsset.value?.asyncTaskConfig?.enabled).toBe(true)
   })
 
   it('saves empty auth config as null when no upstream token auth is needed', async () => {
@@ -366,8 +399,47 @@ describe('useWorkspaceCatalog', () => {
       expect.objectContaining({
         authScheme: 'NONE',
         authConfig: null,
+        asyncTaskConfig: null,
       }),
     )
+  })
+
+  it('prefills async task config and blocks save without query url when enabled', async () => {
+    const reviseAsset = vi.fn()
+    const workspace = useWorkspaceCatalog({
+      t,
+      autoLoad: false,
+      getAsset: vi.fn().mockResolvedValueOnce(
+        asset({
+          asyncTaskConfig: {
+            enabled: true,
+            queryMethod: 'POST',
+            queryUrlTemplate: 'http://provider.example.com/v1/tasks/{taskId}',
+            authMode: 'SAME_AS_SUBMIT',
+            statusPath: '$.data.status',
+            resultPath: '$.data.result',
+            errorPath: '$.data.error',
+          },
+        }),
+      ),
+      reviseAsset,
+      getRecentAssets: vi.fn().mockReturnValue([]),
+    })
+
+    await workspace.handleListSelectAsset('weather-api')
+
+    expect(workspace.assetConfigForm.value.asyncTaskEnabled).toBe(true)
+    expect(workspace.assetConfigForm.value.asyncTaskQueryMethod).toBe('POST')
+    expect(workspace.assetConfigForm.value.asyncTaskQueryUrlTemplate).toBe(
+      'http://provider.example.com/v1/tasks/{taskId}',
+    )
+
+    workspace.assetConfigForm.value.asyncTaskQueryUrlTemplate = '   '
+    const saved = await workspace.handleSaveAssetConfig()
+
+    expect(saved).toBe(false)
+    expect(reviseAsset).not.toHaveBeenCalled()
+    expect(workspace.assetError.value).toBe('console.workspace.asyncTaskQueryUrlRequired')
   })
 
   it('unpublishes and deletes the selected asset', async () => {

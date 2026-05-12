@@ -597,6 +597,135 @@ function confirmDeleteAsset() {
             </div>
           </FieldGroup>
 
+          <FieldGroup
+            :title="t('console.workspace.asyncTaskConfigGroup')"
+            :description="t('console.workspace.asyncTaskConfigDescription')"
+          >
+            <label class="flex items-start gap-3 rounded-[14px] bg-secondary/60 px-4 py-3 text-sm">
+              <input v-model="assetConfigForm.asyncTaskEnabled" type="checkbox" class="mt-1" />
+              <span>
+                <span class="block font-medium text-foreground">
+                  {{ t('console.workspace.fieldAsyncTaskEnabled') }}
+                </span>
+                <span class="mt-1 block text-xs leading-5 text-muted-foreground">
+                  {{ t('console.workspace.fieldAsyncTaskEnabledHint') }}
+                </span>
+              </span>
+            </label>
+
+            <div class="grid gap-3 md:grid-cols-2">
+              <div class="space-y-2">
+                <FieldLabel
+                  :label="t('console.workspace.fieldAsyncTaskQueryMethod')"
+                  :hint="t('console.workspace.fieldAsyncTaskQueryMethodHint')"
+                />
+                <select
+                  v-model="assetConfigForm.asyncTaskQueryMethod"
+                  :disabled="!assetConfigForm.asyncTaskEnabled"
+                  class="h-11 w-full cursor-pointer appearance-none rounded-[8px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] disabled:bg-muted disabled:opacity-60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                >
+                  <option value="GET">GET</option>
+                  <option value="POST">POST</option>
+                </select>
+              </div>
+              <div class="space-y-2">
+                <FieldLabel
+                  :label="t('console.workspace.fieldAsyncTaskAuthMode')"
+                  :hint="t('console.workspace.fieldAsyncTaskAuthModeHint')"
+                />
+                <select
+                  v-model="assetConfigForm.asyncTaskAuthMode"
+                  :disabled="!assetConfigForm.asyncTaskEnabled"
+                  class="h-11 w-full cursor-pointer appearance-none rounded-[8px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] disabled:bg-muted disabled:opacity-60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                >
+                  <option value="SAME_AS_SUBMIT">SAME_AS_SUBMIT</option>
+                  <option value="OVERRIDE">OVERRIDE</option>
+                </select>
+              </div>
+              <div class="space-y-2 md:col-span-2">
+                <FieldLabel
+                  :label="t('console.workspace.fieldAsyncTaskQueryUrlTemplate')"
+                  :hint="t('console.workspace.fieldAsyncTaskQueryUrlTemplateHint')"
+                  :required="assetConfigForm.asyncTaskEnabled"
+                />
+                <Input
+                  v-model="assetConfigForm.asyncTaskQueryUrlTemplate"
+                  :disabled="!assetConfigForm.asyncTaskEnabled"
+                  :placeholder="t('console.workspace.fieldAsyncTaskQueryUrlTemplatePlaceholder')"
+                />
+              </div>
+              <template v-if="assetConfigForm.asyncTaskAuthMode === 'OVERRIDE'">
+                <div class="space-y-2">
+                  <FieldLabel
+                    :label="t('console.workspace.fieldAsyncTaskAuthScheme')"
+                    :hint="t('console.workspace.fieldAsyncTaskAuthSchemeHint')"
+                    optional
+                  />
+                  <select
+                    v-model="assetConfigForm.asyncTaskAuthScheme"
+                    :disabled="!assetConfigForm.asyncTaskEnabled"
+                    class="h-11 w-full cursor-pointer appearance-none rounded-[8px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] disabled:bg-muted disabled:opacity-60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                  >
+                    <option value="">
+                      {{ t('console.workspace.fieldAuthSchemePlaceholder') }}
+                    </option>
+                    <option value="NONE">NONE</option>
+                    <option value="HEADER_TOKEN">HEADER_TOKEN</option>
+                    <option value="QUERY_TOKEN">QUERY_TOKEN</option>
+                  </select>
+                </div>
+                <div class="space-y-2">
+                  <FieldLabel
+                    :label="t('console.workspace.fieldAsyncTaskAuthConfig')"
+                    :hint="t('console.workspace.fieldAsyncTaskAuthConfigHint')"
+                    optional
+                  />
+                  <Input
+                    v-model="assetConfigForm.asyncTaskAuthConfig"
+                    :disabled="!assetConfigForm.asyncTaskEnabled"
+                    :placeholder="t('console.workspace.fieldAsyncTaskAuthConfigPlaceholder')"
+                  />
+                </div>
+              </template>
+              <div class="space-y-2">
+                <FieldLabel
+                  :label="t('console.workspace.fieldAsyncTaskStatusPath')"
+                  :hint="t('console.workspace.fieldAsyncTaskStatusPathHint')"
+                  optional
+                />
+                <Input
+                  v-model="assetConfigForm.asyncTaskStatusPath"
+                  :disabled="!assetConfigForm.asyncTaskEnabled"
+                  placeholder="$.data.status"
+                />
+              </div>
+              <div class="space-y-2">
+                <FieldLabel
+                  :label="t('console.workspace.fieldAsyncTaskResultPath')"
+                  :hint="t('console.workspace.fieldAsyncTaskResultPathHint')"
+                  optional
+                />
+                <Input
+                  v-model="assetConfigForm.asyncTaskResultPath"
+                  :disabled="!assetConfigForm.asyncTaskEnabled"
+                  placeholder="$.data.result"
+                />
+              </div>
+              <div class="space-y-2 md:col-span-2">
+                <FieldLabel
+                  :label="t('console.workspace.fieldAsyncTaskErrorPath')"
+                  :hint="t('console.workspace.fieldAsyncTaskErrorPathHint')"
+                  optional
+                />
+                <Input
+                  v-model="assetConfigForm.asyncTaskErrorPath"
+                  :disabled="!assetConfigForm.asyncTaskEnabled"
+                  placeholder="$.data.error"
+                />
+              </div>
+            </div>
+          </FieldGroup>
+
           <FieldGroup :title="t('console.workspace.assetExampleGroup')">
             <div class="space-y-2">
               <FieldLabel

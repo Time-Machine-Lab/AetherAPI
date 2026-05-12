@@ -108,6 +108,15 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     requestTemplate: string
     requestExample: string
     responseExample: string
+    asyncTaskEnabled: boolean
+    asyncTaskQueryMethod: 'GET' | 'POST'
+    asyncTaskQueryUrlTemplate: string
+    asyncTaskAuthMode: 'SAME_AS_SUBMIT' | 'OVERRIDE'
+    asyncTaskAuthScheme: '' | 'NONE' | 'HEADER_TOKEN' | 'QUERY_TOKEN'
+    asyncTaskAuthConfig: string
+    asyncTaskStatusPath: string
+    asyncTaskResultPath: string
+    asyncTaskErrorPath: string
   }>({
     displayName: '',
     categoryCode: '',
@@ -118,6 +127,15 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     requestTemplate: '',
     requestExample: '',
     responseExample: '',
+    asyncTaskEnabled: false,
+    asyncTaskQueryMethod: 'GET',
+    asyncTaskQueryUrlTemplate: '',
+    asyncTaskAuthMode: 'SAME_AS_SUBMIT',
+    asyncTaskAuthScheme: '',
+    asyncTaskAuthConfig: '',
+    asyncTaskStatusPath: '',
+    asyncTaskResultPath: '',
+    asyncTaskErrorPath: '',
   })
   const aiTagInput = ref('')
   const recentAssets = ref(deps.getRecentAssets())
@@ -144,6 +162,15 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
       requestTemplate: asset?.requestTemplate ?? '',
       requestExample: asset?.requestExample ?? '',
       responseExample: asset?.responseExample ?? '',
+      asyncTaskEnabled: asset?.asyncTaskConfig?.enabled ?? false,
+      asyncTaskQueryMethod: asset?.asyncTaskConfig?.queryMethod ?? 'GET',
+      asyncTaskQueryUrlTemplate: asset?.asyncTaskConfig?.queryUrlTemplate ?? '',
+      asyncTaskAuthMode: asset?.asyncTaskConfig?.authMode ?? 'SAME_AS_SUBMIT',
+      asyncTaskAuthScheme: asset?.asyncTaskConfig?.authScheme ?? '',
+      asyncTaskAuthConfig: asset?.asyncTaskConfig?.authConfig ?? '',
+      asyncTaskStatusPath: asset?.asyncTaskConfig?.statusPath ?? '',
+      asyncTaskResultPath: asset?.asyncTaskConfig?.resultPath ?? '',
+      asyncTaskErrorPath: asset?.asyncTaskConfig?.errorPath ?? '',
     }
   }
 
@@ -178,6 +205,7 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
       requestTemplate: updated.requestTemplate ?? previous.requestTemplate,
       requestExample: updated.requestExample ?? previous.requestExample,
       responseExample: updated.responseExample ?? previous.responseExample,
+      asyncTaskConfig: updated.asyncTaskConfig ?? previous.asyncTaskConfig,
       aiProfile: updated.aiProfile ?? {
         provider: aiProfileForm.value.provider,
         model: aiProfileForm.value.model,
@@ -392,8 +420,39 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     return trimmed ? trimmed : null
   }
 
+  function buildAsyncTaskConfig(): ReviseAssetBody['asyncTaskConfig'] {
+    if (!assetConfigForm.value.asyncTaskEnabled) {
+      return null
+    }
+
+    return {
+      enabled: true,
+      queryMethod: assetConfigForm.value.asyncTaskQueryMethod,
+      queryUrlTemplate: assetConfigForm.value.asyncTaskQueryUrlTemplate.trim(),
+      authMode: assetConfigForm.value.asyncTaskAuthMode,
+      authScheme:
+        assetConfigForm.value.asyncTaskAuthMode === 'OVERRIDE'
+          ? assetConfigForm.value.asyncTaskAuthScheme || null
+          : null,
+      authConfig:
+        assetConfigForm.value.asyncTaskAuthMode === 'OVERRIDE'
+          ? normalizeOptionalText(assetConfigForm.value.asyncTaskAuthConfig)
+          : null,
+      statusPath: normalizeOptionalText(assetConfigForm.value.asyncTaskStatusPath),
+      resultPath: normalizeOptionalText(assetConfigForm.value.asyncTaskResultPath),
+      errorPath: normalizeOptionalText(assetConfigForm.value.asyncTaskErrorPath),
+    }
+  }
+
   async function handleSaveAssetConfig() {
     if (!currentAsset.value) return
+    if (
+      assetConfigForm.value.asyncTaskEnabled &&
+      !assetConfigForm.value.asyncTaskQueryUrlTemplate.trim()
+    ) {
+      assetError.value = deps.t('console.workspace.asyncTaskQueryUrlRequired')
+      return false
+    }
     assetLoading.value = true
     assetError.value = ''
     try {
@@ -408,6 +467,7 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
           requestTemplate: normalizeOptionalText(assetConfigForm.value.requestTemplate),
           requestExample: normalizeOptionalText(assetConfigForm.value.requestExample),
           responseExample: normalizeOptionalText(assetConfigForm.value.responseExample),
+          asyncTaskConfig: buildAsyncTaskConfig(),
         }),
       )
       assetEditorOpen.value = false

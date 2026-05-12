@@ -206,6 +206,17 @@ describe('asset api', () => {
       upstreamUrl: 'https://upstream.example.com/weather',
       authScheme: 'HEADER_TOKEN',
       authConfig: 'Authorization: Bearer upstream-token',
+      asyncTaskConfig: {
+        enabled: true,
+        queryMethod: 'GET',
+        queryUrlTemplate: 'http://provider.example.com/v1/tasks/{taskId}',
+        authMode: 'SAME_AS_SUBMIT',
+        authScheme: null,
+        authConfig: null,
+        statusPath: '$.data.status',
+        resultPath: '$.data.result',
+        errorPath: '$.data.error',
+      },
     })
 
     expect(mockedPut).toHaveBeenCalledWith('v1/current-user/assets/weather-api', {
@@ -220,6 +231,17 @@ describe('asset api', () => {
       requestTemplate: undefined,
       requestExample: undefined,
       responseExample: undefined,
+      asyncTaskConfig: {
+        enabled: true,
+        queryMethod: 'GET',
+        queryUrlTemplate: 'http://provider.example.com/v1/tasks/{taskId}',
+        authMode: 'SAME_AS_SUBMIT',
+        authScheme: null,
+        authConfig: null,
+        statusPath: '$.data.status',
+        resultPath: '$.data.result',
+        errorPath: '$.data.error',
+      },
     })
   })
 
