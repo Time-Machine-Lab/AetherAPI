@@ -1,5 +1,6 @@
 import type { DiscoveryAssetDetail } from '@/api/catalog/catalog.types'
 import { buildUnifiedAccessPath, buildUnifiedAccessTaskPath } from '@/utils/platform-url'
+import { buildAsyncTaskResponseStructure } from './async-task-response-structure'
 
 export interface CatalogDocLabels {
   exportTitle: string
@@ -150,73 +151,6 @@ function subsection(level: 1 | 2, text: string): string {
   return `${'#'.repeat(level + 1)} ${text}`
 }
 
-type JsonExample = Record<string, unknown>
-
-function pathSegments(path?: string | null): string[] {
-  if (!path) {
-    return []
-  }
-
-  let normalized = path.trim()
-  if (!normalized) {
-    return []
-  }
-
-  normalized = normalized.replace(/^\$/, '').replace(/^\./, '')
-  normalized = normalized.replace(/\[['"]?([^'"\]]+)['"]?\]/g, '.$1')
-
-  if (!normalized || /[*?()]/.test(normalized)) {
-    return []
-  }
-
-  const segments = normalized
-    .split('.')
-    .map((segment) => segment.trim())
-    .filter(Boolean)
-  return segments.every((segment) => /^[A-Za-z_$][\w$-]*$/.test(segment)) ? segments : []
-}
-
-function assignPathValue(target: JsonExample, segments: string[], value: string): boolean {
-  if (segments.length === 0) {
-    return false
-  }
-
-  let cursor: JsonExample = target
-  for (let index = 0; index < segments.length; index += 1) {
-    const segment = segments[index]
-    const isLast = index === segments.length - 1
-    if (isLast) {
-      cursor[segment] = value
-      return true
-    }
-    if (typeof cursor[segment] !== 'object' || cursor[segment] === null) {
-      cursor[segment] = {}
-    }
-    cursor = cursor[segment] as JsonExample
-  }
-
-  return false
-}
-
-function buildAsyncTaskResponseStructure(
-  detail: DiscoveryAssetDetail,
-  labels: CatalogDocLabels,
-): string | undefined {
-  const config = detail.asyncTaskConfig
-  if (!config) {
-    return undefined
-  }
-
-  const example: JsonExample = {}
-  const assigned = [
-    assignPathValue(example, pathSegments(config.statusPath), `<${labels.asyncTaskStatusPath}>`),
-    assignPathValue(example, pathSegments(config.resultPath), `<${labels.asyncTaskResultPath}>`),
-    assignPathValue(example, pathSegments(config.errorPath), `<${labels.asyncTaskErrorPath}>`),
-  ].some(Boolean)
-
-  return assigned ? JSON.stringify(example, null, 2) : undefined
-}
-
 function buildApiMarkdownSection(
   detail: DiscoveryAssetDetail,
   labels: CatalogDocLabels,
@@ -299,7 +233,11 @@ function buildApiMarkdownSection(
       '',
     )
 
-    const responseStructure = buildAsyncTaskResponseStructure(detail, labels)
+    const responseStructure = buildAsyncTaskResponseStructure(detail.asyncTaskConfig, {
+      status: labels.asyncTaskStatusPath,
+      result: labels.asyncTaskResultPath,
+      error: labels.asyncTaskErrorPath,
+    })
     if (responseStructure) {
       lines.push(
         subsection(headingLevel, labels.asyncTaskResponseStructure),

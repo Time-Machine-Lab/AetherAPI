@@ -11,15 +11,19 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.net.Authenticator;
 import java.net.CookieHandler;
 import java.net.InetSocketAddress;
 import java.net.ProxySelector;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
@@ -27,11 +31,14 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Base64;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -201,8 +208,8 @@ class JdkUnifiedAccessDownstreamProxyPortTest {
                 "HTTP",
                 "127.0.0.1",
                 8888,
-                "proxy-user",
-                "proxy-secret",
+                null,
+                null,
                 1L
         );
         FixedHttpClient selectedClient = new FixedHttpClient(
@@ -230,6 +237,102 @@ class JdkUnifiedAccessDownstreamProxyPortTest {
         assertEquals(200, response.getStatusCode());
         assertEquals("application/json", response.getContentType());
         assertArrayEquals("{\"proxied\":true}".getBytes(StandardCharsets.UTF_8), response.getResponseBody());
+    }
+
+    @Test
+    @DisplayName("forward should preempt proxy auth and pass through upstream 401 without auth challenge")
+    void shouldPassThroughUpstream401WithoutWwwAuthenticateWhenProxyHasCredentials() throws Exception {
+        AtomicReference<String> proxyAuthorizationHeader = new AtomicReference<>();
+        AtomicReference<String> upstreamAuthorizationHeader = new AtomicReference<>();
+        startServer(exchange -> {
+            proxyAuthorizationHeader.set(exchange.getRequestHeaders().getFirst("Proxy-Authorization"));
+            upstreamAuthorizationHeader.set(exchange.getRequestHeaders().getFirst("Authorization"));
+
+            byte[] responseBody = "{\"error\":\"invalid_api_key\"}".getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(401, responseBody.length);
+            try (OutputStream outputStream = exchange.getResponseBody()) {
+                outputStream.write(responseBody);
+            }
+        });
+        ProxyProfileSnapshotModel proxyProfile = new ProxyProfileSnapshotModel(
+                "proxy-1",
+                "credentialed-proxy",
+                "HTTP",
+                "127.0.0.1",
+                server.getAddress().getPort(),
+                "proxy-user",
+                "proxy-secret",
+                1L
+        );
+        JdkUnifiedAccessDownstreamProxyPort proxyPort = new JdkUnifiedAccessDownstreamProxyPort(HttpClient.newHttpClient());
+
+        UnifiedAccessProxyResponseModel response = proxyPort.forward(
+                invocation("http://api.bltcy.top/v1/images/generations", false, proxyProfile)
+        );
+
+        String expectedProxyAuth = "Basic " + Base64.getEncoder()
+                .encodeToString("proxy-user:proxy-secret".getBytes(StandardCharsets.UTF_8));
+        assertEquals(expectedProxyAuth, proxyAuthorizationHeader.get());
+        assertEquals("Bearer upstream-token", upstreamAuthorizationHeader.get());
+        assertEquals(UnifiedAccessExecutionOutcomeType.UPSTREAM_FAILURE, response.getOutcomeType());
+        assertEquals(401, response.getStatusCode());
+        assertEquals("application/json", response.getContentType());
+        assertFalse(new String(response.getResponseBody(), StandardCharsets.UTF_8)
+                .contains("WWW-Authenticate header missing"));
+    }
+
+    @Test
+    @DisplayName("forward should send proxy authorization during https CONNECT")
+    void shouldSendProxyAuthorizationDuringHttpsConnect() throws Exception {
+        AtomicReference<String> connectLine = new AtomicReference<>();
+        AtomicReference<String> proxyAuthorizationHeader = new AtomicReference<>();
+        try (ServerSocket proxyServer = new ServerSocket(0)) {
+            CompletableFuture<Void> proxyExchange = CompletableFuture.runAsync(() -> {
+                try (Socket socket = proxyServer.accept()) {
+                    socket.setSoTimeout(2000);
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(
+                            socket.getInputStream(),
+                            StandardCharsets.ISO_8859_1
+                    ));
+                    connectLine.set(reader.readLine());
+                    String line;
+                    while ((line = reader.readLine()) != null && !line.isEmpty()) {
+                        if (line.toLowerCase(Locale.ROOT).startsWith("proxy-authorization:")) {
+                            proxyAuthorizationHeader.set(line.substring(line.indexOf(':') + 1).trim());
+                        }
+                    }
+                    byte[] response = "HTTP/1.1 407 Proxy Authentication Required\r\nContent-Length: 0\r\n\r\n"
+                            .getBytes(StandardCharsets.ISO_8859_1);
+                    socket.getOutputStream().write(response);
+                    socket.getOutputStream().flush();
+                } catch (IOException ex) {
+                    throw new UncheckedIOException(ex);
+                }
+            });
+            ProxyProfileSnapshotModel proxyProfile = new ProxyProfileSnapshotModel(
+                    "proxy-1",
+                    "credentialed-proxy",
+                    "HTTP",
+                    "127.0.0.1",
+                    proxyServer.getLocalPort(),
+                    "proxy-user",
+                    "proxy-secret",
+                    1L
+            );
+            JdkUnifiedAccessDownstreamProxyPort proxyPort = new JdkUnifiedAccessDownstreamProxyPort(HttpClient.newHttpClient());
+
+            UnifiedAccessProxyResponseModel response = proxyPort.forward(
+                    invocation("https://api.wuyinkeji.com/api/async/image_gpt", false, proxyProfile)
+            );
+
+            proxyExchange.get(3, TimeUnit.SECONDS);
+            String expectedProxyAuth = "Basic " + Base64.getEncoder()
+                    .encodeToString("proxy-user:proxy-secret".getBytes(StandardCharsets.UTF_8));
+            assertEquals("CONNECT api.wuyinkeji.com:443 HTTP/1.1", connectLine.get());
+            assertEquals(expectedProxyAuth, proxyAuthorizationHeader.get());
+            assertEquals(UnifiedAccessExecutionOutcomeType.UPSTREAM_FAILURE, response.getOutcomeType());
+        }
     }
 
     @Test

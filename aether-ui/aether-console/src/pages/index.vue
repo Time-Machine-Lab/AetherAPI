@@ -18,6 +18,7 @@ import { useCatalogDiscovery } from '@/composables/useCatalogDiscovery'
 import { useCatalogDocExport } from '@/composables/useCatalogDocExport'
 import { useApiSubscriptionStatus } from '@/composables/useApiSubscriptionStatus'
 import type { CatalogDocLabels } from '@/features/catalog/catalog-doc-export'
+import { buildAsyncTaskResponseStructure } from '@/features/catalog/async-task-response-structure'
 import type { ApiSubscriptionAccessStatus } from '@/api/subscription/subscription.types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -29,7 +30,7 @@ import DisplayTag from '@/components/console/DisplayTag.vue'
 import MethodTag from '@/components/console/MethodTag.vue'
 import FieldGroup from '@/components/console/FieldGroup.vue'
 import StateBlock from '@/components/console/StateBlock.vue'
-import { buildUnifiedAccessAddress } from '@/utils/platform-url'
+import { buildUnifiedAccessAddress, buildUnifiedAccessTaskAddress } from '@/utils/platform-url'
 import { assetTypeTone } from '@/utils/visual-system'
 
 const { t } = useI18n()
@@ -126,6 +127,17 @@ const exportFeedbackClass = computed(() =>
     ? 'text-primary'
     : 'text-destructive',
 )
+const asyncTaskResponseStructure = computed(() => {
+  if (!detail.value?.asyncTaskConfig?.enabled) {
+    return undefined
+  }
+
+  return buildAsyncTaskResponseStructure(detail.value.asyncTaskConfig, {
+    status: t('console.home.asyncTaskStatusValue'),
+    result: t('console.home.asyncTaskResultValue'),
+    error: t('console.home.asyncTaskErrorValue'),
+  })
+})
 
 loadList()
 
@@ -450,6 +462,47 @@ watch(
                     />
                     <MethodTag :method="detail.requestMethod" />
                   </div>
+                </FieldGroup>
+                <FieldGroup
+                  v-if="detail.asyncTaskConfig?.enabled"
+                  :title="t('console.home.asyncTaskQuery')"
+                  :description="t('console.home.asyncTaskQueryDescription')"
+                >
+                  <CopyableField
+                    :label="t('console.home.asyncTaskQueryEndpoint')"
+                    :value="buildUnifiedAccessTaskAddress(detail.apiCode)"
+                  />
+                  <div class="flex flex-wrap gap-2">
+                    <MetaItem
+                      :label="t('console.home.requestMethod')"
+                      :value="detail.asyncTaskConfig.queryMethod"
+                    />
+                    <MetaItem
+                      :label="t('console.home.asyncTaskAuthMode')"
+                      :value="detail.asyncTaskConfig.authMode"
+                    />
+                    <MetaItem
+                      :label="t('console.home.authScheme')"
+                      :value="detail.asyncTaskConfig.authScheme"
+                    />
+                    <MetaItem
+                      :label="t('console.home.asyncTaskStatusPath')"
+                      :value="detail.asyncTaskConfig.statusPath"
+                    />
+                    <MetaItem
+                      :label="t('console.home.asyncTaskResultPath')"
+                      :value="detail.asyncTaskConfig.resultPath"
+                    />
+                    <MetaItem
+                      :label="t('console.home.asyncTaskErrorPath')"
+                      :value="detail.asyncTaskConfig.errorPath"
+                    />
+                  </div>
+                  <CodeBlock
+                    v-if="asyncTaskResponseStructure"
+                    :label="t('console.home.asyncTaskResponseStructure')"
+                    :value="asyncTaskResponseStructure"
+                  />
                 </FieldGroup>
                 <div v-if="detail.assetType === 'AI_API' && detail.aiProfile" class="space-y-2">
                   <FieldGroup :title="t('console.home.aiCapability')">

@@ -16,3 +16,7 @@ export function buildUnifiedAccessAddress(apiCode: string): string {
   const base = trimTrailingSlash(env.apiBaseUrl || '/api')
   return `${base}/v1/access/${encodeURIComponent(apiCode)}`
 }
+
+export function buildUnifiedAccessTaskAddress(apiCode: string): string {
+  return `${buildUnifiedAccessAddress(apiCode)}/tasks/{taskId}`
+}

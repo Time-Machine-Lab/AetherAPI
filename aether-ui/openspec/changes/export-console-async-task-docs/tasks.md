@@ -7,6 +7,7 @@
 - [x] 2.1 Add async task query labels and locale entries.
 - [x] 2.2 Add async task query Markdown section.
 - [x] 2.3 Generate response structure from configured status/result/error paths.
+- [x] 2.4 Show the same generated async task response structure in the API detail panel.
 
 ## 3. Verification
 

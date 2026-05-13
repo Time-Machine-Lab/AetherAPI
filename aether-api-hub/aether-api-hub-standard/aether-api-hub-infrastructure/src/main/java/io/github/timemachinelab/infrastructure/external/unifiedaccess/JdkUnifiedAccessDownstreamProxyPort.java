@@ -6,7 +6,28 @@ import io.github.timemachinelab.service.model.TargetApiSnapshotModel;
 import io.github.timemachinelab.service.model.UnifiedAccessInvocationModel;
 import io.github.timemachinelab.service.model.UnifiedAccessProxyResponseModel;
 import io.github.timemachinelab.service.port.out.UnifiedAccessDownstreamProxyPort;
+import org.apache.hc.client5.http.auth.AuthScope;
+import org.apache.hc.client5.http.auth.StandardAuthScheme;
+import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
+import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.auth.BasicAuthCache;
+import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
+import org.apache.hc.client5.http.impl.auth.BasicScheme;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.protocol.HttpClientContext;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.io.entity.ByteArrayEntity;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.util.Timeout;
 
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -90,6 +111,9 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
         Objects.requireNonNull(invocation, "Unified access invocation must not be null");
 
         try {
+            if (requiresPreemptiveProxyAuth(invocation.getTargetApi())) {
+                return forwardWithApacheHttpClient(invocation);
+            }
             HttpRequest request = buildRequest(invocation);
             HttpClient selectedClient = httpClientResolver.resolve(invocation.getTargetApi().getProxyProfile());
             boolean streaming = invocation.getTargetApi().isStreamingSupported();
@@ -135,6 +159,136 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
                     ex.getMessage()
             );
         }
+    }
+
+    private UnifiedAccessProxyResponseModel forwardWithApacheHttpClient(UnifiedAccessInvocationModel invocation)
+            throws IOException {
+        TargetApiSnapshotModel targetApi = invocation.getTargetApi();
+        HttpHost proxy = new HttpHost(targetApi.getProxyProfile().getProxyHost(), targetApi.getProxyProfile().getProxyPort());
+        UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(
+                targetApi.getProxyProfile().getUsername(),
+                targetApi.getProxyProfile().getPasswordSecret().toCharArray()
+        );
+        BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+        credentialsProvider.setCredentials(new AuthScope(proxy), credentials);
+        BasicScheme proxyBasicAuth = new BasicScheme();
+        proxyBasicAuth.initPreemptive(credentials);
+        BasicAuthCache authCache = new BasicAuthCache();
+        authCache.put(proxy, proxyBasicAuth);
+        HttpClientContext context = HttpClientContext.create();
+        context.setCredentialsProvider(credentialsProvider);
+        context.setAuthCache(authCache);
+
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setProxy(proxy)
+                .setProxyPreferredAuthSchemes(List.of(StandardAuthScheme.BASIC))
+                .setConnectTimeout(toTimeout(resolveRequestTimeout(targetApi)))
+                .setResponseTimeout(toTimeout(resolveRequestTimeout(targetApi)))
+                .build();
+        HttpUriRequestBase request = buildApacheRequest(invocation, requestConfig);
+        CloseableHttpClient client = HttpClients.custom()
+                .setDefaultCredentialsProvider(credentialsProvider)
+                .setDefaultRequestConfig(requestConfig)
+                .build();
+        CloseableHttpResponse response = client.execute(request, context);
+        boolean closeClient = true;
+        try {
+            int statusCode = response.getCode();
+            String contentType = apacheContentType(response);
+            Map<String, List<String>> responseHeaders = toHeaderMap(response);
+            if (targetApi.isStreamingSupported()) {
+                InputStream responseBody = apacheResponseStream(response);
+                InputStream closingStream = new ApacheResponseClosingInputStream(responseBody, response, client);
+                closeClient = false;
+                if (isSuccessful(statusCode)) {
+                    return UnifiedAccessProxyResponseModel.successStream(
+                            statusCode,
+                            responseHeaders,
+                            closingStream,
+                            contentType
+                    );
+                }
+                return UnifiedAccessProxyResponseModel.upstreamFailureStream(
+                        statusCode,
+                        responseHeaders,
+                        closingStream,
+                        contentType,
+                        "Upstream endpoint returned a failure response"
+                );
+            }
+
+            byte[] responseBytes = apacheResponseBytes(response);
+            if (isSuccessful(statusCode)) {
+                return UnifiedAccessProxyResponseModel.success(
+                        statusCode,
+                        responseHeaders,
+                        responseBytes,
+                        contentType,
+                        false
+                );
+            }
+            return UnifiedAccessProxyResponseModel.upstreamFailure(
+                    statusCode,
+                    responseHeaders,
+                    responseBytes,
+                    contentType,
+                    false,
+                    "Upstream endpoint returned a failure response"
+            );
+        } finally {
+            if (closeClient) {
+                response.close();
+                client.close();
+            }
+        }
+    }
+
+    private HttpUriRequestBase buildApacheRequest(
+            UnifiedAccessInvocationModel invocation,
+            RequestConfig requestConfig) {
+        TargetApiSnapshotModel targetApi = invocation.getTargetApi();
+        HttpUriRequestBase request = new HttpUriRequestBase(
+                resolveOutgoingMethod(invocation),
+                buildUri(targetApi, invocation.getQueryParameters())
+        );
+        request.setConfig(requestConfig);
+        applyForwardedHeaders(request, invocation);
+        applyHeaderAuth(request, targetApi);
+        byte[] requestBody = invocation.getRequestBody();
+        if (requestBody != null && requestBody.length > 0) {
+            request.setEntity(new ByteArrayEntity(requestBody, apacheContentType(invocation.getContentType())));
+        }
+        return request;
+    }
+
+    private Timeout toTimeout(Duration timeout) {
+        return Timeout.ofMilliseconds(Math.max(1, timeout.toMillis()));
+    }
+
+    private ContentType apacheContentType(String contentType) {
+        if (contentType == null || contentType.isBlank()) {
+            return ContentType.APPLICATION_OCTET_STREAM;
+        }
+        try {
+            return ContentType.parse(contentType);
+        } catch (RuntimeException ex) {
+            return ContentType.APPLICATION_OCTET_STREAM;
+        }
+    }
+
+    private String apacheContentType(ClassicHttpResponse response) {
+        Header header = response.getFirstHeader("Content-Type");
+        return header == null ? null : header.getValue();
+    }
+
+    private byte[] apacheResponseBytes(ClassicHttpResponse response) throws IOException {
+        HttpEntity entity = response.getEntity();
+        return entity == null ? new byte[0] : EntityUtils.toByteArray(entity);
+    }
+
+    private InputStream apacheResponseStream(ClassicHttpResponse response) throws IOException {
+        HttpEntity entity = response.getEntity();
+        return entity == null ? InputStream.nullInputStream() : entity.getContent();
     }
 
     private HttpRequest buildRequest(UnifiedAccessInvocationModel invocation) {
@@ -197,6 +351,20 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
         }
     }
 
+    private void applyForwardedHeaders(HttpUriRequestBase request, UnifiedAccessInvocationModel invocation) {
+        for (Map.Entry<String, List<String>> entry : invocation.getHeaders().entrySet()) {
+            if (!shouldForwardRequestHeader(entry.getKey())) {
+                continue;
+            }
+            for (String value : entry.getValue()) {
+                request.addHeader(entry.getKey(), value);
+            }
+        }
+        if (invocation.getContentType() != null && !invocation.getContentType().isBlank()) {
+            request.setHeader("Content-Type", invocation.getContentType());
+        }
+    }
+
     private void applyHeaderAuth(HttpRequest.Builder builder, TargetApiSnapshotModel targetApi) {
         if (!"HEADER_TOKEN".equalsIgnoreCase(targetApi.getAuthScheme()) || targetApi.getAuthConfig() == null) {
             return;
@@ -204,6 +372,24 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
         String[] parts = splitAuthConfig(targetApi.getAuthConfig(), ":");
         String headerName = parts[0].isBlank() ? "Authorization" : parts[0];
         builder.header(headerName, parts[1]);
+    }
+
+    private void applyHeaderAuth(HttpUriRequestBase request, TargetApiSnapshotModel targetApi) {
+        if (!"HEADER_TOKEN".equalsIgnoreCase(targetApi.getAuthScheme()) || targetApi.getAuthConfig() == null) {
+            return;
+        }
+        String[] parts = splitAuthConfig(targetApi.getAuthConfig(), ":");
+        String headerName = parts[0].isBlank() ? "Authorization" : parts[0];
+        request.setHeader(headerName, parts[1]);
+    }
+
+    private boolean requiresPreemptiveProxyAuth(TargetApiSnapshotModel targetApi) {
+        ProxyProfileSnapshotModel proxyProfile = targetApi.getProxyProfile();
+        return proxyProfile != null
+                && proxyProfile.getUsername() != null
+                && !proxyProfile.getUsername().isBlank()
+                && proxyProfile.getPasswordSecret() != null
+                && !proxyProfile.getPasswordSecret().isBlank();
     }
 
     private HttpRequest.BodyPublisher bodyPublisher(byte[] requestBody) {
@@ -282,6 +468,21 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
         return !HOP_BY_HOP_HEADERS.contains(normalized)
                 && !normalized.startsWith("x-aether-")
                 && !"authorization".equals(normalized);
+    }
+
+    private Map<String, List<String>> toHeaderMap(ClassicHttpResponse response) {
+        Header[] source = response.getHeaders();
+        if (source == null || source.length == 0) {
+            return Map.of();
+        }
+        Map<String, List<String>> copied = new LinkedHashMap<>();
+        for (Header header : source) {
+            if (!shouldForwardResponseHeader(header.getName())) {
+                continue;
+            }
+            copied.computeIfAbsent(header.getName(), ignored -> new ArrayList<>()).add(header.getValue());
+        }
+        return copied;
     }
 
     private boolean shouldForwardResponseHeader(String headerName) {
@@ -416,5 +617,30 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
         return value
                 .replace("\\", "\\\\")
                 .replace("\"", "\\\"");
+    }
+
+    private static final class ApacheResponseClosingInputStream extends FilterInputStream {
+
+        private final CloseableHttpResponse response;
+        private final CloseableHttpClient client;
+
+        private ApacheResponseClosingInputStream(
+                InputStream delegate,
+                CloseableHttpResponse response,
+                CloseableHttpClient client) {
+            super(delegate);
+            this.response = response;
+            this.client = client;
+        }
+
+        @Override
+        public void close() throws IOException {
+            try {
+                super.close();
+            } finally {
+                response.close();
+                client.close();
+            }
+        }
     }
 }
