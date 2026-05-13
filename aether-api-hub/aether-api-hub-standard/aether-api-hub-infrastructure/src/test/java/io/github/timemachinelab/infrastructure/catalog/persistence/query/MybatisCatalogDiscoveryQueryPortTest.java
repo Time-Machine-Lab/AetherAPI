@@ -68,14 +68,38 @@ class MybatisCatalogDiscoveryQueryPortTest {
         CatalogDiscoveryAssetRecord record = assetRecord("weather-forecast", "PUBLISHED", "STANDARD_API", "Alice");
         record.setRequestExample(null);
         record.setResponseExample(null);
+        record.setAsyncTaskConfig(null);
         when(mapper.selectAssetDetail("weather-forecast")).thenReturn(record);
 
         Optional<CatalogDiscoveryAssetDetailModel> result = queryPort.findDiscoverableAssetDetail("weather-forecast");
 
         assertTrue(result.isPresent());
         assertNull(result.get().getExampleSnapshot());
+        assertNull(result.get().getAsyncTaskConfig());
         assertNull(result.get().getAiCapabilityProfile());
         assertEquals("Alice", result.get().getPublisher().getDisplayName());
+    }
+
+    @Test
+    @DisplayName("detail should expose async task query configuration")
+    void shouldExposeAsyncTaskConfigurationInDetail() {
+        CatalogDiscoveryAssetRecord record = assetRecord("image-generate", "PUBLISHED", "AI_API", "Alice");
+        record.setAsyncTaskConfig(
+                "{\"enabled\":true,\"queryMethod\":\"GET\",\"queryUrlTemplate\":\"http://provider.example.com/v1/tasks/{taskId}\",\"authMode\":\"SAME_AS_SUBMIT\",\"statusPath\":\"$.data.status\",\"resultPath\":\"$.data.result\",\"errorPath\":\"$.data.error\"}"
+        );
+        when(mapper.selectAssetDetail("image-generate")).thenReturn(record);
+
+        Optional<CatalogDiscoveryAssetDetailModel> result = queryPort.findDiscoverableAssetDetail("image-generate");
+
+        assertTrue(result.isPresent());
+        assertNotNull(result.get().getAsyncTaskConfig());
+        assertEquals(Boolean.TRUE, result.get().getAsyncTaskConfig().getEnabled());
+        assertEquals("GET", result.get().getAsyncTaskConfig().getQueryMethod());
+        assertEquals("http://provider.example.com/v1/tasks/{taskId}", result.get().getAsyncTaskConfig().getQueryUrlTemplate());
+        assertEquals("SAME_AS_SUBMIT", result.get().getAsyncTaskConfig().getAuthMode());
+        assertEquals("$.data.status", result.get().getAsyncTaskConfig().getStatusPath());
+        assertEquals("$.data.result", result.get().getAsyncTaskConfig().getResultPath());
+        assertEquals("$.data.error", result.get().getAsyncTaskConfig().getErrorPath());
     }
 
     @Test
@@ -108,6 +132,7 @@ class MybatisCatalogDiscoveryQueryPortTest {
         assertSqlContains(selectAssetSummaries, "AND a.status = 'PUBLISHED'");
         assertSqlContains(selectAssetDetail, "WHERE a.is_deleted = FALSE");
         assertSqlContains(selectAssetDetail, "AND a.status = 'PUBLISHED'");
+        assertSqlContains(selectAssetDetail, "a.async_task_config AS asyncTaskConfig");
     }
 
     private CatalogDiscoveryAssetRecord assetRecord(String apiCode, String status, String assetType, String publisher) {

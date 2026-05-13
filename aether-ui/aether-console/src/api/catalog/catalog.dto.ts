@@ -53,6 +53,7 @@ export interface DiscoveryAssetDetailDto extends DiscoveryAssetDto {
   requestMethod?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | null
   requestTemplate?: string | null
   exampleSnapshot?: DiscoveryExampleSnapshotDto | null
+  asyncTaskConfig?: AsyncTaskConfigDto | null
   aiCapabilityProfile?: DiscoveryAiCapabilityProfileDto | null
 }
 

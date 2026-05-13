@@ -158,6 +158,8 @@ components:
           nullable: true
         exampleSnapshot:
           $ref: '#/components/schemas/CatalogDiscoveryExampleSnapshotResp'
+        asyncTaskConfig:
+          $ref: '#/components/schemas/AsyncTaskConfig'
         aiCapabilityProfile:
           $ref: '#/components/schemas/CatalogDiscoveryAiCapabilityProfileResp'
 
@@ -186,6 +188,64 @@ components:
           type: array
           items:
             type: string
+
+    AsyncTaskConfig:
+      type: object
+      nullable: true
+      description: Published asset async task query configuration used by Unified Access task query.
+      properties:
+        enabled:
+          type: boolean
+          description: Whether task query is declared as enabled.
+          example: true
+        queryMethod:
+          type: string
+          enum:
+            - GET
+            - POST
+          nullable: true
+          description: Upstream task query HTTP method.
+          example: GET
+        queryUrlTemplate:
+          type: string
+          nullable: true
+          description: Upstream task query URL template containing `{taskId}`.
+          example: http://provider.example.com/v1/tasks/{taskId}
+        authMode:
+          type: string
+          enum:
+            - SAME_AS_SUBMIT
+            - OVERRIDE
+          nullable: true
+          description: Whether task query uses submit authentication or an override.
+          example: SAME_AS_SUBMIT
+        authScheme:
+          type: string
+          enum:
+            - NONE
+            - HEADER_TOKEN
+            - QUERY_TOKEN
+          nullable: true
+          description: Override auth scheme when `authMode` is `OVERRIDE`.
+        authConfig:
+          type: string
+          nullable: true
+          description: Sensitive override auth material. Discovery responses MUST omit this value.
+        statusPath:
+          type: string
+          nullable: true
+          description: JSONPath-like path for task status in the upstream query response.
+          example: $.data.status
+        resultPath:
+          type: string
+          nullable: true
+          description: JSONPath-like path for task result in the upstream query response.
+          example: $.data.result
+        errorPath:
+          type: string
+          nullable: true
+          description: JSONPath-like path for task error in the upstream query response.
+          example: $.data.error
 
     ErrorResp:
       type: object

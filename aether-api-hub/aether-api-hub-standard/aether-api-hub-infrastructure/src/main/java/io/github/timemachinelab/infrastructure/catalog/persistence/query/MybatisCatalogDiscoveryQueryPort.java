@@ -1,5 +1,6 @@
 package io.github.timemachinelab.infrastructure.catalog.persistence.query;
 
+import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
 import io.github.timemachinelab.service.model.CatalogDiscoveryAiCapabilityProfileModel;
 import io.github.timemachinelab.service.model.CatalogDiscoveryAssetDetailModel;
 import io.github.timemachinelab.service.model.CatalogDiscoveryAssetSummaryModel;
@@ -25,6 +26,8 @@ import java.util.regex.Pattern;
 public class MybatisCatalogDiscoveryQueryPort implements CatalogDiscoveryQueryPort {
 
     private static final Pattern JSON_STRING_PATTERN = Pattern.compile("\"((?:\\\\.|[^\"])*)\"");
+    private static final Pattern JSON_BOOLEAN_TRUE_PATTERN = Pattern.compile(":\\s*true\\b");
+    private static final Pattern JSON_BOOLEAN_FALSE_PATTERN = Pattern.compile(":\\s*false\\b");
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ISO_INSTANT;
 
     private final CatalogDiscoveryMapper mapper;
@@ -72,6 +75,7 @@ public class MybatisCatalogDiscoveryQueryPort implements CatalogDiscoveryQueryPo
                 record.getAuthScheme(),
                 record.getRequestTemplate(),
                 toExampleSnapshotModel(record),
+                toAsyncTaskConfigModel(record.getAsyncTaskConfig()),
                 toAiProfileModel(record)
         );
     }
@@ -112,6 +116,43 @@ public class MybatisCatalogDiscoveryQueryPort implements CatalogDiscoveryQueryPo
         );
     }
 
+    private AsyncTaskConfigModel toAsyncTaskConfigModel(String json) {
+        if (isBlank(json)) {
+            return null;
+        }
+        Boolean enabled = extractJsonBoolean(json, "enabled");
+        String queryMethod = extractJsonString(json, "queryMethod");
+        String queryUrlTemplate = extractJsonString(json, "queryUrlTemplate");
+        String authMode = extractJsonString(json, "authMode");
+        String authScheme = extractJsonString(json, "authScheme");
+        String authConfig = extractJsonString(json, "authConfig");
+        String statusPath = extractJsonString(json, "statusPath");
+        String resultPath = extractJsonString(json, "resultPath");
+        String errorPath = extractJsonString(json, "errorPath");
+        if (enabled == null
+                && queryMethod == null
+                && queryUrlTemplate == null
+                && authMode == null
+                && authScheme == null
+                && authConfig == null
+                && statusPath == null
+                && resultPath == null
+                && errorPath == null) {
+            return null;
+        }
+        return new AsyncTaskConfigModel(
+                enabled,
+                queryMethod,
+                queryUrlTemplate,
+                authMode,
+                authScheme,
+                authConfig,
+                statusPath,
+                resultPath,
+                errorPath
+        );
+    }
+
     private List<String> parseTags(String json) {
         List<String> result = new ArrayList<>();
         if (isBlank(json)) {
@@ -126,6 +167,34 @@ public class MybatisCatalogDiscoveryQueryPort implements CatalogDiscoveryQueryPo
 
     private String formatInstant(LocalDateTime value) {
         return value == null ? null : TIME_FORMATTER.withZone(ZoneOffset.UTC).format(value.toInstant(ZoneOffset.UTC));
+    }
+
+    private Boolean extractJsonBoolean(String json, String fieldName) {
+        String valuePattern = "\"" + Pattern.quote(fieldName) + "\"\\s*:\\s*(true|false)";
+        Matcher matcher = Pattern.compile(valuePattern).matcher(json);
+        if (!matcher.find()) {
+            return null;
+        }
+        String matched = matcher.group(0);
+        if (JSON_BOOLEAN_TRUE_PATTERN.matcher(matched).find()) {
+            return Boolean.TRUE;
+        }
+        if (JSON_BOOLEAN_FALSE_PATTERN.matcher(matched).find()) {
+            return Boolean.FALSE;
+        }
+        return null;
+    }
+
+    private String extractJsonString(String json, String fieldName) {
+        String valuePattern = "\"" + Pattern.quote(fieldName) + "\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"";
+        Matcher matcher = Pattern.compile(valuePattern).matcher(json);
+        if (!matcher.find()) {
+            return null;
+        }
+        return matcher.group(1)
+                .replace("\\\"", "\"")
+                .replace("\\\\", "\\")
+                .replace("\\/", "/");
     }
 
     private boolean isBlank(String value) {

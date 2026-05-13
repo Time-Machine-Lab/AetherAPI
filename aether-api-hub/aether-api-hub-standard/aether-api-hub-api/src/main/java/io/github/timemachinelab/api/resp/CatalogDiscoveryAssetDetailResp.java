@@ -40,6 +40,9 @@ public class CatalogDiscoveryAssetDetailResp {
     @JsonProperty("exampleSnapshot")
     private CatalogDiscoveryExampleSnapshotResp exampleSnapshot;
 
+    @JsonProperty("asyncTaskConfig")
+    private AsyncTaskConfigResp asyncTaskConfig;
+
     @JsonProperty("aiCapabilityProfile")
     private CatalogDiscoveryAiCapabilityProfileResp aiCapabilityProfile;
 
@@ -57,6 +60,7 @@ public class CatalogDiscoveryAssetDetailResp {
             AuthScheme authScheme,
             String requestTemplate,
             CatalogDiscoveryExampleSnapshotResp exampleSnapshot,
+            AsyncTaskConfigResp asyncTaskConfig,
             CatalogDiscoveryAiCapabilityProfileResp aiCapabilityProfile) {
         this.apiCode = apiCode;
         this.assetName = assetName;
@@ -68,6 +72,7 @@ public class CatalogDiscoveryAssetDetailResp {
         this.authScheme = authScheme;
         this.requestTemplate = requestTemplate;
         this.exampleSnapshot = exampleSnapshot;
+        this.asyncTaskConfig = asyncTaskConfig;
         this.aiCapabilityProfile = aiCapabilityProfile;
     }
 
@@ -149,6 +154,14 @@ public class CatalogDiscoveryAssetDetailResp {
 
     public void setExampleSnapshot(CatalogDiscoveryExampleSnapshotResp exampleSnapshot) {
         this.exampleSnapshot = exampleSnapshot;
+    }
+
+    public AsyncTaskConfigResp getAsyncTaskConfig() {
+        return asyncTaskConfig;
+    }
+
+    public void setAsyncTaskConfig(AsyncTaskConfigResp asyncTaskConfig) {
+        this.asyncTaskConfig = asyncTaskConfig;
     }
 
     public CatalogDiscoveryAiCapabilityProfileResp getAiCapabilityProfile() {

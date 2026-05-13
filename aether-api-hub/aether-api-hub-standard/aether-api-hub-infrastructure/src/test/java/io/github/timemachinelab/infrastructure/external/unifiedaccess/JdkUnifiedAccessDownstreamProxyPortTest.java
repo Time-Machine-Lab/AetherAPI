@@ -30,6 +30,7 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -37,6 +38,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
+
+import io.github.timemachinelab.service.model.ProxyProfileSnapshotModel;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -188,6 +191,53 @@ class JdkUnifiedAccessDownstreamProxyPortTest {
         assertEquals(429, response.getStatusCode());
         assertArrayEquals("{\"error\":\"too_many_requests\"}".getBytes(StandardCharsets.UTF_8), response.getResponseBody());
         assertEquals(List.of("30"), response.getResponseHeaders().get("retry-after"));
+    }
+
+    @Test
+    @DisplayName("forward should send proxy credentials preemptively for credentialed HTTP proxy profiles")
+    void shouldSendProxyCredentialsPreemptivelyForCredentialedHttpProxyProfiles() throws Exception {
+        String expectedProxyAuthorization = "Basic " + Base64.getEncoder()
+                .encodeToString("proxy-user:proxy-secret".getBytes(StandardCharsets.UTF_8));
+        AtomicReference<String> proxyAuthorization = new AtomicReference<>();
+        startServer(exchange -> {
+            proxyAuthorization.set(exchange.getRequestHeaders().getFirst("Proxy-Authorization"));
+            if (!expectedProxyAuthorization.equals(proxyAuthorization.get())) {
+                exchange.sendResponseHeaders(401, -1);
+                return;
+            }
+            byte[] responseBody = "{\"proxied\":true}".getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, responseBody.length);
+            try (OutputStream outputStream = exchange.getResponseBody()) {
+                outputStream.write(responseBody);
+            }
+        });
+        ProxyProfileSnapshotModel proxyProfile = new ProxyProfileSnapshotModel(
+                "proxy-1",
+                "credentialed-proxy",
+                "HTTP",
+                "127.0.0.1",
+                server.getAddress().getPort(),
+                "proxy-user",
+                "proxy-secret",
+                1L
+        );
+        HttpClient directClient = HttpClient.newBuilder().connectTimeout(Duration.ofMillis(200)).build();
+        JdkUnifiedAccessDownstreamProxyPort proxyPort = new JdkUnifiedAccessDownstreamProxyPort(
+                new JdkUnifiedAccessHttpClientResolver(directClient, Duration.ofMillis(200)),
+                Duration.ofMillis(500),
+                Duration.ofSeconds(2)
+        );
+
+        UnifiedAccessProxyResponseModel response = proxyPort.forward(
+                invocation("http://upstream.example.com/v1/chat-completions", false, proxyProfile)
+        );
+
+        assertEquals(expectedProxyAuthorization, proxyAuthorization.get());
+        assertEquals(UnifiedAccessExecutionOutcomeType.SUCCESS, response.getOutcomeType());
+        assertEquals(200, response.getStatusCode());
+        assertEquals("application/json", response.getContentType());
+        assertArrayEquals("{\"proxied\":true}".getBytes(StandardCharsets.UTF_8), response.getResponseBody());
     }
 
     @Test
@@ -383,6 +433,13 @@ class JdkUnifiedAccessDownstreamProxyPortTest {
     }
 
     private UnifiedAccessInvocationModel invocation(String upstreamUrl, boolean streamingSupported) {
+        return invocation(upstreamUrl, streamingSupported, null);
+    }
+
+    private UnifiedAccessInvocationModel invocation(
+            String upstreamUrl,
+            boolean streamingSupported,
+            ProxyProfileSnapshotModel proxyProfile) {
         return new UnifiedAccessInvocationModel(
                 new ConsumerContextModel(
                         "consumer-1",
@@ -406,7 +463,9 @@ class JdkUnifiedAccessDownstreamProxyPortTest {
                         "Authorization: Bearer upstream-token",
                         streamingSupported,
                         "OpenAI",
-                        "gpt-4.1"
+                        "gpt-4.1",
+                        proxyProfile == null ? null : proxyProfile.getProfileId(),
+                        proxyProfile
                 ),
                 "POST",
                 Map.of(

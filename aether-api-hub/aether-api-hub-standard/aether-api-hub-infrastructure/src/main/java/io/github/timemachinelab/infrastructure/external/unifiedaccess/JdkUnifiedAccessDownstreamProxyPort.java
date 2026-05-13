@@ -8,8 +8,13 @@ import io.github.timemachinelab.service.model.UnifiedAccessProxyResponseModel;
 import io.github.timemachinelab.service.port.out.UnifiedAccessDownstreamProxyPort;
 
 import java.io.IOException;
+import java.io.FilterInputStream;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.URI;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -18,6 +23,7 @@ import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -89,6 +95,9 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
         Objects.requireNonNull(invocation, "Unified access invocation must not be null");
 
         try {
+            if (requiresPreemptiveProxyAuth(invocation.getTargetApi())) {
+                return forwardWithUrlConnection(invocation);
+            }
             HttpRequest request = buildRequest(invocation);
             HttpClient selectedClient = httpClientResolver.resolve(invocation.getTargetApi().getProxyProfile());
             boolean streaming = invocation.getTargetApi().isStreamingSupported();
@@ -134,6 +143,103 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
                     ex.getMessage()
             );
         }
+    }
+
+    private UnifiedAccessProxyResponseModel forwardWithUrlConnection(UnifiedAccessInvocationModel invocation)
+            throws IOException {
+        TargetApiSnapshotModel targetApi = invocation.getTargetApi();
+        HttpURLConnection connection = openProxyConnection(invocation);
+        try {
+            int statusCode = connection.getResponseCode();
+            String contentType = connection.getContentType();
+            Map<String, List<String>> responseHeaders = toHeaderMap(connection.getHeaderFields());
+            InputStream responseBody = responseStream(connection, statusCode);
+            if (targetApi.isStreamingSupported()) {
+                InputStream disconnectingStream = new DisconnectingInputStream(responseBody, connection);
+                if (isSuccessful(statusCode)) {
+                    return UnifiedAccessProxyResponseModel.successStream(
+                            statusCode,
+                            responseHeaders,
+                            disconnectingStream,
+                            contentType
+                    );
+                }
+                return UnifiedAccessProxyResponseModel.upstreamFailureStream(
+                        statusCode,
+                        responseHeaders,
+                        disconnectingStream,
+                        contentType,
+                        "Upstream endpoint returned a failure response"
+                );
+            }
+
+            byte[] responseBytes;
+            try (InputStream inputStream = responseBody) {
+                responseBytes = inputStream.readAllBytes();
+            }
+            if (isSuccessful(statusCode)) {
+                return UnifiedAccessProxyResponseModel.success(
+                        statusCode,
+                        responseHeaders,
+                        responseBytes,
+                        contentType,
+                        false
+                );
+            }
+            return UnifiedAccessProxyResponseModel.upstreamFailure(
+                    statusCode,
+                    responseHeaders,
+                    responseBytes,
+                    contentType,
+                    false,
+                    "Upstream endpoint returned a failure response"
+            );
+        } finally {
+            if (!targetApi.isStreamingSupported()) {
+                connection.disconnect();
+            }
+        }
+    }
+
+    private HttpURLConnection openProxyConnection(UnifiedAccessInvocationModel invocation) throws IOException {
+        TargetApiSnapshotModel targetApi = invocation.getTargetApi();
+        ProxyProfileSnapshotModel proxyProfile = targetApi.getProxyProfile();
+        URL url = buildUri(targetApi, invocation.getQueryParameters()).toURL();
+        Proxy proxy = new Proxy(
+                Proxy.Type.HTTP,
+                new InetSocketAddress(proxyProfile.getProxyHost(), proxyProfile.getProxyPort())
+        );
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection(proxy);
+        int timeoutMillis = timeoutMillis(resolveRequestTimeout(targetApi));
+        connection.setConnectTimeout(timeoutMillis);
+        connection.setReadTimeout(timeoutMillis);
+        connection.setInstanceFollowRedirects(true);
+        connection.setRequestMethod(resolveOutgoingMethod(invocation));
+        applyForwardedHeaders(connection, invocation);
+        applyHeaderAuth(connection, targetApi);
+        connection.setRequestProperty("Proxy-Authorization", basicProxyAuthValue(proxyProfile));
+        byte[] requestBody = invocation.getRequestBody();
+        if (requestBody != null && requestBody.length > 0) {
+            connection.setDoOutput(true);
+            connection.setFixedLengthStreamingMode(requestBody.length);
+            try (var outputStream = connection.getOutputStream()) {
+                outputStream.write(requestBody);
+            }
+        }
+        return connection;
+    }
+
+    private InputStream responseStream(HttpURLConnection connection, int statusCode) throws IOException {
+        InputStream inputStream = isSuccessful(statusCode) ? connection.getInputStream() : connection.getErrorStream();
+        return inputStream == null ? InputStream.nullInputStream() : inputStream;
+    }
+
+    private int timeoutMillis(Duration timeout) {
+        long millis = timeout.toMillis();
+        if (millis > Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        return Math.max(1, (int) millis);
     }
 
     private HttpRequest buildRequest(UnifiedAccessInvocationModel invocation) {
@@ -196,6 +302,20 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
         }
     }
 
+    private void applyForwardedHeaders(HttpURLConnection connection, UnifiedAccessInvocationModel invocation) {
+        for (Map.Entry<String, List<String>> entry : invocation.getHeaders().entrySet()) {
+            if (!shouldForwardRequestHeader(entry.getKey())) {
+                continue;
+            }
+            for (String value : entry.getValue()) {
+                connection.addRequestProperty(entry.getKey(), value);
+            }
+        }
+        if (invocation.getContentType() != null && !invocation.getContentType().isBlank()) {
+            connection.setRequestProperty("Content-Type", invocation.getContentType());
+        }
+    }
+
     private void applyHeaderAuth(HttpRequest.Builder builder, TargetApiSnapshotModel targetApi) {
         if (!"HEADER_TOKEN".equalsIgnoreCase(targetApi.getAuthScheme()) || targetApi.getAuthConfig() == null) {
             return;
@@ -203,6 +323,28 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
         String[] parts = splitAuthConfig(targetApi.getAuthConfig(), ":");
         String headerName = parts[0].isBlank() ? "Authorization" : parts[0];
         builder.header(headerName, parts[1]);
+    }
+
+    private void applyHeaderAuth(HttpURLConnection connection, TargetApiSnapshotModel targetApi) {
+        if (!"HEADER_TOKEN".equalsIgnoreCase(targetApi.getAuthScheme()) || targetApi.getAuthConfig() == null) {
+            return;
+        }
+        String[] parts = splitAuthConfig(targetApi.getAuthConfig(), ":");
+        String headerName = parts[0].isBlank() ? "Authorization" : parts[0];
+        connection.setRequestProperty(headerName, parts[1]);
+    }
+
+    private boolean requiresPreemptiveProxyAuth(TargetApiSnapshotModel targetApi) {
+        ProxyProfileSnapshotModel proxyProfile = targetApi.getProxyProfile();
+        return proxyProfile != null
+                && proxyProfile.getUsername() != null
+                && !proxyProfile.getUsername().isBlank()
+                && proxyProfile.getPasswordSecret() != null
+                && !proxyProfile.getPasswordSecret().isBlank();
+    }
+
+    private String basicProxyAuthValue(ProxyProfileSnapshotModel proxyProfile) {
+        return "Basic " + basicProxyCredential(proxyProfile);
     }
 
     private HttpRequest.BodyPublisher bodyPublisher(byte[] requestBody) {
@@ -354,7 +496,16 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
         String sanitized = source;
         sanitized = redactValue(sanitized, proxyProfile.getUsername());
         sanitized = redactValue(sanitized, proxyProfile.getPasswordSecret());
+        sanitized = redactValue(sanitized, basicProxyCredential(proxyProfile));
         return sanitized;
+    }
+
+    private String basicProxyCredential(ProxyProfileSnapshotModel proxyProfile) {
+        if (proxyProfile.getUsername() == null || proxyProfile.getPasswordSecret() == null) {
+            return null;
+        }
+        String credentials = proxyProfile.getUsername() + ":" + proxyProfile.getPasswordSecret();
+        return Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
     }
 
     private String redactAuthConfigToken(String source, String authConfig) {
@@ -406,5 +557,24 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
         return value
                 .replace("\\", "\\\\")
                 .replace("\"", "\\\"");
+    }
+
+    private static final class DisconnectingInputStream extends FilterInputStream {
+
+        private final HttpURLConnection connection;
+
+        private DisconnectingInputStream(InputStream delegate, HttpURLConnection connection) {
+            super(delegate);
+            this.connection = connection;
+        }
+
+        @Override
+        public void close() throws IOException {
+            try {
+                super.close();
+            } finally {
+                connection.disconnect();
+            }
+        }
     }
 }

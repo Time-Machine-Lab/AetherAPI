@@ -105,6 +105,17 @@ describe('discovery api', () => {
         requestMethod: 'POST',
         requestTemplate: '{"model":"gpt-4.1"}',
         exampleSnapshot: { requestExample: '{"messages":[]}' },
+        asyncTaskConfig: {
+          enabled: true,
+          queryMethod: 'GET',
+          queryUrlTemplate: 'http://provider.example.com/v1/tasks/{taskId}',
+          authMode: 'SAME_AS_SUBMIT',
+          authScheme: null,
+          authConfig: null,
+          statusPath: '$.data.status',
+          resultPath: '$.data.result',
+          errorPath: '$.data.error',
+        },
         aiCapabilityProfile: {
           provider: 'OpenAI',
           model: 'gpt-4.1',
@@ -121,5 +132,16 @@ describe('discovery api', () => {
     expect(result.requestMethod).toBe('POST')
     expect(result.publisherDisplayName).toBe('Ada Publisher')
     expect(result.publishedAt).toBe('2026-04-26T12:00:00Z')
+    expect(result.asyncTaskConfig).toEqual({
+      enabled: true,
+      queryMethod: 'GET',
+      queryUrlTemplate: 'http://provider.example.com/v1/tasks/{taskId}',
+      authMode: 'SAME_AS_SUBMIT',
+      authScheme: undefined,
+      authConfig: undefined,
+      statusPath: '$.data.status',
+      resultPath: '$.data.result',
+      errorPath: '$.data.error',
+    })
   })
 })

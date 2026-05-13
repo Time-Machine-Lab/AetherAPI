@@ -47,6 +47,7 @@ public interface CatalogDiscoveryMapper {
             "  a.request_template AS requestTemplate,",
             "  a.request_example AS requestExample,",
             "  a.response_example AS responseExample,",
+            "  a.async_task_config AS asyncTaskConfig,",
             "  a.ai_provider AS aiProvider,",
             "  a.ai_model AS aiModel,",
             "  a.ai_streaming_supported AS aiStreamingSupported,",

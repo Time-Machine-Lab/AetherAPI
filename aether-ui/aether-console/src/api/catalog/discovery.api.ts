@@ -1,6 +1,16 @@
 import { http } from '@/api/http'
-import type { DiscoveryAssetDetailDto, DiscoveryAssetDto, DiscoveryListDto } from './catalog.dto'
-import type { DiscoveryAsset, DiscoveryAssetDetail, PageResult } from './catalog.types'
+import type {
+  AsyncTaskConfigDto,
+  DiscoveryAssetDetailDto,
+  DiscoveryAssetDto,
+  DiscoveryListDto,
+} from './catalog.dto'
+import type {
+  AsyncTaskConfig,
+  DiscoveryAsset,
+  DiscoveryAssetDetail,
+  PageResult,
+} from './catalog.types'
 
 function mapAsset(dto: DiscoveryAssetDto): DiscoveryAsset {
   return {
@@ -11,6 +21,24 @@ function mapAsset(dto: DiscoveryAssetDto): DiscoveryAsset {
     categoryName: dto.category?.categoryName ?? undefined,
     publisherDisplayName: dto.publisher?.displayName ?? undefined,
     publishedAt: dto.publishedAt ?? undefined,
+  }
+}
+
+function mapAsyncTaskConfig(dto?: AsyncTaskConfigDto | null): AsyncTaskConfig | undefined {
+  if (!dto) {
+    return undefined
+  }
+
+  return {
+    enabled: dto.enabled,
+    queryMethod: dto.queryMethod,
+    queryUrlTemplate: dto.queryUrlTemplate ?? undefined,
+    authMode: dto.authMode,
+    authScheme: dto.authScheme ?? undefined,
+    authConfig: dto.authConfig ?? undefined,
+    statusPath: dto.statusPath,
+    resultPath: dto.resultPath,
+    errorPath: dto.errorPath,
   }
 }
 
@@ -27,6 +55,7 @@ function mapAssetDetail(dto: DiscoveryAssetDetailDto): DiscoveryAssetDetail {
           responseExample: dto.exampleSnapshot.responseExample ?? undefined,
         }
       : undefined,
+    asyncTaskConfig: mapAsyncTaskConfig(dto.asyncTaskConfig),
     aiProfile: dto.aiCapabilityProfile
       ? {
           provider: dto.aiCapabilityProfile.provider,

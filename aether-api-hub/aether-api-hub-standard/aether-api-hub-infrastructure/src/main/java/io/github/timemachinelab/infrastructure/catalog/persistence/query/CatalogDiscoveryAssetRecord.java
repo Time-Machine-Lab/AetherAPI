@@ -20,6 +20,7 @@ public class CatalogDiscoveryAssetRecord {
     private String requestTemplate;
     private String requestExample;
     private String responseExample;
+    private String asyncTaskConfig;
     private String aiProvider;
     private String aiModel;
     private Boolean aiStreamingSupported;
@@ -127,6 +128,14 @@ public class CatalogDiscoveryAssetRecord {
 
     public void setResponseExample(String responseExample) {
         this.responseExample = responseExample;
+    }
+
+    public String getAsyncTaskConfig() {
+        return asyncTaskConfig;
+    }
+
+    public void setAsyncTaskConfig(String asyncTaskConfig) {
+        this.asyncTaskConfig = asyncTaskConfig;
     }
 
     public String getAiProvider() {

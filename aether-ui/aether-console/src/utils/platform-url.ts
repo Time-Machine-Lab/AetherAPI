@@ -8,6 +8,10 @@ export function buildUnifiedAccessPath(apiCode: string): string {
   return `/api/v1/access/${encodeURIComponent(apiCode)}`
 }
 
+export function buildUnifiedAccessTaskPath(apiCode: string): string {
+  return `${buildUnifiedAccessPath(apiCode)}/tasks/{taskId}`
+}
+
 export function buildUnifiedAccessAddress(apiCode: string): string {
   const base = trimTrailingSlash(env.apiBaseUrl || '/api')
   return `${base}/v1/access/${encodeURIComponent(apiCode)}`

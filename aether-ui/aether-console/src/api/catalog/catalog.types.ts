@@ -74,6 +74,7 @@ export interface DiscoveryAssetDetail extends DiscoveryAsset {
   requestMethod?: string
   requestTemplate?: string
   exampleSnapshot?: DiscoveryExampleSnapshot
+  asyncTaskConfig?: AsyncTaskConfig
   aiProfile?: AiProfile
 }
 

@@ -1,5 +1,5 @@
 import type { DiscoveryAssetDetail } from '@/api/catalog/catalog.types'
-import { buildUnifiedAccessPath } from '@/utils/platform-url'
+import { buildUnifiedAccessPath, buildUnifiedAccessTaskPath } from '@/utils/platform-url'
 
 export interface CatalogDocLabels {
   exportTitle: string
@@ -23,6 +23,13 @@ export interface CatalogDocLabels {
   requestTemplate: string
   requestExample: string
   responseExample: string
+  asyncTaskQuery: string
+  asyncTaskQueryEndpoint: string
+  asyncTaskAuthMode: string
+  asyncTaskStatusPath: string
+  asyncTaskResultPath: string
+  asyncTaskErrorPath: string
+  asyncTaskResponseStructure: string
   aiCapability: string
   provider: string
   model: string
@@ -88,6 +95,13 @@ export const defaultCatalogDocLabels: CatalogDocLabels = {
   requestTemplate: 'Request Template',
   requestExample: 'Request Example',
   responseExample: 'Response Example',
+  asyncTaskQuery: 'Async Task Query',
+  asyncTaskQueryEndpoint: 'Task Query Endpoint',
+  asyncTaskAuthMode: 'Task Query Auth Mode',
+  asyncTaskStatusPath: 'Task Status Path',
+  asyncTaskResultPath: 'Task Result Path',
+  asyncTaskErrorPath: 'Task Error Path',
+  asyncTaskResponseStructure: 'Task Query Response Structure',
   aiCapability: 'AI Capability',
   provider: 'Provider',
   model: 'Model',
@@ -134,6 +148,73 @@ function heading(level: 1 | 2, text: string): string {
 
 function subsection(level: 1 | 2, text: string): string {
   return `${'#'.repeat(level + 1)} ${text}`
+}
+
+type JsonExample = Record<string, unknown>
+
+function pathSegments(path?: string | null): string[] {
+  if (!path) {
+    return []
+  }
+
+  let normalized = path.trim()
+  if (!normalized) {
+    return []
+  }
+
+  normalized = normalized.replace(/^\$/, '').replace(/^\./, '')
+  normalized = normalized.replace(/\[['"]?([^'"\]]+)['"]?\]/g, '.$1')
+
+  if (!normalized || /[*?()]/.test(normalized)) {
+    return []
+  }
+
+  const segments = normalized
+    .split('.')
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+  return segments.every((segment) => /^[A-Za-z_$][\w$-]*$/.test(segment)) ? segments : []
+}
+
+function assignPathValue(target: JsonExample, segments: string[], value: string): boolean {
+  if (segments.length === 0) {
+    return false
+  }
+
+  let cursor: JsonExample = target
+  for (let index = 0; index < segments.length; index += 1) {
+    const segment = segments[index]
+    const isLast = index === segments.length - 1
+    if (isLast) {
+      cursor[segment] = value
+      return true
+    }
+    if (typeof cursor[segment] !== 'object' || cursor[segment] === null) {
+      cursor[segment] = {}
+    }
+    cursor = cursor[segment] as JsonExample
+  }
+
+  return false
+}
+
+function buildAsyncTaskResponseStructure(
+  detail: DiscoveryAssetDetail,
+  labels: CatalogDocLabels,
+): string | undefined {
+  const config = detail.asyncTaskConfig
+  if (!config) {
+    return undefined
+  }
+
+  const example: JsonExample = {}
+  const assigned = [
+    assignPathValue(example, pathSegments(config.statusPath), `<${labels.asyncTaskStatusPath}>`),
+    assignPathValue(example, pathSegments(config.resultPath), `<${labels.asyncTaskResultPath}>`),
+    assignPathValue(example, pathSegments(config.errorPath), `<${labels.asyncTaskErrorPath}>`),
+  ].some(Boolean)
+
+  return assigned ? JSON.stringify(example, null, 2) : undefined
 }
 
 function buildApiMarkdownSection(
@@ -200,6 +281,33 @@ function buildApiMarkdownSection(
       formatCodeFence(detail.exampleSnapshot.responseExample),
       '',
     )
+  }
+
+  if (detail.asyncTaskConfig?.enabled) {
+    lines.push(
+      subsection(headingLevel, labels.asyncTaskQuery),
+      '',
+      '| Field | Value |',
+      '| --- | --- |',
+      tableRow(labels.asyncTaskQueryEndpoint, buildUnifiedAccessTaskPath(detail.apiCode), labels),
+      tableRow(labels.requestMethod, detail.asyncTaskConfig.queryMethod, labels),
+      tableRow(labels.asyncTaskAuthMode, detail.asyncTaskConfig.authMode, labels),
+      tableRow(labels.authScheme, detail.asyncTaskConfig.authScheme, labels),
+      tableRow(labels.asyncTaskStatusPath, detail.asyncTaskConfig.statusPath, labels),
+      tableRow(labels.asyncTaskResultPath, detail.asyncTaskConfig.resultPath, labels),
+      tableRow(labels.asyncTaskErrorPath, detail.asyncTaskConfig.errorPath, labels),
+      '',
+    )
+
+    const responseStructure = buildAsyncTaskResponseStructure(detail, labels)
+    if (responseStructure) {
+      lines.push(
+        subsection(headingLevel, labels.asyncTaskResponseStructure),
+        '',
+        formatCodeFence(responseStructure),
+        '',
+      )
+    }
   }
 
   if (detail.assetType === 'AI_API' && detail.aiProfile) {
