@@ -180,6 +180,7 @@ export default {
       formDescription: 'Enter your console login name and password to continue.',
       loginNameLabel: 'Login name',
       passwordLabel: 'Password',
+      rememberPasswordLabel: 'Remember password',
       submit: 'Sign in',
       submitting: 'Signing in…',
       helperTitle: 'What is already prepared',

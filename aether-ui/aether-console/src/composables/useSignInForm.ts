@@ -5,11 +5,19 @@ import { appConfig } from '@/app/app-config'
 import { useConsoleAuth } from '@/composables/useConsoleAuth'
 import type { NormalizedHttpError } from '@/api/http'
 
+interface SignInMemoryStorage {
+  getItem: (key: string) => string | null
+  setItem: (key: string, value: string) => void
+}
+
 interface SignInFormDeps {
   signIn: (loginName: string, password: string) => Promise<void>
   route: Pick<RouteLocationNormalizedLoaded, 'query'>
   router: Pick<Router, 'push'>
+  storage?: SignInMemoryStorage | null
 }
+
+const signInMemoryStorageKey = 'aether:console:sign-in-memory'
 
 function createDefaultDeps(): SignInFormDeps {
   const { signIn } = useConsoleAuth()
@@ -17,12 +25,70 @@ function createDefaultDeps(): SignInFormDeps {
     signIn,
     route: useRoute(),
     router: useRouter(),
+    storage: typeof window === 'undefined' ? null : window.localStorage,
+  }
+}
+
+function readSignInMemory(storage?: SignInMemoryStorage | null) {
+  if (!storage) {
+    return { loginName: '', password: '', rememberPassword: false }
+  }
+
+  try {
+    const raw = storage.getItem(signInMemoryStorageKey)
+    if (!raw) {
+      return { loginName: '', password: '', rememberPassword: false }
+    }
+
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') {
+      return { loginName: '', password: '', rememberPassword: false }
+    }
+
+    const memory = parsed as Record<string, unknown>
+    const savedLoginName = typeof memory.loginName === 'string' ? memory.loginName : ''
+    const savedPassword = typeof memory.password === 'string' ? memory.password : ''
+    const rememberPassword = memory.rememberPassword === true && savedPassword.length > 0
+
+    return {
+      loginName: savedLoginName,
+      password: rememberPassword ? savedPassword : '',
+      rememberPassword,
+    }
+  } catch {
+    return { loginName: '', password: '', rememberPassword: false }
+  }
+}
+
+function writeSignInMemory(
+  storage: SignInMemoryStorage | null | undefined,
+  loginName: string,
+  password: string,
+  rememberPassword: boolean,
+) {
+  if (!storage) return
+
+  try {
+    const payload: { loginName: string; rememberPassword: boolean; password?: string } = {
+      loginName,
+      rememberPassword,
+    }
+
+    if (rememberPassword) {
+      payload.password = password
+    }
+
+    storage.setItem(signInMemoryStorageKey, JSON.stringify(payload))
+  } catch {
+    // Remembered credentials are optional convenience state.
   }
 }
 
 export function useSignInForm(deps: SignInFormDeps = createDefaultDeps()) {
-  const loginName = ref('')
-  const password = ref('')
+  const remembered = readSignInMemory(deps.storage)
+  const loginName = ref(remembered.loginName)
+  const password = ref(remembered.password)
+  const rememberPassword = ref(remembered.rememberPassword)
   const isSubmitting = ref(false)
   const errorCode = ref<string | null>(null)
 
@@ -32,6 +98,7 @@ export function useSignInForm(deps: SignInFormDeps = createDefaultDeps()) {
 
     try {
       await deps.signIn(loginName.value, password.value)
+      writeSignInMemory(deps.storage, loginName.value, password.value, rememberPassword.value)
 
       const redirectName =
         typeof deps.route.query.redirectName === 'string'
@@ -50,6 +117,7 @@ export function useSignInForm(deps: SignInFormDeps = createDefaultDeps()) {
   return {
     loginName,
     password,
+    rememberPassword,
     isSubmitting,
     errorCode,
     handleSignIn,

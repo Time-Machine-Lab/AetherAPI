@@ -10,7 +10,8 @@ import { consoleWorkspacePanels } from '@/features/console/console-shell'
 import { useSignInForm } from '@/composables/useSignInForm'
 
 const { t } = useI18n()
-const { loginName, password, isSubmitting, errorCode, handleSignIn } = useSignInForm()
+const { loginName, password, rememberPassword, isSubmitting, errorCode, handleSignIn } =
+  useSignInForm()
 </script>
 
 <route lang="json5">
@@ -105,6 +106,15 @@ const { loginName, password, isSubmitting, errorCode, handleSignIn } = useSignIn
               :disabled="isSubmitting"
             />
           </div>
+          <label class="flex items-center gap-2 text-sm font-medium text-foreground">
+            <input
+              v-model="rememberPassword"
+              type="checkbox"
+              class="size-4 rounded border-[rgb(34_34_34_/_0.18)] text-primary"
+              :disabled="isSubmitting"
+            />
+            <span>{{ t('console.signIn.rememberPasswordLabel') }}</span>
+          </label>
           <p
             v-if="errorCode"
             class="rounded-[18px] bg-destructive/10 px-4 py-3 text-sm leading-6 text-destructive"

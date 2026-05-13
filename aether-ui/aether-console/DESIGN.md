@@ -371,6 +371,16 @@ All workspace management panels (category management, asset management, recent a
 - Adjacent save/cancel buttons use `size="xs"` to stay within the row rhythm.
 - The row container does NOT change its padding or background during rename mode.
 
+#### API Asset Management Workspace Composition
+
+The default API asset management workspace uses a two-region composition on wide screens:
+
+- Left region: recent assets at the top, selected/API asset card below.
+- Right region: API asset list, including filters, rows, pagination, and list states.
+- Narrow viewports collapse into one column in this order: recent assets, selected/API asset card, API asset list.
+- The asset editor opens in the existing right-side drawer overlay. The page layout must not reserve a blank right-side edit column.
+- If there are no recent assets, do not render an empty recent-assets card; keep the selected/API asset card in the left region.
+
 ### 10.6 State Feedback Inventory
 
 | State                         | Visual Treatment                                                                              |

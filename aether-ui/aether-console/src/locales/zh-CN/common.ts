@@ -175,6 +175,7 @@ export default {
       formDescription: '输入控制台账号与密码继续。',
       loginNameLabel: '登录账号',
       passwordLabel: '密码',
+      rememberPasswordLabel: '记住密码',
       submit: '登录',
       submitting: '登录中…',
       helperTitle: '当前已经准备好的内容',
