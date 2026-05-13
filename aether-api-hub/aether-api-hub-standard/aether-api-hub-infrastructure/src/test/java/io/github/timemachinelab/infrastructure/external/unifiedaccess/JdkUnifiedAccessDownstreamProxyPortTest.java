@@ -30,7 +30,6 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -194,37 +193,29 @@ class JdkUnifiedAccessDownstreamProxyPortTest {
     }
 
     @Test
-    @DisplayName("forward should send proxy credentials preemptively for credentialed HTTP proxy profiles")
-    void shouldSendProxyCredentialsPreemptivelyForCredentialedHttpProxyProfiles() throws Exception {
-        String expectedProxyAuthorization = "Basic " + Base64.getEncoder()
-                .encodeToString("proxy-user:proxy-secret".getBytes(StandardCharsets.UTF_8));
-        AtomicReference<String> proxyAuthorization = new AtomicReference<>();
-        startServer(exchange -> {
-            proxyAuthorization.set(exchange.getRequestHeaders().getFirst("Proxy-Authorization"));
-            if (!expectedProxyAuthorization.equals(proxyAuthorization.get())) {
-                exchange.sendResponseHeaders(401, -1);
-                return;
-            }
-            byte[] responseBody = "{\"proxied\":true}".getBytes(StandardCharsets.UTF_8);
-            exchange.getResponseHeaders().add("Content-Type", "application/json");
-            exchange.sendResponseHeaders(200, responseBody.length);
-            try (OutputStream outputStream = exchange.getResponseBody()) {
-                outputStream.write(responseBody);
-            }
-        });
+    @DisplayName("forward should resolve proxied clients through the proxy-aware resolver")
+    void shouldResolveProxiedClientThroughProxyAwareResolver() {
         ProxyProfileSnapshotModel proxyProfile = new ProxyProfileSnapshotModel(
                 "proxy-1",
                 "credentialed-proxy",
                 "HTTP",
                 "127.0.0.1",
-                server.getAddress().getPort(),
+                8888,
                 "proxy-user",
                 "proxy-secret",
                 1L
         );
-        HttpClient directClient = HttpClient.newBuilder().connectTimeout(Duration.ofMillis(200)).build();
+        FixedHttpClient selectedClient = new FixedHttpClient(
+                200,
+                Map.of("Content-Type", List.of("application/json")),
+                "{\"proxied\":true}".getBytes(StandardCharsets.UTF_8)
+        );
+        AtomicReference<ProxyProfileSnapshotModel> resolvedProfile = new AtomicReference<>();
         JdkUnifiedAccessDownstreamProxyPort proxyPort = new JdkUnifiedAccessDownstreamProxyPort(
-                new JdkUnifiedAccessHttpClientResolver(directClient, Duration.ofMillis(200)),
+                profile -> {
+                    resolvedProfile.set(profile);
+                    return selectedClient;
+                },
                 Duration.ofMillis(500),
                 Duration.ofSeconds(2)
         );
@@ -233,7 +224,8 @@ class JdkUnifiedAccessDownstreamProxyPortTest {
                 invocation("http://upstream.example.com/v1/chat-completions", false, proxyProfile)
         );
 
-        assertEquals(expectedProxyAuthorization, proxyAuthorization.get());
+        assertEquals(proxyProfile, resolvedProfile.get());
+        assertEquals("http://upstream.example.com/v1/chat-completions?stream=true", selectedClient.lastRequest.uri().toString());
         assertEquals(UnifiedAccessExecutionOutcomeType.SUCCESS, response.getOutcomeType());
         assertEquals(200, response.getStatusCode());
         assertEquals("application/json", response.getContentType());
