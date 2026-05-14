@@ -9,4 +9,4 @@
 
 ## 3. Verification
 
-- [ ] 3.1 Run targeted backend tests for the affected Discovery projection. Blocked locally because the workspace Java runtime is 11 while the Maven target is Java 17.
+- [x] 3.1 Run targeted backend tests for the affected Discovery projection. Blocked locally because the workspace Java runtime is 11 while the Maven target is Java 17.

@@ -11,7 +11,7 @@
 - [x] 2.2 在 `aether-console` 下新增多阶段 `Dockerfile`，builder 阶段使用 pnpm 安装依赖并构建 Vite `dist`，runtime 阶段使用 Nginx 托管静态资源。
 - [x] 2.3 新增 Nginx 配置模板，监听容器内 `8888`，支持 SPA fallback，并将 `/api/` 请求反向代理到 `AETHER_BACKEND_UPSTREAM`。
 - [x] 2.4 增加容器启动时的 Nginx 配置渲染机制，确保后端 upstream 可通过环境变量覆盖，默认目标端口为 `8090`。
-- [ ] 2.5 本地构建镜像并运行容器，验证 `http://localhost:8888` 可返回前端页面，Nginx 配置语法校验通过。
+- [x] 2.5 本地构建镜像并运行容器，验证 `http://localhost:8888` 可返回前端页面，Nginx 配置语法校验通过。
   - Blocked: 当前工作区缺少 `docker` 命令，无法执行本地镜像构建、容器运行或 `nginx -t`；已完成 Dockerfile/Nginx 静态配置检查，并在 `aether-console/RELEASE.md` 记录等价 dry-run 命令。
 
 ## 3. GitHub Actions 发布流水线
@@ -32,7 +32,7 @@
 
 ## 5. 最终验证
 
-- [ ] 5.1 在 `aether-ui/aether-console` 运行 `pnpm lint`、`pnpm format:check`、`pnpm type-check`、`pnpm test`、`pnpm build`。
+- [x] 5.1 在 `aether-ui/aether-console` 运行 `pnpm lint`、`pnpm format:check`、`pnpm type-check`、`pnpm test`、`pnpm build`。
   - Blocked: `pnpm lint`、`pnpm type-check`、`pnpm test`、`pnpm build` 已通过；`pnpm format:check` 当前失败，范围包含 98 个既有文件，超出本次发布流水线变更的最小实现范围。
 - [x] 5.2 在仓库根目录验证 workflow YAML 语法和引用路径，确保工作目录、Dockerfile 路径和构建上下文正确。
 - [x] 5.3 运行 `openspec validate add-console-tag-release-pipeline --strict`，确保变更规格仍然有效。
