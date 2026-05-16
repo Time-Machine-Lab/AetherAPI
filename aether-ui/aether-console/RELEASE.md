@@ -44,7 +44,7 @@ The Docker image uses a multi-stage build:
 
 ## Runtime Ports
 
-The container listens on port `8888`.
+The container listens on port `8888` and serves HTTPS on that port.
 
 ```bash
 docker run -d \
@@ -123,9 +123,9 @@ test -f /etc/ssl/private/aether.key
 6. After deployment, verify the frontend and proxy:
 
    ```bash
-   curl -I http://localhost:8888/
-   curl -I http://localhost:8888/healthz
-   curl -I http://localhost:8888/api/v1/console/auth/current-session || true
+   curl -kI https://localhost:8888/
+   curl -kI https://localhost:8888/healthz
+   curl -kI https://localhost:8888/api/v1/console/auth/current-session || true
    ```
 
 ## Rollback
@@ -168,8 +168,8 @@ docker run --rm -d \
   -v /etc/ssl/private/aether.key:/etc/ssl/private/aether.key:ro \
   aether-console:local
 docker exec aether-console-local nginx -t
-curl -I http://localhost:8888/
-curl -I http://localhost:8888/healthz
+curl -kI https://localhost:8888/
+curl -kI https://localhost:8888/healthz
 docker rm -f aether-console-local
 ```
 
