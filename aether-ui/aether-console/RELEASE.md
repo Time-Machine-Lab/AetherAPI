@@ -82,11 +82,11 @@ Configure these repository, environment, or organization secrets before pushing 
 
 ## Optional GitHub Variables
 
-| Name                            | Default                     | Purpose                                                    |
-| ------------------------------- | --------------------------- | ---------------------------------------------------------- |
-| `AETHER_CONSOLE_CONTAINER_NAME` | `aether-console`            | Docker container name on the target server.                |
-| `AETHER_BACKEND_UPSTREAM`       | `http://61.184.13.101:8090` | Backend upstream used by Nginx. Must point to port `8090`. |
-| `SSL_CERT_PATH`                 | `/etc/ssl/certs/aether.pem` | TLS certificate path on the deployment server and in the container. |
+| Name                            | Default                       | Purpose                                                             |
+| ------------------------------- | ----------------------------- | ------------------------------------------------------------------- |
+| `AETHER_CONSOLE_CONTAINER_NAME` | `aether-console`              | Docker container name on the target server.                         |
+| `AETHER_BACKEND_UPSTREAM`       | `http://61.184.13.101:8090`   | Backend upstream used by Nginx. Must point to port `8090`.          |
+| `SSL_CERT_PATH`                 | `/etc/ssl/certs/aether.pem`   | TLS certificate path on the deployment server and in the container. |
 | `SSL_KEY_PATH`                  | `/etc/ssl/private/aether.key` | TLS private key path on the deployment server and in the container. |
 
 ## First Deployment Checklist
@@ -101,7 +101,7 @@ Configure these repository, environment, or organization secrets before pushing 
 3. Confirm port `8888` is free:
 
    ```bash
-  docker ps --format '{{.Ports}}' | grep 8888 || true
+   docker ps --format '{{.Ports}}' | grep 8888 || true
    ```
 
 4. Confirm the backend upstream is reachable from the Docker network:
@@ -115,10 +115,10 @@ Configure these repository, environment, or organization secrets before pushing 
 
 5. Confirm the TLS assets exist on the target server:
 
-  ```bash
-  test -f /etc/ssl/certs/aether.pem
-  test -f /etc/ssl/private/aether.key
-  ```
+```bash
+test -f /etc/ssl/certs/aether.pem
+test -f /etc/ssl/private/aether.key
+```
 
 6. After deployment, verify the frontend and proxy:
 
