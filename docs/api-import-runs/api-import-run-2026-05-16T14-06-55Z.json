@@ -1,0 +1,71 @@
+{
+  "generatedAt": "2026-05-16T14:06:55.443Z",
+  "baseUrl": "http://localhost:8090",
+  "managementHeaderName": "Authorization",
+  "records": [
+    {
+      "timestamp": "2026-05-16T14:06:53.298Z",
+      "step": "ensure-category",
+      "resource": "video",
+      "method": "GET",
+      "status": "STARTED",
+      "httpStatus": "-",
+      "notes": "Check category existence"
+    },
+    {
+      "timestamp": "2026-05-16T14:06:53.385Z",
+      "step": "ensure-category",
+      "resource": "video",
+      "method": "GET",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "Category exists"
+    },
+    {
+      "timestamp": "2026-05-16T14:06:53.448Z",
+      "step": "enable-category",
+      "resource": "video",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "400",
+      "notes": "{\"code\":\"CATEGORY_ALREADY_ENABLED\",\"message\":\"Category is already enabled\"}"
+    },
+    {
+      "timestamp": "2026-05-16T14:06:53.698Z",
+      "step": "register-asset",
+      "resource": "sufy-openai-video",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"a50eac58-7e9a-4ab4-ae01-7332a9b18dfe\",\"apiCode\":\"sufy-openai-video\",\"assetName\":\"sufy OpenAI 视频生成\",\"assetType\":\"AI_API\",\"categoryCode\":null,\"status\":\"..."
+    },
+    {
+      "timestamp": "2026-05-16T14:06:53.970Z",
+      "step": "revise-asset",
+      "resource": "sufy-openai-video",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"a50eac58-7e9a-4ab4-ae01-7332a9b18dfe\",\"apiCode\":\"sufy-openai-video\",\"assetName\":\"sufy OpenAI 视频生成\",\"assetType\":\"AI_API\",\"categoryCode\":\"video\",\"status..."
+    },
+    {
+      "timestamp": "2026-05-16T14:06:54.701Z",
+      "step": "attach-ai-profile",
+      "resource": "sufy-openai-video",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"a50eac58-7e9a-4ab4-ae01-7332a9b18dfe\",\"apiCode\":\"sufy-openai-video\",\"assetName\":\"sufy OpenAI 视频生成\",\"assetType\":\"AI_API\",\"categoryCode\":\"video\",\"status..."
+    },
+    {
+      "timestamp": "2026-05-16T14:06:55.441Z",
+      "step": "publish-asset",
+      "resource": "sufy-openai-video",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"a50eac58-7e9a-4ab4-ae01-7332a9b18dfe\",\"apiCode\":\"sufy-openai-video\",\"assetName\":\"sufy OpenAI 视频生成\",\"assetType\":\"AI_API\",\"categoryCode\":\"video\",\"status..."
+    }
+  ],
+  "errors": []
+}

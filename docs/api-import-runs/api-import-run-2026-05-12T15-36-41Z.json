@@ -1,0 +1,674 @@
+{
+  "generatedAt": "2026-05-12T15:36:41.517Z",
+  "baseUrl": "http://localhost:8090",
+  "managementHeaderName": "Authorization",
+  "records": [
+    {
+      "timestamp": "2026-05-12T15:36:26.002Z",
+      "step": "ensure-category",
+      "resource": "image",
+      "method": "GET",
+      "status": "STARTED",
+      "httpStatus": "-",
+      "notes": "Check category existence"
+    },
+    {
+      "timestamp": "2026-05-12T15:36:26.124Z",
+      "step": "ensure-category",
+      "resource": "image",
+      "method": "GET",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "Category exists"
+    },
+    {
+      "timestamp": "2026-05-12T15:36:26.175Z",
+      "step": "enable-category",
+      "resource": "image",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "400",
+      "notes": "{\"code\":\"CATEGORY_ALREADY_ENABLED\",\"message\":\"Category is already enabled\"}"
+    },
+    {
+      "timestamp": "2026-05-12T15:36:26.175Z",
+      "step": "ensure-category",
+      "resource": "video",
+      "method": "GET",
+      "status": "STARTED",
+      "httpStatus": "-",
+      "notes": "Check category existence"
+    },
+    {
+      "timestamp": "2026-05-12T15:36:26.222Z",
+      "step": "ensure-category",
+      "resource": "video",
+      "method": "GET",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "Category exists"
+    },
+    {
+      "timestamp": "2026-05-12T15:36:26.271Z",
+      "step": "enable-category",
+      "resource": "video",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "400",
+      "notes": "{\"code\":\"CATEGORY_ALREADY_ENABLED\",\"message\":\"Category is already enabled\"}"
+    },
+    {
+      "timestamp": "2026-05-12T15:36:26.271Z",
+      "step": "ensure-category",
+      "resource": "chat",
+      "method": "GET",
+      "status": "STARTED",
+      "httpStatus": "-",
+      "notes": "Check category existence"
+    },
+    {
+      "timestamp": "2026-05-12T15:36:26.318Z",
+      "step": "ensure-category",
+      "resource": "chat",
+      "method": "GET",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "Category exists"
+    },
+    {
+      "timestamp": "2026-05-12T15:36:26.366Z",
+      "step": "enable-category",
+      "resource": "chat",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "400",
+      "notes": "{\"code\":\"CATEGORY_ALREADY_ENABLED\",\"message\":\"Category is already enabled\"}"
+    },
+    {
+      "timestamp": "2026-05-12T15:36:26.366Z",
+      "step": "ensure-category",
+      "resource": "tool",
+      "method": "GET",
+      "status": "STARTED",
+      "httpStatus": "-",
+      "notes": "Check category existence"
+    },
+    {
+      "timestamp": "2026-05-12T15:36:26.414Z",
+      "step": "ensure-category",
+      "resource": "tool",
+      "method": "GET",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "Category exists"
+    },
+    {
+      "timestamp": "2026-05-12T15:36:26.463Z",
+      "step": "enable-category",
+      "resource": "tool",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "400",
+      "notes": "{\"code\":\"CATEGORY_ALREADY_ENABLED\",\"message\":\"Category is already enabled\"}"
+    },
+    {
+      "timestamp": "2026-05-12T15:36:26.652Z",
+      "step": "register-asset",
+      "resource": "wuyin-gpt-image-2",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"c61712df-6f3e-4a96-b8f6-d4e8224e1653\",\"apiCode\":\"wuyin-gpt-image-2\",\"assetName\":\"Wuyin GPT Image 2.0\",\"assetType\":\"AI_API\",\"categoryCode\":null,\"status..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:26.907Z",
+      "step": "revise-asset",
+      "resource": "wuyin-gpt-image-2",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"c61712df-6f3e-4a96-b8f6-d4e8224e1653\",\"apiCode\":\"wuyin-gpt-image-2\",\"assetName\":\"Wuyin GPT Image 2.0\",\"assetType\":\"AI_API\",\"categoryCode\":\"image\",\"sta..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:27.095Z",
+      "step": "attach-ai-profile",
+      "resource": "wuyin-gpt-image-2",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"c61712df-6f3e-4a96-b8f6-d4e8224e1653\",\"apiCode\":\"wuyin-gpt-image-2\",\"assetName\":\"Wuyin GPT Image 2.0\",\"assetType\":\"AI_API\",\"categoryCode\":\"image\",\"sta..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:27.327Z",
+      "step": "publish-asset",
+      "resource": "wuyin-gpt-image-2",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"c61712df-6f3e-4a96-b8f6-d4e8224e1653\",\"apiCode\":\"wuyin-gpt-image-2\",\"assetName\":\"Wuyin GPT Image 2.0\",\"assetType\":\"AI_API\",\"categoryCode\":\"image\",\"sta..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:27.764Z",
+      "step": "register-asset",
+      "resource": "wuyin-grok-imagine-image",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"e3cdafda-b6de-4825-8102-dc027b7fe82d\",\"apiCode\":\"wuyin-grok-imagine-image\",\"assetName\":\"Wuyin Grok Imagine 图片\",\"assetType\":\"AI_API\",\"categoryCode\":nul..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:27.951Z",
+      "step": "revise-asset",
+      "resource": "wuyin-grok-imagine-image",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"e3cdafda-b6de-4825-8102-dc027b7fe82d\",\"apiCode\":\"wuyin-grok-imagine-image\",\"assetName\":\"Wuyin Grok Imagine 图片\",\"assetType\":\"AI_API\",\"categoryCode\":\"im..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:28.141Z",
+      "step": "attach-ai-profile",
+      "resource": "wuyin-grok-imagine-image",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"e3cdafda-b6de-4825-8102-dc027b7fe82d\",\"apiCode\":\"wuyin-grok-imagine-image\",\"assetName\":\"Wuyin Grok Imagine 图片\",\"assetType\":\"AI_API\",\"categoryCode\":\"im..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:28.375Z",
+      "step": "publish-asset",
+      "resource": "wuyin-grok-imagine-image",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"e3cdafda-b6de-4825-8102-dc027b7fe82d\",\"apiCode\":\"wuyin-grok-imagine-image\",\"assetName\":\"Wuyin Grok Imagine 图片\",\"assetType\":\"AI_API\",\"categoryCode\":\"im..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:28.560Z",
+      "step": "register-asset",
+      "resource": "wuyin-nano-banana-pro",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"ee7796c7-797f-4e93-b915-6cf370b66979\",\"apiCode\":\"wuyin-nano-banana-pro\",\"assetName\":\"Wuyin NanoBanana Pro\",\"assetType\":\"AI_API\",\"categoryCode\":null,\"s..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:28.745Z",
+      "step": "revise-asset",
+      "resource": "wuyin-nano-banana-pro",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"ee7796c7-797f-4e93-b915-6cf370b66979\",\"apiCode\":\"wuyin-nano-banana-pro\",\"assetName\":\"Wuyin NanoBanana Pro\",\"assetType\":\"AI_API\",\"categoryCode\":\"image\"..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:28.934Z",
+      "step": "attach-ai-profile",
+      "resource": "wuyin-nano-banana-pro",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"ee7796c7-797f-4e93-b915-6cf370b66979\",\"apiCode\":\"wuyin-nano-banana-pro\",\"assetName\":\"Wuyin NanoBanana Pro\",\"assetType\":\"AI_API\",\"categoryCode\":\"image\"..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:29.237Z",
+      "step": "publish-asset",
+      "resource": "wuyin-nano-banana-pro",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"ee7796c7-797f-4e93-b915-6cf370b66979\",\"apiCode\":\"wuyin-nano-banana-pro\",\"assetName\":\"Wuyin NanoBanana Pro\",\"assetType\":\"AI_API\",\"categoryCode\":\"image\"..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:29.421Z",
+      "step": "register-asset",
+      "resource": "wuyin-nano-banana2",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"a90fe669-d37d-4ab4-bc96-0b1d83647a03\",\"apiCode\":\"wuyin-nano-banana2\",\"assetName\":\"Wuyin NanoBanana2\",\"assetType\":\"AI_API\",\"categoryCode\":null,\"status\"..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:29.606Z",
+      "step": "revise-asset",
+      "resource": "wuyin-nano-banana2",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"a90fe669-d37d-4ab4-bc96-0b1d83647a03\",\"apiCode\":\"wuyin-nano-banana2\",\"assetName\":\"Wuyin NanoBanana2\",\"assetType\":\"AI_API\",\"categoryCode\":\"image\",\"stat..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:29.790Z",
+      "step": "attach-ai-profile",
+      "resource": "wuyin-nano-banana2",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"a90fe669-d37d-4ab4-bc96-0b1d83647a03\",\"apiCode\":\"wuyin-nano-banana2\",\"assetName\":\"Wuyin NanoBanana2\",\"assetType\":\"AI_API\",\"categoryCode\":\"image\",\"stat..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:30.023Z",
+      "step": "publish-asset",
+      "resource": "wuyin-nano-banana2",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"a90fe669-d37d-4ab4-bc96-0b1d83647a03\",\"apiCode\":\"wuyin-nano-banana2\",\"assetName\":\"Wuyin NanoBanana2\",\"assetType\":\"AI_API\",\"categoryCode\":\"image\",\"stat..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:30.452Z",
+      "step": "register-asset",
+      "resource": "bltcy-jimeng-seedream-5",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"6988fe2c-1676-48ac-9986-5651b20cba98\",\"apiCode\":\"bltcy-jimeng-seedream-5\",\"assetName\":\"BLTCY Jimeng Seedream 5.0\",\"assetType\":\"AI_API\",\"categoryCode\":..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:30.637Z",
+      "step": "revise-asset",
+      "resource": "bltcy-jimeng-seedream-5",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"6988fe2c-1676-48ac-9986-5651b20cba98\",\"apiCode\":\"bltcy-jimeng-seedream-5\",\"assetName\":\"BLTCY Jimeng Seedream 5.0\",\"assetType\":\"AI_API\",\"categoryCode\":..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:31.068Z",
+      "step": "attach-ai-profile",
+      "resource": "bltcy-jimeng-seedream-5",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"6988fe2c-1676-48ac-9986-5651b20cba98\",\"apiCode\":\"bltcy-jimeng-seedream-5\",\"assetName\":\"BLTCY Jimeng Seedream 5.0\",\"assetType\":\"AI_API\",\"categoryCode\":..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:31.303Z",
+      "step": "publish-asset",
+      "resource": "bltcy-jimeng-seedream-5",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"6988fe2c-1676-48ac-9986-5651b20cba98\",\"apiCode\":\"bltcy-jimeng-seedream-5\",\"assetName\":\"BLTCY Jimeng Seedream 5.0\",\"assetType\":\"AI_API\",\"categoryCode\":..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:31.486Z",
+      "step": "register-asset",
+      "resource": "bltcy-midjourney-v7",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"e6f6e68d-52b1-4aa4-b650-5a932461f529\",\"apiCode\":\"bltcy-midjourney-v7\",\"assetName\":\"BLTCY Midjourney v7\",\"assetType\":\"AI_API\",\"categoryCode\":null,\"stat..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:31.673Z",
+      "step": "revise-asset",
+      "resource": "bltcy-midjourney-v7",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"e6f6e68d-52b1-4aa4-b650-5a932461f529\",\"apiCode\":\"bltcy-midjourney-v7\",\"assetName\":\"BLTCY Midjourney v7\",\"assetType\":\"AI_API\",\"categoryCode\":\"image\",\"s..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:31.857Z",
+      "step": "attach-ai-profile",
+      "resource": "bltcy-midjourney-v7",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"e6f6e68d-52b1-4aa4-b650-5a932461f529\",\"apiCode\":\"bltcy-midjourney-v7\",\"assetName\":\"BLTCY Midjourney v7\",\"assetType\":\"AI_API\",\"categoryCode\":\"image\",\"s..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:32.090Z",
+      "step": "publish-asset",
+      "resource": "bltcy-midjourney-v7",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"e6f6e68d-52b1-4aa4-b650-5a932461f529\",\"apiCode\":\"bltcy-midjourney-v7\",\"assetName\":\"BLTCY Midjourney v7\",\"assetType\":\"AI_API\",\"categoryCode\":\"image\",\"s..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:32.274Z",
+      "step": "register-asset",
+      "resource": "modelmaster-seedvr2-image",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"547b0b55-c617-4957-8b68-55cf846f1b3b\",\"apiCode\":\"modelmaster-seedvr2-image\",\"assetName\":\"ModelMaster SeedVR2 图片增强\",\"assetType\":\"AI_API\",\"categoryCode\"..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:32.458Z",
+      "step": "revise-asset",
+      "resource": "modelmaster-seedvr2-image",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"547b0b55-c617-4957-8b68-55cf846f1b3b\",\"apiCode\":\"modelmaster-seedvr2-image\",\"assetName\":\"ModelMaster SeedVR2 图片增强\",\"assetType\":\"AI_API\",\"categoryCode\"..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:32.644Z",
+      "step": "attach-ai-profile",
+      "resource": "modelmaster-seedvr2-image",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"547b0b55-c617-4957-8b68-55cf846f1b3b\",\"apiCode\":\"modelmaster-seedvr2-image\",\"assetName\":\"ModelMaster SeedVR2 图片增强\",\"assetType\":\"AI_API\",\"categoryCode\"..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:32.874Z",
+      "step": "publish-asset",
+      "resource": "modelmaster-seedvr2-image",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"547b0b55-c617-4957-8b68-55cf846f1b3b\",\"apiCode\":\"modelmaster-seedvr2-image\",\"assetName\":\"ModelMaster SeedVR2 图片增强\",\"assetType\":\"AI_API\",\"categoryCode\"..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:33.057Z",
+      "step": "register-asset",
+      "resource": "wuyin-grok-imagine-video",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"ddc889b8-2ca3-416b-b0cb-8175dcbaa354\",\"apiCode\":\"wuyin-grok-imagine-video\",\"assetName\":\"Wuyin Grok Imagine 视频\",\"assetType\":\"AI_API\",\"categoryCode\":nul..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:33.243Z",
+      "step": "revise-asset",
+      "resource": "wuyin-grok-imagine-video",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"ddc889b8-2ca3-416b-b0cb-8175dcbaa354\",\"apiCode\":\"wuyin-grok-imagine-video\",\"assetName\":\"Wuyin Grok Imagine 视频\",\"assetType\":\"AI_API\",\"categoryCode\":\"vi..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:33.431Z",
+      "step": "attach-ai-profile",
+      "resource": "wuyin-grok-imagine-video",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"ddc889b8-2ca3-416b-b0cb-8175dcbaa354\",\"apiCode\":\"wuyin-grok-imagine-video\",\"assetName\":\"Wuyin Grok Imagine 视频\",\"assetType\":\"AI_API\",\"categoryCode\":\"vi..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:33.663Z",
+      "step": "publish-asset",
+      "resource": "wuyin-grok-imagine-video",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"ddc889b8-2ca3-416b-b0cb-8175dcbaa354\",\"apiCode\":\"wuyin-grok-imagine-video\",\"assetName\":\"Wuyin Grok Imagine 视频\",\"assetType\":\"AI_API\",\"categoryCode\":\"vi..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:33.848Z",
+      "step": "register-asset",
+      "resource": "wuyin-sora2-video",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"d29d7283-e676-4fd6-bf58-4357105b1fd5\",\"apiCode\":\"wuyin-sora2-video\",\"assetName\":\"Wuyin Sora 2 视频\",\"assetType\":\"AI_API\",\"categoryCode\":null,\"status\":\"D..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:34.102Z",
+      "step": "revise-asset",
+      "resource": "wuyin-sora2-video",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"d29d7283-e676-4fd6-bf58-4357105b1fd5\",\"apiCode\":\"wuyin-sora2-video\",\"assetName\":\"Wuyin Sora 2 视频\",\"assetType\":\"AI_API\",\"categoryCode\":\"video\",\"status\"..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:34.290Z",
+      "step": "attach-ai-profile",
+      "resource": "wuyin-sora2-video",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"d29d7283-e676-4fd6-bf58-4357105b1fd5\",\"apiCode\":\"wuyin-sora2-video\",\"assetName\":\"Wuyin Sora 2 视频\",\"assetType\":\"AI_API\",\"categoryCode\":\"video\",\"status\"..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:34.526Z",
+      "step": "publish-asset",
+      "resource": "wuyin-sora2-video",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"d29d7283-e676-4fd6-bf58-4357105b1fd5\",\"apiCode\":\"wuyin-sora2-video\",\"assetName\":\"Wuyin Sora 2 视频\",\"assetType\":\"AI_API\",\"categoryCode\":\"video\",\"status\"..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:34.708Z",
+      "step": "register-asset",
+      "resource": "ablai-veo31-fast-video",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"f38d9188-bfd7-4dda-a47d-9a080c46d577\",\"apiCode\":\"ablai-veo31-fast-video\",\"assetName\":\"ABLAI Veo 3.1 Fast 视频\",\"assetType\":\"AI_API\",\"categoryCode\":null,..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:34.894Z",
+      "step": "revise-asset",
+      "resource": "ablai-veo31-fast-video",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"f38d9188-bfd7-4dda-a47d-9a080c46d577\",\"apiCode\":\"ablai-veo31-fast-video\",\"assetName\":\"ABLAI Veo 3.1 Fast 视频\",\"assetType\":\"AI_API\",\"categoryCode\":\"vide..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:35.083Z",
+      "step": "attach-ai-profile",
+      "resource": "ablai-veo31-fast-video",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"f38d9188-bfd7-4dda-a47d-9a080c46d577\",\"apiCode\":\"ablai-veo31-fast-video\",\"assetName\":\"ABLAI Veo 3.1 Fast 视频\",\"assetType\":\"AI_API\",\"categoryCode\":\"vide..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:35.315Z",
+      "step": "publish-asset",
+      "resource": "ablai-veo31-fast-video",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"f38d9188-bfd7-4dda-a47d-9a080c46d577\",\"apiCode\":\"ablai-veo31-fast-video\",\"assetName\":\"ABLAI Veo 3.1 Fast 视频\",\"assetType\":\"AI_API\",\"categoryCode\":\"vide..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:35.497Z",
+      "step": "register-asset",
+      "resource": "minimax-m2-7",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"1abef920-0cb7-4fb8-b852-1c841820bccb\",\"apiCode\":\"minimax-m2-7\",\"assetName\":\"MiniMax M2.7 高速版\",\"assetType\":\"AI_API\",\"categoryCode\":null,\"status\":\"DRAFT..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:35.751Z",
+      "step": "revise-asset",
+      "resource": "minimax-m2-7",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"1abef920-0cb7-4fb8-b852-1c841820bccb\",\"apiCode\":\"minimax-m2-7\",\"assetName\":\"MiniMax M2.7 高速版\",\"assetType\":\"AI_API\",\"categoryCode\":\"chat\",\"status\":\"DRA..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:35.934Z",
+      "step": "attach-ai-profile",
+      "resource": "minimax-m2-7",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"1abef920-0cb7-4fb8-b852-1c841820bccb\",\"apiCode\":\"minimax-m2-7\",\"assetName\":\"MiniMax M2.7 高速版\",\"assetType\":\"AI_API\",\"categoryCode\":\"chat\",\"status\":\"DRA..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:36.457Z",
+      "step": "publish-asset",
+      "resource": "minimax-m2-7",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"1abef920-0cb7-4fb8-b852-1c841820bccb\",\"apiCode\":\"minimax-m2-7\",\"assetName\":\"MiniMax M2.7 高速版\",\"assetType\":\"AI_API\",\"categoryCode\":\"chat\",\"status\":\"PUB..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:36.646Z",
+      "step": "register-asset",
+      "resource": "deepseek-v4-flash",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"80a7757f-1c33-4838-8a86-2c34a61a4985\",\"apiCode\":\"deepseek-v4-flash\",\"assetName\":\"DeepSeek V4 Flash\",\"assetType\":\"AI_API\",\"categoryCode\":null,\"status\":..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:36.854Z",
+      "step": "revise-asset",
+      "resource": "deepseek-v4-flash",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"80a7757f-1c33-4838-8a86-2c34a61a4985\",\"apiCode\":\"deepseek-v4-flash\",\"assetName\":\"DeepSeek V4 Flash\",\"assetType\":\"AI_API\",\"categoryCode\":\"chat\",\"status..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:37.057Z",
+      "step": "attach-ai-profile",
+      "resource": "deepseek-v4-flash",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"80a7757f-1c33-4838-8a86-2c34a61a4985\",\"apiCode\":\"deepseek-v4-flash\",\"assetName\":\"DeepSeek V4 Flash\",\"assetType\":\"AI_API\",\"categoryCode\":\"chat\",\"status..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:37.301Z",
+      "step": "publish-asset",
+      "resource": "deepseek-v4-flash",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"80a7757f-1c33-4838-8a86-2c34a61a4985\",\"apiCode\":\"deepseek-v4-flash\",\"assetName\":\"DeepSeek V4 Flash\",\"assetType\":\"AI_API\",\"categoryCode\":\"chat\",\"status..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:37.492Z",
+      "step": "register-asset",
+      "resource": "gpt-5-5-mini",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"c9665d03-1bb8-4c1f-9b50-c489a68b198f\",\"apiCode\":\"gpt-5-5-mini\",\"assetName\":\"GPT-5.5 Mini（未启用）\",\"assetType\":\"AI_API\",\"categoryCode\":null,\"status\":\"DRAF..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:37.694Z",
+      "step": "revise-asset",
+      "resource": "gpt-5-5-mini",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"c9665d03-1bb8-4c1f-9b50-c489a68b198f\",\"apiCode\":\"gpt-5-5-mini\",\"assetName\":\"GPT-5.5 Mini（未启用）\",\"assetType\":\"AI_API\",\"categoryCode\":\"chat\",\"status\":\"DR..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:38.232Z",
+      "step": "attach-ai-profile",
+      "resource": "gpt-5-5-mini",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"c9665d03-1bb8-4c1f-9b50-c489a68b198f\",\"apiCode\":\"gpt-5-5-mini\",\"assetName\":\"GPT-5.5 Mini（未启用）\",\"assetType\":\"AI_API\",\"categoryCode\":\"chat\",\"status\":\"DR..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:38.761Z",
+      "step": "register-asset",
+      "resource": "doubao-seed-1-6-flash",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"f431099e-56a6-4c6f-aa3e-b80c19aa5a18\",\"apiCode\":\"doubao-seed-1-6-flash\",\"assetName\":\"Doubao Seed 1.6 Flash 视觉\",\"assetType\":\"AI_API\",\"categoryCode\":nul..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:38.987Z",
+      "step": "revise-asset",
+      "resource": "doubao-seed-1-6-flash",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"f431099e-56a6-4c6f-aa3e-b80c19aa5a18\",\"apiCode\":\"doubao-seed-1-6-flash\",\"assetName\":\"Doubao Seed 1.6 Flash 视觉\",\"assetType\":\"AI_API\",\"categoryCode\":\"ch..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:39.264Z",
+      "step": "attach-ai-profile",
+      "resource": "doubao-seed-1-6-flash",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"f431099e-56a6-4c6f-aa3e-b80c19aa5a18\",\"apiCode\":\"doubao-seed-1-6-flash\",\"assetName\":\"Doubao Seed 1.6 Flash 视觉\",\"assetType\":\"AI_API\",\"categoryCode\":\"ch..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:39.584Z",
+      "step": "publish-asset",
+      "resource": "doubao-seed-1-6-flash",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"f431099e-56a6-4c6f-aa3e-b80c19aa5a18\",\"apiCode\":\"doubao-seed-1-6-flash\",\"assetName\":\"Doubao Seed 1.6 Flash 视觉\",\"assetType\":\"AI_API\",\"categoryCode\":\"ch..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:40.036Z",
+      "step": "register-asset",
+      "resource": "moonshotai-kimi-k2-5",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"5c7add9e-3142-4501-857d-2e2d1fd9f3df\",\"apiCode\":\"moonshotai-kimi-k2-5\",\"assetName\":\"Kimi K2.5 视觉\",\"assetType\":\"AI_API\",\"categoryCode\":null,\"status\":\"D..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:40.251Z",
+      "step": "revise-asset",
+      "resource": "moonshotai-kimi-k2-5",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"5c7add9e-3142-4501-857d-2e2d1fd9f3df\",\"apiCode\":\"moonshotai-kimi-k2-5\",\"assetName\":\"Kimi K2.5 视觉\",\"assetType\":\"AI_API\",\"categoryCode\":\"chat\",\"status\":..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:40.522Z",
+      "step": "attach-ai-profile",
+      "resource": "moonshotai-kimi-k2-5",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"5c7add9e-3142-4501-857d-2e2d1fd9f3df\",\"apiCode\":\"moonshotai-kimi-k2-5\",\"assetName\":\"Kimi K2.5 视觉\",\"assetType\":\"AI_API\",\"categoryCode\":\"chat\",\"status\":..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:40.841Z",
+      "step": "publish-asset",
+      "resource": "moonshotai-kimi-k2-5",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"5c7add9e-3142-4501-857d-2e2d1fd9f3df\",\"apiCode\":\"moonshotai-kimi-k2-5\",\"assetName\":\"Kimi K2.5 视觉\",\"assetType\":\"AI_API\",\"categoryCode\":\"chat\",\"status\":..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:41.042Z",
+      "step": "register-asset",
+      "resource": "creative_research",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"1ce81f9e-effd-419a-8f2c-f7858f687f56\",\"apiCode\":\"creative_research\",\"assetName\":\"创作调研搜索\",\"assetType\":\"STANDARD_API\",\"categoryCode\":null,\"status\":\"DRAF..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:41.257Z",
+      "step": "revise-asset",
+      "resource": "creative_research",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"1ce81f9e-effd-419a-8f2c-f7858f687f56\",\"apiCode\":\"creative_research\",\"assetName\":\"创作调研搜索\",\"assetType\":\"STANDARD_API\",\"categoryCode\":\"tool\",\"status\":\"DR..."
+    },
+    {
+      "timestamp": "2026-05-12T15:36:41.516Z",
+      "step": "publish-asset",
+      "resource": "creative_research",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"1ce81f9e-effd-419a-8f2c-f7858f687f56\",\"apiCode\":\"creative_research\",\"assetName\":\"创作调研搜索\",\"assetType\":\"STANDARD_API\",\"categoryCode\":\"tool\",\"status\":\"PU..."
+    }
+  ],
+  "errors": []
+}

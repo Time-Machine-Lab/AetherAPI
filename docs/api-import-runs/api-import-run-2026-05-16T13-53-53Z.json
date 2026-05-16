@@ -1,0 +1,58 @@
+{
+  "generatedAt": "2026-05-16T13:53:53.064Z",
+  "baseUrl": "http://localhost:8090",
+  "managementHeaderName": "Authorization",
+  "records": [
+    {
+      "timestamp": "2026-05-16T13:53:52.570Z",
+      "step": "ensure-category",
+      "resource": "video",
+      "method": "GET",
+      "status": "STARTED",
+      "httpStatus": "-",
+      "notes": "Check category existence"
+    },
+    {
+      "timestamp": "2026-05-16T13:53:52.989Z",
+      "step": "ensure-category",
+      "resource": "video",
+      "method": "GET",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "Category exists"
+    },
+    {
+      "timestamp": "2026-05-16T13:53:53.059Z",
+      "step": "enable-category",
+      "resource": "video",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "400",
+      "notes": "{\"code\":\"CATEGORY_ALREADY_ENABLED\",\"message\":\"Category is already enabled\"}"
+    },
+    {
+      "timestamp": "2026-05-16T13:53:53.062Z",
+      "step": "register-asset",
+      "resource": "sufy-openai-video",
+      "method": "POST",
+      "status": "FAILED",
+      "httpStatus": "401",
+      "notes": "{\"code\":\"CONSOLE_SESSION_UNAUTHORIZED\",\"message\":\"Console session authentication required\"}"
+    },
+    {
+      "timestamp": "2026-05-16T13:53:53.062Z",
+      "step": "api-import",
+      "resource": "sufy-openai-video",
+      "method": "-",
+      "status": "FAILED",
+      "httpStatus": "-",
+      "notes": "Failed to register asset sufy-openai-video"
+    }
+  ],
+  "errors": [
+    {
+      "apiCode": "sufy-openai-video",
+      "message": "Failed to register asset sufy-openai-video"
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "generatedAt": "2026-05-16T13:57:35.863Z",
+  "baseUrl": "http://localhost:8090",
+  "managementHeaderName": "Authorization",
+  "records": [
+    {
+      "timestamp": "2026-05-16T13:57:33.189Z",
+      "step": "ensure-category",
+      "resource": "video",
+      "method": "GET",
+      "status": "STARTED",
+      "httpStatus": "-",
+      "notes": "Check category existence"
+    },
+    {
+      "timestamp": "2026-05-16T13:57:33.338Z",
+      "step": "ensure-category",
+      "resource": "video",
+      "method": "GET",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "Category exists"
+    },
+    {
+      "timestamp": "2026-05-16T13:57:33.401Z",
+      "step": "enable-category",
+      "resource": "video",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "400",
+      "notes": "{\"code\":\"CATEGORY_ALREADY_ENABLED\",\"message\":\"Category is already enabled\"}"
+    },
+    {
+      "timestamp": "2026-05-16T13:57:33.719Z",
+      "step": "register-asset",
+      "resource": "huoshan-seedance-video",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"ead0b1a5-9d05-4583-b344-f0ba605f55de\",\"apiCode\":\"huoshan-seedance-video\",\"assetName\":\"火山 Seedance 视频生成\",\"assetType\":\"AI_API\",\"categoryCode\":null,\"stat..."
+    },
+    {
+      "timestamp": "2026-05-16T13:57:34.402Z",
+      "step": "revise-asset",
+      "resource": "huoshan-seedance-video",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"ead0b1a5-9d05-4583-b344-f0ba605f55de\",\"apiCode\":\"huoshan-seedance-video\",\"assetName\":\"火山 Seedance 视频生成\",\"assetType\":\"AI_API\",\"categoryCode\":\"video\",\"s..."
+    },
+    {
+      "timestamp": "2026-05-16T13:57:35.029Z",
+      "step": "attach-ai-profile",
+      "resource": "huoshan-seedance-video",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"ead0b1a5-9d05-4583-b344-f0ba605f55de\",\"apiCode\":\"huoshan-seedance-video\",\"assetName\":\"火山 Seedance 视频生成\",\"assetType\":\"AI_API\",\"categoryCode\":\"video\",\"s..."
+    },
+    {
+      "timestamp": "2026-05-16T13:57:35.862Z",
+      "step": "publish-asset",
+      "resource": "huoshan-seedance-video",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"ead0b1a5-9d05-4583-b344-f0ba605f55de\",\"apiCode\":\"huoshan-seedance-video\",\"assetName\":\"火山 Seedance 视频生成\",\"assetType\":\"AI_API\",\"categoryCode\":\"video\",\"s..."
+    }
+  ],
+  "errors": []
+}

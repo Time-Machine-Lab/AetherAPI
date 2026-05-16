@@ -1,0 +1,80 @@
+{
+  "baseUrl": "http://localhost:8090",
+  "managementAuth": {
+    "headerName": "Authorization",
+    "prefix": "Bearer",
+    "apiKeyEnv": "AETHER_ADMIN_TOKEN"
+  },
+  "defaults": {
+    "publish": true,
+    "ensureCategoryEnabled": true,
+    "continueOnError": false
+  },
+  "categories": [
+    {
+      "categoryCode": "video",
+      "categoryName": "视频接口",
+      "enableAfterEnsure": true
+    }
+  ],
+  "apis": [
+    {
+      "apiCode": "sufy-openai-video",
+      "categoryCode": "video",
+      "assetName": "sufy OpenAI 视频生成",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "https://openai.sufy.com/v1/videos",
+      "authScheme": "HEADER_TOKEN",
+      "authConfig": "Authorization: Bearer ${env:SUFY_UPSTREAM_API_KEY}",
+      "requestExample": "{\"model\":\"kling-v3\",\"prompt\":\"A cat walking in the rain, cinematic lighting.\",\"duration\":5,\"image\":\"https://example.com/first-frame.png\",\"n\":1,\"size\":\"1280x720\",\"response_format\":\"url\",\"seed\":123456,\"metadata\":{\"project\":\"demo\",\"scene\":\"rain-cat\"}}",
+      "responseExample": "{\"id\":\"qvideo-1382943071-1778933051224197911\",\"object\":\"video\",\"model\":\"kling-v3\",\"mode\":\"std\",\"status\":\"queued\",\"created_at\":1778933051,\"updated_at\":1778933051,\"seconds\":\"5\",\"job_type_description\":\"可灵文生视频\",\"billing_type_description\":\"std x 无参考视频 x 无声\"}",
+      "asyncTaskConfig": {
+        "enabled": true,
+        "queryMethod": "GET",
+        "queryUrlTemplate": "https://openai.sufy.com/v1/videos/{taskId}",
+        "authMode": "SAME_AS_SUBMIT",
+        "statusPath": "$.status",
+        "resultPath": "$.result",
+        "errorPath": "$.error.message"
+      },
+      "aiProfile": {
+        "provider": "sufy",
+        "model": "sufy-openai-video-multi-model",
+        "streamingSupported": false,
+        "capabilityTags": [
+          "视频生成",
+          "异步任务",
+          "OpenAI-compatible",
+          "sora-2",
+          "kling-v2-1",
+          "kling-v2-5-turbo",
+          "kling-v2-6",
+          "kling-v3",
+          "kling-v3-omni",
+          "kling-video-o1"
+        ]
+      },
+      "exampleAccess": {
+        "method": "POST",
+        "body": {
+          "model": "kling-v3",
+          "prompt": "A cat walking in the rain, cinematic lighting.",
+          "duration": 5,
+          "image": "https://example.com/first-frame.png",
+          "n": 1,
+          "size": "1280x720",
+          "response_format": "url",
+          "seed": 123456,
+          "metadata": {
+            "project": "demo",
+            "scene": "rain-cat"
+          }
+        }
+      }
+    }
+  ],
+  "exampleAccess": {
+    "contentType": "application/json"
+  }
+}

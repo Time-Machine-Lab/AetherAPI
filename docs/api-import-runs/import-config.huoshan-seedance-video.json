@@ -1,0 +1,119 @@
+{
+  "baseUrl": "http://localhost:8090",
+  "managementAuth": {
+    "headerName": "Authorization",
+    "prefix": "Bearer",
+    "apiKeyEnv": "AETHER_ADMIN_TOKEN"
+  },
+  "defaults": {
+    "publish": true,
+    "ensureCategoryEnabled": true,
+    "continueOnError": false
+  },
+  "categories": [
+    {
+      "categoryCode": "video",
+      "categoryName": "视频接口",
+      "enableAfterEnsure": true
+    }
+  ],
+  "apis": [
+    {
+      "apiCode": "huoshan-seedance-video",
+      "categoryCode": "video",
+      "assetName": "火山 Seedance 视频生成",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "https://ark.cn-beijing.volces.com/api/v3/contents/generations/tasks",
+      "authScheme": "HEADER_TOKEN",
+      "authConfig": "Authorization: Bearer ${env:HUOSHAN_ARK_API_KEY}",
+      "requestTemplate": "{\"model\":\"${body.model}\",\"content\":${body.content},\"resolution\":\"${body.resolution}\",\"ratio\":\"${body.ratio}\",\"duration\":${body.duration},\"frames\":${body.frames},\"seed\":${body.seed},\"camera_fixed\":${body.camera_fixed},\"watermark\":${body.watermark},\"return_last_frame\":${body.return_last_frame},\"service_tier\":\"${body.service_tier}\",\"execution_expires_after\":${body.execution_expires_after},\"generate_audio\":${body.generate_audio},\"draft\":${body.draft},\"tools\":${body.tools},\"safety_identifier\":\"${body.safety_identifier}\"}",
+      "requestExample": "{\"model\":\"doubao-seedance-2-0-260128\",\"content\":[{\"type\":\"text\",\"text\":\"全程参考视频1的运镜和节奏，保留图片1的人物造型，并使用音频1作为背景音乐，生成一段 8 秒广告视频。\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"https://example.com/ref-image.png\"},\"role\":\"reference_image\"},{\"type\":\"video_url\",\"video_url\":{\"url\":\"https://example.com/ref-video.mp4\"},\"role\":\"reference_video\"},{\"type\":\"audio_url\",\"audio_url\":{\"url\":\"https://example.com/ref-audio.mp3\"},\"role\":\"reference_audio\"}],\"resolution\":\"720p\",\"ratio\":\"16:9\",\"duration\":8,\"seed\":123456,\"watermark\":true,\"return_last_frame\":true,\"service_tier\":\"default\",\"execution_expires_after\":172800,\"generate_audio\":true,\"tools\":[{\"type\":\"web_search\"}],\"safety_identifier\":\"user_hash_demo_001\"}",
+      "responseExample": "{\"id\":\"cgt-20260414114820-*****\"}",
+      "asyncTaskConfig": {
+        "enabled": true,
+        "queryMethod": "GET",
+        "queryUrlTemplate": "https://ark.cn-beijing.volces.com/api/v3/contents/generations/tasks/{taskId}",
+        "authMode": "SAME_AS_SUBMIT",
+        "statusPath": "$.status",
+        "resultPath": "$.content.video_url",
+        "errorPath": "$.error.message",
+        "exampleTaskId": "cgt-20260414114820-demo"
+      },
+      "aiProfile": {
+        "provider": "火山",
+        "model": "huoshan-seedance-video-multi-model",
+        "streamingSupported": false,
+        "capabilityTags": [
+          "视频生成",
+          "异步任务",
+          "火山",
+          "Seedance",
+          "native-http-json",
+          "doubao-seedance-2-0-260128",
+          "doubao-seedance-2-0-fast-260128",
+          "doubao-seedance-1-5-pro-251215",
+          "doubao-seedance-1-0-pro-250528",
+          "doubao-seedance-1-0-pro-fast-251015",
+          "文生视频",
+          "首帧图生视频",
+          "首尾帧图生视频",
+          "多模态参考",
+          "编辑视频",
+          "延长视频"
+        ]
+      },
+      "exampleAccess": {
+        "method": "POST",
+        "body": {
+          "model": "doubao-seedance-2-0-260128",
+          "content": [
+            {
+              "type": "text",
+              "text": "全程参考视频1的运镜和节奏，保留图片1的人物造型，并使用音频1作为背景音乐，生成一段 8 秒广告视频。"
+            },
+            {
+              "type": "image_url",
+              "image_url": {
+                "url": "https://example.com/ref-image.png"
+              },
+              "role": "reference_image"
+            },
+            {
+              "type": "video_url",
+              "video_url": {
+                "url": "https://example.com/ref-video.mp4"
+              },
+              "role": "reference_video"
+            },
+            {
+              "type": "audio_url",
+              "audio_url": {
+                "url": "https://example.com/ref-audio.mp3"
+              },
+              "role": "reference_audio"
+            }
+          ],
+          "resolution": "720p",
+          "ratio": "16:9",
+          "duration": 8,
+          "seed": 123456,
+          "watermark": true,
+          "return_last_frame": true,
+          "service_tier": "default",
+          "execution_expires_after": 172800,
+          "generate_audio": true,
+          "tools": [
+            {
+              "type": "web_search"
+            }
+          ],
+          "safety_identifier": "user_hash_demo_001"
+        }
+      }
+    }
+  ],
+  "exampleAccess": {
+    "contentType": "application/json"
+  }
+}
