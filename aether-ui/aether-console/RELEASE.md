@@ -53,6 +53,10 @@ docker run -d \
   --add-host=host.docker.internal:host-gateway \
   -p 8888:8888 \
   -e AETHER_BACKEND_UPSTREAM=http://61.184.13.101:8090 \
+  -e SSL_CERT_PATH=/etc/ssl/certs/aether.pem \
+  -e SSL_KEY_PATH=/etc/ssl/private/aether.key \
+  -v /etc/ssl/certs/aether.pem:/etc/ssl/certs/aether.pem:ro \
+  -v /etc/ssl/private/aether.key:/etc/ssl/private/aether.key:ro \
   <docker-username>/aether-console:aether-console-v1.0.0
 ```
 
@@ -82,6 +86,8 @@ Configure these repository, environment, or organization secrets before pushing 
 | ------------------------------- | --------------------------- | ---------------------------------------------------------- |
 | `AETHER_CONSOLE_CONTAINER_NAME` | `aether-console`            | Docker container name on the target server.                |
 | `AETHER_BACKEND_UPSTREAM`       | `http://61.184.13.101:8090` | Backend upstream used by Nginx. Must point to port `8090`. |
+| `SSL_CERT_PATH`                 | `/etc/ssl/certs/aether.pem` | TLS certificate path on the deployment server and in the container. |
+| `SSL_KEY_PATH`                  | `/etc/ssl/private/aether.key` | TLS private key path on the deployment server and in the container. |
 
 ## First Deployment Checklist
 
@@ -95,7 +101,7 @@ Configure these repository, environment, or organization secrets before pushing 
 3. Confirm port `8888` is free:
 
    ```bash
-   docker ps --format '{{.Ports}}' | grep 8888 || true
+  docker ps --format '{{.Ports}}' | grep 8888 || true
    ```
 
 4. Confirm the backend upstream is reachable from the Docker network:
@@ -107,7 +113,14 @@ Configure these repository, environment, or organization secrets before pushing 
      -I http://61.184.13.101:8090/api/v1/console/auth/current-session || true
    ```
 
-5. After deployment, verify the frontend and proxy:
+5. Confirm the TLS assets exist on the target server:
+
+  ```bash
+  test -f /etc/ssl/certs/aether.pem
+  test -f /etc/ssl/private/aether.key
+  ```
+
+6. After deployment, verify the frontend and proxy:
 
    ```bash
    curl -I http://localhost:8888/
@@ -131,6 +144,10 @@ docker run -d \
   --add-host=host.docker.internal:host-gateway \
   -p 8888:8888 \
   -e AETHER_BACKEND_UPSTREAM=http://61.184.13.101:8090 \
+  -e SSL_CERT_PATH=/etc/ssl/certs/aether.pem \
+  -e SSL_KEY_PATH=/etc/ssl/private/aether.key \
+  -v /etc/ssl/certs/aether.pem:/etc/ssl/certs/aether.pem:ro \
+  -v /etc/ssl/private/aether.key:/etc/ssl/private/aether.key:ro \
   "$IMAGE"
 ```
 
@@ -145,6 +162,10 @@ docker run --rm -d \
   --add-host=host.docker.internal:host-gateway \
   -p 8888:8888 \
   -e AETHER_BACKEND_UPSTREAM=http://61.184.13.101:8090 \
+  -e SSL_CERT_PATH=/etc/ssl/certs/aether.pem \
+  -e SSL_KEY_PATH=/etc/ssl/private/aether.key \
+  -v /etc/ssl/certs/aether.pem:/etc/ssl/certs/aether.pem:ro \
+  -v /etc/ssl/private/aether.key:/etc/ssl/private/aether.key:ro \
   aether-console:local
 docker exec aether-console-local nginx -t
 curl -I http://localhost:8888/

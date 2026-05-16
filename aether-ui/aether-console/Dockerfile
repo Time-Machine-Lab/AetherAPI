@@ -21,6 +21,8 @@ RUN pnpm build
 FROM nginx:1.27-alpine AS runtime
 
 ENV AETHER_BACKEND_UPSTREAM=http://61.184.13.101:8090
+ENV SSL_CERT_PATH=/etc/ssl/certs/aether.pem
+ENV SSL_KEY_PATH=/etc/ssl/private/aether.key
 
 COPY deploy/nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html

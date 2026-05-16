@@ -2,6 +2,9 @@ server {
     listen 8888;
     server_name _;
 
+    ssl_certificate ${SSL_CERT_PATH};
+    ssl_certificate_key ${SSL_KEY_PATH};
+
     root /usr/share/nginx/html;
     index index.html;
 

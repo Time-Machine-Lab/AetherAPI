@@ -98,6 +98,8 @@ jobs:
       AETHER_CONSOLE_IMAGE: ${{ secrets.DOCKER_USERNAME }}/aether-console:${{ github.ref_name }}
       AETHER_CONSOLE_CONTAINER_NAME: ${{ vars.AETHER_CONSOLE_CONTAINER_NAME || 'aether-console' }}
       AETHER_BACKEND_UPSTREAM: ${{ vars.AETHER_BACKEND_UPSTREAM || 'http://61.184.13.101:8090' }}
+      SSL_CERT_PATH: ${{ vars.SSL_CERT_PATH || '/etc/ssl/certs/aether.pem' }}
+      SSL_KEY_PATH: ${{ vars.SSL_KEY_PATH || '/etc/ssl/private/aether.key' }}
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
     steps:
@@ -107,6 +109,8 @@ jobs:
           AETHER_CONSOLE_IMAGE: ${{ env.AETHER_CONSOLE_IMAGE }}
           AETHER_CONSOLE_CONTAINER_NAME: ${{ env.AETHER_CONSOLE_CONTAINER_NAME }}
           AETHER_BACKEND_UPSTREAM: ${{ env.AETHER_BACKEND_UPSTREAM }}
+          SSL_CERT_PATH: ${{ env.SSL_CERT_PATH }}
+          SSL_KEY_PATH: ${{ env.SSL_KEY_PATH }}
           DOCKER_USERNAME: ${{ env.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ env.DOCKER_PASSWORD }}
         with:
@@ -114,11 +118,13 @@ jobs:
           username: ${{ secrets.AETHER_CONSOLE_DEPLOY_USER }}
           key: ${{ secrets.AETHER_CONSOLE_DEPLOY_SSH_KEY }}
           port: ${{ secrets.AETHER_CONSOLE_DEPLOY_PORT || '22' }}
-          envs: AETHER_CONSOLE_IMAGE,AETHER_CONSOLE_CONTAINER_NAME,AETHER_BACKEND_UPSTREAM,DOCKER_USERNAME,DOCKER_PASSWORD
+          envs: AETHER_CONSOLE_IMAGE,AETHER_CONSOLE_CONTAINER_NAME,AETHER_BACKEND_UPSTREAM,SSL_CERT_PATH,SSL_KEY_PATH,DOCKER_USERNAME,DOCKER_PASSWORD
           script: |
             set -eu
             echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
             docker pull "$AETHER_CONSOLE_IMAGE"
+            test -f "$SSL_CERT_PATH"
+            test -f "$SSL_KEY_PATH"
             docker rm -f "$AETHER_CONSOLE_CONTAINER_NAME" 2>/dev/null || true
             docker run -d \
               --name "$AETHER_CONSOLE_CONTAINER_NAME" \
@@ -126,5 +132,9 @@ jobs:
               --add-host=host.docker.internal:host-gateway \
               -p 8888:8888 \
               -e AETHER_BACKEND_UPSTREAM="$AETHER_BACKEND_UPSTREAM" \
+              -e SSL_CERT_PATH="$SSL_CERT_PATH" \
+              -e SSL_KEY_PATH="$SSL_KEY_PATH" \
+              -v "$SSL_CERT_PATH:$SSL_CERT_PATH:ro" \
+              -v "$SSL_KEY_PATH:$SSL_KEY_PATH:ro" \
               "$AETHER_CONSOLE_IMAGE"
             docker ps --filter "name=$AETHER_CONSOLE_CONTAINER_NAME"
