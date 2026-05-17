@@ -30,6 +30,7 @@ export default {
       expand: 'Expand',
       collapse: 'Collapse',
       plainTextFallback: 'This content is not valid JSON, so it is shown as plain text.',
+      schemaEmpty: 'No schema configured',
     },
     nav: {
       home: 'API Market',
@@ -90,6 +91,9 @@ export default {
       requestTemplate: 'Request template',
       requestExample: 'Request example',
       responseExample: 'Response example',
+      jsonSchema: 'JSON Schema',
+      requestJsonSchema: 'Request body schema',
+      responseJsonSchema: 'Response body schema',
       asyncTaskQuery: 'Async task query',
       asyncTaskQueryDescription:
         'Use this channel after the submit response returns a taskId. The structure below is generated from the configured paths.',
@@ -250,6 +254,16 @@ export default {
       fieldResponseExample: 'Response example',
       fieldResponseExampleHint:
         'Example is a possible upstream response payload, usually showing successful structure or key fields.',
+      requestJsonSchema: 'Request body schema',
+      responseJsonSchema: 'Response body schema',
+      requestJsonSchemaEmpty: 'No request body schema',
+      responseJsonSchemaEmpty: 'No response body schema',
+      fieldRequestJsonSchema: 'Request body JSON Schema',
+      fieldRequestJsonSchemaHint:
+        'Optional JSON Schema snapshot for the request body. Blank clears the saved schema.',
+      fieldResponseJsonSchema: 'Response body JSON Schema',
+      fieldResponseJsonSchemaHint:
+        'Optional JSON Schema snapshot for the response body. Blank clears the saved schema.',
       asyncTaskConfigGroup: 'Async task query',
       asyncTaskConfigDescription:
         'Configure how Unified Access queries an upstream task after an async submit response returns a task id.',

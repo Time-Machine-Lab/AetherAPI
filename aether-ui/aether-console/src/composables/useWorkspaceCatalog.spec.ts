@@ -248,6 +248,8 @@ describe('useWorkspaceCatalog', () => {
       status: 'PUBLISHED',
       authScheme: 'HEADER_TOKEN',
       authConfig: 'Authorization: Bearer upstream-token',
+      requestJsonSchema: '{"type":"object","required":["city"]}',
+      responseJsonSchema: '{"type":"object","properties":{"temp":{"type":"number"}}}',
     })
     const workspace = useWorkspaceCatalog({
       t,
@@ -264,6 +266,12 @@ describe('useWorkspaceCatalog', () => {
     expect(workspace.assetConfigForm.value.requestMethod).toBe('GET')
     expect(workspace.assetConfigForm.value.upstreamUrl).toBe('https://upstream.example.com/weather')
     expect(workspace.assetConfigForm.value.authConfig).toBe('Authorization: Bearer upstream-token')
+    expect(workspace.assetConfigForm.value.requestJsonSchema).toBe(
+      '{"type":"object","required":["city"]}',
+    )
+    expect(workspace.assetConfigForm.value.responseJsonSchema).toBe(
+      '{"type":"object","properties":{"temp":{"type":"number"}}}',
+    )
     expect(workspace.assetError.value).toBe('')
     expect(onAssetSelected).toHaveBeenCalledWith(selectedAsset)
   })
@@ -353,6 +361,8 @@ describe('useWorkspaceCatalog', () => {
       requestTemplate: null,
       requestExample: null,
       responseExample: null,
+      requestJsonSchema: null,
+      responseJsonSchema: null,
       asyncTaskConfig: {
         enabled: true,
         queryMethod: 'GET',
@@ -401,6 +411,46 @@ describe('useWorkspaceCatalog', () => {
         authConfig: null,
         asyncTaskConfig: null,
       }),
+    )
+  })
+
+  it('saves and clears request and response JSON schemas through reviseAsset', async () => {
+    const reviseAsset = vi.fn().mockResolvedValueOnce(
+      asset({
+        requestJsonSchema: undefined,
+        responseJsonSchema: '{"type":"object","properties":{"ok":{"type":"boolean"}}}',
+      }),
+    )
+    const workspace = useWorkspaceCatalog({
+      t,
+      autoLoad: false,
+      getAsset: vi.fn().mockResolvedValueOnce(
+        asset({
+          requestJsonSchema: '{"type":"object","required":["city"]}',
+          responseJsonSchema: '{"type":"object"}',
+        }),
+      ),
+      reviseAsset,
+      getRecentAssets: vi.fn().mockReturnValue([]),
+    })
+
+    await workspace.handleListSelectAsset('weather-api')
+    workspace.assetConfigForm.value.requestJsonSchema = '   '
+    workspace.assetConfigForm.value.responseJsonSchema =
+      ' {"type":"object","properties":{"ok":{"type":"boolean"}}} '
+
+    await workspace.handleSaveAssetConfig()
+
+    expect(reviseAsset).toHaveBeenCalledWith(
+      'weather-api',
+      expect.objectContaining({
+        requestJsonSchema: null,
+        responseJsonSchema: '{"type":"object","properties":{"ok":{"type":"boolean"}}}',
+      }),
+    )
+    expect(workspace.currentAsset.value?.requestJsonSchema).toBeUndefined()
+    expect(workspace.currentAsset.value?.responseJsonSchema).toBe(
+      '{"type":"object","properties":{"ok":{"type":"boolean"}}}',
     )
   })
 
@@ -477,6 +527,8 @@ describe('useWorkspaceCatalog', () => {
       requestTemplate: '{"messages":"{{messages}}"}',
       requestExample: '{"messages":["hi"]}',
       responseExample: '{"reply":"hello"}',
+      requestJsonSchema: '{"type":"object","required":["messages"]}',
+      responseJsonSchema: '{"type":"object","properties":{"reply":{"type":"string"}}}',
     })
     const bindAiProfile = vi.fn().mockResolvedValueOnce({
       apiCode: 'weather-api',
@@ -518,6 +570,12 @@ describe('useWorkspaceCatalog', () => {
     expect(workspace.currentAsset.value?.requestTemplate).toBe('{"messages":"{{messages}}"}')
     expect(workspace.currentAsset.value?.requestExample).toBe('{"messages":["hi"]}')
     expect(workspace.currentAsset.value?.responseExample).toBe('{"reply":"hello"}')
+    expect(workspace.currentAsset.value?.requestJsonSchema).toBe(
+      '{"type":"object","required":["messages"]}',
+    )
+    expect(workspace.currentAsset.value?.responseJsonSchema).toBe(
+      '{"type":"object","properties":{"reply":{"type":"string"}}}',
+    )
     expect(workspace.assetConfigForm.value.upstreamUrl).toBe('https://upstream.example.com/ai')
     expect(workspace.currentAsset.value?.aiProfile?.model).toBe('gpt-test')
   })

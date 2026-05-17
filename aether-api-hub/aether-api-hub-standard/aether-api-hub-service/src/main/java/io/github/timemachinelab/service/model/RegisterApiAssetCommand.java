@@ -12,6 +12,8 @@ public class RegisterApiAssetCommand {
     private final String apiCode;
     private final AssetType assetType;
     private final String assetName;
+    private final String requestJsonSchema;
+    private final String responseJsonSchema;
     private final AsyncTaskConfigModel asyncTaskConfig;
 
     public RegisterApiAssetCommand(
@@ -30,11 +32,25 @@ public class RegisterApiAssetCommand {
             AssetType assetType,
             String assetName,
             AsyncTaskConfigModel asyncTaskConfig) {
+        this(ownerUserId, publisherDisplayName, apiCode, assetType, assetName, null, null, asyncTaskConfig);
+    }
+
+    public RegisterApiAssetCommand(
+            String ownerUserId,
+            String publisherDisplayName,
+            String apiCode,
+            AssetType assetType,
+            String assetName,
+            String requestJsonSchema,
+            String responseJsonSchema,
+            AsyncTaskConfigModel asyncTaskConfig) {
         this.ownerUserId = ownerUserId;
         this.publisherDisplayName = publisherDisplayName;
         this.apiCode = apiCode;
         this.assetType = assetType;
         this.assetName = assetName;
+        this.requestJsonSchema = requestJsonSchema;
+        this.responseJsonSchema = responseJsonSchema;
         this.asyncTaskConfig = asyncTaskConfig;
     }
 
@@ -56,6 +72,14 @@ public class RegisterApiAssetCommand {
 
     public String getAssetName() {
         return assetName;
+    }
+
+    public String getRequestJsonSchema() {
+        return requestJsonSchema;
+    }
+
+    public String getResponseJsonSchema() {
+        return responseJsonSchema;
     }
 
     public AsyncTaskConfigModel getAsyncTaskConfig() {

@@ -72,6 +72,8 @@ public class CatalogDiscoveryWebDelegate {
                 model.getAuthScheme() == null ? null : AuthScheme.valueOf(model.getAuthScheme()),
                 model.getRequestTemplate(),
                 toExampleSnapshotResp(model.getExampleSnapshot()),
+                model.getRequestJsonSchema(),
+                model.getResponseJsonSchema(),
                 toAsyncTaskConfigResp(model.getAsyncTaskConfig()),
                 toAiProfileResp(model.getAiCapabilityProfile())
         );

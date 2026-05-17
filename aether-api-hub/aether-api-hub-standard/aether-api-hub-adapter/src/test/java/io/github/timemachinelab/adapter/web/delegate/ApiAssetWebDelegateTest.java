@@ -35,6 +35,8 @@ class ApiAssetWebDelegateTest {
         when(useCase.registerAsset(any(RegisterApiAssetCommand.class))).thenReturn(asyncAssetModel());
         ApiAssetWebDelegate delegate = new ApiAssetWebDelegate(useCase);
         RegisterApiAssetReq req = new RegisterApiAssetReq("image-generation", AssetType.STANDARD_API, "Image Generation");
+        req.setRequestJsonSchema("{\"type\":\"object\",\"required\":[\"prompt\"]}");
+        req.setResponseJsonSchema("{\"type\":\"object\",\"properties\":{\"taskId\":{\"type\":\"string\"}}}");
         AsyncTaskConfigReq asyncTaskConfig = new AsyncTaskConfigReq();
         asyncTaskConfig.setEnabled(true);
         asyncTaskConfig.setQueryMethod(RequestMethod.GET);
@@ -51,6 +53,8 @@ class ApiAssetWebDelegateTest {
                 ArgumentCaptor.forClass(RegisterApiAssetCommand.class);
         verify(useCase).registerAsset(commandCaptor.capture());
         AsyncTaskConfigModel commandConfig = commandCaptor.getValue().getAsyncTaskConfig();
+        assertEquals("{\"type\":\"object\",\"required\":[\"prompt\"]}", commandCaptor.getValue().getRequestJsonSchema());
+        assertEquals("{\"type\":\"object\",\"properties\":{\"taskId\":{\"type\":\"string\"}}}", commandCaptor.getValue().getResponseJsonSchema());
         assertEquals(Boolean.TRUE, commandConfig.getEnabled());
         assertEquals("GET", commandConfig.getQueryMethod());
         assertEquals("https://provider.example.com/tasks/{taskId}", commandConfig.getQueryUrlTemplate());
@@ -60,6 +64,8 @@ class ApiAssetWebDelegateTest {
         assertEquals("$.error", commandConfig.getErrorPath());
 
         assertEquals(Boolean.TRUE, response.getAsyncTaskConfig().getEnabled());
+        assertEquals("{\"type\":\"object\",\"required\":[\"prompt\"]}", response.getRequestJsonSchema());
+        assertEquals("{\"type\":\"object\",\"properties\":{\"taskId\":{\"type\":\"string\"}}}", response.getResponseJsonSchema());
         assertEquals(RequestMethod.GET, response.getAsyncTaskConfig().getQueryMethod());
         assertEquals("https://provider.example.com/tasks/{taskId}", response.getAsyncTaskConfig().getQueryUrlTemplate());
         assertEquals(AsyncTaskAuthMode.SAME_AS_SUBMIT, response.getAsyncTaskConfig().getAuthMode());
@@ -155,6 +161,8 @@ class ApiAssetWebDelegateTest {
                 null,
                 null,
                 null,
+                "{\"type\":\"object\",\"required\":[\"prompt\"]}",
+                "{\"type\":\"object\",\"properties\":{\"taskId\":{\"type\":\"string\"}}}",
                 new AsyncTaskConfigModel(
                         true,
                         "GET",

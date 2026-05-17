@@ -50,6 +50,8 @@ describe('asset api', () => {
         upstreamUrl: 'https://upstream.example.com/weather',
         authScheme: 'HEADER_TOKEN',
         authConfig: 'Authorization: Bearer upstream-token',
+        requestJsonSchema: '{"type":"object","required":["city"]}',
+        responseJsonSchema: '{"type":"object","properties":{"temp":{"type":"number"}}}',
         asyncTaskConfig: {
           enabled: true,
           queryMethod: 'GET',
@@ -83,6 +85,8 @@ describe('asset api', () => {
         upstreamUrl: 'https://upstream.example.com/weather',
         authScheme: 'HEADER_TOKEN',
         authConfig: 'Authorization: Bearer upstream-token',
+        requestJsonSchema: '{"type":"object","required":["city"]}',
+        responseJsonSchema: '{"type":"object","properties":{"temp":{"type":"number"}}}',
         asyncTaskConfig: {
           enabled: true,
           queryMethod: 'GET',
@@ -179,12 +183,16 @@ describe('asset api', () => {
       apiCode: 'weather-api',
       assetName: 'Weather API',
       assetType: 'STANDARD_API',
+      requestJsonSchema: undefined,
+      responseJsonSchema: undefined,
     })
 
     expect(mockedPost).toHaveBeenCalledWith('v1/current-user/assets', {
       apiCode: 'weather-api',
       assetName: 'Weather API',
       assetType: 'STANDARD_API',
+      requestJsonSchema: undefined,
+      responseJsonSchema: undefined,
     })
   })
 
@@ -206,6 +214,8 @@ describe('asset api', () => {
       upstreamUrl: 'https://upstream.example.com/weather',
       authScheme: 'HEADER_TOKEN',
       authConfig: 'Authorization: Bearer upstream-token',
+      requestJsonSchema: '{"type":"object","required":["city"]}',
+      responseJsonSchema: null,
       asyncTaskConfig: {
         enabled: true,
         queryMethod: 'GET',
@@ -231,6 +241,8 @@ describe('asset api', () => {
       requestTemplate: undefined,
       requestExample: undefined,
       responseExample: undefined,
+      requestJsonSchema: '{"type":"object","required":["city"]}',
+      responseJsonSchema: null,
       asyncTaskConfig: {
         enabled: true,
         queryMethod: 'GET',

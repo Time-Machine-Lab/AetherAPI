@@ -29,6 +29,7 @@ import CodeBlock from '@/components/console/CodeBlock.vue'
 import DisplayTag from '@/components/console/DisplayTag.vue'
 import MethodTag from '@/components/console/MethodTag.vue'
 import FieldGroup from '@/components/console/FieldGroup.vue'
+import JsonSchemaViewer from '@/components/console/JsonSchemaViewer.vue'
 import StateBlock from '@/components/console/StateBlock.vue'
 import { buildUnifiedAccessAddress, buildUnifiedAccessTaskAddress } from '@/utils/platform-url'
 import { assetTypeTone } from '@/utils/visual-system'
@@ -525,6 +526,23 @@ watch(
                     :value="detail.requestTemplate"
                   />
                 </div>
+                <FieldGroup
+                  v-if="detail.requestJsonSchema || detail.responseJsonSchema"
+                  :title="t('console.home.jsonSchema')"
+                >
+                  <div class="grid gap-3">
+                    <JsonSchemaViewer
+                      v-if="detail.requestJsonSchema"
+                      :label="t('console.home.requestJsonSchema')"
+                      :value="detail.requestJsonSchema"
+                    />
+                    <JsonSchemaViewer
+                      v-if="detail.responseJsonSchema"
+                      :label="t('console.home.responseJsonSchema')"
+                      :value="detail.responseJsonSchema"
+                    />
+                  </div>
+                </FieldGroup>
                 <div v-if="detail.exampleSnapshot?.requestExample">
                   <CodeBlock
                     :label="t('console.home.requestExample')"

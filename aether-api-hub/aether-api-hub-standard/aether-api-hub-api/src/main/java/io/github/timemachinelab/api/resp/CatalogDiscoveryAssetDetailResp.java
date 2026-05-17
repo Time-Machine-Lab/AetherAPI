@@ -40,6 +40,12 @@ public class CatalogDiscoveryAssetDetailResp {
     @JsonProperty("exampleSnapshot")
     private CatalogDiscoveryExampleSnapshotResp exampleSnapshot;
 
+    @JsonProperty("requestJsonSchema")
+    private String requestJsonSchema;
+
+    @JsonProperty("responseJsonSchema")
+    private String responseJsonSchema;
+
     @JsonProperty("asyncTaskConfig")
     private AsyncTaskConfigResp asyncTaskConfig;
 
@@ -62,6 +68,39 @@ public class CatalogDiscoveryAssetDetailResp {
             CatalogDiscoveryExampleSnapshotResp exampleSnapshot,
             AsyncTaskConfigResp asyncTaskConfig,
             CatalogDiscoveryAiCapabilityProfileResp aiCapabilityProfile) {
+        this(
+                apiCode,
+                assetName,
+                assetType,
+                category,
+                publisher,
+                publishedAt,
+                requestMethod,
+                authScheme,
+                requestTemplate,
+                exampleSnapshot,
+                null,
+                null,
+                asyncTaskConfig,
+                aiCapabilityProfile
+        );
+    }
+
+    public CatalogDiscoveryAssetDetailResp(
+            String apiCode,
+            String assetName,
+            AssetType assetType,
+            CatalogDiscoveryCategoryResp category,
+            CatalogDiscoveryPublisherResp publisher,
+            String publishedAt,
+            RequestMethod requestMethod,
+            AuthScheme authScheme,
+            String requestTemplate,
+            CatalogDiscoveryExampleSnapshotResp exampleSnapshot,
+            String requestJsonSchema,
+            String responseJsonSchema,
+            AsyncTaskConfigResp asyncTaskConfig,
+            CatalogDiscoveryAiCapabilityProfileResp aiCapabilityProfile) {
         this.apiCode = apiCode;
         this.assetName = assetName;
         this.assetType = assetType;
@@ -72,6 +111,8 @@ public class CatalogDiscoveryAssetDetailResp {
         this.authScheme = authScheme;
         this.requestTemplate = requestTemplate;
         this.exampleSnapshot = exampleSnapshot;
+        this.requestJsonSchema = requestJsonSchema;
+        this.responseJsonSchema = responseJsonSchema;
         this.asyncTaskConfig = asyncTaskConfig;
         this.aiCapabilityProfile = aiCapabilityProfile;
     }
@@ -154,6 +195,22 @@ public class CatalogDiscoveryAssetDetailResp {
 
     public void setExampleSnapshot(CatalogDiscoveryExampleSnapshotResp exampleSnapshot) {
         this.exampleSnapshot = exampleSnapshot;
+    }
+
+    public String getRequestJsonSchema() {
+        return requestJsonSchema;
+    }
+
+    public void setRequestJsonSchema(String requestJsonSchema) {
+        this.requestJsonSchema = requestJsonSchema;
+    }
+
+    public String getResponseJsonSchema() {
+        return responseJsonSchema;
+    }
+
+    public void setResponseJsonSchema(String responseJsonSchema) {
+        this.responseJsonSchema = responseJsonSchema;
     }
 
     public AsyncTaskConfigResp getAsyncTaskConfig() {

@@ -323,6 +323,14 @@ components:
           maxLength: 128
           nullable: true
           example: Weather Forecast API
+        requestJsonSchema:
+          type: string
+          nullable: true
+          description: 请求体 JSON Schema 快照，可为空
+        responseJsonSchema:
+          type: string
+          nullable: true
+          description: 响应体 JSON Schema 快照，可为空
         asyncTaskConfig:
           $ref: '#/components/schemas/AsyncTaskConfig'
 
@@ -376,6 +384,14 @@ components:
         responseExample:
           type: string
           nullable: true
+        requestJsonSchema:
+          type: string
+          nullable: true
+          description: 请求体 JSON Schema 快照，可为空；传 null 表示清空
+        responseJsonSchema:
+          type: string
+          nullable: true
+          description: 响应体 JSON Schema 快照，可为空；传 null 表示清空
         asyncTaskConfig:
           $ref: '#/components/schemas/AsyncTaskConfig'
 
@@ -525,6 +541,14 @@ components:
         responseExample:
           type: string
           nullable: true
+        requestJsonSchema:
+          type: string
+          nullable: true
+          description: 请求体 JSON Schema 快照，可为空
+        responseJsonSchema:
+          type: string
+          nullable: true
+          description: 响应体 JSON Schema 快照，可为空
         asyncTaskConfig:
           $ref: '#/components/schemas/AsyncTaskConfig'
         aiCapabilityProfile:

@@ -108,6 +108,8 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     requestTemplate: string
     requestExample: string
     responseExample: string
+    requestJsonSchema: string
+    responseJsonSchema: string
     asyncTaskEnabled: boolean
     asyncTaskQueryMethod: 'GET' | 'POST'
     asyncTaskQueryUrlTemplate: string
@@ -127,6 +129,8 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     requestTemplate: '',
     requestExample: '',
     responseExample: '',
+    requestJsonSchema: '',
+    responseJsonSchema: '',
     asyncTaskEnabled: false,
     asyncTaskQueryMethod: 'GET',
     asyncTaskQueryUrlTemplate: '',
@@ -162,6 +166,8 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
       requestTemplate: asset?.requestTemplate ?? '',
       requestExample: asset?.requestExample ?? '',
       responseExample: asset?.responseExample ?? '',
+      requestJsonSchema: asset?.requestJsonSchema ?? '',
+      responseJsonSchema: asset?.responseJsonSchema ?? '',
       asyncTaskEnabled: asset?.asyncTaskConfig?.enabled ?? false,
       asyncTaskQueryMethod: asset?.asyncTaskConfig?.queryMethod ?? 'GET',
       asyncTaskQueryUrlTemplate: asset?.asyncTaskConfig?.queryUrlTemplate ?? '',
@@ -205,6 +211,8 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
       requestTemplate: updated.requestTemplate ?? previous.requestTemplate,
       requestExample: updated.requestExample ?? previous.requestExample,
       responseExample: updated.responseExample ?? previous.responseExample,
+      requestJsonSchema: updated.requestJsonSchema ?? previous.requestJsonSchema,
+      responseJsonSchema: updated.responseJsonSchema ?? previous.responseJsonSchema,
       asyncTaskConfig: updated.asyncTaskConfig ?? previous.asyncTaskConfig,
       aiProfile: updated.aiProfile ?? {
         provider: aiProfileForm.value.provider,
@@ -467,6 +475,8 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
           requestTemplate: normalizeOptionalText(assetConfigForm.value.requestTemplate),
           requestExample: normalizeOptionalText(assetConfigForm.value.requestExample),
           responseExample: normalizeOptionalText(assetConfigForm.value.responseExample),
+          requestJsonSchema: normalizeOptionalText(assetConfigForm.value.requestJsonSchema),
+          responseJsonSchema: normalizeOptionalText(assetConfigForm.value.responseJsonSchema),
           asyncTaskConfig: buildAsyncTaskConfig(),
         }),
       )

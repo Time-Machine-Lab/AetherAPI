@@ -84,7 +84,9 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
                 assetType,
                 command.getAssetName()
         );
-        if (command.getAsyncTaskConfig() != null) {
+        if (command.getRequestJsonSchema() != null
+                || command.getResponseJsonSchema() != null
+                || command.getAsyncTaskConfig() != null) {
             aggregate.revise(
                     aggregate.getName(),
                     aggregate.getType(),
@@ -92,6 +94,8 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
                     aggregate.getUpstreamConfig(),
                     aggregate.getRequestTemplate(),
                     aggregate.getExampleSnapshot(),
+                    command.getRequestJsonSchema(),
+                    command.getResponseJsonSchema(),
                     toAsyncTaskConfig(command.getAsyncTaskConfig()),
                     aggregate.getPublisherDisplayName()
             );
@@ -116,6 +120,12 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
                 ? command.getRequestTemplate()
                 : aggregate.getRequestTemplate();
         ExampleSnapshot exampleSnapshot = mergeExamples(aggregate, command);
+        String requestJsonSchema = command.isRequestJsonSchemaSet()
+                ? command.getRequestJsonSchema()
+                : aggregate.getRequestJsonSchema();
+        String responseJsonSchema = command.isResponseJsonSchemaSet()
+                ? command.getResponseJsonSchema()
+                : aggregate.getResponseJsonSchema();
         AsyncTaskConfig asyncTaskConfig = command.isAsyncTaskConfigSet()
                 ? toAsyncTaskConfig(command.getAsyncTaskConfig())
                 : aggregate.getAsyncTaskConfig();
@@ -127,6 +137,8 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
                 upstreamConfig,
                 requestTemplate,
                 exampleSnapshot,
+                requestJsonSchema,
+                responseJsonSchema,
                 asyncTaskConfig,
                 normalizePublisherDisplayName(command.getPublisherDisplayName(), command.getOwnerUserId())
         );
@@ -288,6 +300,8 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
                 aggregate.getRequestTemplate(),
                 aggregate.getExampleSnapshot() == null ? null : aggregate.getExampleSnapshot().getRequestExample(),
                 aggregate.getExampleSnapshot() == null ? null : aggregate.getExampleSnapshot().getResponseExample(),
+                aggregate.getRequestJsonSchema(),
+                aggregate.getResponseJsonSchema(),
                 toAsyncTaskConfigModel(aggregate.getAsyncTaskConfig()),
                 aggregate.getAiCapabilityProfile() == null ? null : aggregate.getAiCapabilityProfile().getProvider(),
                 aggregate.getAiCapabilityProfile() == null ? null : aggregate.getAiCapabilityProfile().getModel(),

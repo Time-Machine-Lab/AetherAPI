@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS api_asset (
     request_template        TEXT NULL COMMENT '请求模板描述',
     request_example         TEXT NULL COMMENT '请求示例快照',
     response_example        TEXT NULL COMMENT '响应示例快照',
+    request_json_schema     TEXT NULL COMMENT '请求体 JSON Schema 快照，可为空',
+    response_json_schema    TEXT NULL COMMENT '响应体 JSON Schema 快照，可为空',
     async_task_config       TEXT NULL COMMENT '异步任务查询配置 JSON。为空表示该资产不声明 Unified Access 任务查询通道',
     ai_provider             VARCHAR(128) NULL COMMENT 'AI 提供方，仅 AI_API 使用',
     ai_model                VARCHAR(128) NULL COMMENT 'AI 模型标识，仅 AI_API 使用',
@@ -52,6 +54,8 @@ COMMENT ON COLUMN api_asset.auth_config IS '上游鉴权配置 JSON';
 COMMENT ON COLUMN api_asset.request_template IS '请求模板描述';
 COMMENT ON COLUMN api_asset.request_example IS '请求示例快照';
 COMMENT ON COLUMN api_asset.response_example IS '响应示例快照';
+COMMENT ON COLUMN api_asset.request_json_schema IS '请求体 JSON Schema 快照，可为空';
+COMMENT ON COLUMN api_asset.response_json_schema IS '响应体 JSON Schema 快照，可为空';
 COMMENT ON COLUMN api_asset.async_task_config IS '异步任务查询配置 JSON。为空表示该资产不声明 Unified Access 任务查询通道';
 COMMENT ON COLUMN api_asset.ai_provider IS 'AI 提供方，仅 AI_API 使用';
 COMMENT ON COLUMN api_asset.ai_model IS 'AI 模型标识，仅 AI_API 使用';

@@ -84,6 +84,8 @@ class MybatisCatalogDiscoveryQueryPortTest {
     @DisplayName("detail should expose async task query configuration")
     void shouldExposeAsyncTaskConfigurationInDetail() {
         CatalogDiscoveryAssetRecord record = assetRecord("image-generate", "PUBLISHED", "AI_API", "Alice");
+        record.setRequestJsonSchema("{\"type\":\"object\",\"required\":[\"prompt\"]}");
+        record.setResponseJsonSchema("{\"type\":\"object\",\"properties\":{\"taskId\":{\"type\":\"string\"}}}");
         record.setAsyncTaskConfig(
                 "{\"enabled\":true,\"queryMethod\":\"GET\",\"queryUrlTemplate\":\"http://provider.example.com/v1/tasks/{taskId}\",\"authMode\":\"SAME_AS_SUBMIT\",\"statusPath\":\"$.data.status\",\"resultPath\":\"$.data.result\",\"errorPath\":\"$.data.error\"}"
         );
@@ -92,6 +94,8 @@ class MybatisCatalogDiscoveryQueryPortTest {
         Optional<CatalogDiscoveryAssetDetailModel> result = queryPort.findDiscoverableAssetDetail("image-generate");
 
         assertTrue(result.isPresent());
+        assertEquals("{\"type\":\"object\",\"required\":[\"prompt\"]}", result.get().getRequestJsonSchema());
+        assertEquals("{\"type\":\"object\",\"properties\":{\"taskId\":{\"type\":\"string\"}}}", result.get().getResponseJsonSchema());
         assertNotNull(result.get().getAsyncTaskConfig());
         assertEquals(Boolean.TRUE, result.get().getAsyncTaskConfig().getEnabled());
         assertEquals("GET", result.get().getAsyncTaskConfig().getQueryMethod());
@@ -132,6 +136,8 @@ class MybatisCatalogDiscoveryQueryPortTest {
         assertSqlContains(selectAssetSummaries, "AND a.status = 'PUBLISHED'");
         assertSqlContains(selectAssetDetail, "WHERE a.is_deleted = FALSE");
         assertSqlContains(selectAssetDetail, "AND a.status = 'PUBLISHED'");
+        assertSqlContains(selectAssetDetail, "a.request_json_schema AS requestJsonSchema");
+        assertSqlContains(selectAssetDetail, "a.response_json_schema AS responseJsonSchema");
         assertSqlContains(selectAssetDetail, "a.async_task_config AS asyncTaskConfig");
     }
 

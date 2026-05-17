@@ -75,6 +75,8 @@ public class MybatisCatalogDiscoveryQueryPort implements CatalogDiscoveryQueryPo
                 record.getAuthScheme(),
                 record.getRequestTemplate(),
                 toExampleSnapshotModel(record),
+                record.getRequestJsonSchema(),
+                record.getResponseJsonSchema(),
                 toAsyncTaskConfigModel(record.getAsyncTaskConfig()),
                 toAiProfileModel(record)
         );

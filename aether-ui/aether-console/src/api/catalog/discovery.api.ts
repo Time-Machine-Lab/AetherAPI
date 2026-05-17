@@ -49,6 +49,8 @@ function mapAssetDetail(dto: DiscoveryAssetDetailDto): DiscoveryAssetDetail {
     authScheme: dto.authScheme ?? undefined,
     requestMethod: dto.requestMethod ?? undefined,
     requestTemplate: dto.requestTemplate ?? undefined,
+    requestJsonSchema: dto.requestJsonSchema ?? undefined,
+    responseJsonSchema: dto.responseJsonSchema ?? undefined,
     exampleSnapshot: dto.exampleSnapshot
       ? {
           requestExample: dto.exampleSnapshot.requestExample ?? undefined,

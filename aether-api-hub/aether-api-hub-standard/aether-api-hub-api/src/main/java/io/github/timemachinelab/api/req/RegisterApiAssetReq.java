@@ -24,6 +24,12 @@ public class RegisterApiAssetReq {
     @JsonProperty("assetName")
     private String assetName;
 
+    @JsonProperty("requestJsonSchema")
+    private String requestJsonSchema;
+
+    @JsonProperty("responseJsonSchema")
+    private String responseJsonSchema;
+
     @JsonProperty("asyncTaskConfig")
     private AsyncTaskConfigReq asyncTaskConfig;
 
@@ -58,6 +64,22 @@ public class RegisterApiAssetReq {
 
     public void setAssetName(String assetName) {
         this.assetName = assetName;
+    }
+
+    public String getRequestJsonSchema() {
+        return requestJsonSchema;
+    }
+
+    public void setRequestJsonSchema(String requestJsonSchema) {
+        this.requestJsonSchema = requestJsonSchema;
+    }
+
+    public String getResponseJsonSchema() {
+        return responseJsonSchema;
+    }
+
+    public void setResponseJsonSchema(String responseJsonSchema) {
+        this.responseJsonSchema = responseJsonSchema;
     }
 
     public AsyncTaskConfigReq getAsyncTaskConfig() {

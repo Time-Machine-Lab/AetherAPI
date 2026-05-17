@@ -1,0 +1,102 @@
+{
+  "baseUrl": "http://localhost:8080",
+  "managementAuth": {
+    "headerName": "Authorization",
+    "prefix": "Bearer",
+    "apiKeyEnv": "AETHER_ADMIN_TOKEN"
+  },
+  "defaults": {
+    "publish": true,
+    "ensureCategoryEnabled": true,
+    "continueOnError": false
+  },
+  "categories": [
+    {
+      "categoryCode": "chat",
+      "categoryName": "对话接口",
+      "enableAfterEnsure": true
+    }
+  ],
+  "proxyProfiles": [
+    {
+      "profileCode": "corp-http-proxy",
+      "profileName": "企业 HTTP 代理",
+      "proxyType": "HTTP",
+      "proxyHost": "127.0.0.1",
+      "proxyPort": 7890,
+      "enabled": true,
+      "createIfMissing": false,
+      "profileId": ""
+    }
+  ],
+  "apis": [
+    {
+      "apiCode": "chat-completions",
+      "categoryCode": "chat",
+      "assetName": "Chat Completions",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "https://example.com/v1/chat/completions",
+      "authScheme": "HEADER_TOKEN",
+      "authConfig": "Authorization: Bearer ${env:OPENAI_KEY}",
+      "requestTemplate": "{\"model\":\"${body.model}\",\"messages\":${body.messages}}",
+      "requestExample": "{\"model\":\"gpt-4.1\",\"messages\":[{\"role\":\"user\",\"content\":\"你好\"}]}",
+      "responseExample": "{\"id\":\"demo\",\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"你好，我在。\"}}]}",
+      "requestJsonSchema": {
+        "type": "object",
+        "required": ["model", "messages"],
+        "properties": {
+          "model": {
+            "type": "string"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "responseJsonSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "choices": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "publish": true,
+      "aiProfile": {
+        "provider": "OpenAI",
+        "model": "gpt-4.1",
+        "streamingSupported": true,
+        "capabilityTags": ["chat", "stream"]
+      },
+      "proxyBinding": {
+        "profileCode": "corp-http-proxy"
+      },
+      "exampleAccess": {
+        "method": "POST",
+        "body": {
+          "model": "gpt-4.1",
+          "messages": [
+            {
+              "role": "user",
+              "content": "请介绍 Aether API Hub。"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "exampleAccess": {
+    "apiKeyEnv": "AETHER_ACCESS_KEY",
+    "contentType": "application/json"
+  }
+}

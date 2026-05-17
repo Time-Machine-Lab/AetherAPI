@@ -38,6 +38,8 @@ export interface ApiAsset {
   requestTemplate?: string
   requestExample?: string
   responseExample?: string
+  requestJsonSchema?: string
+  responseJsonSchema?: string
   asyncTaskConfig?: AsyncTaskConfig
   aiProfile?: AiProfile
   deleted?: boolean
@@ -73,6 +75,8 @@ export interface DiscoveryAssetDetail extends DiscoveryAsset {
   authScheme?: string
   requestMethod?: string
   requestTemplate?: string
+  requestJsonSchema?: string
+  responseJsonSchema?: string
   exampleSnapshot?: DiscoveryExampleSnapshot
   asyncTaskConfig?: AsyncTaskConfig
   aiProfile?: AiProfile

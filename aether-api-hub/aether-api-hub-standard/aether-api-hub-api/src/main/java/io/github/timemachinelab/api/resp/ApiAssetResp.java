@@ -56,6 +56,12 @@ public class ApiAssetResp {
     @JsonProperty("responseExample")
     private String responseExample;
 
+    @JsonProperty("requestJsonSchema")
+    private String requestJsonSchema;
+
+    @JsonProperty("responseJsonSchema")
+    private String responseJsonSchema;
+
     @JsonProperty("asyncTaskConfig")
     private AsyncTaskConfigResp asyncTaskConfig;
 
@@ -111,6 +117,8 @@ public class ApiAssetResp {
                 requestExample,
                 responseExample,
                 null,
+                null,
+                null,
                 aiCapabilityProfile,
                 deleted,
                 createdAt,
@@ -139,6 +147,55 @@ public class ApiAssetResp {
             boolean deleted,
             String createdAt,
             String updatedAt) {
+        this(
+                id,
+                apiCode,
+                assetName,
+                assetType,
+                categoryCode,
+                status,
+                publisherDisplayName,
+                publishedAt,
+                requestMethod,
+                upstreamUrl,
+                authScheme,
+                authConfig,
+                requestTemplate,
+                requestExample,
+                responseExample,
+                null,
+                null,
+                asyncTaskConfig,
+                aiCapabilityProfile,
+                deleted,
+                createdAt,
+                updatedAt
+        );
+    }
+
+    public ApiAssetResp(
+            String id,
+            String apiCode,
+            String assetName,
+            AssetType assetType,
+            String categoryCode,
+            AssetStatus status,
+            String publisherDisplayName,
+            String publishedAt,
+            RequestMethod requestMethod,
+            String upstreamUrl,
+            AuthScheme authScheme,
+            String authConfig,
+            String requestTemplate,
+            String requestExample,
+            String responseExample,
+            String requestJsonSchema,
+            String responseJsonSchema,
+            AsyncTaskConfigResp asyncTaskConfig,
+            AiCapabilityProfileResp aiCapabilityProfile,
+            boolean deleted,
+            String createdAt,
+            String updatedAt) {
         this.id = id;
         this.apiCode = apiCode;
         this.assetName = assetName;
@@ -154,6 +211,8 @@ public class ApiAssetResp {
         this.requestTemplate = requestTemplate;
         this.requestExample = requestExample;
         this.responseExample = responseExample;
+        this.requestJsonSchema = requestJsonSchema;
+        this.responseJsonSchema = responseJsonSchema;
         this.asyncTaskConfig = asyncTaskConfig;
         this.aiCapabilityProfile = aiCapabilityProfile;
         this.deleted = deleted;
@@ -279,6 +338,22 @@ public class ApiAssetResp {
 
     public void setResponseExample(String responseExample) {
         this.responseExample = responseExample;
+    }
+
+    public String getRequestJsonSchema() {
+        return requestJsonSchema;
+    }
+
+    public void setRequestJsonSchema(String requestJsonSchema) {
+        this.requestJsonSchema = requestJsonSchema;
+    }
+
+    public String getResponseJsonSchema() {
+        return responseJsonSchema;
+    }
+
+    public void setResponseJsonSchema(String responseJsonSchema) {
+        this.responseJsonSchema = responseJsonSchema;
     }
 
     public AiCapabilityProfileResp getAiCapabilityProfile() {

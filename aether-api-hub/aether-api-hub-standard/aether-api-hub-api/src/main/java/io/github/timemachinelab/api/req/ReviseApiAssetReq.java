@@ -55,6 +55,14 @@ public class ReviseApiAssetReq {
     private String responseExample;
     private boolean responseExampleSet;
 
+    @JsonProperty("requestJsonSchema")
+    private String requestJsonSchema;
+    private boolean requestJsonSchemaSet;
+
+    @JsonProperty("responseJsonSchema")
+    private String responseJsonSchema;
+    private boolean responseJsonSchemaSet;
+
     @JsonProperty("asyncTaskConfig")
     private AsyncTaskConfigReq asyncTaskConfig;
     private boolean asyncTaskConfigSet;
@@ -117,6 +125,18 @@ public class ReviseApiAssetReq {
     public void setResponseExample(String responseExample) {
         this.responseExample = responseExample;
         this.responseExampleSet = true;
+    }
+
+    @JsonSetter("requestJsonSchema")
+    public void setRequestJsonSchema(String requestJsonSchema) {
+        this.requestJsonSchema = requestJsonSchema;
+        this.requestJsonSchemaSet = true;
+    }
+
+    @JsonSetter("responseJsonSchema")
+    public void setResponseJsonSchema(String responseJsonSchema) {
+        this.responseJsonSchema = responseJsonSchema;
+        this.responseJsonSchemaSet = true;
     }
 
     @JsonSetter("asyncTaskConfig")
@@ -203,6 +223,22 @@ public class ReviseApiAssetReq {
 
     public boolean isResponseExampleSet() {
         return responseExampleSet;
+    }
+
+    public String getRequestJsonSchema() {
+        return requestJsonSchema;
+    }
+
+    public boolean isRequestJsonSchemaSet() {
+        return requestJsonSchemaSet;
+    }
+
+    public String getResponseJsonSchema() {
+        return responseJsonSchema;
+    }
+
+    public boolean isResponseJsonSchemaSet() {
+        return responseJsonSchemaSet;
     }
 
     public AsyncTaskConfigReq getAsyncTaskConfig() {

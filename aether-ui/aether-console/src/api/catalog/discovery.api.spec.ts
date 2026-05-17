@@ -104,6 +104,8 @@ describe('discovery api', () => {
         authScheme: 'HEADER_TOKEN',
         requestMethod: 'POST',
         requestTemplate: '{"model":"gpt-4.1"}',
+        requestJsonSchema: '{"type":"object","required":["messages"]}',
+        responseJsonSchema: '{"type":"object","properties":{"id":{"type":"string"}}}',
         exampleSnapshot: { requestExample: '{"messages":[]}' },
         asyncTaskConfig: {
           enabled: true,
@@ -130,6 +132,10 @@ describe('discovery api', () => {
     expect(mockedGet).toHaveBeenCalledWith('v1/discovery/assets/chat-completions')
     expect(result.aiProfile?.provider).toBe('OpenAI')
     expect(result.requestMethod).toBe('POST')
+    expect(result.requestJsonSchema).toBe('{"type":"object","required":["messages"]}')
+    expect(result.responseJsonSchema).toBe(
+      '{"type":"object","properties":{"id":{"type":"string"}}}',
+    )
     expect(result.publisherDisplayName).toBe('Ada Publisher')
     expect(result.publishedAt).toBe('2026-04-26T12:00:00Z')
     expect(result.asyncTaskConfig).toEqual({

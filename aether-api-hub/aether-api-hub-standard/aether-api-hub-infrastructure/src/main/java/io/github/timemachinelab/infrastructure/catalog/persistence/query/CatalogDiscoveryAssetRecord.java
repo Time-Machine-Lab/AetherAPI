@@ -20,6 +20,8 @@ public class CatalogDiscoveryAssetRecord {
     private String requestTemplate;
     private String requestExample;
     private String responseExample;
+    private String requestJsonSchema;
+    private String responseJsonSchema;
     private String asyncTaskConfig;
     private String aiProvider;
     private String aiModel;
@@ -128,6 +130,22 @@ public class CatalogDiscoveryAssetRecord {
 
     public void setResponseExample(String responseExample) {
         this.responseExample = responseExample;
+    }
+
+    public String getRequestJsonSchema() {
+        return requestJsonSchema;
+    }
+
+    public void setRequestJsonSchema(String requestJsonSchema) {
+        this.requestJsonSchema = requestJsonSchema;
+    }
+
+    public String getResponseJsonSchema() {
+        return responseJsonSchema;
+    }
+
+    public void setResponseJsonSchema(String responseJsonSchema) {
+        this.responseJsonSchema = responseJsonSchema;
     }
 
     public String getAsyncTaskConfig() {

@@ -144,12 +144,17 @@ class ApiAssetApplicationServiceTest {
                     PUBLISHER_DISPLAY_NAME,
                     "weather-forecast",
                     AssetType.STANDARD_API,
-                    "Weather Forecast"
+                    "Weather Forecast",
+                    "{\"type\":\"object\"}",
+                    "{\"type\":\"object\",\"properties\":{\"temperature\":{\"type\":\"number\"}}}",
+                    null
             ));
 
             assertEquals("weather-forecast", result.getApiCode());
             assertEquals("DRAFT", result.getStatus());
             assertEquals(PUBLISHER_DISPLAY_NAME, result.getPublisherDisplayName());
+            assertEquals("{\"type\":\"object\"}", result.getRequestJsonSchema());
+            assertEquals("{\"type\":\"object\",\"properties\":{\"temperature\":{\"type\":\"number\"}}}", result.getResponseJsonSchema());
             verify(apiAssetRepositoryPort).save(any(ApiAssetAggregate.class));
         }
     }
@@ -283,6 +288,88 @@ class ApiAssetApplicationServiceTest {
             assertEquals("$.status", detail.getAsyncTaskConfig().getStatusPath());
             assertEquals("$.result", detail.getAsyncTaskConfig().getResultPath());
             assertEquals("$.error", detail.getAsyncTaskConfig().getErrorPath());
+        }
+
+        @Test
+        @DisplayName("should revise and clear request response json schemas")
+        void shouldReviseAndClearRequestResponseJsonSchemas() {
+            ApiAssetApplicationService lifecycleService = lifecycleService(categoryRef -> true);
+            lifecycleService.registerAsset(new RegisterApiAssetCommand(
+                    CURRENT_USER_ID,
+                    PUBLISHER_DISPLAY_NAME,
+                    "weather-forecast",
+                    AssetType.STANDARD_API,
+                    "Weather Forecast"));
+
+            ApiAssetModel revised = lifecycleService.reviseAsset(new ReviseApiAssetCommand(
+                    CURRENT_USER_ID,
+                    PUBLISHER_DISPLAY_NAME,
+                    "weather-forecast",
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    "{\"type\":\"object\",\"required\":[\"city\"]}",
+                    true,
+                    "{\"type\":\"object\",\"properties\":{\"temperature\":{\"type\":\"number\"}}}",
+                    true,
+                    null,
+                    false
+            ));
+
+            assertEquals("{\"type\":\"object\",\"required\":[\"city\"]}", revised.getRequestJsonSchema());
+            assertEquals("{\"type\":\"object\",\"properties\":{\"temperature\":{\"type\":\"number\"}}}", revised.getResponseJsonSchema());
+
+            ApiAssetModel cleared = lifecycleService.reviseAsset(new ReviseApiAssetCommand(
+                    CURRENT_USER_ID,
+                    PUBLISHER_DISPLAY_NAME,
+                    "weather-forecast",
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    true,
+                    null,
+                    true,
+                    null,
+                    false
+            ));
+
+            assertEquals(null, cleared.getRequestJsonSchema());
+            assertEquals(null, cleared.getResponseJsonSchema());
         }
 
         @Test

@@ -1,0 +1,439 @@
+{
+  "baseUrl": "http://localhost:8090",
+  "managementAuth": {
+    "headerName": "Authorization",
+    "prefix": "Bearer",
+    "apiKeyEnv": "AETHER_IMPORT_TOKEN"
+  },
+  "defaults": {
+    "publish": true,
+    "ensureCategoryEnabled": true,
+    "continueOnError": true
+  },
+  "categories": [
+    {
+      "categoryCode": "image",
+      "categoryName": "图片模型",
+      "enableAfterEnsure": true
+    },
+    {
+      "categoryCode": "video",
+      "categoryName": "视频模型",
+      "enableAfterEnsure": true
+    },
+    {
+      "categoryCode": "chat",
+      "categoryName": "对话模型",
+      "enableAfterEnsure": true
+    },
+    {
+      "categoryCode": "tool",
+      "categoryName": "工具能力",
+      "enableAfterEnsure": true
+    }
+  ],
+  "proxyProfiles": [],
+  "apis": [
+    {
+      "apiCode": "wuyin-gpt-image-2",
+      "categoryCode": "image",
+      "assetName": "Wuyin GPT Image 2.0",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "http://api.wuyinkeji.com/api/async/image_gpt",
+      "authScheme": "QUERY_TOKEN",
+      "authConfig": "key=${env:WUYIN_MEDIA_API_KEY}",
+      "requestExample": "{\"prompt\":\"a product photo of a red backpack, studio lighting\",\"size\":\"1:1\",\"urls\":[\"http://example.com/input.png\"]}",
+      "responseExample": "{\"data\":{\"id\":\"wuyin-gpt-image-task-001\",\"status\":\"0\"}}",
+      "requestJsonSchema": {
+        "type": "object",
+        "required": ["prompt"],
+        "properties": {
+          "prompt": {
+            "type": "string"
+          },
+          "size": {
+            "type": "string"
+          },
+          "urls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "responseJsonSchema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "asyncTaskConfig": {
+        "enabled": true,
+        "queryMethod": "GET",
+        "queryUrlTemplate": "http://api.wuyinkeji.com/api/async/detail?id={taskId}",
+        "authMode": "SAME_AS_SUBMIT",
+        "statusPath": "$.data.status",
+        "resultPath": "$.data.result",
+        "errorPath": "$.message"
+      },
+      "aiProfile": {
+        "provider": "wuyin",
+        "model": "gpt-image-2",
+        "streamingSupported": false,
+        "capabilityTags": ["图像生成", "图生图", "异步任务"]
+      }
+    },
+    {
+      "apiCode": "wuyin-grok-imagine-image",
+      "categoryCode": "image",
+      "assetName": "Wuyin Grok Imagine 图片",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "http://api.wuyinkeji.com/api/async/image_grok_imagine",
+      "authScheme": "QUERY_TOKEN",
+      "authConfig": "key=${env:WUYIN_MEDIA_API_KEY}",
+      "requestExample": "{\"prompt\":\"cinematic realistic portrait, soft sunlight, shallow depth of field\",\"aspect_ratio\":\"9:16\",\"image_urls\":[\"http://example.com/input.png\"]}",
+      "responseExample": "{\"data\":{\"id\":\"wuyin-grok-image-task-001\",\"status\":\"0\"}}",
+      "asyncTaskConfig": {
+        "enabled": true,
+        "queryMethod": "GET",
+        "queryUrlTemplate": "http://api.wuyinkeji.com/api/async/detail?id={taskId}",
+        "authMode": "SAME_AS_SUBMIT",
+        "statusPath": "$.data.status",
+        "resultPath": "$.data.result",
+        "errorPath": "$.message"
+      },
+      "aiProfile": {
+        "provider": "wuyin",
+        "model": "grok_imagine",
+        "streamingSupported": false,
+        "capabilityTags": ["图像生成", "图生图", "异步任务"]
+      }
+    },
+    {
+      "apiCode": "wuyin-nano-banana-pro",
+      "categoryCode": "image",
+      "assetName": "Wuyin NanoBanana Pro",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "http://api.wuyinkeji.com/api/async/image_nanoBanana_pro",
+      "authScheme": "QUERY_TOKEN",
+      "authConfig": "key=${env:WUYIN_MEDIA_API_KEY}",
+      "requestExample": "{\"prompt\":\"a premium skincare product poster with clear Chinese typography\",\"aspectRatio\":\"4:5\",\"size\":\"4K\",\"urls\":[\"http://example.com/input.png\"]}",
+      "responseExample": "{\"data\":{\"id\":\"wuyin-nano-pro-task-001\",\"status\":\"0\"}}",
+      "asyncTaskConfig": {
+        "enabled": true,
+        "queryMethod": "GET",
+        "queryUrlTemplate": "http://api.wuyinkeji.com/api/async/detail?id={taskId}",
+        "authMode": "SAME_AS_SUBMIT",
+        "statusPath": "$.data.status",
+        "resultPath": "$.data.result",
+        "errorPath": "$.message"
+      },
+      "aiProfile": {
+        "provider": "wuyin",
+        "model": "nano-banana-pro",
+        "streamingSupported": false,
+        "capabilityTags": ["图像生成", "图生图", "异步任务"]
+      }
+    },
+    {
+      "apiCode": "wuyin-nano-banana2",
+      "categoryCode": "image",
+      "assetName": "Wuyin NanoBanana2",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "http://api.wuyinkeji.com/api/async/image_nanoBanana2",
+      "authScheme": "QUERY_TOKEN",
+      "authConfig": "key=${env:WUYIN_MEDIA_API_KEY}",
+      "requestExample": "{\"prompt\":\"minimalist packaging mockup on a clean desk\",\"aspectRatio\":\"auto\",\"size\":\"2K\",\"urls\":[\"http://example.com/input.png\"]}",
+      "responseExample": "{\"data\":{\"id\":\"wuyin-nano2-task-001\",\"status\":\"0\"}}",
+      "asyncTaskConfig": {
+        "enabled": true,
+        "queryMethod": "GET",
+        "queryUrlTemplate": "http://api.wuyinkeji.com/api/async/detail?id={taskId}",
+        "authMode": "SAME_AS_SUBMIT",
+        "statusPath": "$.data.status",
+        "resultPath": "$.data.result",
+        "errorPath": "$.message"
+      },
+      "aiProfile": {
+        "provider": "wuyin",
+        "model": "nano-banana2",
+        "streamingSupported": false,
+        "capabilityTags": ["图像生成", "图生图", "异步任务"]
+      }
+    },
+    {
+      "apiCode": "bltcy-jimeng-seedream-5",
+      "categoryCode": "image",
+      "assetName": "BLTCY Jimeng Seedream 5.0",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "http://api.bltcy.top/v1/images/generations",
+      "authScheme": "HEADER_TOKEN",
+      "authConfig": "Authorization: Bearer ${env:BLTCY_IMAGE_API_KEY}",
+      "requestExample": "{\"model\":\"doubao-seedream-5-0-260128\",\"prompt\":\"modern Chinese tea brand poster, elegant packaging, soft daylight\",\"response_format\":\"url\",\"size\":\"2048x2048\",\"n\":1,\"watermark\":false,\"image\":[\"data:image/jpeg;base64,...\"]}",
+      "responseExample": "{\"data\":[{\"url\":\"http://example.com/seedream-5.png\",\"revised_prompt\":\"modern Chinese tea brand poster\"}]}",
+      "aiProfile": {
+        "provider": "bltcy",
+        "model": "doubao-seedream-5-0-260128",
+        "streamingSupported": false,
+        "capabilityTags": ["图像生成", "图生图"]
+      }
+    },
+    {
+      "apiCode": "bltcy-midjourney-v7",
+      "categoryCode": "image",
+      "assetName": "BLTCY Midjourney v7",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "http://api.bltcy.top/fast/mj/submit/imagine",
+      "authScheme": "HEADER_TOKEN",
+      "authConfig": "Authorization: Bearer ${env:BLTCY_MJ_API_KEY}",
+      "requestExample": "{\"prompt\":\"high fashion editorial photo, dramatic studio light --ar 3:4 --v 7\",\"base64Array\":[\"data:image/jpeg;base64,...\"]}",
+      "responseExample": "{\"result\":\"mj-task-001\"}",
+      "asyncTaskConfig": {
+        "enabled": true,
+        "queryMethod": "GET",
+        "queryUrlTemplate": "http://api.bltcy.top/fast/mj/task/{taskId}/fetch",
+        "authMode": "SAME_AS_SUBMIT",
+        "statusPath": "$.status",
+        "resultPath": "$.imageUrl",
+        "errorPath": "$.failReason"
+      },
+      "aiProfile": {
+        "provider": "bltcy",
+        "model": "midjourney-v7",
+        "streamingSupported": false,
+        "capabilityTags": ["图像生成", "图生图", "异步任务"]
+      }
+    },
+    {
+      "apiCode": "modelmaster-seedvr2-image",
+      "categoryCode": "image",
+      "assetName": "ModelMaster SeedVR2 图片增强",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "http://101.126.81.73:6008/tasks",
+      "authScheme": "NONE",
+      "requestExample": "{\"modelname\":\"seedvr2_image\",\"url\":\"http://example.com/source.png\",\"type\":\"image\",\"resolution\":1707}",
+      "responseExample": "{\"task_id\":\"seedvr2-task-001\",\"status\":\"created\"}",
+      "asyncTaskConfig": {
+        "enabled": true,
+        "queryMethod": "GET",
+        "queryUrlTemplate": "http://101.126.81.73:6008/tasks/{taskId}",
+        "authMode": "SAME_AS_SUBMIT",
+        "statusPath": "$.status",
+        "resultPath": "$.output.url",
+        "errorPath": "$.error"
+      },
+      "aiProfile": {
+        "provider": "modelmaster",
+        "model": "seedvr2_image",
+        "streamingSupported": false,
+        "capabilityTags": ["图像增强", "异步任务"]
+      }
+    },
+    {
+      "apiCode": "wuyin-grok-imagine-video",
+      "categoryCode": "video",
+      "assetName": "Wuyin Grok Imagine 视频",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "http://api.wuyinkeji.com/api/async/video_grok_imagine",
+      "authScheme": "QUERY_TOKEN",
+      "authConfig": "key=${env:WUYIN_MEDIA_API_KEY}",
+      "requestExample": "{\"prompt\":\"a cinematic moonwalk shot with realistic shadows\",\"duration\":\"10\",\"aspect_ratio\":\"2:3\",\"image_urls\":[\"http://example.com/first-frame.png\"]}",
+      "responseExample": "{\"data\":{\"id\":\"wuyin-grok-video-task-001\",\"status\":\"0\"}}",
+      "asyncTaskConfig": {
+        "enabled": true,
+        "queryMethod": "GET",
+        "queryUrlTemplate": "http://api.wuyinkeji.com/api/async/detail?id={taskId}",
+        "authMode": "SAME_AS_SUBMIT",
+        "statusPath": "$.data.status",
+        "resultPath": "$.data.result",
+        "errorPath": "$.message"
+      },
+      "aiProfile": {
+        "provider": "wuyin",
+        "model": "grok_imagine",
+        "streamingSupported": false,
+        "capabilityTags": ["视频生成", "图生视频", "异步任务"]
+      }
+    },
+    {
+      "apiCode": "wuyin-sora2-video",
+      "categoryCode": "video",
+      "assetName": "Wuyin Sora 2 视频",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "http://api.wuyinkeji.com/api/sora2-new/submit",
+      "authScheme": "QUERY_TOKEN",
+      "authConfig": "key=${env:WUYIN_MEDIA_API_KEY}",
+      "requestExample": "{\"prompt\":\"a calm seaside sunset timelapse, cinematic camera movement\",\"aspectRatio\":\"16:9\",\"duration\":\"8\",\"size\":\"small\",\"url\":\"http://example.com/first-frame.png\"}",
+      "responseExample": "{\"data\":{\"id\":\"wuyin-sora2-task-001\",\"status\":\"0\"}}",
+      "asyncTaskConfig": {
+        "enabled": true,
+        "queryMethod": "GET",
+        "queryUrlTemplate": "http://api.wuyinkeji.com/api/sora2/detail?id={taskId}",
+        "authMode": "SAME_AS_SUBMIT",
+        "statusPath": "$.data.status",
+        "resultPath": "$.data.remote_url",
+        "errorPath": "$.message"
+      },
+      "aiProfile": {
+        "provider": "wuyin",
+        "model": "sora2-new",
+        "streamingSupported": false,
+        "capabilityTags": ["视频生成", "图生视频", "异步任务"]
+      }
+    },
+    {
+      "apiCode": "ablai-veo31-fast-video",
+      "categoryCode": "video",
+      "assetName": "ABLAI Veo 3.1 Fast 视频",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "http://api.ablai.top/v2/videos/generations",
+      "authScheme": "HEADER_TOKEN",
+      "authConfig": "Authorization: Bearer ${env:ABLAI_VEO_API_KEY}",
+      "requestExample": "{\"prompt\":\"a city night aerial shot with smooth motion\",\"model\":\"veo3.1-fast\",\"aspect_ratio\":\"16:9\",\"enhance_prompt\":true,\"images\":[\"http://example.com/first-frame.png\"]}",
+      "responseExample": "{\"task_id\":\"veo-task-001\",\"status\":\"PENDING\"}",
+      "asyncTaskConfig": {
+        "enabled": true,
+        "queryMethod": "GET",
+        "queryUrlTemplate": "http://api.ablai.top/v2/videos/generations/{taskId}",
+        "authMode": "SAME_AS_SUBMIT",
+        "statusPath": "$.status",
+        "resultPath": "$.data.output",
+        "errorPath": "$.error"
+      },
+      "aiProfile": {
+        "provider": "ablai",
+        "model": "veo3.1-fast",
+        "streamingSupported": false,
+        "capabilityTags": ["视频生成", "图生视频", "异步任务"]
+      }
+    },
+    {
+      "apiCode": "minimax-m2-7",
+      "categoryCode": "chat",
+      "assetName": "MiniMax M2.7 高速版",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "http://api.minimaxi.com/v1/chat/completions",
+      "authScheme": "HEADER_TOKEN",
+      "authConfig": "Authorization: Bearer ${env:MINIMAX_API_KEY}",
+      "requestExample": "{\"model\":\"MiniMax-M2.7-highspeed\",\"messages\":[{\"role\":\"system\",\"content\":\"You are a helpful assistant.\"},{\"role\":\"user\",\"content\":\"Write a short product description.\"}],\"stream\":true}",
+      "responseExample": "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Here is a short product description.\"}}]}",
+      "aiProfile": {
+        "provider": "minimax",
+        "model": "MiniMax-M2.7-highspeed",
+        "streamingSupported": true,
+        "capabilityTags": ["文本对话", "流式输出"]
+      }
+    },
+    {
+      "apiCode": "deepseek-v4-flash",
+      "categoryCode": "chat",
+      "assetName": "DeepSeek V4 Flash",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "http://api.qnaigc.com/v1/chat/completions",
+      "authScheme": "HEADER_TOKEN",
+      "authConfig": "Authorization: Bearer ${env:QNAIGC_LLM_API_KEY}",
+      "requestExample": "{\"model\":\"deepseek/deepseek-v4-flash\",\"messages\":[{\"role\":\"system\",\"content\":\"You are a helpful assistant.\"},{\"role\":\"user\",\"content\":\"Summarize this paragraph.\"}],\"stream\":true}",
+      "responseExample": "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Summary.\"}}]}",
+      "aiProfile": {
+        "provider": "qnaigc",
+        "model": "deepseek/deepseek-v4-flash",
+        "streamingSupported": true,
+        "capabilityTags": ["文本对话", "流式输出"]
+      }
+    },
+    {
+      "apiCode": "gpt-5-5-mini",
+      "categoryCode": "chat",
+      "assetName": "GPT-5.5 Mini（未启用）",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "http://117.72.211.46/v1/chat/completions",
+      "authScheme": "HEADER_TOKEN",
+      "authConfig": "Authorization: Bearer ${env:GPT55_MINI_API_KEY}",
+      "requestExample": "{\"model\":\"gpt-5.5-mini\",\"messages\":[{\"role\":\"system\",\"content\":\"You are a helpful assistant.\"},{\"role\":\"user\",\"content\":\"Write a product intro.\"}],\"stream\":true}",
+      "responseExample": "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Product intro.\"}}]}",
+      "publish": false,
+      "aiProfile": {
+        "provider": "gpt55-mini-gateway",
+        "model": "gpt-5.5-mini",
+        "streamingSupported": true,
+        "capabilityTags": ["文本对话", "流式输出"]
+      }
+    },
+    {
+      "apiCode": "doubao-seed-1-6-flash",
+      "categoryCode": "chat",
+      "assetName": "Doubao Seed 1.6 Flash 视觉",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "http://api.qnaigc.com/v1/chat/completions",
+      "authScheme": "HEADER_TOKEN",
+      "authConfig": "Authorization: Bearer ${env:QNAIGC_LLM_API_KEY}",
+      "requestExample": "{\"model\":\"doubao-seed-1.6-flash\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"请识别图片内容，并返回 JSON。\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"http://example.com/image.png\"}}]}],\"stream\":false,\"response_format\":{\"type\":\"json_object\"},\"max_tokens\":4096}",
+      "responseExample": "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"{\\\"summary\\\":\\\"image description\\\"}\"}}]}",
+      "aiProfile": {
+        "provider": "qnaigc",
+        "model": "doubao-seed-1.6-flash",
+        "streamingSupported": false,
+        "capabilityTags": ["视觉理解", "多模态对话", "结构化输出"]
+      }
+    },
+    {
+      "apiCode": "moonshotai-kimi-k2-5",
+      "categoryCode": "chat",
+      "assetName": "Kimi K2.5 视觉",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "http://api.qnaigc.com/v1/chat/completions",
+      "authScheme": "HEADER_TOKEN",
+      "authConfig": "Authorization: Bearer ${env:QNAIGC_LLM_API_KEY}",
+      "requestExample": "{\"model\":\"moonshotai/kimi-k2.5\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"请识别图片内容，并返回 JSON。\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"http://example.com/image.png\"}}]}],\"stream\":false,\"response_format\":{\"type\":\"json_object\"},\"max_tokens\":4096}",
+      "responseExample": "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"{\\\"summary\\\":\\\"image description\\\"}\"}}]}",
+      "aiProfile": {
+        "provider": "qnaigc",
+        "model": "moonshotai/kimi-k2.5",
+        "streamingSupported": false,
+        "capabilityTags": ["视觉理解", "多模态对话", "结构化输出"]
+      }
+    },
+    {
+      "apiCode": "creative_research",
+      "categoryCode": "tool",
+      "assetName": "创作调研搜索",
+      "assetType": "STANDARD_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "http://api.qnaigc.com/v1/search/web",
+      "authScheme": "HEADER_TOKEN",
+      "authConfig": "Authorization: Bearer ${env:QNAIGC_SEARCH_API_KEY}",
+      "requestExample": "{\"query\":\"2026 春节营销视觉趋势\",\"search_type\":\"web\",\"max_results\":5,\"time_filter\":\"month\"}",
+      "responseExample": "{\"data\":[{\"title\":\"示例结果\",\"url\":\"http://example.com\",\"snippet\":\"搜索结果摘要\"}]}",
+      "publish": true
+    }
+  ],
+  "exampleAccess": {
+    "contentType": "application/json"
+  }
+}

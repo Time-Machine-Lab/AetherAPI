@@ -19,6 +19,7 @@ import MethodTag from '@/components/console/MethodTag.vue'
 import DataListRow from '@/components/console/DataListRow.vue'
 import FieldGroup from '@/components/console/FieldGroup.vue'
 import FieldLabel from '@/components/console/FieldLabel.vue'
+import JsonSchemaViewer from '@/components/console/JsonSchemaViewer.vue'
 import StateBlock from '@/components/console/StateBlock.vue'
 import { buildUnifiedAccessAddress } from '@/utils/platform-url'
 import { assetTypeTone, type DisplayTone } from '@/utils/visual-system'
@@ -27,6 +28,7 @@ import type { AssetStatus } from '@/api/catalog/catalog.types'
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const jsonSchemaPlaceholder = '{"type":"object","properties":{}}'
 
 const isCredentialsSection = computed(() => route.hash === '#credentials')
 const isApiCallLogsSection = computed(() => route.hash === '#api-call-logs')
@@ -254,6 +256,20 @@ function confirmDeleteAsset() {
                 :hint="t('console.shared.platformCallAddressHint')"
                 :value="buildUnifiedAccessAddress(currentAsset.apiCode)"
               />
+              <div class="grid gap-3 lg:grid-cols-2">
+                <JsonSchemaViewer
+                  :label="t('console.workspace.requestJsonSchema')"
+                  :value="currentAsset.requestJsonSchema"
+                  :empty-title="t('console.workspace.requestJsonSchemaEmpty')"
+                  max-height-class="max-h-[220px]"
+                />
+                <JsonSchemaViewer
+                  :label="t('console.workspace.responseJsonSchema')"
+                  :value="currentAsset.responseJsonSchema"
+                  :empty-title="t('console.workspace.responseJsonSchemaEmpty')"
+                  max-height-class="max-h-[220px]"
+                />
+              </div>
               <div class="flex flex-wrap gap-2">
                 <Button size="xs" variant="outline" @click="openAssetEditor">
                   <Settings class="size-3.5" />
@@ -765,6 +781,32 @@ function confirmDeleteAsset() {
                 :placeholder="t('console.workspace.fieldResponseExample')"
                 class="min-h-[96px] w-full rounded-[12px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 text-sm text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
               />
+            </div>
+            <div class="grid gap-3 md:grid-cols-2">
+              <div class="space-y-2">
+                <FieldLabel
+                  :label="t('console.workspace.fieldRequestJsonSchema')"
+                  :hint="t('console.workspace.fieldRequestJsonSchemaHint')"
+                  optional
+                />
+                <textarea
+                  v-model="assetConfigForm.requestJsonSchema"
+                  :placeholder="jsonSchemaPlaceholder"
+                  class="min-h-[150px] w-full rounded-[12px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 font-mono text-xs leading-5 text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                />
+              </div>
+              <div class="space-y-2">
+                <FieldLabel
+                  :label="t('console.workspace.fieldResponseJsonSchema')"
+                  :hint="t('console.workspace.fieldResponseJsonSchemaHint')"
+                  optional
+                />
+                <textarea
+                  v-model="assetConfigForm.responseJsonSchema"
+                  :placeholder="jsonSchemaPlaceholder"
+                  class="min-h-[150px] w-full rounded-[12px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 font-mono text-xs leading-5 text-foreground outline-none transition-[background-color,box-shadow,border-color] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                />
+              </div>
             </div>
             <div class="rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-white px-4 py-3">
               <p class="text-xs font-semibold text-foreground">

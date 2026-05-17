@@ -32,6 +32,10 @@ public class ReviseApiAssetCommand {
     private final boolean requestExampleSet;
     private final String responseExample;
     private final boolean responseExampleSet;
+    private final String requestJsonSchema;
+    private final boolean requestJsonSchemaSet;
+    private final String responseJsonSchema;
+    private final boolean responseJsonSchemaSet;
     private final AsyncTaskConfigModel asyncTaskConfig;
     private final boolean asyncTaskConfigSet;
 
@@ -84,6 +88,10 @@ public class ReviseApiAssetCommand {
                 responseExample,
                 responseExampleSet,
                 null,
+                false,
+                null,
+                false,
+                null,
                 false
         );
     }
@@ -114,6 +122,69 @@ public class ReviseApiAssetCommand {
             boolean responseExampleSet,
             AsyncTaskConfigModel asyncTaskConfig,
             boolean asyncTaskConfigSet) {
+        this(
+                ownerUserId,
+                publisherDisplayName,
+                apiCode,
+                assetName,
+                assetNameSet,
+                assetType,
+                assetTypeSet,
+                categoryCode,
+                categoryCodeSet,
+                requestMethod,
+                requestMethodSet,
+                upstreamUrl,
+                upstreamUrlSet,
+                authScheme,
+                authSchemeSet,
+                authConfig,
+                authConfigSet,
+                requestTemplate,
+                requestTemplateSet,
+                requestExample,
+                requestExampleSet,
+                responseExample,
+                responseExampleSet,
+                null,
+                false,
+                null,
+                false,
+                asyncTaskConfig,
+                asyncTaskConfigSet
+        );
+    }
+
+    public ReviseApiAssetCommand(
+            String ownerUserId,
+            String publisherDisplayName,
+            String apiCode,
+            String assetName,
+            boolean assetNameSet,
+            AssetType assetType,
+            boolean assetTypeSet,
+            String categoryCode,
+            boolean categoryCodeSet,
+            RequestMethod requestMethod,
+            boolean requestMethodSet,
+            String upstreamUrl,
+            boolean upstreamUrlSet,
+            AuthScheme authScheme,
+            boolean authSchemeSet,
+            String authConfig,
+            boolean authConfigSet,
+            String requestTemplate,
+            boolean requestTemplateSet,
+            String requestExample,
+            boolean requestExampleSet,
+            String responseExample,
+            boolean responseExampleSet,
+            String requestJsonSchema,
+            boolean requestJsonSchemaSet,
+            String responseJsonSchema,
+            boolean responseJsonSchemaSet,
+            AsyncTaskConfigModel asyncTaskConfig,
+            boolean asyncTaskConfigSet) {
         this.ownerUserId = ownerUserId;
         this.publisherDisplayName = publisherDisplayName;
         this.apiCode = apiCode;
@@ -137,6 +208,10 @@ public class ReviseApiAssetCommand {
         this.requestExampleSet = requestExampleSet;
         this.responseExample = responseExample;
         this.responseExampleSet = responseExampleSet;
+        this.requestJsonSchema = requestJsonSchema;
+        this.requestJsonSchemaSet = requestJsonSchemaSet;
+        this.responseJsonSchema = responseJsonSchema;
+        this.responseJsonSchemaSet = responseJsonSchemaSet;
         this.asyncTaskConfig = asyncTaskConfig;
         this.asyncTaskConfigSet = asyncTaskConfigSet;
     }
@@ -231,6 +306,22 @@ public class ReviseApiAssetCommand {
 
     public boolean isResponseExampleSet() {
         return responseExampleSet;
+    }
+
+    public String getRequestJsonSchema() {
+        return requestJsonSchema;
+    }
+
+    public boolean isRequestJsonSchemaSet() {
+        return requestJsonSchemaSet;
+    }
+
+    public String getResponseJsonSchema() {
+        return responseJsonSchema;
+    }
+
+    public boolean isResponseJsonSchemaSet() {
+        return responseJsonSchemaSet;
     }
 
     public AsyncTaskConfigModel getAsyncTaskConfig() {

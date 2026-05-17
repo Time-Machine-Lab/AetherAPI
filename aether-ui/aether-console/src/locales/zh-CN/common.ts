@@ -30,6 +30,7 @@ export default {
       expand: '展开',
       collapse: '收起',
       plainTextFallback: '内容不是合法 JSON，已按纯文本展示。',
+      schemaEmpty: '暂无 Schema 配置',
     },
     nav: {
       home: 'API 市场',
@@ -88,6 +89,9 @@ export default {
       requestTemplate: '请求模板',
       requestExample: '请求示例',
       responseExample: '响应示例',
+      jsonSchema: 'JSON Schema',
+      requestJsonSchema: '请求体 Schema',
+      responseJsonSchema: '响应体 Schema',
       asyncTaskQuery: '异步任务查询',
       asyncTaskQueryDescription:
         '提交响应返回 taskId 后，通过这里查询任务状态或结果。下方结构由已配置的 Path 自动生成。',
@@ -237,6 +241,14 @@ export default {
       fieldRequestExampleHint: '示例是一次具体调用的请求载荷，帮助调用者理解真实入参。',
       fieldResponseExample: '响应示例',
       fieldResponseExampleHint: '示例是上游可能返回的响应载荷，适合展示成功结构或关键字段。',
+      requestJsonSchema: '请求体 Schema',
+      responseJsonSchema: '响应体 Schema',
+      requestJsonSchemaEmpty: '暂无请求体 Schema',
+      responseJsonSchemaEmpty: '暂无响应体 Schema',
+      fieldRequestJsonSchema: '请求体 JSON Schema',
+      fieldRequestJsonSchemaHint: '可选的请求体 JSON Schema 快照。留空会清除已保存 Schema。',
+      fieldResponseJsonSchema: '响应体 JSON Schema',
+      fieldResponseJsonSchemaHint: '可选的响应体 JSON Schema 快照。留空会清除已保存 Schema。',
       asyncTaskConfigGroup: '异步任务查询',
       asyncTaskConfigDescription:
         '配置上游异步提交返回 taskId 后，统一接入如何查询任务状态或结果。',

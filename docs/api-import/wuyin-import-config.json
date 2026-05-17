@@ -1,0 +1,564 @@
+{
+  "baseUrl": "http://localhost:8090",
+  "managementAuth": {
+    "headerName": "Authorization",
+    "prefix": "",
+    "apiKeyEnv": "AETHER_IMPORT_AUTH"
+  },
+  "defaults": {
+    "publish": true,
+    "ensureCategoryEnabled": true,
+    "continueOnError": true
+  },
+  "categories": [
+    {
+      "categoryCode": "video",
+      "categoryName": "视频",
+      "enableAfterEnsure": true
+    },
+    {
+      "categoryCode": "tool",
+      "categoryName": "工具",
+      "enableAfterEnsure": true
+    }
+  ],
+  "proxyProfiles": [],
+  "apis": [
+    {
+      "apiCode": "wuyin-wan2-6-video",
+      "categoryCode": "video",
+      "assetName": "Wuyin Wan2.6 视频生成",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "https://api.wuyinkeji.com/api/async/video_wan2.6",
+      "authScheme": "HEADER_TOKEN",
+      "authConfig": "Authorization: ${env:WUYIN_MEDIA_API_KEY}",
+      "requestExample": "{\"prompt\":\"一只猫跳舞\",\"negative_prompt\":\"不要出现动作变形\",\"size\":\"1280*720\",\"duration\":\"5\",\"prompt_extend\":\"true\",\"shot_type\":\"single\",\"watermark\":\"false\",\"seed\":\"0\",\"urls\":[\"https://example.com/reference.jpg\"]}",
+      "responseExample": "{\"code\":200,\"msg\":\"成功\",\"data\":{\"id\":\"video_4d39239e-776a-4cbd-a8eb-e2d9b4816829\",\"count\":10},\"exec_time\":0.290186,\"ip\":\"119.6.176.239\"}",
+      "requestJsonSchema": {
+        "type": "object",
+        "description": "Wan2.6 异步视频生成请求体。支持文本提示词、反向提示词、音频驱动、首帧参考、参考图片/视频、多镜头控制和水印控制。",
+        "required": ["prompt"],
+        "additionalProperties": true,
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "文本提示词。描述希望生成的视频内容，文档说明超长会自动截断。",
+            "maxLength": 500,
+            "examples": ["一只猫跳舞"]
+          },
+          "negative_prompt": {
+            "type": "string",
+            "description": "反向提示词。描述不希望在视频中出现的内容。",
+            "maxLength": 500,
+            "examples": ["不要出现动作变形"]
+          },
+          "audio_url": {
+            "type": "string",
+            "description": "音频文件 URL，用于音画同步或声音驱动场景。",
+            "format": "uri",
+            "examples": ["https://example.com/audio.mp3"]
+          },
+          "firstFrameUrl": {
+            "type": "string",
+            "description": "首帧图。支持 URL 或 Base64 编码数据。",
+            "examples": ["https://example.com/first-frame.jpg", "data:image/png;base64,..."]
+          },
+          "size": {
+            "type": "string",
+            "description": "生成视频分辨率，格式为宽*高。",
+            "default": "1280*720",
+            "enum": [
+              "1280*720",
+              "720*1280",
+              "960*960",
+              "1088*832",
+              "832*1088",
+              "1920*1080",
+              "1080*1920",
+              "1440*1440",
+              "1632*1248",
+              "1248*1632"
+            ],
+            "examples": ["1280*720"]
+          },
+          "duration": {
+            "type": "string",
+            "description": "生成视频时长，单位秒。",
+            "default": "5",
+            "enum": ["5", "10", "15"],
+            "examples": ["5"]
+          },
+          "prompt_extend": {
+            "type": "string",
+            "description": "是否开启 prompt 智能改写。开启后模型会改写输入提示词，可能增加耗时。",
+            "default": "true",
+            "enum": ["true", "false"],
+            "examples": ["true"]
+          },
+          "shot_type": {
+            "type": "string",
+            "description": "镜头类型。仅当 prompt_extend 为 true 时生效；参数优先级高于 prompt。",
+            "default": "single",
+            "enum": ["single", "multi"],
+            "examples": ["single"]
+          },
+          "watermark": {
+            "type": "string",
+            "description": "是否添加 AI 生成水印。水印位于视频右下角。",
+            "default": "false",
+            "enum": ["true", "false"],
+            "examples": ["false"]
+          },
+          "seed": {
+            "type": "string",
+            "description": "随机种子。文档说明可用于提升可复现性，但相同 seed 不保证完全一致。",
+            "default": "0",
+            "pattern": "^[0-7]$",
+            "examples": ["0"]
+          },
+          "urls": {
+            "type": "array",
+            "description": "参考文件 URL 数组。支持图片和视频，用于提取角色形象与音色等参考特征；总数限制为 5。",
+            "maxItems": 5,
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "description": "单个参考图片或视频 URL。"
+            },
+            "examples": [["https://example.com/reference.jpg"]]
+          }
+        }
+      },
+      "responseJsonSchema": {
+        "type": "object",
+        "description": "Wan2.6 异步提交响应。成功时 data.id 可作为异步任务 ID，通过 asyncTaskConfig 中的结果详情接口查询状态与结果。",
+        "required": ["code", "msg", "data"],
+        "additionalProperties": true,
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "状态码。",
+            "examples": [200]
+          },
+          "msg": {
+            "type": "string",
+            "description": "状态信息。",
+            "examples": ["成功"]
+          },
+          "data": {
+            "type": "object",
+            "description": "请求结果数据。",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "异步任务 ID，后续用于查询结果详情。",
+                "examples": ["video_4d39239e-776a-4cbd-a8eb-e2d9b4816829"]
+              },
+              "count": {
+                "type": "number",
+                "description": "返回示例中的计数字段。"
+              },
+              "status": {
+                "type": ["integer", "string"],
+                "description": "结果详情中的任务状态。0 初始化、1 进行中、2 成功、3 失败。",
+                "enum": [0, 1, 2, 3, "0", "1", "2", "3"]
+              },
+              "message": {
+                "type": "string",
+                "description": "结果详情中的错误或结果消息。"
+              }
+            }
+          },
+          "debug": {
+            "description": "调试数据，可能为字符串或数组。"
+          },
+          "exec_time": {
+            "type": "number",
+            "description": "执行耗时。",
+            "examples": [0.290186]
+          },
+          "ip": {
+            "type": "string",
+            "description": "客户端 IP。"
+          },
+          "user_ip": {
+            "type": "string",
+            "description": "客户端 IP。"
+          }
+        }
+      },
+      "asyncTaskConfig": {
+        "enabled": true,
+        "queryMethod": "GET",
+        "queryUrlTemplate": "https://api.wuyinkeji.com/api/async/detail?id={taskId}",
+        "authMode": "SAME_AS_SUBMIT",
+        "statusPath": "$.data.status",
+        "resultPath": "$.data",
+        "errorPath": "$.data.message"
+      },
+      "aiProfile": {
+        "provider": "wuyin",
+        "model": "wan2.6",
+        "streamingSupported": false,
+        "capabilityTags": ["video", "async-task", "multi-shot", "audio-driven"]
+      }
+    },
+    {
+      "apiCode": "wuyin-digital-humans",
+      "categoryCode": "video",
+      "assetName": "Wuyin Digital Humans 数字人",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "https://api.wuyinkeji.com/api/async/video_digital_humans",
+      "authScheme": "HEADER_TOKEN",
+      "authConfig": "Authorization: ${env:WUYIN_MEDIA_API_KEY}",
+      "requestExample": "{\"videoName\":\"demo-digital-human\",\"audioUrl\":\"https://example.com/audio.mp3\",\"videoUrl\":\"https://example.com/source.mp4\"}",
+      "responseExample": "{\"code\":200,\"msg\":\"成功\",\"data\":{\"id\":\"digital-human-task-001\"},\"exec_time\":0.3,\"user_ip\":\"119.6.176.239\"}",
+      "requestJsonSchema": {
+        "type": "object",
+        "description": "数字人异步生成请求体。上传人物正面视频和音频后驱动数字人口型。",
+        "required": ["videoName"],
+        "additionalProperties": true,
+        "properties": {
+          "videoName": {
+            "type": "string",
+            "description": "任务或视频名称。",
+            "examples": ["demo-digital-human"]
+          },
+          "audioUrl": {
+            "type": "string",
+            "description": "音频公网 URL。",
+            "format": "uri",
+            "examples": ["https://example.com/audio.mp3"]
+          },
+          "videoUrl": {
+            "type": "string",
+            "description": "人物正面视频公网 URL。文档说明视频时长不应低于 10 秒。",
+            "format": "uri",
+            "examples": ["https://example.com/source.mp4"]
+          }
+        }
+      },
+      "responseJsonSchema": {
+        "type": "object",
+        "description": "数字人异步提交响应。data.id 可作为异步任务 ID。",
+        "required": ["code", "msg", "data"],
+        "additionalProperties": true,
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "状态码。",
+            "examples": [200]
+          },
+          "msg": {
+            "type": "string",
+            "description": "状态信息。",
+            "examples": ["成功"]
+          },
+          "data": {
+            "type": "object",
+            "description": "请求结果数据。",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "异步任务 ID。",
+                "examples": ["digital-human-task-001"]
+              },
+              "status": {
+                "type": ["integer", "string"],
+                "description": "结果详情中的任务状态。0 初始化、1 进行中、2 成功、3 失败。",
+                "enum": [0, 1, 2, 3, "0", "1", "2", "3"]
+              },
+              "message": {
+                "type": "string",
+                "description": "结果详情中的错误或结果消息。"
+              }
+            }
+          },
+          "exec_time": {
+            "type": "number",
+            "description": "执行耗时。"
+          },
+          "user_ip": {
+            "type": "string",
+            "description": "客户端 IP。"
+          }
+        }
+      },
+      "asyncTaskConfig": {
+        "enabled": true,
+        "queryMethod": "GET",
+        "queryUrlTemplate": "https://api.wuyinkeji.com/api/async/detail?id={taskId}",
+        "authMode": "SAME_AS_SUBMIT",
+        "statusPath": "$.data.status",
+        "resultPath": "$.data",
+        "errorPath": "$.data.message"
+      },
+      "aiProfile": {
+        "provider": "wuyin",
+        "model": "digital_humans",
+        "streamingSupported": false,
+        "capabilityTags": ["video", "digital-human", "async-task"]
+      }
+    },
+    {
+      "apiCode": "wuyin-audio-tts",
+      "categoryCode": "tool",
+      "assetName": "Wuyin 语音合成",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "https://api.wuyinkeji.com/api/async/audio_tts",
+      "authScheme": "HEADER_TOKEN",
+      "authConfig": "Authorization: ${env:WUYIN_MEDIA_API_KEY}",
+      "requestExample": "{\"text\":\"你好，我是 AetherAPI。\",\"voice_id\":\"male-qn-qingse\",\"speed\":\"1\",\"vol\":\"1\",\"language_boost\":\"auto\"}",
+      "responseExample": "{\"code\":200,\"msg\":\"成功\",\"data\":{\"id\":\"audio-tts-task-001\"},\"exec_time\":0.2,\"user_ip\":\"119.6.176.239\"}",
+      "requestJsonSchema": {
+        "type": "object",
+        "description": "异步语音合成请求体。输入文本、音色和语音参数后提交异步合成任务。",
+        "required": ["text", "voice_id"],
+        "additionalProperties": true,
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "待合成的文本。",
+            "minLength": 1,
+            "examples": ["你好，我是 AetherAPI。"]
+          },
+          "voice_id": {
+            "type": "string",
+            "description": "音色 ID。文档列出大量系统音色，例如 male-qn-qingse。",
+            "examples": ["male-qn-qingse"]
+          },
+          "speed": {
+            "type": "string",
+            "description": "语速，范围 0.5 到 2。文档中的异步接口以字符串形式传递。",
+            "default": "1",
+            "examples": ["1"]
+          },
+          "vol": {
+            "type": "string",
+            "description": "音量，范围 1 到 10。文档中的异步接口以字符串形式传递。",
+            "default": "1",
+            "examples": ["1"]
+          },
+          "language_boost": {
+            "type": "string",
+            "description": "语种增强。未明确时可使用 auto 让模型自主判断。",
+            "default": "auto",
+            "enum": [
+              "Chinese",
+              "Chinese,Yue",
+              "English",
+              "Arabic",
+              "Russian",
+              "Spanish",
+              "French",
+              "Portuguese",
+              "German",
+              "Turkish",
+              "Dutch",
+              "Ukrainian",
+              "Vietnamese",
+              "Indonesian",
+              "Japanese",
+              "Italian",
+              "Korean",
+              "auto"
+            ],
+            "examples": ["auto"]
+          }
+        }
+      },
+      "responseJsonSchema": {
+        "type": "object",
+        "description": "异步语音合成提交响应。data.id 可作为任务 ID 通过结果详情接口查询。",
+        "required": ["code", "msg", "data"],
+        "additionalProperties": true,
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "状态码。",
+            "examples": [200]
+          },
+          "msg": {
+            "type": "string",
+            "description": "状态信息。"
+          },
+          "data": {
+            "type": "object",
+            "description": "请求结果数据。",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "异步任务 ID。",
+                "examples": ["audio-tts-task-001"]
+              },
+              "status": {
+                "type": ["integer", "string"],
+                "description": "结果详情中的任务状态。0 初始化、1 进行中、2 成功、3 失败。",
+                "enum": [0, 1, 2, 3, "0", "1", "2", "3"]
+              },
+              "message": {
+                "type": "string",
+                "description": "结果详情中的错误或结果消息。"
+              }
+            }
+          },
+          "exec_time": {
+            "type": "number",
+            "description": "执行耗时。"
+          },
+          "user_ip": {
+            "type": "string",
+            "description": "客户端 IP。"
+          }
+        }
+      },
+      "asyncTaskConfig": {
+        "enabled": true,
+        "queryMethod": "GET",
+        "queryUrlTemplate": "https://api.wuyinkeji.com/api/async/detail?id={taskId}",
+        "authMode": "SAME_AS_SUBMIT",
+        "statusPath": "$.data.status",
+        "resultPath": "$.data",
+        "errorPath": "$.data.message"
+      },
+      "aiProfile": {
+        "provider": "wuyin",
+        "model": "audio_tts",
+        "streamingSupported": false,
+        "capabilityTags": ["audio", "tts", "async-task"]
+      }
+    },
+    {
+      "apiCode": "wuyin-voice-composite",
+      "categoryCode": "tool",
+      "assetName": "Wuyin 语音合成（同步）",
+      "assetType": "AI_API",
+      "requestMethod": "POST",
+      "upstreamUrl": "https://api.wuyinkeji.com/api/voice/composite",
+      "authScheme": "HEADER_TOKEN",
+      "authConfig": "Authorization: ${env:WUYIN_MEDIA_API_KEY}",
+      "requestExample": "{\"text\":\"你好，我是你的克隆声音。\",\"voice_id\":\"male-qn-qingse\",\"speed\":1.0,\"vol\":1.0,\"language_boost\":\"auto\"}",
+      "responseExample": "{\"code\":200,\"msg\":\"成功\",\"data\":{\"url\":\"https://example.com/audio.mp3\",\"duration\":3.2,\"subtitle\":[],\"words\":12}}",
+      "requestJsonSchema": {
+        "type": "object",
+        "description": "同步语音合成请求体。提交后直接返回合成音频地址和相关元数据。",
+        "required": ["text", "voice_id"],
+        "additionalProperties": true,
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "生成音频后朗读的内容。",
+            "minLength": 1,
+            "examples": ["你好，我是你的克隆声音。"]
+          },
+          "voice_id": {
+            "type": "string",
+            "description": "音色 ID。文档列出大量系统音色，例如 male-qn-qingse。",
+            "examples": ["male-qn-qingse"]
+          },
+          "speed": {
+            "type": "number",
+            "description": "语速，范围 0.5 到 2。",
+            "default": 1.0,
+            "minimum": 0.5,
+            "maximum": 2,
+            "examples": [1.0]
+          },
+          "vol": {
+            "type": "number",
+            "description": "音量，范围 1 到 10。",
+            "default": 1.0,
+            "minimum": 1,
+            "maximum": 10,
+            "examples": [1.0]
+          },
+          "language_boost": {
+            "type": ["string", "null"],
+            "description": "语种增强。未设置时可为 null；也可设置 auto 让模型自主判断。",
+            "default": null,
+            "enum": [
+              "Chinese",
+              "Chinese,Yue",
+              "English",
+              "Arabic",
+              "Russian",
+              "Spanish",
+              "French",
+              "Portuguese",
+              "German",
+              "Turkish",
+              "Dutch",
+              "Ukrainian",
+              "Vietnamese",
+              "Indonesian",
+              "Japanese",
+              "Italian",
+              "Korean",
+              "auto",
+              null
+            ],
+            "examples": ["auto"]
+          }
+        }
+      },
+      "responseJsonSchema": {
+        "type": "object",
+        "description": "同步语音合成响应。成功时 data 包含音频地址、时长、字幕和字数等扩展字段。",
+        "required": ["code", "msg", "data"],
+        "additionalProperties": true,
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "状态码。",
+            "examples": [200]
+          },
+          "msg": {
+            "type": "string",
+            "description": "状态信息。",
+            "examples": ["成功"]
+          },
+          "data": {
+            "type": "object",
+            "description": "扩展字段。",
+            "properties": {
+              "url": {
+                "type": "string",
+                "description": "合成音频地址。",
+                "format": "uri",
+                "examples": ["https://example.com/audio.mp3"]
+              },
+              "duration": {
+                "type": "number",
+                "description": "音频时长，单位通常为秒。",
+                "examples": [3.2]
+              },
+              "subtitle": {
+                "type": "array",
+                "description": "音频字幕数组。",
+                "items": {}
+              },
+              "words": {
+                "type": "integer",
+                "description": "字数。",
+                "examples": [12]
+              }
+            }
+          }
+        }
+      },
+      "aiProfile": {
+        "provider": "wuyin",
+        "model": "voice_composite",
+        "streamingSupported": false,
+        "capabilityTags": ["audio", "tts", "sync"]
+      }
+    }
+  ],
+  "exampleAccess": {
+    "apiKey": "<please-fill-X-Aether-Api-Key>",
+    "contentType": "application/json"
+  }
+}

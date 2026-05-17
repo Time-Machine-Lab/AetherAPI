@@ -63,6 +63,8 @@ public class ApiAssetWebDelegate {
                         req.getApiCode(),
                         req.getAssetType(),
                         req.getAssetName(),
+                        req.getRequestJsonSchema(),
+                        req.getResponseJsonSchema(),
                         toAsyncTaskConfigModel(req.getAsyncTaskConfig())));
         return toResp(model);
     }
@@ -96,6 +98,10 @@ public class ApiAssetWebDelegate {
                 req.isRequestExampleSet(),
                 req.getResponseExample(),
                 req.isResponseExampleSet(),
+                req.getRequestJsonSchema(),
+                req.isRequestJsonSchemaSet(),
+                req.getResponseJsonSchema(),
+                req.isResponseJsonSchemaSet(),
                 toAsyncTaskConfigModel(req.getAsyncTaskConfig()),
                 req.isAsyncTaskConfigSet()
         ));
@@ -169,6 +175,8 @@ public class ApiAssetWebDelegate {
                 model.getRequestTemplate(),
                 model.getRequestExample(),
                 model.getResponseExample(),
+                model.getRequestJsonSchema(),
+                model.getResponseJsonSchema(),
                 toAsyncTaskConfigResp(model.getAsyncTaskConfig()),
                 model.getAiProvider() == null
                         ? null

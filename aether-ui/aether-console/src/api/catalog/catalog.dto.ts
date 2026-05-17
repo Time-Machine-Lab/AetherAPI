@@ -52,6 +52,8 @@ export interface DiscoveryAssetDetailDto extends DiscoveryAssetDto {
   authScheme?: 'NONE' | 'HEADER_TOKEN' | 'QUERY_TOKEN' | null
   requestMethod?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | null
   requestTemplate?: string | null
+  requestJsonSchema?: string | null
+  responseJsonSchema?: string | null
   exampleSnapshot?: DiscoveryExampleSnapshotDto | null
   asyncTaskConfig?: AsyncTaskConfigDto | null
   aiCapabilityProfile?: DiscoveryAiCapabilityProfileDto | null
@@ -84,6 +86,8 @@ export interface AssetDto {
   requestTemplate?: string | null
   requestExample?: string | null
   responseExample?: string | null
+  requestJsonSchema?: string | null
+  responseJsonSchema?: string | null
   asyncTaskConfig?: AsyncTaskConfigDto | null
   aiProfile?: AiProfileDto
   aiCapabilityProfile?: {
@@ -116,6 +120,8 @@ export interface RegisterAssetBody {
   apiCode: string
   assetName: string
   assetType: 'AI_API' | 'STANDARD_API'
+  requestJsonSchema?: string | null
+  responseJsonSchema?: string | null
 }
 
 export interface ReviseAssetBody {
@@ -130,6 +136,8 @@ export interface ReviseAssetBody {
   requestTemplate?: string | null
   requestExample?: string | null
   responseExample?: string | null
+  requestJsonSchema?: string | null
+  responseJsonSchema?: string | null
   asyncTaskConfig?: AsyncTaskConfigDto | null
 }
 

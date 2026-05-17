@@ -61,6 +61,8 @@ function mapAsset(dto: AssetDto): ApiAsset {
     requestTemplate: dto.requestTemplate ?? undefined,
     requestExample: dto.requestExample ?? undefined,
     responseExample: dto.responseExample ?? undefined,
+    requestJsonSchema: dto.requestJsonSchema ?? undefined,
+    responseJsonSchema: dto.responseJsonSchema ?? undefined,
     asyncTaskConfig: mapAsyncTaskConfig(dto.asyncTaskConfig),
     aiProfile: mapAiProfile(dto),
     deleted: dto.deleted,
@@ -89,6 +91,8 @@ export async function registerAsset(body: RegisterAssetBody): Promise<ApiAsset> 
     apiCode: body.apiCode,
     assetName: body.assetName,
     assetType: body.assetType,
+    requestJsonSchema: body.requestJsonSchema,
+    responseJsonSchema: body.responseJsonSchema,
   })
   return mapAsset(data)
 }
@@ -121,6 +125,8 @@ export async function reviseAsset(apiCode: string, body: ReviseAssetBody): Promi
     requestTemplate: body.requestTemplate,
     requestExample: body.requestExample,
     responseExample: body.responseExample,
+    requestJsonSchema: body.requestJsonSchema,
+    responseJsonSchema: body.responseJsonSchema,
     asyncTaskConfig: body.asyncTaskConfig,
   })
   return mapAsset(data)

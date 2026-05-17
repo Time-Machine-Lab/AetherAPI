@@ -15,6 +15,8 @@ public class CatalogDiscoveryAssetDetailModel {
     private final String authScheme;
     private final String requestTemplate;
     private final CatalogDiscoveryExampleSnapshotModel exampleSnapshot;
+    private final String requestJsonSchema;
+    private final String responseJsonSchema;
     private final AsyncTaskConfigModel asyncTaskConfig;
     private final CatalogDiscoveryAiCapabilityProfileModel aiCapabilityProfile;
 
@@ -31,6 +33,39 @@ public class CatalogDiscoveryAssetDetailModel {
             CatalogDiscoveryExampleSnapshotModel exampleSnapshot,
             AsyncTaskConfigModel asyncTaskConfig,
             CatalogDiscoveryAiCapabilityProfileModel aiCapabilityProfile) {
+        this(
+                apiCode,
+                assetName,
+                assetType,
+                category,
+                publisher,
+                publishedAt,
+                requestMethod,
+                authScheme,
+                requestTemplate,
+                exampleSnapshot,
+                null,
+                null,
+                asyncTaskConfig,
+                aiCapabilityProfile
+        );
+    }
+
+    public CatalogDiscoveryAssetDetailModel(
+            String apiCode,
+            String assetName,
+            String assetType,
+            CatalogDiscoveryCategoryModel category,
+            CatalogDiscoveryPublisherModel publisher,
+            String publishedAt,
+            String requestMethod,
+            String authScheme,
+            String requestTemplate,
+            CatalogDiscoveryExampleSnapshotModel exampleSnapshot,
+            String requestJsonSchema,
+            String responseJsonSchema,
+            AsyncTaskConfigModel asyncTaskConfig,
+            CatalogDiscoveryAiCapabilityProfileModel aiCapabilityProfile) {
         this.apiCode = apiCode;
         this.assetName = assetName;
         this.assetType = assetType;
@@ -41,6 +76,8 @@ public class CatalogDiscoveryAssetDetailModel {
         this.authScheme = authScheme;
         this.requestTemplate = requestTemplate;
         this.exampleSnapshot = exampleSnapshot;
+        this.requestJsonSchema = requestJsonSchema;
+        this.responseJsonSchema = responseJsonSchema;
         this.asyncTaskConfig = asyncTaskConfig;
         this.aiCapabilityProfile = aiCapabilityProfile;
     }
@@ -83,6 +120,14 @@ public class CatalogDiscoveryAssetDetailModel {
 
     public CatalogDiscoveryExampleSnapshotModel getExampleSnapshot() {
         return exampleSnapshot;
+    }
+
+    public String getRequestJsonSchema() {
+        return requestJsonSchema;
+    }
+
+    public String getResponseJsonSchema() {
+        return responseJsonSchema;
     }
 
     public AsyncTaskConfigModel getAsyncTaskConfig() {

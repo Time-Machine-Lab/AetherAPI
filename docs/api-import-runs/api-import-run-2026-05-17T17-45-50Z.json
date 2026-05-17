@@ -1,0 +1,206 @@
+{
+  "generatedAt": "2026-05-17T17:45:50.115Z",
+  "baseUrl": "http://localhost:8090",
+  "managementHeaderName": "Authorization",
+  "records": [
+    {
+      "timestamp": "2026-05-17T17:45:47.767Z",
+      "step": "ensure-category",
+      "resource": "video",
+      "method": "GET",
+      "status": "STARTED",
+      "httpStatus": "-",
+      "notes": "Check category existence"
+    },
+    {
+      "timestamp": "2026-05-17T17:45:47.860Z",
+      "step": "ensure-category",
+      "resource": "video",
+      "method": "GET",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "Category exists"
+    },
+    {
+      "timestamp": "2026-05-17T17:45:47.894Z",
+      "step": "enable-category",
+      "resource": "video",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "400",
+      "notes": "{\"code\":\"CATEGORY_ALREADY_ENABLED\",\"message\":\"Category is already enabled\"}"
+    },
+    {
+      "timestamp": "2026-05-17T17:45:47.894Z",
+      "step": "ensure-category",
+      "resource": "tool",
+      "method": "GET",
+      "status": "STARTED",
+      "httpStatus": "-",
+      "notes": "Check category existence"
+    },
+    {
+      "timestamp": "2026-05-17T17:45:47.926Z",
+      "step": "ensure-category",
+      "resource": "tool",
+      "method": "GET",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "Category exists"
+    },
+    {
+      "timestamp": "2026-05-17T17:45:47.961Z",
+      "step": "enable-category",
+      "resource": "tool",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "400",
+      "notes": "{\"code\":\"CATEGORY_ALREADY_ENABLED\",\"message\":\"Category is already enabled\"}"
+    },
+    {
+      "timestamp": "2026-05-17T17:45:48.089Z",
+      "step": "register-asset",
+      "resource": "wuyin-wan2-6-video",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"38c601f6-3bd0-4f5d-9dd9-3b65606e6c3c\",\"apiCode\":\"wuyin-wan2-6-video\",\"assetName\":\"Wuyin Wan2.6 视频生成\",\"assetType\":\"AI_API\",\"categoryCode\":null,\"status\"..."
+    },
+    {
+      "timestamp": "2026-05-17T17:45:48.221Z",
+      "step": "revise-asset",
+      "resource": "wuyin-wan2-6-video",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"38c601f6-3bd0-4f5d-9dd9-3b65606e6c3c\",\"apiCode\":\"wuyin-wan2-6-video\",\"assetName\":\"Wuyin Wan2.6 视频生成\",\"assetType\":\"AI_API\",\"categoryCode\":\"video\",\"stat..."
+    },
+    {
+      "timestamp": "2026-05-17T17:45:48.359Z",
+      "step": "attach-ai-profile",
+      "resource": "wuyin-wan2-6-video",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"38c601f6-3bd0-4f5d-9dd9-3b65606e6c3c\",\"apiCode\":\"wuyin-wan2-6-video\",\"assetName\":\"Wuyin Wan2.6 视频生成\",\"assetType\":\"AI_API\",\"categoryCode\":\"video\",\"stat..."
+    },
+    {
+      "timestamp": "2026-05-17T17:45:48.518Z",
+      "step": "publish-asset",
+      "resource": "wuyin-wan2-6-video",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"38c601f6-3bd0-4f5d-9dd9-3b65606e6c3c\",\"apiCode\":\"wuyin-wan2-6-video\",\"assetName\":\"Wuyin Wan2.6 视频生成\",\"assetType\":\"AI_API\",\"categoryCode\":\"video\",\"stat..."
+    },
+    {
+      "timestamp": "2026-05-17T17:45:48.643Z",
+      "step": "register-asset",
+      "resource": "wuyin-digital-humans",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"7144dcb9-eef1-45a7-8501-e848bfeac3d1\",\"apiCode\":\"wuyin-digital-humans\",\"assetName\":\"Wuyin Digital Humans 数字人\",\"assetType\":\"AI_API\",\"categoryCode\":null..."
+    },
+    {
+      "timestamp": "2026-05-17T17:45:48.781Z",
+      "step": "revise-asset",
+      "resource": "wuyin-digital-humans",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"7144dcb9-eef1-45a7-8501-e848bfeac3d1\",\"apiCode\":\"wuyin-digital-humans\",\"assetName\":\"Wuyin Digital Humans 数字人\",\"assetType\":\"AI_API\",\"categoryCode\":\"vid..."
+    },
+    {
+      "timestamp": "2026-05-17T17:45:48.908Z",
+      "step": "attach-ai-profile",
+      "resource": "wuyin-digital-humans",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"7144dcb9-eef1-45a7-8501-e848bfeac3d1\",\"apiCode\":\"wuyin-digital-humans\",\"assetName\":\"Wuyin Digital Humans 数字人\",\"assetType\":\"AI_API\",\"categoryCode\":\"vid..."
+    },
+    {
+      "timestamp": "2026-05-17T17:45:49.065Z",
+      "step": "publish-asset",
+      "resource": "wuyin-digital-humans",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"7144dcb9-eef1-45a7-8501-e848bfeac3d1\",\"apiCode\":\"wuyin-digital-humans\",\"assetName\":\"Wuyin Digital Humans 数字人\",\"assetType\":\"AI_API\",\"categoryCode\":\"vid..."
+    },
+    {
+      "timestamp": "2026-05-17T17:45:49.185Z",
+      "step": "register-asset",
+      "resource": "wuyin-audio-tts",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"199bb26a-b1f7-45ea-8216-759592c6f9e8\",\"apiCode\":\"wuyin-audio-tts\",\"assetName\":\"Wuyin 语音合成\",\"assetType\":\"AI_API\",\"categoryCode\":null,\"status\":\"DRAFT\",\"..."
+    },
+    {
+      "timestamp": "2026-05-17T17:45:49.309Z",
+      "step": "revise-asset",
+      "resource": "wuyin-audio-tts",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"199bb26a-b1f7-45ea-8216-759592c6f9e8\",\"apiCode\":\"wuyin-audio-tts\",\"assetName\":\"Wuyin 语音合成\",\"assetType\":\"AI_API\",\"categoryCode\":\"tool\",\"status\":\"DRAFT\"..."
+    },
+    {
+      "timestamp": "2026-05-17T17:45:49.433Z",
+      "step": "attach-ai-profile",
+      "resource": "wuyin-audio-tts",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"199bb26a-b1f7-45ea-8216-759592c6f9e8\",\"apiCode\":\"wuyin-audio-tts\",\"assetName\":\"Wuyin 语音合成\",\"assetType\":\"AI_API\",\"categoryCode\":\"tool\",\"status\":\"DRAFT\"..."
+    },
+    {
+      "timestamp": "2026-05-17T17:45:49.592Z",
+      "step": "publish-asset",
+      "resource": "wuyin-audio-tts",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"199bb26a-b1f7-45ea-8216-759592c6f9e8\",\"apiCode\":\"wuyin-audio-tts\",\"assetName\":\"Wuyin 语音合成\",\"assetType\":\"AI_API\",\"categoryCode\":\"tool\",\"status\":\"PUBLIS..."
+    },
+    {
+      "timestamp": "2026-05-17T17:45:49.714Z",
+      "step": "register-asset",
+      "resource": "wuyin-voice-composite",
+      "method": "POST",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"531a93a1-0d63-442b-9d9f-ea3fbf60d12c\",\"apiCode\":\"wuyin-voice-composite\",\"assetName\":\"Wuyin 语音合成（同步）\",\"assetType\":\"AI_API\",\"categoryCode\":null,\"status\"..."
+    },
+    {
+      "timestamp": "2026-05-17T17:45:49.837Z",
+      "step": "revise-asset",
+      "resource": "wuyin-voice-composite",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"531a93a1-0d63-442b-9d9f-ea3fbf60d12c\",\"apiCode\":\"wuyin-voice-composite\",\"assetName\":\"Wuyin 语音合成（同步）\",\"assetType\":\"AI_API\",\"categoryCode\":\"tool\",\"statu..."
+    },
+    {
+      "timestamp": "2026-05-17T17:45:49.962Z",
+      "step": "attach-ai-profile",
+      "resource": "wuyin-voice-composite",
+      "method": "PUT",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"531a93a1-0d63-442b-9d9f-ea3fbf60d12c\",\"apiCode\":\"wuyin-voice-composite\",\"assetName\":\"Wuyin 语音合成（同步）\",\"assetType\":\"AI_API\",\"categoryCode\":\"tool\",\"statu..."
+    },
+    {
+      "timestamp": "2026-05-17T17:45:50.114Z",
+      "step": "publish-asset",
+      "resource": "wuyin-voice-composite",
+      "method": "PATCH",
+      "status": "SUCCESS",
+      "httpStatus": "200",
+      "notes": "{\"id\":\"531a93a1-0d63-442b-9d9f-ea3fbf60d12c\",\"apiCode\":\"wuyin-voice-composite\",\"assetName\":\"Wuyin 语音合成（同步）\",\"assetType\":\"AI_API\",\"categoryCode\":\"tool\",\"statu..."
+    }
+  ],
+  "errors": []
+}

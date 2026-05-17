@@ -20,6 +20,8 @@ public class ApiAssetAggregate {
     private UpstreamEndpointConfig upstreamConfig;
     private String requestTemplate;
     private ExampleSnapshot exampleSnapshot;
+    private String requestJsonSchema;
+    private String responseJsonSchema;
     private AsyncTaskConfig asyncTaskConfig;
     private AiCapabilityProfile aiCapabilityProfile;
     private String proxyProfileId;
@@ -44,6 +46,8 @@ public class ApiAssetAggregate {
             UpstreamEndpointConfig upstreamConfig,
             String requestTemplate,
             ExampleSnapshot exampleSnapshot,
+            String requestJsonSchema,
+            String responseJsonSchema,
             AsyncTaskConfig asyncTaskConfig,
             AiCapabilityProfile aiCapabilityProfile,
             String proxyProfileId,
@@ -63,6 +67,8 @@ public class ApiAssetAggregate {
         this.upstreamConfig = upstreamConfig;
         this.requestTemplate = normalizeOptional(requestTemplate);
         this.exampleSnapshot = exampleSnapshot;
+        this.requestJsonSchema = normalizeOptional(requestJsonSchema);
+        this.responseJsonSchema = normalizeOptional(responseJsonSchema);
         this.asyncTaskConfig = asyncTaskConfig;
         this.aiCapabilityProfile = aiCapabilityProfile;
         this.proxyProfileId = normalizeOptional(proxyProfileId);
@@ -95,6 +101,8 @@ public class ApiAssetAggregate {
                 type,
                 null,
                 AssetStatus.DRAFT,
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -184,6 +192,101 @@ public class ApiAssetAggregate {
                 upstreamConfig,
                 requestTemplate,
                 exampleSnapshot,
+                null,
+                null,
+                asyncTaskConfig,
+                aiCapabilityProfile,
+                proxyProfileId,
+                createdAt,
+                updatedAt,
+                deleted,
+                version
+        );
+    }
+
+    public static ApiAssetAggregate reconstitute(
+            AssetId id,
+            ApiCode code,
+            String ownerUserId,
+            String publisherDisplayName,
+            String name,
+            AssetType type,
+            CategoryRef categoryRef,
+            AssetStatus status,
+            Instant publishedAt,
+            UpstreamEndpointConfig upstreamConfig,
+            String requestTemplate,
+            ExampleSnapshot exampleSnapshot,
+            String requestJsonSchema,
+            String responseJsonSchema,
+            AiCapabilityProfile aiCapabilityProfile,
+            String proxyProfileId,
+            Instant createdAt,
+            Instant updatedAt,
+            boolean deleted,
+            long version) {
+        return reconstitute(
+                id,
+                code,
+                ownerUserId,
+                publisherDisplayName,
+                name,
+                type,
+                categoryRef,
+                status,
+                publishedAt,
+                upstreamConfig,
+                requestTemplate,
+                exampleSnapshot,
+                requestJsonSchema,
+                responseJsonSchema,
+                null,
+                aiCapabilityProfile,
+                proxyProfileId,
+                createdAt,
+                updatedAt,
+                deleted,
+                version
+        );
+    }
+
+    public static ApiAssetAggregate reconstitute(
+            AssetId id,
+            ApiCode code,
+            String ownerUserId,
+            String publisherDisplayName,
+            String name,
+            AssetType type,
+            CategoryRef categoryRef,
+            AssetStatus status,
+            Instant publishedAt,
+            UpstreamEndpointConfig upstreamConfig,
+            String requestTemplate,
+            ExampleSnapshot exampleSnapshot,
+            String requestJsonSchema,
+            String responseJsonSchema,
+            AsyncTaskConfig asyncTaskConfig,
+            AiCapabilityProfile aiCapabilityProfile,
+            String proxyProfileId,
+            Instant createdAt,
+            Instant updatedAt,
+            boolean deleted,
+            long version) {
+        return new ApiAssetAggregate(
+                id,
+                code,
+                ownerUserId,
+                publisherDisplayName,
+                name,
+                type,
+                categoryRef,
+                status,
+                publishedAt,
+                upstreamConfig,
+                requestTemplate,
+                exampleSnapshot,
+                requestJsonSchema,
+                responseJsonSchema,
                 asyncTaskConfig,
                 aiCapabilityProfile,
                 proxyProfileId,
@@ -216,6 +319,32 @@ public class ApiAssetAggregate {
                 newUpstreamConfig,
                 newRequestTemplate,
                 newExampleSnapshot,
+                this.requestJsonSchema,
+                this.responseJsonSchema,
+                this.asyncTaskConfig,
+                newPublisherDisplayName
+        );
+    }
+
+    public void revise(
+            String assetName,
+            AssetType assetType,
+            CategoryRef newCategoryRef,
+            UpstreamEndpointConfig newUpstreamConfig,
+            String newRequestTemplate,
+            ExampleSnapshot newExampleSnapshot,
+            String newRequestJsonSchema,
+            String newResponseJsonSchema,
+            String newPublisherDisplayName) {
+        revise(
+                assetName,
+                assetType,
+                newCategoryRef,
+                newUpstreamConfig,
+                newRequestTemplate,
+                newExampleSnapshot,
+                newRequestJsonSchema,
+                newResponseJsonSchema,
                 this.asyncTaskConfig,
                 newPublisherDisplayName
         );
@@ -230,11 +359,38 @@ public class ApiAssetAggregate {
             ExampleSnapshot newExampleSnapshot,
             AsyncTaskConfig newAsyncTaskConfig,
             String newPublisherDisplayName) {
+        revise(
+                assetName,
+                assetType,
+                newCategoryRef,
+                newUpstreamConfig,
+                newRequestTemplate,
+                newExampleSnapshot,
+                this.requestJsonSchema,
+                this.responseJsonSchema,
+                newAsyncTaskConfig,
+                newPublisherDisplayName
+        );
+    }
+
+    public void revise(
+            String assetName,
+            AssetType assetType,
+            CategoryRef newCategoryRef,
+            UpstreamEndpointConfig newUpstreamConfig,
+            String newRequestTemplate,
+            ExampleSnapshot newExampleSnapshot,
+            String newRequestJsonSchema,
+            String newResponseJsonSchema,
+            AsyncTaskConfig newAsyncTaskConfig,
+            String newPublisherDisplayName) {
         ensureNotDeleted();
 
         AssetType previousType = this.type;
         CategoryRef previousCategoryRef = this.categoryRef;
         UpstreamEndpointConfig previousUpstreamConfig = this.upstreamConfig;
+        String previousRequestJsonSchema = this.requestJsonSchema;
+        String previousResponseJsonSchema = this.responseJsonSchema;
         AsyncTaskConfig previousAsyncTaskConfig = this.asyncTaskConfig;
 
         this.publisherDisplayName = normalizeOptional(newPublisherDisplayName);
@@ -244,6 +400,8 @@ public class ApiAssetAggregate {
         this.upstreamConfig = newUpstreamConfig;
         this.requestTemplate = normalizeOptional(newRequestTemplate);
         this.exampleSnapshot = newExampleSnapshot;
+        this.requestJsonSchema = normalizeOptional(newRequestJsonSchema);
+        this.responseJsonSchema = normalizeOptional(newResponseJsonSchema);
         this.asyncTaskConfig = newAsyncTaskConfig;
 
         if (this.type != AssetType.AI_API) {
@@ -251,7 +409,13 @@ public class ApiAssetAggregate {
         }
 
         if (this.status == AssetStatus.PUBLISHED
-                && requiresRepublish(previousType, previousCategoryRef, previousUpstreamConfig, previousAsyncTaskConfig)) {
+                && requiresRepublish(
+                previousType,
+                previousCategoryRef,
+                previousUpstreamConfig,
+                previousRequestJsonSchema,
+                previousResponseJsonSchema,
+                previousAsyncTaskConfig)) {
             this.status = AssetStatus.UNPUBLISHED;
             this.publishedAt = null;
         }
@@ -342,11 +506,15 @@ public class ApiAssetAggregate {
             AssetType previousType,
             CategoryRef previousCategoryRef,
             UpstreamEndpointConfig previousUpstreamConfig,
+            String previousRequestJsonSchema,
+            String previousResponseJsonSchema,
             AsyncTaskConfig previousAsyncTaskConfig) {
         boolean criticalConfigChanged = !Objects.equals(previousCategoryRef, this.categoryRef)
                 || (previousUpstreamConfig == null
                 ? this.upstreamConfig != null
                 : previousUpstreamConfig.hasCriticalDifference(this.upstreamConfig))
+                || !Objects.equals(previousRequestJsonSchema, this.requestJsonSchema)
+                || !Objects.equals(previousResponseJsonSchema, this.responseJsonSchema)
                 || (previousAsyncTaskConfig == null
                 ? this.asyncTaskConfig != null
                 : previousAsyncTaskConfig.hasCriticalDifference(this.asyncTaskConfig));
@@ -435,6 +603,14 @@ public class ApiAssetAggregate {
 
     public ExampleSnapshot getExampleSnapshot() {
         return exampleSnapshot;
+    }
+
+    public String getRequestJsonSchema() {
+        return requestJsonSchema;
+    }
+
+    public String getResponseJsonSchema() {
+        return responseJsonSchema;
     }
 
     public AsyncTaskConfig getAsyncTaskConfig() {

@@ -22,6 +22,8 @@ public class ApiAssetModel {
     private final String requestTemplate;
     private final String requestExample;
     private final String responseExample;
+    private final String requestJsonSchema;
+    private final String responseJsonSchema;
     private final AsyncTaskConfigModel asyncTaskConfig;
     private final String aiProvider;
     private final String aiModel;
@@ -71,6 +73,8 @@ public class ApiAssetModel {
                 requestExample,
                 responseExample,
                 null,
+                null,
+                null,
                 aiProvider,
                 aiModel,
                 aiStreamingSupported,
@@ -105,6 +109,61 @@ public class ApiAssetModel {
             boolean deleted,
             String createdAt,
             String updatedAt) {
+        this(
+                id,
+                apiCode,
+                assetName,
+                assetType,
+                categoryCode,
+                status,
+                publisherDisplayName,
+                publishedAt,
+                requestMethod,
+                upstreamUrl,
+                authScheme,
+                authConfig,
+                requestTemplate,
+                requestExample,
+                responseExample,
+                null,
+                null,
+                asyncTaskConfig,
+                aiProvider,
+                aiModel,
+                aiStreamingSupported,
+                aiCapabilityTags,
+                deleted,
+                createdAt,
+                updatedAt
+        );
+    }
+
+    public ApiAssetModel(
+            String id,
+            String apiCode,
+            String assetName,
+            String assetType,
+            String categoryCode,
+            String status,
+            String publisherDisplayName,
+            String publishedAt,
+            String requestMethod,
+            String upstreamUrl,
+            String authScheme,
+            String authConfig,
+            String requestTemplate,
+            String requestExample,
+            String responseExample,
+            String requestJsonSchema,
+            String responseJsonSchema,
+            AsyncTaskConfigModel asyncTaskConfig,
+            String aiProvider,
+            String aiModel,
+            Boolean aiStreamingSupported,
+            List<String> aiCapabilityTags,
+            boolean deleted,
+            String createdAt,
+            String updatedAt) {
         this.id = id;
         this.apiCode = apiCode;
         this.assetName = assetName;
@@ -120,6 +179,8 @@ public class ApiAssetModel {
         this.requestTemplate = requestTemplate;
         this.requestExample = requestExample;
         this.responseExample = responseExample;
+        this.requestJsonSchema = requestJsonSchema;
+        this.responseJsonSchema = responseJsonSchema;
         this.asyncTaskConfig = asyncTaskConfig;
         this.aiProvider = aiProvider;
         this.aiModel = aiModel;
@@ -188,6 +249,14 @@ public class ApiAssetModel {
 
     public String getResponseExample() {
         return responseExample;
+    }
+
+    public String getRequestJsonSchema() {
+        return requestJsonSchema;
+    }
+
+    public String getResponseJsonSchema() {
+        return responseJsonSchema;
     }
 
     public AsyncTaskConfigModel getAsyncTaskConfig() {

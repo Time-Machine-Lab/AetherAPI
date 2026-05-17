@@ -158,6 +158,14 @@ components:
           nullable: true
         exampleSnapshot:
           $ref: '#/components/schemas/CatalogDiscoveryExampleSnapshotResp'
+        requestJsonSchema:
+          type: string
+          nullable: true
+          description: Published request body JSON Schema snapshot.
+        responseJsonSchema:
+          type: string
+          nullable: true
+          description: Published response body JSON Schema snapshot.
         asyncTaskConfig:
           $ref: '#/components/schemas/AsyncTaskConfig'
         aiCapabilityProfile:
