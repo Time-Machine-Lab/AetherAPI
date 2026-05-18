@@ -22,10 +22,12 @@ function detail(overrides: Partial<DiscoveryAssetDetail> = {}): DiscoveryAssetDe
     authScheme: 'HEADER_TOKEN',
     requestMethod: 'POST',
     requestTemplate: '{"city":"{{city}}"}',
+    requestJsonSchema: '{"type":"object","required":["city"]}',
     exampleSnapshot: {
       requestExample: '{"city":"Shanghai"}',
       responseExample: '{"temp":26}',
     },
+    responseJsonSchema: '{"type":"object","properties":{"temp":{"type":"number"}}}',
     ...overrides,
   }
 }
@@ -43,7 +45,13 @@ describe('catalog doc export helpers', () => {
     expect(markdown).toContain('| Platform Unified Access URL | /api/v1/access/weather-api |')
     expect(markdown).toContain('## Request Template')
     expect(markdown).toContain('```json\n{"city":"{{city}}"}\n```')
+    expect(markdown).toContain('## Request Body Schema')
+    expect(markdown).toContain('```json\n{"type":"object","required":["city"]}\n```')
     expect(markdown).toContain('## Response Example')
+    expect(markdown).toContain('## Response Body Schema')
+    expect(markdown).toContain(
+      '```json\n{"type":"object","properties":{"temp":{"type":"number"}}}\n```',
+    )
     expect(markdown).toContain('Generated At: 2026-05-12T04:00:00.000Z')
   })
 
@@ -62,6 +70,18 @@ describe('catalog doc export helpers', () => {
     expect(markdown).not.toContain('## Request Template')
     expect(markdown).not.toContain('internal.example.test')
     expect(markdown).not.toContain('upstreamUrl')
+  })
+
+  it('renders request and response schemas independently when only one schema is present', () => {
+    const markdown = buildSingleApiMarkdown(
+      detail({
+        requestJsonSchema: '{"type":"object","required":["city"]}',
+        responseJsonSchema: undefined,
+      }),
+    )
+
+    expect(markdown).toContain('## Request Body Schema')
+    expect(markdown).not.toContain('## Response Body Schema')
   })
 
   it('includes AI capability only for AI API details', () => {

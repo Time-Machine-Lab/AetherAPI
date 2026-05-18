@@ -20,8 +20,8 @@ TBD - created by archiving change add-console-marketplace-doc-export. Update Pur
 导出的 Markdown 文档 MUST be generated only from `docs/api/api-catalog-discovery.yaml` Discovery detail fields and the documented platform Unified Access path `/api/v1/access/{apiCode}`.
 
 #### Scenario: 详情字段完整
-- **WHEN** Discovery detail contains `apiCode`, display name, asset type, category, publisher, published time, description, request method, auth scheme, request template, request example, response example, and AI capability profile
-- **THEN** exported Markdown MUST include sections for basic information, platform Unified Access address, request method and auth scheme, request template, request example, response example, and AI capability
+- **WHEN** Discovery detail contains `apiCode`, display name, asset type, category, publisher, published time, description, request method, auth scheme, request template, request example, response example, request JSON schema, response JSON schema, and AI capability profile
+- **THEN** exported Markdown MUST include sections for basic information, platform Unified Access address, request method and auth scheme, request template, request example, response example, request body schema, response body schema, and AI capability
 
 #### Scenario: 可选字段缺失
 - **WHEN** a Discovery detail optional field is absent or empty
@@ -30,7 +30,7 @@ TBD - created by archiving change add-console-marketplace-doc-export. Update Pur
 
 #### Scenario: 保护内部字段
 - **WHEN** generating exported Markdown
-- **THEN** exported Markdown MUST NOT include upstream URL, `authConfig`, platform proxy configuration, private credentials, non-contract parameter schema, non-contract response schema, or invented status code documentation
+- **THEN** exported Markdown MUST NOT include upstream URL, `authConfig`, platform proxy configuration, private credentials, non-contract schema content outside Discovery detail, or invented status code documentation
 
 ### Requirement: 市场列表 MUST 支持独立多选导出
 API 市场列表 MUST support selecting multiple visible assets for document export without changing the existing card-click detail browsing behavior.

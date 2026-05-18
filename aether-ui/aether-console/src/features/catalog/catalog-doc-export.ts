@@ -22,7 +22,9 @@ export interface CatalogDocLabels {
   requestMethod: string
   authScheme: string
   requestTemplate: string
+  requestJsonSchema: string
   requestExample: string
+  responseJsonSchema: string
   responseExample: string
   asyncTaskQuery: string
   asyncTaskQueryEndpoint: string
@@ -94,7 +96,9 @@ export const defaultCatalogDocLabels: CatalogDocLabels = {
   requestMethod: 'Request Method',
   authScheme: 'Auth Scheme',
   requestTemplate: 'Request Template',
+  requestJsonSchema: 'Request Body Schema',
   requestExample: 'Request Example',
+  responseJsonSchema: 'Response Body Schema',
   responseExample: 'Response Example',
   asyncTaskQuery: 'Async Task Query',
   asyncTaskQueryEndpoint: 'Task Query Endpoint',
@@ -199,6 +203,15 @@ function buildApiMarkdownSection(
     )
   }
 
+  if (detail.requestJsonSchema) {
+    lines.push(
+      subsection(headingLevel, labels.requestJsonSchema),
+      '',
+      formatCodeFence(detail.requestJsonSchema),
+      '',
+    )
+  }
+
   if (detail.exampleSnapshot?.requestExample) {
     lines.push(
       subsection(headingLevel, labels.requestExample),
@@ -213,6 +226,15 @@ function buildApiMarkdownSection(
       subsection(headingLevel, labels.responseExample),
       '',
       formatCodeFence(detail.exampleSnapshot.responseExample),
+      '',
+    )
+  }
+
+  if (detail.responseJsonSchema) {
+    lines.push(
+      subsection(headingLevel, labels.responseJsonSchema),
+      '',
+      formatCodeFence(detail.responseJsonSchema),
       '',
     )
   }
