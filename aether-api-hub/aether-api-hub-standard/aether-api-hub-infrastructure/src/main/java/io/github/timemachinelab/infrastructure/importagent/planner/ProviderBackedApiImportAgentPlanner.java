@@ -14,9 +14,13 @@ import java.util.List;
 public class ProviderBackedApiImportAgentPlanner implements ApiImportAgentPlannerPort {
 
     private final List<ImportAgentPlannerProvider> plannerProviders;
+    private final ImportAgentPlannerProperties properties;
 
-    public ProviderBackedApiImportAgentPlanner(List<ImportAgentPlannerProvider> plannerProviders) {
+    public ProviderBackedApiImportAgentPlanner(
+            List<ImportAgentPlannerProvider> plannerProviders,
+            ImportAgentPlannerProperties properties) {
         this.plannerProviders = plannerProviders == null ? List.of() : List.copyOf(plannerProviders);
+        this.properties = properties == null ? new ImportAgentPlannerProperties() : properties;
     }
 
     @Override
@@ -31,6 +35,12 @@ public class ProviderBackedApiImportAgentPlanner implements ApiImportAgentPlanne
             try {
                 return provider.plan(request);
             } catch (RuntimeException ex) {
+                if (!properties.isAllowProviderFallback()) {
+                    throw new IllegalStateException(
+                            "Import agent planner provider failed and provider fallback is disabled",
+                            ex
+                    );
+                }
                 lastFailure = ex;
             }
         }

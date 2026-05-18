@@ -86,6 +86,7 @@ declare global {
   const useCssVars: typeof import('vue').useCssVars
   const useI18n: typeof import('vue-i18n').useI18n
   const useId: typeof import('vue').useId
+  const useImportAgentWorkspace: typeof import('./composables/useImportAgentWorkspace').useImportAgentWorkspace
   const useModel: typeof import('vue').useModel
   const usePlatformProxyProfiles: typeof import('./composables/usePlatformProxyProfiles').usePlatformProxyProfiles
   const useRoute: typeof import('vue-router').useRoute
@@ -108,6 +109,9 @@ declare global {
   // @ts-ignore
   export type { CatalogDocExportFeedback } from './composables/useCatalogDocExport'
   import('./composables/useCatalogDocExport')
+  // @ts-ignore
+  export type { ImportAgentDraftFileLike, ImportAgentDraftAttachment } from './composables/useImportAgentWorkspace'
+  import('./composables/useImportAgentWorkspace')
 }
 
 // for vue template auto import
@@ -194,6 +198,7 @@ declare module 'vue' {
     readonly useCssVars: UnwrapRef<typeof import('vue')['useCssVars']>
     readonly useI18n: UnwrapRef<typeof import('vue-i18n')['useI18n']>
     readonly useId: UnwrapRef<typeof import('vue')['useId']>
+    readonly useImportAgentWorkspace: UnwrapRef<typeof import('./composables/useImportAgentWorkspace')['useImportAgentWorkspace']>
     readonly useModel: UnwrapRef<typeof import('vue')['useModel']>
     readonly usePlatformProxyProfiles: UnwrapRef<typeof import('./composables/usePlatformProxyProfiles')['usePlatformProxyProfiles']>
     readonly useRoute: UnwrapRef<typeof import('vue-router')['useRoute']>

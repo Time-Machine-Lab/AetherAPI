@@ -11,6 +11,16 @@ describe('console shell blueprint', () => {
     const operationsGroup = consoleSidebarGroups.find((group) => group.id === 'operations')
     expect(operationsGroup).toBeDefined()
 
+    const apiCatalogGroup = consoleSidebarGroups.find((group) => group.id === 'api-catalog')
+    expect(apiCatalogGroup?.items.map((item) => item.id)).toEqual([
+      'catalog-browse',
+      'catalog-manage',
+      'import-agent',
+    ])
+    expect(apiCatalogGroup?.items.find((item) => item.id === 'import-agent')?.hash).toBe(
+      '#import-agent',
+    )
+
     const operationIds = operationsGroup!.items.map((item) => item.id)
     expect(operationIds).toEqual([
       'credentials',
@@ -35,6 +45,7 @@ describe('console shell blueprint', () => {
   })
 
   it('normalizes hidden workspace hashes back to the default visible section', () => {
+    expect(normalizeConsoleWorkspaceNavId('#import-agent')).toBe('import-agent')
     expect(normalizeConsoleWorkspaceNavId('#category-manage')).toBe('catalog-manage')
     expect(normalizeConsoleWorkspaceNavId('#usage')).toBe('catalog-manage')
     expect(normalizeConsoleWorkspaceNavId('#orders')).toBe('catalog-manage')

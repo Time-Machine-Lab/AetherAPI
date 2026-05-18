@@ -414,6 +414,19 @@ The default API asset management workspace uses a two-region composition on wide
 - Don't give inline-rename inputs a height below `h-9` — cramped inputs break row rhythm
 - Don't mix action affordances (hover lift, cursor-pointer) into read-only status labels
 
+### 10.8 Import-Agent Conversation Workspace
+
+The import-agent workspace is a console-native conversation surface, not a generic form page. It should feel like an operator talking to an execution assistant inside the existing control panel.
+
+- **Primary composition**: a large left conversation surface paired with a narrower right summary rail. The conversation surface owns the first-message composer, clarification turns, and file-attachment entry. The right rail owns session snapshot, plan status, and run status cards.
+- **Primary composition**: a large left conversation surface paired with a narrower right summary rail. The conversation surface owns the first-message composer, clarification turns, latest plan card, and latest run-result card. The right rail is intentionally reduced to a session snapshot and must not compete with the conversation as a second primary workspace.
+- **Conversation bubbles**: user messages are the only place allowed to use the strong Rausch Red fill. Agent messages stay on soft secondary surfaces with thin borders. This keeps the brand accent tied to user intent and send actions instead of passive content.
+- **Composer hierarchy**: the message textarea is always the primary field. “Add file” and “Advanced context” are secondary outline actions beneath the input, never peers above it. Advanced context must stay collapsed by default and only appear before the first message is sent.
+- **File attachments**: each attached file renders as a compact surface card with filename, size, truncated preview, and a remove affordance. Treat attached files as contextual evidence, not as a separate upload workflow. The UI must clearly state that raw files are not uploaded directly.
+- **Session summary rail**: session metadata is supportive context and must not compete with the conversation composer. Use standard surface cards and compact status tags; avoid promotional notice styling.
+- **Plan / run embedding**: latest plan and latest run result should appear as structured assistant responses inside the conversation stream, not as detached side panels. They may use card-like treatment, but they still belong to the main narrative column.
+- **Motion and density**: keep bubble spacing relaxed (`gap-3` to `gap-4`), preserve 16px+ internal padding, and avoid dense enterprise-table rhythms inside the conversation column. The workspace should still feel warm and browseable, consistent with the rest of the console.
+
 ## 11. 控制台展示型组件视觉规范
 
 本章定义 `aether-console` 中用于“展示信息而非触发操作”的组件模式。实现市场、资产、日志、Playground 等页面时，优先复用这些展示型组件；基础 `Button`、`Input`、`Card` 继续作为底层原子组件，不承载只读状态语义。

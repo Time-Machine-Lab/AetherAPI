@@ -34,6 +34,8 @@ aether:
       token-secret: ${AETHER_CONSOLE_AUTH_TOKEN_SECRET:change-me-console-session-secret}
       token-ttl-seconds: ${AETHER_CONSOLE_AUTH_TOKEN_TTL_SECONDS:43200}
   import-agent:
+    planner:
+      allow-provider-fallback: ${AETHER_IMPORT_AGENT_PLANNER_ALLOW_PROVIDER_FALLBACK:false}
     llm:
       enabled: ${AETHER_IMPORT_AGENT_LLM_ENABLED:false}
       base-url: ${AETHER_IMPORT_AGENT_LLM_BASE_URL:https://api.openai.com/v1}

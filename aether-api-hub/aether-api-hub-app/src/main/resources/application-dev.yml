@@ -32,3 +32,16 @@ aether:
       role: ${AETHER_CONSOLE_AUTH_ROLE:OWNER}
       token-secret: ${AETHER_CONSOLE_AUTH_TOKEN_SECRET:change-me-console-session-secret}
       token-ttl-seconds: ${AETHER_CONSOLE_AUTH_TOKEN_TTL_SECONDS:43200}
+  import-agent:
+    planner:
+      allow-provider-fallback: ${AETHER_IMPORT_AGENT_PLANNER_ALLOW_PROVIDER_FALLBACK:false}
+    llm:
+      enabled: ${AETHER_IMPORT_AGENT_LLM_ENABLED:true}
+      base-url: ${AETHER_IMPORT_AGENT_LLM_BASE_URL:https://api.qnaigc.com}
+      endpoint-path: ${AETHER_IMPORT_AGENT_LLM_ENDPOINT_PATH:/v1/chat/completions}
+      api-key: ${AETHER_IMPORT_AGENT_LLM_API_KEY:sk-6a669def65df45a7039ffcb75f78b095f7375f0599dbc15ff787a4435033bbeb}
+      model: ${AETHER_IMPORT_AGENT_LLM_MODEL:deepseek/deepseek-v4-flash}
+      temperature: ${AETHER_IMPORT_AGENT_LLM_TEMPERATURE:0.2}
+      max-completion-tokens: ${AETHER_IMPORT_AGENT_LLM_MAX_COMPLETION_TOKENS:10000}
+      request-timeout-seconds: ${AETHER_IMPORT_AGENT_LLM_REQUEST_TIMEOUT_SECONDS:30}
+      system-prompt: ${AETHER_IMPORT_AGENT_LLM_SYSTEM_PROMPT:}

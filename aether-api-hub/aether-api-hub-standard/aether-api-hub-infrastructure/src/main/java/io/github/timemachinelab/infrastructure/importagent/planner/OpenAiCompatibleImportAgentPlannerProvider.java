@@ -32,6 +32,7 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
     private static final String DEFAULT_SYSTEM_PROMPT = """
             You are an API import planning assistant.
             Return only one raw JSON object and no markdown fences.
+            If currentPlanJson is provided, treat it as the current baseline and return the full updated JSON plan after applying the latest user message instead of returning only delta fields.
             The JSON object may contain these fields: summary, clarificationQuestions, categoryPlans, assetPlans.
             categoryPlans is an array of objects with categoryCode, categoryName, action where action is USE_EXISTING or CREATE_IF_MISSING.
             assetPlans is an array of objects with apiCode, assetName, assetType, categoryCode, requestMethod, upstreamUrl, authScheme, authConfig, requestTemplate, requestExample, responseExample, requestJsonSchema, responseJsonSchema, publishAfterImport, aiProfile.
@@ -133,9 +134,18 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
         prompt.append("nextPlanVersion: ").append(request.getNextPlanVersion()).append("\n");
         if (request.getCurrentPlan() != null) {
             prompt.append("currentPlanSummary: ").append(request.getCurrentPlan().getSummary()).append("\n");
+            prompt.append("currentPlanJson:\n").append(serializeCurrentPlan(request)).append("\n");
         }
         prompt.append("Return only raw JSON.\n");
         return prompt.toString();
+    }
+
+    private String serializeCurrentPlan(ImportAgentPlannerRequest request) {
+        try {
+            return OBJECT_MAPPER.writeValueAsString(request.getCurrentPlan());
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to serialize current import plan", ex);
+        }
     }
 
     private void appendField(StringBuilder prompt, String fieldName, String fieldValue) {

@@ -12,6 +12,7 @@ import io.github.timemachinelab.domain.subscription.repository.ApiSubscriptionRe
 import io.github.timemachinelab.infrastructure.external.unifiedaccess.JdkUnifiedAccessHttpClientResolver;
 import io.github.timemachinelab.infrastructure.external.unifiedaccess.JdkUnifiedAccessDownstreamProxyPort;
 import io.github.timemachinelab.infrastructure.importagent.planner.ImportAgentLlmPlannerProperties;
+import io.github.timemachinelab.infrastructure.importagent.planner.ImportAgentPlannerProperties;
 import io.github.timemachinelab.service.adapter.ApiCallLogRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.ApiAssetRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.ApiCredentialRepositoryAdapter;
@@ -196,6 +197,12 @@ public class InfrastructureConfig {
     @ConfigurationProperties(prefix = "aether.import-agent.llm")
     public ImportAgentLlmPlannerProperties importAgentLlmPlannerProperties() {
         return new ImportAgentLlmPlannerProperties();
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "aether.import-agent.planner")
+    public ImportAgentPlannerProperties importAgentPlannerProperties() {
+        return new ImportAgentPlannerProperties();
     }
 
     @Bean

@@ -3,6 +3,7 @@ export type ConsoleRouteName = 'console-home' | 'console-workspace' | 'console-p
 export type ConsoleVisibleNavId =
   | 'catalog-browse'
   | 'catalog-manage'
+  | 'import-agent'
   | 'unified-access-playground'
   | 'credentials'
   | 'api-subscriptions'
@@ -53,6 +54,7 @@ export const hiddenConsoleNavIds = [
 
 const visibleConsoleWorkspaceNavIds = [
   'catalog-manage',
+  'import-agent',
   'credentials',
   'api-subscriptions',
   'api-call-logs',
@@ -92,6 +94,12 @@ export const consoleSidebarGroups: ConsoleSidebarGroup[] = [
         labelKey: 'console.navigation.catalogManage',
         routeName: 'console-workspace',
         hash: '#catalog-manage',
+      },
+      {
+        id: 'import-agent',
+        labelKey: 'console.navigation.importAgent',
+        routeName: 'console-workspace',
+        hash: '#import-agent',
       },
     ],
   },

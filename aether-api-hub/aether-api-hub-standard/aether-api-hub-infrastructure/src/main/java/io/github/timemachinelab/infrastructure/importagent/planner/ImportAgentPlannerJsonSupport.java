@@ -2,6 +2,8 @@ package io.github.timemachinelab.infrastructure.importagent.planner;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.github.timemachinelab.domain.catalog.model.AssetType;
 import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
@@ -17,6 +19,9 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Shared JSON planning support for import agent planners.
@@ -24,6 +29,17 @@ import java.util.Map;
 final class ImportAgentPlannerJsonSupport {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final Pattern HTTP_URL_PATTERN = Pattern.compile("https?://[^\\s)>\"]+", Pattern.CASE_INSENSITIVE);
+    private static final Pattern HEADING_PATTERN = Pattern.compile("(?m)^#{1,6}\\s+(.+?)\\s*$");
+    private static final Pattern LIST_FIELD_PATTERN = Pattern.compile(
+        "(?im)^(?:[-*]\\s*)?(?:请求地址|接口地址|接口URL|请求URL|URL|url)\\s*[:：]\\s*(https?://\\S+)\\s*$"
+    );
+    private static final Pattern METHOD_FIELD_PATTERN = Pattern.compile(
+        "(?im)^(?:[-*]\\s*)?(?:请求方式|调用方式|Method|METHOD)\\s*[:：]\\s*(GET|POST|PUT|DELETE|PATCH)\\s*$"
+    );
+    private static final Pattern AUTH_FIELD_PATTERN = Pattern.compile(
+        "(?im)^(?:[-*]\\s*)?(?:鉴权方式|认证方式|Auth|AUTH)\\s*[:：]\\s*(.+?)\\s*$"
+    );
 
     private ImportAgentPlannerJsonSupport() {
     }
@@ -36,13 +52,20 @@ final class ImportAgentPlannerJsonSupport {
                 ? List.of()
                 : request.getCurrentPlan().getAssetPlans();
         List<String> clarificationQuestions = List.of();
-        String summary = null;
+        String summary = request.getCurrentPlan() == null ? null : request.getCurrentPlan().getSummary();
 
         if (sourceNode != null && sourceNode.isObject()) {
-            categoryPlans = parseCategoryPlans(sourceNode);
-            assetPlans = parseAssetPlans(sourceNode);
+            if (hasCategoryPlanField(sourceNode)) {
+                categoryPlans = parseCategoryPlans(sourceNode);
+            }
+            if (hasAssetPlanField(sourceNode)) {
+                assetPlans = parseAssetPlans(sourceNode);
+            }
             clarificationQuestions = parseStringArray(sourceNode, "clarificationQuestions");
-            summary = textValue(sourceNode, "summary");
+            String resolvedSummary = textValue(sourceNode, "summary");
+            if (resolvedSummary != null) {
+                summary = resolvedSummary;
+            }
         }
 
         categoryPlans = ensureCategoryCoverage(categoryPlans, assetPlans);
@@ -60,6 +83,14 @@ final class ImportAgentPlannerJsonSupport {
                 categoryPlans,
                 assetPlans
         );
+    }
+
+    private static boolean hasCategoryPlanField(JsonNode root) {
+        return root.has("categoryPlans") || root.has("categories");
+    }
+
+    private static boolean hasAssetPlanField(JsonNode root) {
+        return root.has("assetPlans") || root.has("assets");
     }
 
     static String buildAgentMessage(String providerName, ImportAgentPlanModel plan) {
@@ -87,8 +118,254 @@ final class ImportAgentPlannerJsonSupport {
             JsonNode node = OBJECT_MAPPER.readTree(trimmed);
             return node.isObject() ? node : null;
         } catch (Exception ex) {
+            JsonNode extracted = parseEmbeddedJsonObject(trimmed);
+            if (extracted != null) {
+                return extracted;
+            }
+            return parseDocumentCandidate(trimmed);
+        }
+    }
+
+    private static JsonNode parseEmbeddedJsonObject(String candidate) {
+        int start = candidate.indexOf('{');
+        while (start >= 0) {
+            int end = findMatchingObjectEnd(candidate, start);
+            if (end > start) {
+                try {
+                    JsonNode node = OBJECT_MAPPER.readTree(candidate.substring(start, end + 1));
+                    if (node.isObject()) {
+                        return node;
+                    }
+                } catch (Exception ignored) {
+                    // Continue scanning for the next plausible JSON object boundary.
+                }
+            }
+            start = candidate.indexOf('{', start + 1);
+        }
+        return null;
+    }
+
+    private static int findMatchingObjectEnd(String candidate, int startIndex) {
+        boolean inString = false;
+        boolean escaped = false;
+        int depth = 0;
+        for (int index = startIndex; index < candidate.length(); index += 1) {
+            char current = candidate.charAt(index);
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (current == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (current == '"') {
+                inString = !inString;
+                continue;
+            }
+            if (inString) {
+                continue;
+            }
+            if (current == '{') {
+                depth += 1;
+                continue;
+            }
+            if (current == '}') {
+                depth -= 1;
+                if (depth == 0) {
+                    return index;
+                }
+            }
+        }
+        return -1;
+    }
+
+    private static JsonNode parseDocumentCandidate(String candidate) {
+        if (candidate == null || candidate.isBlank()) {
             return null;
         }
+
+        String assetName = detectAssetName(candidate);
+        String upstreamUrl = detectUpstreamUrl(candidate);
+        RequestMethod requestMethod = detectRequestMethod(candidate);
+        AuthScheme authScheme = detectAuthScheme(candidate);
+        String apiCode = buildApiCode(assetName, upstreamUrl);
+        if (apiCode == null || assetName == null) {
+            return null;
+        }
+
+        ObjectNode root = OBJECT_MAPPER.createObjectNode();
+        root.put("summary", "Draft plan inferred from API documentation.");
+        ArrayNode assetPlans = root.putArray("assetPlans");
+        ObjectNode assetNode = assetPlans.addObject();
+        assetNode.put("apiCode", apiCode);
+        assetNode.put("assetName", assetName);
+        assetNode.put("assetType", detectAssetType(candidate).name());
+        if (requestMethod != null) {
+            assetNode.put("requestMethod", requestMethod.name());
+        }
+        if (upstreamUrl != null) {
+            assetNode.put("upstreamUrl", upstreamUrl);
+        }
+        if (authScheme != null) {
+            assetNode.put("authScheme", authScheme.name());
+        }
+        assetNode.put("publishAfterImport", false);
+        return root;
+    }
+
+    private static AssetType detectAssetType(String candidate) {
+        String normalized = candidate.toLowerCase(Locale.ROOT);
+        if (normalized.contains("openai")
+                || normalized.contains("claude")
+                || normalized.contains("gemini")
+                || normalized.contains("llm")
+                || normalized.contains("模型")
+                || normalized.contains("chat completions")
+                || normalized.contains("chat/completions")) {
+            return AssetType.AI_API;
+        }
+        return AssetType.STANDARD_API;
+    }
+
+    private static String detectAssetName(String candidate) {
+        Matcher headingMatcher = HEADING_PATTERN.matcher(candidate);
+        while (headingMatcher.find()) {
+            String heading = cleanHeading(headingMatcher.group(1));
+            if (heading != null) {
+                return heading;
+            }
+        }
+        return null;
+    }
+
+    private static String cleanHeading(String heading) {
+        if (heading == null) {
+            return null;
+        }
+        String normalized = heading
+                .replace("`", "")
+                .replace("|", " ")
+                .trim();
+        if (normalized.isBlank()) {
+            return null;
+        }
+        String lower = normalized.toLowerCase(Locale.ROOT);
+        if (lower.startsWith("接口信息")
+                || lower.startsWith("请求参数")
+                || lower.startsWith("返回参数")
+                || lower.startsWith("response")
+                || lower.startsWith("request")) {
+            return null;
+        }
+        return normalized;
+    }
+
+    private static String detectUpstreamUrl(String candidate) {
+        Matcher labelled = LIST_FIELD_PATTERN.matcher(candidate);
+        if (labelled.find()) {
+            return labelled.group(1);
+        }
+        Matcher generic = HTTP_URL_PATTERN.matcher(candidate);
+        return generic.find() ? generic.group() : null;
+    }
+
+    private static RequestMethod detectRequestMethod(String candidate) {
+        Matcher labelled = METHOD_FIELD_PATTERN.matcher(candidate);
+        if (labelled.find()) {
+            return enumValue(RequestMethod.class, labelled.group(1).toUpperCase(Locale.ROOT), null);
+        }
+        String upper = candidate.toUpperCase(Locale.ROOT);
+        for (RequestMethod requestMethod : RequestMethod.values()) {
+            if (upper.contains(" " + requestMethod.name() + " ")
+                    || upper.contains("(" + requestMethod.name() + ")")
+                    || upper.contains("请求方式: " + requestMethod.name())
+                    || upper.contains("请求方式：" + requestMethod.name())) {
+                return requestMethod;
+            }
+        }
+        return null;
+    }
+
+    private static AuthScheme detectAuthScheme(String candidate) {
+        Matcher labelled = AUTH_FIELD_PATTERN.matcher(candidate);
+        if (!labelled.find()) {
+            return null;
+        }
+        String normalized = labelled.group(1).toLowerCase(Locale.ROOT);
+        if (normalized.contains("header") && normalized.contains("token")) {
+            return AuthScheme.HEADER_TOKEN;
+        }
+        if (normalized.contains("bearer")) {
+            return AuthScheme.HEADER_TOKEN;
+        }
+        if (normalized.contains("query")) {
+            return AuthScheme.QUERY_TOKEN;
+        }
+        if (normalized.contains("none") || normalized.contains("无需") || normalized.contains("无")) {
+            return AuthScheme.NONE;
+        }
+        return null;
+    }
+
+    private static String buildApiCode(String assetName, String upstreamUrl) {
+        if (upstreamUrl != null && !upstreamUrl.isBlank()) {
+            String path = upstreamUrl.replaceFirst("https?://[^/]+", "");
+            String[] segments = path.split("/");
+            List<String> normalizedSegments = new ArrayList<>();
+            for (int index = segments.length - 1; index >= 0; index -= 1) {
+                String segment = segments[index] == null ? "" : segments[index].trim();
+                if (segment.isBlank() || segment.startsWith("{")) {
+                    continue;
+                }
+                String normalized = normalizeApiCode(segment);
+                if (normalized.isBlank() || isBoilerplatePathSegment(normalized)) {
+                    continue;
+                }
+                normalizedSegments.add(0, normalized);
+            }
+            if (!normalizedSegments.isEmpty()) {
+                if (normalizedSegments.size() >= 2) {
+                    return normalizedSegments.get(normalizedSegments.size() - 2)
+                            + "-"
+                            + normalizedSegments.get(normalizedSegments.size() - 1);
+                }
+                return normalizedSegments.get(0);
+            }
+        }
+        return assetName == null ? null : normalizeApiCode(assetName);
+    }
+
+    private static boolean isBoilerplatePathSegment(String segment) {
+        return "api".equals(segment)
+                || "apis".equals(segment)
+                || segment.matches("v\\d+")
+                || segment.matches("version-?\\d+");
+    }
+
+    private static String normalizeApiCode(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        String normalized = raw
+                .replaceAll("([a-z0-9])([A-Z])", "$1-$2")
+                .replaceAll("[^\\p{IsAlphabetic}\\p{IsDigit}]+", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "")
+                .toLowerCase(Locale.ROOT);
+        if (!normalized.isBlank()) {
+            return normalized;
+        }
+
+        StringBuilder ascii = new StringBuilder();
+        for (char character : raw.toCharArray()) {
+            if (Character.isLetterOrDigit(character)) {
+                ascii.append(Character.toLowerCase(character));
+            } else if (ascii.length() > 0 && ascii.charAt(ascii.length() - 1) != '-') {
+                ascii.append('-');
+            }
+        }
+        return ascii.toString().replaceAll("-+", "-").replaceAll("^-|-$", "");
     }
 
     private static String buildDefaultSummary(

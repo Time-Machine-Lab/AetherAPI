@@ -25,4 +25,9 @@ describe('workspace layout composition', () => {
     expect(source).toContain('class="fixed inset-0 z-50 bg-black/35"')
     expect(source).toContain('class="ml-auto flex h-full w-full max-w-3xl')
   })
+
+  it('routes the import-agent hash to the dedicated workspace section', () => {
+    expect(source).toContain("const isImportAgentSection = computed(() => route.hash === '#import-agent')")
+    expect(source).toContain('<ImportAgentWorkspace v-else-if="isImportAgentSection" />')
+  })
 })

@@ -7,6 +7,7 @@ import { useWorkspaceCatalog } from '@/composables/useWorkspaceCatalog'
 import CredentialWorkspace from '@/features/credential/CredentialWorkspace.vue'
 import ApiCallLogWorkspace from '@/features/api-call-log/ApiCallLogWorkspace.vue'
 import ApiSubscriptionWorkspace from '@/features/subscription/ApiSubscriptionWorkspace.vue'
+import ImportAgentWorkspace from '@/features/import-agent/ImportAgentWorkspace.vue'
 import PlatformProxyWorkspace from '@/features/platform-proxy/PlatformProxyWorkspace.vue'
 import { defaultConsoleWorkspaceHash, isHiddenConsoleNavId } from '@/features/console/console-shell'
 import { Button } from '@/components/ui/button'
@@ -31,6 +32,7 @@ const router = useRouter()
 const jsonSchemaPlaceholder = '{"type":"object","properties":{}}'
 
 const isCredentialsSection = computed(() => route.hash === '#credentials')
+const isImportAgentSection = computed(() => route.hash === '#import-agent')
 const isApiCallLogsSection = computed(() => route.hash === '#api-call-logs')
 const isApiSubscriptionsSection = computed(() => route.hash === '#api-subscriptions')
 const isPlatformProxySection = computed(() => route.hash === '#platform-proxy-profiles')
@@ -145,6 +147,7 @@ function confirmDeleteAsset() {
 
 <template>
   <CredentialWorkspace v-if="isCredentialsSection" />
+  <ImportAgentWorkspace v-else-if="isImportAgentSection" />
   <ApiSubscriptionWorkspace v-else-if="isApiSubscriptionsSection" />
   <ApiCallLogWorkspace v-else-if="isApiCallLogsSection" />
   <PlatformProxyWorkspace v-else-if="isPlatformProxySection" />

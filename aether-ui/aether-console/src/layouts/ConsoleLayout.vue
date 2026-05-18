@@ -12,6 +12,7 @@ import {
   BadgeCheck,
   LayoutList,
   LogOut,
+  MessagesSquare,
   Network,
   Package,
   Play,
@@ -52,6 +53,7 @@ const isSignInScreen = computed(() => route.name === appConfig.signInRouteName)
 const iconMap = {
   'catalog-browse': LayoutList,
   'catalog-manage': Package,
+  'import-agent': MessagesSquare,
   'category-manage': Package,
   'unified-access-playground': Play,
   credentials: KeyRound,
