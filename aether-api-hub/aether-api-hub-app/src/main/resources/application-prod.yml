@@ -33,3 +33,14 @@ aether:
       role: ${AETHER_CONSOLE_AUTH_ROLE:OWNER}
       token-secret: ${AETHER_CONSOLE_AUTH_TOKEN_SECRET:change-me-console-session-secret}
       token-ttl-seconds: ${AETHER_CONSOLE_AUTH_TOKEN_TTL_SECONDS:43200}
+  import-agent:
+    llm:
+      enabled: ${AETHER_IMPORT_AGENT_LLM_ENABLED:false}
+      base-url: ${AETHER_IMPORT_AGENT_LLM_BASE_URL:https://api.openai.com/v1}
+      endpoint-path: ${AETHER_IMPORT_AGENT_LLM_ENDPOINT_PATH:/chat/completions}
+      api-key: ${AETHER_IMPORT_AGENT_LLM_API_KEY:}
+      model: ${AETHER_IMPORT_AGENT_LLM_MODEL:gpt-4.1-mini}
+      temperature: ${AETHER_IMPORT_AGENT_LLM_TEMPERATURE:0.2}
+      max-completion-tokens: ${AETHER_IMPORT_AGENT_LLM_MAX_COMPLETION_TOKENS:2000}
+      request-timeout-seconds: ${AETHER_IMPORT_AGENT_LLM_REQUEST_TIMEOUT_SECONDS:30}
+      system-prompt: ${AETHER_IMPORT_AGENT_LLM_SYSTEM_PROMPT:}

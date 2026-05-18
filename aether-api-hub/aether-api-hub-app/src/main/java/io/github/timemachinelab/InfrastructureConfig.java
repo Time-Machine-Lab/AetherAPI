@@ -11,6 +11,7 @@ import io.github.timemachinelab.domain.platformproxy.repository.PlatformProxyPro
 import io.github.timemachinelab.domain.subscription.repository.ApiSubscriptionRepository;
 import io.github.timemachinelab.infrastructure.external.unifiedaccess.JdkUnifiedAccessHttpClientResolver;
 import io.github.timemachinelab.infrastructure.external.unifiedaccess.JdkUnifiedAccessDownstreamProxyPort;
+import io.github.timemachinelab.infrastructure.importagent.planner.ImportAgentLlmPlannerProperties;
 import io.github.timemachinelab.service.adapter.ApiCallLogRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.ApiAssetRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.ApiCredentialRepositoryAdapter;
@@ -21,6 +22,7 @@ import io.github.timemachinelab.service.adapter.PlatformProxyProfileRepositoryAd
 import io.github.timemachinelab.service.application.ApiCallLogApplicationService;
 import io.github.timemachinelab.service.application.ApiAssetApplicationService;
 import io.github.timemachinelab.service.application.ApiCredentialApplicationService;
+import io.github.timemachinelab.service.application.ApiImportAgentApplicationService;
 import io.github.timemachinelab.service.application.ApiSubscriptionApplicationService;
 import io.github.timemachinelab.service.application.CatalogDiscoveryApplicationService;
 import io.github.timemachinelab.service.application.ConsoleSessionAuthApplicationService;
@@ -36,13 +38,18 @@ import io.github.timemachinelab.service.port.in.PlatformProxyProfileUseCase;
 import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
 import io.github.timemachinelab.service.port.in.ApiCallLogUseCase;
 import io.github.timemachinelab.service.port.in.ApiCredentialUseCase;
+import io.github.timemachinelab.service.port.in.ApiImportAgentUseCase;
 import io.github.timemachinelab.service.port.in.ApiSubscriptionUseCase;
 import io.github.timemachinelab.service.port.in.CatalogDiscoveryUseCase;
+import io.github.timemachinelab.service.port.in.CategoryUseCase;
 import io.github.timemachinelab.service.port.in.ConsoleSessionAuthUseCase;
 import io.github.timemachinelab.service.port.in.CredentialValidationUseCase;
 import io.github.timemachinelab.service.port.in.UnifiedAccessUseCase;
 import io.github.timemachinelab.service.port.out.ApiCallLogRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiCredentialRepositoryPort;
+import io.github.timemachinelab.service.port.out.ApiImportAgentPlannerPort;
+import io.github.timemachinelab.service.port.out.ApiImportAgentRunRepositoryPort;
+import io.github.timemachinelab.service.port.out.ApiImportAgentSessionRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiAssetQueryPort;
 import io.github.timemachinelab.service.port.out.ApiCallLogQueryPort;
@@ -103,6 +110,22 @@ public class InfrastructureConfig {
             ApiAssetQueryPort apiAssetQueryPort,
             CategoryValidityChecker categoryValidityChecker) {
         return new ApiAssetApplicationService(apiAssetRepositoryPort, apiAssetQueryPort, categoryValidityChecker);
+    }
+
+    @Bean
+    public ApiImportAgentUseCase apiImportAgentUseCase(
+            ApiImportAgentSessionRepositoryPort apiImportAgentSessionRepositoryPort,
+            ApiImportAgentRunRepositoryPort apiImportAgentRunRepositoryPort,
+            ApiImportAgentPlannerPort apiImportAgentPlannerPort,
+            CategoryUseCase categoryUseCase,
+            ApiAssetUseCase apiAssetUseCase) {
+        return new ApiImportAgentApplicationService(
+                apiImportAgentSessionRepositoryPort,
+                apiImportAgentRunRepositoryPort,
+                apiImportAgentPlannerPort,
+                categoryUseCase,
+                apiAssetUseCase
+        );
     }
 
     @Bean
@@ -167,6 +190,12 @@ public class InfrastructureConfig {
     @ConfigurationProperties(prefix = "aether.console.session-auth")
     public ConsoleSessionAuthProperties consoleSessionAuthProperties() {
         return new ConsoleSessionAuthProperties();
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "aether.import-agent.llm")
+    public ImportAgentLlmPlannerProperties importAgentLlmPlannerProperties() {
+        return new ImportAgentLlmPlannerProperties();
     }
 
     @Bean

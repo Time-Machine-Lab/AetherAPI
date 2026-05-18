@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
         "io.github.timemachinelab.infrastructure.catalog.persistence.mapper",
         "io.github.timemachinelab.infrastructure.catalog.persistence.query",
         "io.github.timemachinelab.infrastructure.consumerauth.persistence.mapper",
+    "io.github.timemachinelab.infrastructure.importagent.persistence.mapper",
         "io.github.timemachinelab.infrastructure.observability.persistence.mapper",
         "io.github.timemachinelab.infrastructure.observability.persistence.query",
         "io.github.timemachinelab.infrastructure.platformproxy.persistence.mapper",

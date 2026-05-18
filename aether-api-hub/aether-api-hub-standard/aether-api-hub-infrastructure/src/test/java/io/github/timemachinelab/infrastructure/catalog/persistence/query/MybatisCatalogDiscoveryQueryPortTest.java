@@ -145,6 +145,10 @@ class MybatisCatalogDiscoveryQueryPortTest {
         assertSqlNotContains(selectAssetDetail, "capability_extensions");
         assertSqlNotContains(selectAssetDetail, "policy_extensions");
         assertSqlNotContains(selectAssetDetail, "metadata_extensions");
+        assertSqlNotContains(selectAssetSummaries, "api_import_agent_session");
+        assertSqlNotContains(selectAssetSummaries, "api_import_agent_run");
+        assertSqlNotContains(selectAssetDetail, "api_import_agent_session");
+        assertSqlNotContains(selectAssetDetail, "api_import_agent_run");
     }
 
     private CatalogDiscoveryAssetRecord assetRecord(String apiCode, String status, String assetType, String publisher) {

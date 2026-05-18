@@ -1,0 +1,488 @@
+openapi: 3.0.3
+info:
+  title: API Import Agent API
+  version: 1.0.0
+  description: |
+    当前用户 API Import Agent 会话与执行接口。
+    对应控制器：ApiImportAgentController.java
+    该接口族只服务当前登录用户自己的导入会话，不提供跨用户会话访问能力。
+servers:
+  - url: /api/v1
+    description: Aether API Hub v1
+
+tags:
+  - name: CurrentUserImportAgent
+    description: 当前用户 API Import Agent
+
+paths:
+  /current-user/import-agent/sessions:
+    post:
+      summary: 创建当前用户导入会话
+      operationId: createImportSession
+      tags:
+        - CurrentUserImportAgent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateImportAgentSessionReq'
+      responses:
+        '201':
+          description: 导入会话创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiImportAgentSessionResp'
+        '400':
+          description: 请求参数非法
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
+  /current-user/import-agent/sessions/{sessionId}:
+    get:
+      summary: 查询当前用户导入会话详情
+      operationId: getImportSession
+      tags:
+        - CurrentUserImportAgent
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 导入会话详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiImportAgentSessionResp'
+        '404':
+          description: 会话不存在或不属于当前用户
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
+  /current-user/import-agent/sessions/{sessionId}/turns:
+    post:
+      summary: 追加当前用户导入会话轮次
+      operationId: appendImportSessionTurn
+      tags:
+        - CurrentUserImportAgent
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppendImportAgentTurnReq'
+      responses:
+        '200':
+          description: 轮次追加成功，并返回刷新后的会话详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiImportAgentSessionResp'
+        '404':
+          description: 会话不存在或不属于当前用户
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
+  /current-user/import-agent/sessions/{sessionId}/confirm:
+    patch:
+      summary: 确认当前用户导入计划版本
+      operationId: confirmImportPlan
+      tags:
+        - CurrentUserImportAgent
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmImportAgentPlanReq'
+      responses:
+        '200':
+          description: 计划确认成功，并返回刷新后的会话详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiImportAgentSessionResp'
+        '400':
+          description: 计划版本不可确认
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+        '404':
+          description: 会话不存在或不属于当前用户
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
+  /current-user/import-agent/sessions/{sessionId}/runs:
+    post:
+      summary: 启动当前用户导入执行批次
+      operationId: startImportRun
+      tags:
+        - CurrentUserImportAgent
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartImportAgentRunReq'
+      responses:
+        '201':
+          description: 执行批次已创建
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiImportAgentRunResp'
+        '400':
+          description: 计划未确认或不可执行
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+        '404':
+          description: 会话不存在或不属于当前用户
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
+  /current-user/import-agent/runs/{runId}:
+    get:
+      summary: 查询当前用户导入执行批次详情
+      operationId: getImportRun
+      tags:
+        - CurrentUserImportAgent
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 执行批次详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiImportAgentRunResp'
+        '404':
+          description: 执行批次不存在或不属于当前用户
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
+components:
+  schemas:
+    CreateImportAgentSessionReq:
+      type: object
+      required:
+        - importIntent
+      properties:
+        documentSource:
+          type: string
+          maxLength: 1024
+          description: 文档来源，可为 URL、文件标识或外部来源说明
+        documentSummary:
+          type: string
+          maxLength: 20000
+          description: 用户提供的文档摘要或预解析内容
+        importIntent:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: 用户导入意图、目标约束或补充说明
+        publisherDisplayName:
+          type: string
+          maxLength: 128
+          description: 执行导入时使用的发布者展示名快照，未提供时回退当前用户
+
+    AppendImportAgentTurnReq:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 20000
+          description: 当前用户对导入计划的补充约束、澄清信息或修正意见
+
+    ConfirmImportAgentPlanReq:
+      type: object
+      required:
+        - planVersion
+      properties:
+        planVersion:
+          type: integer
+          minimum: 1
+          description: 待确认的计划版本号
+
+    StartImportAgentRunReq:
+      type: object
+      required:
+        - planVersion
+      properties:
+        planVersion:
+          type: integer
+          minimum: 1
+          description: 待执行的已确认计划版本号
+
+    ApiImportAgentSessionResp:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        status:
+          type: string
+          enum:
+            - WAITING_FOR_PLAN
+            - WAITING_FOR_CONFIRMATION
+            - WAITING_FOR_CLARIFICATION
+            - CONFIRMED
+            - EXECUTING
+            - COMPLETED
+            - FAILED
+        documentSource:
+          type: string
+          nullable: true
+        documentSummary:
+          type: string
+          nullable: true
+        importIntent:
+          type: string
+        publisherDisplayName:
+          type: string
+        currentPlanVersion:
+          type: integer
+          nullable: true
+        confirmedPlanVersion:
+          type: integer
+          nullable: true
+        latestRunId:
+          type: string
+          nullable: true
+        currentPlan:
+          $ref: '#/components/schemas/ImportAgentPlanResp'
+        turns:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportAgentTurnResp'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ImportAgentPlanResp:
+      type: object
+      properties:
+        version:
+          type: integer
+        executable:
+          type: boolean
+        summary:
+          type: string
+        clarificationQuestions:
+          type: array
+          items:
+            type: string
+        categoryPlans:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportCategoryPlanResp'
+        assetPlans:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportAssetPlanResp'
+
+    ImportCategoryPlanResp:
+      type: object
+      properties:
+        categoryCode:
+          type: string
+        categoryName:
+          type: string
+        action:
+          type: string
+          enum:
+            - USE_EXISTING
+            - CREATE_IF_MISSING
+
+    ImportAssetPlanResp:
+      type: object
+      properties:
+        apiCode:
+          type: string
+        assetName:
+          type: string
+        assetType:
+          type: string
+          enum:
+            - STANDARD_API
+            - AI_API
+        categoryCode:
+          type: string
+          nullable: true
+        requestMethod:
+          type: string
+          nullable: true
+        upstreamUrl:
+          type: string
+          nullable: true
+        authScheme:
+          type: string
+          nullable: true
+        authConfig:
+          type: string
+          nullable: true
+        requestTemplate:
+          type: string
+          nullable: true
+        requestExample:
+          type: string
+          nullable: true
+        responseExample:
+          type: string
+          nullable: true
+        requestJsonSchema:
+          type: string
+          nullable: true
+        responseJsonSchema:
+          type: string
+          nullable: true
+        publishAfterImport:
+          type: boolean
+        aiProfile:
+          $ref: '#/components/schemas/ImportAiProfileResp'
+
+    ImportAiProfileResp:
+      type: object
+      nullable: true
+      properties:
+        provider:
+          type: string
+        model:
+          type: string
+        streamingSupported:
+          type: boolean
+        capabilityTags:
+          type: array
+          items:
+            type: string
+
+    ImportAgentTurnResp:
+      type: object
+      properties:
+        turnId:
+          type: string
+        actorType:
+          type: string
+          enum:
+            - USER
+            - AGENT
+        message:
+          type: string
+        planVersion:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    ApiImportAgentRunResp:
+      type: object
+      properties:
+        runId:
+          type: string
+        sessionId:
+          type: string
+        planVersion:
+          type: integer
+        status:
+          type: string
+          enum:
+            - RUNNING
+            - SUCCEEDED
+            - PARTIALLY_FAILED
+            - FAILED
+        summary:
+          type: string
+          nullable: true
+        failureReason:
+          type: string
+          nullable: true
+        affectedApiCodes:
+          type: array
+          items:
+            type: string
+        stepResults:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportStepResultResp'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ImportStepResultResp:
+      type: object
+      properties:
+        stepType:
+          type: string
+          enum:
+            - ENSURE_CATEGORY
+            - REGISTER_ASSET
+            - REVISE_ASSET
+            - ATTACH_AI_PROFILE
+            - PUBLISH_ASSET
+        targetRef:
+          type: string
+        status:
+          type: string
+          enum:
+            - SUCCEEDED
+            - FAILED
+        message:
+          type: string
+          nullable: true
+
+    ErrorResp:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string

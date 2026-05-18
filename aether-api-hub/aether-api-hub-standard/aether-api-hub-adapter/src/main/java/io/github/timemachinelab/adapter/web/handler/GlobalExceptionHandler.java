@@ -3,6 +3,7 @@ package io.github.timemachinelab.adapter.web.handler;
 import io.github.timemachinelab.api.error.CatalogErrorCodes;
 import io.github.timemachinelab.api.error.ConsoleSessionAuthErrorCodes;
 import io.github.timemachinelab.api.error.ConsumerAuthErrorCodes;
+import io.github.timemachinelab.api.error.ImportAgentErrorCodes;
 import io.github.timemachinelab.api.error.ApiSubscriptionErrorCodes;
 import io.github.timemachinelab.api.error.ObservabilityErrorCodes;
 import io.github.timemachinelab.api.error.PlatformProxyProfileErrorCodes;
@@ -11,6 +12,7 @@ import io.github.timemachinelab.domain.catalog.model.AssetDomainException;
 import io.github.timemachinelab.domain.catalog.model.CategoryDomainException;
 import io.github.timemachinelab.domain.consolesessionauth.model.ConsoleSessionAuthDomainException;
 import io.github.timemachinelab.domain.consumerauth.model.ConsumerAuthDomainException;
+import io.github.timemachinelab.domain.importagent.model.ImportAgentDomainException;
 import io.github.timemachinelab.domain.observability.model.ObservabilityDomainException;
 import io.github.timemachinelab.domain.platformproxy.model.PlatformProxyProfileDomainException;
 import io.github.timemachinelab.domain.subscription.model.ApiSubscriptionDomainException;
@@ -184,6 +186,24 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(body);
     }
 
+    @ExceptionHandler(ImportAgentDomainException.class)
+    public ResponseEntity<Map<String, String>> handleImportAgentDomainException(ImportAgentDomainException ex) {
+        log.warn("Import agent domain exception: {}", ex.getMessage());
+
+        String code = mapImportAgentExceptionToCode(ex.getMessage());
+        Map<String, String> body = new HashMap<>();
+        body.put("code", code);
+        body.put("message", ex.getMessage());
+
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        if (ImportAgentErrorCodes.IMPORT_AGENT_SESSION_NOT_FOUND.equals(code)
+                || ImportAgentErrorCodes.IMPORT_AGENT_RUN_NOT_FOUND.equals(code)) {
+            status = HttpStatus.NOT_FOUND;
+        }
+
+        return ResponseEntity.status(status).body(body);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgumentException(
             IllegalArgumentException ex, HttpServletRequest request) {
@@ -237,6 +257,8 @@ public class GlobalExceptionHandler {
         } else if (objectName != null && objectName.toLowerCase().contains("listapiasset")) {
             body.put("code", CatalogErrorCodes.ASSET_INVALID_QUERY);
             message = "Invalid asset list query parameters";
+        } else if (objectName != null && objectName.toLowerCase().contains("importagent")) {
+            body.put("code", ImportAgentErrorCodes.IMPORT_AGENT_INVALID_REQUEST);
         } else {
             body.put("code", CatalogErrorCodes.CATEGORY_NAME_INVALID);
         }
@@ -342,6 +364,25 @@ public class GlobalExceptionHandler {
             return ApiSubscriptionErrorCodes.API_SUBSCRIPTION_NOT_FOUND;
         }
         return ApiSubscriptionErrorCodes.API_SUBSCRIPTION_INVALID;
+    }
+
+    private String mapImportAgentExceptionToCode(String message) {
+        if (message != null && message.contains("session not found")) {
+            return ImportAgentErrorCodes.IMPORT_AGENT_SESSION_NOT_FOUND;
+        }
+        if (message != null && message.contains("run not found")) {
+            return ImportAgentErrorCodes.IMPORT_AGENT_RUN_NOT_FOUND;
+        }
+        if (message != null && message.contains("confirmation required")) {
+            return ImportAgentErrorCodes.IMPORT_AGENT_PLAN_CONFIRMATION_REQUIRED;
+        }
+        if (message != null && message.contains("version mismatch")) {
+            return ImportAgentErrorCodes.IMPORT_AGENT_PLAN_VERSION_MISMATCH;
+        }
+        if (message != null && message.contains("not executable")) {
+            return ImportAgentErrorCodes.IMPORT_AGENT_PLAN_NOT_EXECUTABLE;
+        }
+        return ImportAgentErrorCodes.IMPORT_AGENT_EXECUTION_FAILED;
     }
 
     private String mapIllegalArgumentCode(String message) {

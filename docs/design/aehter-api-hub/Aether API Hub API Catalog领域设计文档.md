@@ -205,3 +205,27 @@ API Catalog 当前仍以现有一等字段维护 API 资产的主数据与生命
 - 扩展块一期仅在 owner-scoped 资产管理写模型中可读写；Discovery 与 Unified Access 不直接消费这些通用扩展块。
 
 因此，扩展块在当前阶段的职责是“未来功能的受控落点”，而不是替代现有资产主模型。只有当后续某项能力明确声明自己的 typed sub-block 后，平台才应为该子块补充专门的校验、投影或运行时语义。
+
+## 13. Import Agent 工作流补充
+
+API Catalog 仍然是 API 资产主数据与生命周期的唯一权威领域，但平台允许在它之前新增一个 owner-scoped 的 API Import Agent 工作流，作为“文档理解 -> 结构化计划 -> 显式确认 -> 确定性执行”的编排入口。
+
+这条工作流必须遵守三条边界：
+
+- Planner 只负责把用户输入、文档来源和补充约束整理成结构化导入计划快照，不能直接创建分类、资产、AI 档案或发布动作。
+- Executor 只接受已显式确认的计划版本，并且必须复用现有 `CategoryUseCase`、`ApiAssetUseCase` 等确定性应用服务执行真实写操作。
+- Discovery 与 Unified Access 继续只消费 API Catalog 的既有发布结果，不暴露 Import Agent 的会话、计划版本或执行批次元数据。
+
+因此，Import Agent 自身不是新的资产主模型，而是一层受控的编排投影：
+
+- `api_import_agent_session` 保存会话主状态、当前计划快照和确认门禁。
+- `api_import_agent_turn` 保存用户与 Agent 的多轮对话历史。
+- `api_import_agent_run` 保存显式确认后的执行批次状态、步骤结果和失败摘要。
+
+这套设计的目标不是把 AI 直接插进写模型，而是把不确定性限制在 Planner 阶段，再通过显式确认和确定性 Executor 与现有 API Catalog 规则对接。这样可以同时保留：
+
+- owner-scoped 资产创建与修订语义
+- draft-first 与 publish-ready 的生命周期校验
+- Discovery / Unified Access 的 published-only 读模型边界
+
+换句话说，Import Agent 只是 API Catalog 的前置编排入口，不替代 API Catalog 本身。
