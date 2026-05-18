@@ -7,6 +7,8 @@ import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 import jakarta.validation.constraints.Size;
 
+import java.util.Map;
+
 /**
  * 修订 API 资产请求。
  */
@@ -66,6 +68,18 @@ public class ReviseApiAssetReq {
     @JsonProperty("asyncTaskConfig")
     private AsyncTaskConfigReq asyncTaskConfig;
     private boolean asyncTaskConfigSet;
+
+    @JsonProperty("capabilityExtensions")
+    private Map<String, Object> capabilityExtensions;
+    private boolean capabilityExtensionsSet;
+
+    @JsonProperty("policyExtensions")
+    private Map<String, Object> policyExtensions;
+    private boolean policyExtensionsSet;
+
+    @JsonProperty("metadataExtensions")
+    private Map<String, Object> metadataExtensions;
+    private boolean metadataExtensionsSet;
 
     @JsonSetter("assetName")
     public void setAssetName(String assetName) {
@@ -143,6 +157,24 @@ public class ReviseApiAssetReq {
     public void setAsyncTaskConfig(AsyncTaskConfigReq asyncTaskConfig) {
         this.asyncTaskConfig = asyncTaskConfig;
         this.asyncTaskConfigSet = true;
+    }
+
+    @JsonSetter("capabilityExtensions")
+    public void setCapabilityExtensions(Map<String, Object> capabilityExtensions) {
+        this.capabilityExtensions = capabilityExtensions;
+        this.capabilityExtensionsSet = true;
+    }
+
+    @JsonSetter("policyExtensions")
+    public void setPolicyExtensions(Map<String, Object> policyExtensions) {
+        this.policyExtensions = policyExtensions;
+        this.policyExtensionsSet = true;
+    }
+
+    @JsonSetter("metadataExtensions")
+    public void setMetadataExtensions(Map<String, Object> metadataExtensions) {
+        this.metadataExtensions = metadataExtensions;
+        this.metadataExtensionsSet = true;
     }
 
     public String getAssetName() {
@@ -247,6 +279,30 @@ public class ReviseApiAssetReq {
 
     public boolean isAsyncTaskConfigSet() {
         return asyncTaskConfigSet;
+    }
+
+    public Map<String, Object> getCapabilityExtensions() {
+        return capabilityExtensions;
+    }
+
+    public boolean isCapabilityExtensionsSet() {
+        return capabilityExtensionsSet;
+    }
+
+    public Map<String, Object> getPolicyExtensions() {
+        return policyExtensions;
+    }
+
+    public boolean isPolicyExtensionsSet() {
+        return policyExtensionsSet;
+    }
+
+    public Map<String, Object> getMetadataExtensions() {
+        return metadataExtensions;
+    }
+
+    public boolean isMetadataExtensionsSet() {
+        return metadataExtensionsSet;
     }
 }
 

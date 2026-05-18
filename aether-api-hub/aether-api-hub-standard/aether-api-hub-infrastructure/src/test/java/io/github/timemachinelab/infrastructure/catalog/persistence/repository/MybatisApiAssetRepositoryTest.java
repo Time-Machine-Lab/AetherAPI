@@ -117,6 +117,22 @@ class MybatisApiAssetRepositoryTest {
     }
 
     @Test
+    @DisplayName("update should persist extension blocks as nullable asset fields")
+    void shouldPersistExtensionBlocksAsNullableAssetFields() {
+        ApiAssetDo existing = existingDo();
+        when(mapper.selectByCodeIncludingDeleted("weather-forecast")).thenReturn(existing);
+        when(mapper.updateById(existing)).thenReturn(1);
+
+        repository.save(extensionAggregate(1L));
+
+        ArgumentCaptor<ApiAssetDo> captor = ArgumentCaptor.forClass(ApiAssetDo.class);
+        verify(mapper).updateById(captor.capture());
+        assertEquals("{\"streaming\":true}", captor.getValue().getCapabilityExtensions());
+        assertEquals("{\"rateLimitQps\":10}", captor.getValue().getPolicyExtensions());
+        assertEquals("{\"source\":\"import\"}", captor.getValue().getMetadataExtensions());
+    }
+
+    @Test
     @DisplayName("update conflict should be exposed as asset business error")
     void shouldThrowBusinessErrorWhenUpdateMissesRow() {
         ApiAssetDo existing = existingDo();
@@ -261,6 +277,41 @@ class MybatisApiAssetRepositoryTest {
                         "$.result",
                         "$.error"
                 ),
+                null,
+                null,
+                now,
+                now,
+                false,
+                version
+        );
+    }
+
+    private ApiAssetAggregate extensionAggregate(long version) {
+        Instant now = Instant.now();
+        return ApiAssetAggregate.reconstitute(
+                AssetId.of("550e8400-e29b-41d4-a716-446655440000"),
+                ApiCode.of("weather-forecast"),
+                "user-1",
+                "Alice",
+                "Weather Forecast",
+                AssetType.STANDARD_API,
+                CategoryRef.of("tools"),
+                AssetStatus.DRAFT,
+                null,
+                UpstreamEndpointConfig.of(
+                        RequestMethod.GET,
+                        "https://upstream.example.com/weather",
+                        AuthScheme.NONE,
+                        null
+                ),
+                "template",
+                ExampleSnapshot.of("{\"city\":\"Shanghai\"}", "{\"temperature\":26}"),
+                null,
+                null,
+                null,
+                "{\"streaming\":true}",
+                "{\"rateLimitQps\":10}",
+                "{\"source\":\"import\"}",
                 null,
                 null,
                 now,

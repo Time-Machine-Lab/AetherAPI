@@ -190,3 +190,18 @@ API Catalog 仍然只拥有 API 资产主数据，不拥有平台任务生命周
 - 预留的状态、结果、错误字段路径，供后续状态规范化使用
 
 当 `async_task_config` 为空时，该资产保持同步/普通 Unified Access 行为。配置不完整时，Unified Access 不应向上游发起任务查询。API Catalog 不记录提交过的任务、不维护 taskId 归属、不提供当前用户任务列表；这些能力如果后续需要，应进入独立的平台任务中心设计。
+
+## 12. 资产扩展块补充
+
+API Catalog 当前仍以现有一等字段维护 API 资产的主数据与生命周期。为了降低未来新增平台一等能力时对顶层字段、接口 DTO 和持久化模型的扩散式修改成本，`api_asset` 额外预留三类可空扩展块：
+
+- `capability_extensions`：承接未来能力型扩展配置，例如 AI 测试或文档抓取辅助配置。
+- `policy_extensions`：承接未来策略型扩展配置，例如限流、定价或可见性策略。
+- `metadata_extensions`：承接未来附加元数据，例如抽取痕迹、来源提示或补充说明。
+
+该设计刻意遵守两条边界：
+
+- 现有一等字段仍然保持权威，不迁移 `aiProfile`、`async_task_config`、示例快照或 JSON Schema 快照进入扩展块。
+- 扩展块一期仅在 owner-scoped 资产管理写模型中可读写；Discovery 与 Unified Access 不直接消费这些通用扩展块。
+
+因此，扩展块在当前阶段的职责是“未来功能的受控落点”，而不是替代现有资产主模型。只有当后续某项能力明确声明自己的 typed sub-block 后，平台才应为该子块补充专门的校验、投影或运行时语义。

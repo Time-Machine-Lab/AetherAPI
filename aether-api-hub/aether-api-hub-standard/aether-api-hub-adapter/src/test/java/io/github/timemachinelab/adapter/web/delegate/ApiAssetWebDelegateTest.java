@@ -3,6 +3,7 @@ package io.github.timemachinelab.adapter.web.delegate;
 import io.github.timemachinelab.api.req.AttachAiCapabilityProfileReq;
 import io.github.timemachinelab.api.req.AsyncTaskConfigReq;
 import io.github.timemachinelab.api.req.RegisterApiAssetReq;
+import io.github.timemachinelab.api.req.ReviseApiAssetReq;
 import io.github.timemachinelab.api.resp.ApiAssetResp;
 import io.github.timemachinelab.domain.catalog.model.AsyncTaskAuthMode;
 import io.github.timemachinelab.domain.catalog.model.AssetStatus;
@@ -13,14 +14,20 @@ import io.github.timemachinelab.service.model.ApiAssetModel;
 import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
 import io.github.timemachinelab.service.model.AttachAiCapabilityProfileCommand;
 import io.github.timemachinelab.service.model.RegisterApiAssetCommand;
+import io.github.timemachinelab.service.model.ReviseApiAssetCommand;
 import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -46,6 +53,9 @@ class ApiAssetWebDelegateTest {
         asyncTaskConfig.setResultPath("$.result");
         asyncTaskConfig.setErrorPath("$.error");
         req.setAsyncTaskConfig(asyncTaskConfig);
+        req.setCapabilityExtensions(extensionBlock("streaming", true));
+        req.setPolicyExtensions(extensionBlock("rateLimitQps", 10));
+        req.setMetadataExtensions(extensionBlock("source", "import"));
 
         ApiAssetResp response = delegate.registerAsset("user-1", "Alice", req);
 
@@ -62,6 +72,9 @@ class ApiAssetWebDelegateTest {
         assertEquals("$.status", commandConfig.getStatusPath());
         assertEquals("$.result", commandConfig.getResultPath());
         assertEquals("$.error", commandConfig.getErrorPath());
+                assertEquals("{\"streaming\":true}", commandCaptor.getValue().getCapabilityExtensions());
+                assertEquals("{\"rateLimitQps\":10}", commandCaptor.getValue().getPolicyExtensions());
+                assertEquals("{\"source\":\"import\"}", commandCaptor.getValue().getMetadataExtensions());
 
         assertEquals(Boolean.TRUE, response.getAsyncTaskConfig().getEnabled());
         assertEquals("{\"type\":\"object\",\"required\":[\"prompt\"]}", response.getRequestJsonSchema());
@@ -69,6 +82,31 @@ class ApiAssetWebDelegateTest {
         assertEquals(RequestMethod.GET, response.getAsyncTaskConfig().getQueryMethod());
         assertEquals("https://provider.example.com/tasks/{taskId}", response.getAsyncTaskConfig().getQueryUrlTemplate());
         assertEquals(AsyncTaskAuthMode.SAME_AS_SUBMIT, response.getAsyncTaskConfig().getAuthMode());
+                assertEquals("{\"streaming\":true}", response.getCapabilityExtensions());
+                assertEquals("{\"rateLimitQps\":10}", response.getPolicyExtensions());
+                assertEquals("{\"source\":\"import\"}", response.getMetadataExtensions());
+        }
+
+        @Test
+        @DisplayName("revise binding should preserve nullable extension set flags")
+        void shouldBindExtensionSetFlagsWhenRevisingAsset() {
+                ApiAssetUseCase useCase = mock(ApiAssetUseCase.class);
+                when(useCase.reviseAsset(any(ReviseApiAssetCommand.class))).thenReturn(asyncAssetModel());
+                ApiAssetWebDelegate delegate = new ApiAssetWebDelegate(useCase);
+                ReviseApiAssetReq req = new ReviseApiAssetReq();
+                req.setCapabilityExtensions(null);
+                req.setPolicyExtensions(extensionBlock("visibility", "internal"));
+
+                delegate.reviseAsset("user-1", "Alice", "image-generation", req);
+
+                ArgumentCaptor<ReviseApiAssetCommand> commandCaptor =
+                                ArgumentCaptor.forClass(ReviseApiAssetCommand.class);
+                verify(useCase).reviseAsset(commandCaptor.capture());
+                assertTrue(commandCaptor.getValue().isCapabilityExtensionsSet());
+                assertNull(commandCaptor.getValue().getCapabilityExtensions());
+                assertTrue(commandCaptor.getValue().isPolicyExtensionsSet());
+                assertEquals("{\"visibility\":\"internal\"}", commandCaptor.getValue().getPolicyExtensions());
+                assertFalse(commandCaptor.getValue().isMetadataExtensionsSet());
     }
 
     @Test
@@ -174,6 +212,9 @@ class ApiAssetWebDelegateTest {
                         "$.result",
                         "$.error"
                 ),
+                "{\"streaming\":true}",
+                "{\"rateLimitQps\":10}",
+                "{\"source\":\"import\"}",
                 null,
                 null,
                 null,
@@ -183,4 +224,10 @@ class ApiAssetWebDelegateTest {
                 "2026-04-29T08:30:00Z"
         );
     }
+
+        private Map<String, Object> extensionBlock(String key, Object value) {
+                Map<String, Object> block = new LinkedHashMap<>();
+                block.put(key, value);
+                return block;
+        }
 }

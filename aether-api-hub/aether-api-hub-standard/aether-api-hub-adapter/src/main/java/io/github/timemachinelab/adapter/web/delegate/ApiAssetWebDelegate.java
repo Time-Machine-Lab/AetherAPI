@@ -26,6 +26,9 @@ import io.github.timemachinelab.service.model.ReviseApiAssetCommand;
 import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * API asset web delegate.
  */
@@ -65,7 +68,10 @@ public class ApiAssetWebDelegate {
                         req.getAssetName(),
                         req.getRequestJsonSchema(),
                         req.getResponseJsonSchema(),
-                        toAsyncTaskConfigModel(req.getAsyncTaskConfig())));
+                        toAsyncTaskConfigModel(req.getAsyncTaskConfig()),
+                        serializeExtensionBlock(req.getCapabilityExtensions(), "capabilityExtensions"),
+                        serializeExtensionBlock(req.getPolicyExtensions(), "policyExtensions"),
+                        serializeExtensionBlock(req.getMetadataExtensions(), "metadataExtensions")));
         return toResp(model);
     }
 
@@ -103,7 +109,13 @@ public class ApiAssetWebDelegate {
                 req.getResponseJsonSchema(),
                 req.isResponseJsonSchemaSet(),
                 toAsyncTaskConfigModel(req.getAsyncTaskConfig()),
-                req.isAsyncTaskConfigSet()
+                req.isAsyncTaskConfigSet(),
+                serializeExtensionBlock(req.getCapabilityExtensions(), "capabilityExtensions"),
+                req.isCapabilityExtensionsSet(),
+                serializeExtensionBlock(req.getPolicyExtensions(), "policyExtensions"),
+                req.isPolicyExtensionsSet(),
+                serializeExtensionBlock(req.getMetadataExtensions(), "metadataExtensions"),
+                req.isMetadataExtensionsSet()
         ));
         return toResp(model);
     }
@@ -178,6 +190,9 @@ public class ApiAssetWebDelegate {
                 model.getRequestJsonSchema(),
                 model.getResponseJsonSchema(),
                 toAsyncTaskConfigResp(model.getAsyncTaskConfig()),
+                model.getCapabilityExtensions(),
+                model.getPolicyExtensions(),
+                model.getMetadataExtensions(),
                 model.getAiProvider() == null
                         ? null
                         : new AiCapabilityProfileResp(
@@ -224,5 +239,62 @@ public class ApiAssetWebDelegate {
                 model.getResultPath(),
                 model.getErrorPath()
         );
+    }
+
+    private String serializeExtensionBlock(Map<String, Object> block, String fieldName) {
+        if (block == null) {
+            return null;
+        }
+        return serializeJsonValue(block, fieldName);
+    }
+
+    private String serializeJsonValue(Object value, String fieldName) {
+        if (value == null) {
+            return "null";
+        }
+        if (value instanceof Map<?, ?> mapValue) {
+            StringBuilder builder = new StringBuilder("{");
+            boolean first = true;
+            for (Map.Entry<?, ?> entry : mapValue.entrySet()) {
+                if (!(entry.getKey() instanceof String key)) {
+                    throw new IllegalArgumentException(fieldName + " contains a non-string key");
+                }
+                if (!first) {
+                    builder.append(',');
+                }
+                builder.append('"').append(escapeJson(key)).append('"').append(':')
+                        .append(serializeJsonValue(entry.getValue(), fieldName));
+                first = false;
+            }
+            builder.append('}');
+            return builder.toString();
+        }
+        if (value instanceof List<?> listValue) {
+            StringBuilder builder = new StringBuilder("[");
+            for (int i = 0; i < listValue.size(); i++) {
+                if (i > 0) {
+                    builder.append(',');
+                }
+                builder.append(serializeJsonValue(listValue.get(i), fieldName));
+            }
+            builder.append(']');
+            return builder.toString();
+        }
+        if (value instanceof String stringValue) {
+            return '"' + escapeJson(stringValue) + '"';
+        }
+        if (value instanceof Number || value instanceof Boolean) {
+            return String.valueOf(value);
+        }
+        throw new IllegalArgumentException(fieldName + " must be a JSON object composed of JSON-compatible values");
+    }
+
+    private String escapeJson(String value) {
+        return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\r", "\\r")
+                .replace("\n", "\\n")
+                .replace("\t", "\\t");
     }
 }

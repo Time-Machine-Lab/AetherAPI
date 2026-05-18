@@ -57,6 +57,9 @@ public final class ApiAssetConverter {
                 source.getRequestJsonSchema(),
                 source.getResponseJsonSchema(),
                 toAsyncTaskConfig(source.getAsyncTaskConfig()),
+                source.getCapabilityExtensions(),
+                source.getPolicyExtensions(),
+                source.getMetadataExtensions(),
                 toAiCapabilityProfile(source),
                 source.getProxyProfileId(),
                 toInstant(source.getCreatedAt()),
@@ -106,6 +109,9 @@ public final class ApiAssetConverter {
         target.setRequestJsonSchema(source.getRequestJsonSchema());
         target.setResponseJsonSchema(source.getResponseJsonSchema());
         target.setAsyncTaskConfig(serializeAsyncTaskConfig(source.getAsyncTaskConfig()));
+        target.setCapabilityExtensions(source.getCapabilityExtensions());
+        target.setPolicyExtensions(source.getPolicyExtensions());
+        target.setMetadataExtensions(source.getMetadataExtensions());
         target.setAiProvider(source.getAiCapabilityProfile() == null ? null : source.getAiCapabilityProfile().getProvider());
         target.setAiModel(source.getAiCapabilityProfile() == null ? null : source.getAiCapabilityProfile().getModel());
         target.setAiStreamingSupported(source.getAiCapabilityProfile() == null ? null : source.getAiCapabilityProfile().isStreamingSupported());

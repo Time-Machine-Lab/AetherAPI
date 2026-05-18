@@ -79,6 +79,12 @@ class ApiAssetControllerWebMvcTest {
                 null,
                 null,
                 null,
+                null,
+                null,
+                "{\"streaming\":true}",
+                "{\"rateLimitQps\":10}",
+                "{\"source\":\"import\"}",
+                null,
                 true,
                 "2026-04-29T08:00:00Z",
                 "2026-04-29T08:30:00Z"
@@ -91,6 +97,9 @@ class ApiAssetControllerWebMvcTest {
                         .principal(CURRENT_USER))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.apiCode").value("weather-forecast"))
+                .andExpect(jsonPath("$.capabilityExtensions.streaming").value(true))
+                .andExpect(jsonPath("$.policyExtensions.rateLimitQps").value(10))
+                .andExpect(jsonPath("$.metadataExtensions.source").value("import"))
                 .andExpect(jsonPath("$.deleted").value(true));
         verify(delegate).deleteAsset("user-1", "weather-forecast");
     }

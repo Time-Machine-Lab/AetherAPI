@@ -38,6 +38,12 @@ public class ReviseApiAssetCommand {
     private final boolean responseJsonSchemaSet;
     private final AsyncTaskConfigModel asyncTaskConfig;
     private final boolean asyncTaskConfigSet;
+    private final String capabilityExtensions;
+    private final boolean capabilityExtensionsSet;
+    private final String policyExtensions;
+    private final boolean policyExtensionsSet;
+    private final String metadataExtensions;
+    private final boolean metadataExtensionsSet;
 
     public ReviseApiAssetCommand(
             String ownerUserId,
@@ -87,6 +93,12 @@ public class ReviseApiAssetCommand {
                 requestExampleSet,
                 responseExample,
                 responseExampleSet,
+                null,
+                false,
+                null,
+                false,
+                null,
+                false,
                 null,
                 false,
                 null,
@@ -151,7 +163,13 @@ public class ReviseApiAssetCommand {
                 null,
                 false,
                 asyncTaskConfig,
-                asyncTaskConfigSet
+                asyncTaskConfigSet,
+                null,
+                false,
+                null,
+                false,
+                null,
+                false
         );
     }
 
@@ -183,8 +201,83 @@ public class ReviseApiAssetCommand {
             boolean requestJsonSchemaSet,
             String responseJsonSchema,
             boolean responseJsonSchemaSet,
+                AsyncTaskConfigModel asyncTaskConfig,
+                boolean asyncTaskConfigSet) {
+            this(
+                ownerUserId,
+                publisherDisplayName,
+                apiCode,
+                assetName,
+                assetNameSet,
+                assetType,
+                assetTypeSet,
+                categoryCode,
+                categoryCodeSet,
+                requestMethod,
+                requestMethodSet,
+                upstreamUrl,
+                upstreamUrlSet,
+                authScheme,
+                authSchemeSet,
+                authConfig,
+                authConfigSet,
+                requestTemplate,
+                requestTemplateSet,
+                requestExample,
+                requestExampleSet,
+                responseExample,
+                responseExampleSet,
+                requestJsonSchema,
+                requestJsonSchemaSet,
+                responseJsonSchema,
+                responseJsonSchemaSet,
+                asyncTaskConfig,
+                asyncTaskConfigSet,
+                null,
+                false,
+                null,
+                false,
+                null,
+                false
+            );
+            }
+
+            public ReviseApiAssetCommand(
+                String ownerUserId,
+                String publisherDisplayName,
+                String apiCode,
+                String assetName,
+                boolean assetNameSet,
+                AssetType assetType,
+                boolean assetTypeSet,
+                String categoryCode,
+                boolean categoryCodeSet,
+                RequestMethod requestMethod,
+                boolean requestMethodSet,
+                String upstreamUrl,
+                boolean upstreamUrlSet,
+                AuthScheme authScheme,
+                boolean authSchemeSet,
+                String authConfig,
+                boolean authConfigSet,
+                String requestTemplate,
+                boolean requestTemplateSet,
+                String requestExample,
+                boolean requestExampleSet,
+                String responseExample,
+                boolean responseExampleSet,
+                String requestJsonSchema,
+                boolean requestJsonSchemaSet,
+                String responseJsonSchema,
+                boolean responseJsonSchemaSet,
             AsyncTaskConfigModel asyncTaskConfig,
-            boolean asyncTaskConfigSet) {
+            boolean asyncTaskConfigSet,
+            String capabilityExtensions,
+            boolean capabilityExtensionsSet,
+            String policyExtensions,
+            boolean policyExtensionsSet,
+            String metadataExtensions,
+            boolean metadataExtensionsSet) {
         this.ownerUserId = ownerUserId;
         this.publisherDisplayName = publisherDisplayName;
         this.apiCode = apiCode;
@@ -214,6 +307,12 @@ public class ReviseApiAssetCommand {
         this.responseJsonSchemaSet = responseJsonSchemaSet;
         this.asyncTaskConfig = asyncTaskConfig;
         this.asyncTaskConfigSet = asyncTaskConfigSet;
+        this.capabilityExtensions = capabilityExtensions;
+        this.capabilityExtensionsSet = capabilityExtensionsSet;
+        this.policyExtensions = policyExtensions;
+        this.policyExtensionsSet = policyExtensionsSet;
+        this.metadataExtensions = metadataExtensions;
+        this.metadataExtensionsSet = metadataExtensionsSet;
     }
 
     public String getOwnerUserId() {
@@ -330,5 +429,29 @@ public class ReviseApiAssetCommand {
 
     public boolean isAsyncTaskConfigSet() {
         return asyncTaskConfigSet;
+    }
+
+    public String getCapabilityExtensions() {
+        return capabilityExtensions;
+    }
+
+    public boolean isCapabilityExtensionsSet() {
+        return capabilityExtensionsSet;
+    }
+
+    public String getPolicyExtensions() {
+        return policyExtensions;
+    }
+
+    public boolean isPolicyExtensionsSet() {
+        return policyExtensionsSet;
+    }
+
+    public String getMetadataExtensions() {
+        return metadataExtensions;
+    }
+
+    public boolean isMetadataExtensionsSet() {
+        return metadataExtensionsSet;
     }
 }

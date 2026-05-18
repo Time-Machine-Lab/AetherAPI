@@ -25,6 +25,9 @@ public class ApiAssetModel {
     private final String requestJsonSchema;
     private final String responseJsonSchema;
     private final AsyncTaskConfigModel asyncTaskConfig;
+    private final String capabilityExtensions;
+    private final String policyExtensions;
+    private final String metadataExtensions;
     private final String aiProvider;
     private final String aiModel;
     private final Boolean aiStreamingSupported;
@@ -72,6 +75,9 @@ public class ApiAssetModel {
                 requestTemplate,
                 requestExample,
                 responseExample,
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -128,6 +134,9 @@ public class ApiAssetModel {
                 null,
                 null,
                 asyncTaskConfig,
+                null,
+                null,
+                null,
                 aiProvider,
                 aiModel,
                 aiStreamingSupported,
@@ -157,6 +166,67 @@ public class ApiAssetModel {
             String requestJsonSchema,
             String responseJsonSchema,
             AsyncTaskConfigModel asyncTaskConfig,
+                String aiProvider,
+                String aiModel,
+                Boolean aiStreamingSupported,
+                List<String> aiCapabilityTags,
+                boolean deleted,
+                String createdAt,
+                String updatedAt) {
+            this(
+                id,
+                apiCode,
+                assetName,
+                assetType,
+                categoryCode,
+                status,
+                publisherDisplayName,
+                publishedAt,
+                requestMethod,
+                upstreamUrl,
+                authScheme,
+                authConfig,
+                requestTemplate,
+                requestExample,
+                responseExample,
+                requestJsonSchema,
+                responseJsonSchema,
+                asyncTaskConfig,
+                null,
+                null,
+                null,
+                aiProvider,
+                aiModel,
+                aiStreamingSupported,
+                aiCapabilityTags,
+                deleted,
+                createdAt,
+                updatedAt
+            );
+            }
+
+            public ApiAssetModel(
+                String id,
+                String apiCode,
+                String assetName,
+                String assetType,
+                String categoryCode,
+                String status,
+                String publisherDisplayName,
+                String publishedAt,
+                String requestMethod,
+                String upstreamUrl,
+                String authScheme,
+                String authConfig,
+                String requestTemplate,
+                String requestExample,
+                String responseExample,
+                String requestJsonSchema,
+                String responseJsonSchema,
+                AsyncTaskConfigModel asyncTaskConfig,
+            String capabilityExtensions,
+            String policyExtensions,
+            String metadataExtensions,
             String aiProvider,
             String aiModel,
             Boolean aiStreamingSupported,
@@ -182,6 +252,9 @@ public class ApiAssetModel {
         this.requestJsonSchema = requestJsonSchema;
         this.responseJsonSchema = responseJsonSchema;
         this.asyncTaskConfig = asyncTaskConfig;
+        this.capabilityExtensions = capabilityExtensions;
+        this.policyExtensions = policyExtensions;
+        this.metadataExtensions = metadataExtensions;
         this.aiProvider = aiProvider;
         this.aiModel = aiModel;
         this.aiStreamingSupported = aiStreamingSupported;
@@ -261,6 +334,18 @@ public class ApiAssetModel {
 
     public AsyncTaskConfigModel getAsyncTaskConfig() {
         return asyncTaskConfig;
+    }
+
+    public String getCapabilityExtensions() {
+        return capabilityExtensions;
+    }
+
+    public String getPolicyExtensions() {
+        return policyExtensions;
+    }
+
+    public String getMetadataExtensions() {
+        return metadataExtensions;
     }
 
     public String getAiProvider() {

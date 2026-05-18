@@ -34,6 +34,9 @@ public class ApiAssetDo {
     private String requestJsonSchema;
     private String responseJsonSchema;
     private String asyncTaskConfig;
+    private String capabilityExtensions;
+    private String policyExtensions;
+    private String metadataExtensions;
     private String aiProvider;
     private String aiModel;
     private Boolean aiStreamingSupported;
@@ -198,6 +201,30 @@ public class ApiAssetDo {
 
     public void setAsyncTaskConfig(String asyncTaskConfig) {
         this.asyncTaskConfig = asyncTaskConfig;
+    }
+
+    public String getCapabilityExtensions() {
+        return capabilityExtensions;
+    }
+
+    public void setCapabilityExtensions(String capabilityExtensions) {
+        this.capabilityExtensions = capabilityExtensions;
+    }
+
+    public String getPolicyExtensions() {
+        return policyExtensions;
+    }
+
+    public void setPolicyExtensions(String policyExtensions) {
+        this.policyExtensions = policyExtensions;
+    }
+
+    public String getMetadataExtensions() {
+        return metadataExtensions;
+    }
+
+    public void setMetadataExtensions(String metadataExtensions) {
+        this.metadataExtensions = metadataExtensions;
     }
 
     public String getAiProvider() {

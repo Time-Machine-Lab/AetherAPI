@@ -1,6 +1,7 @@
 package io.github.timemachinelab.api.resp;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonRawValue;
 import io.github.timemachinelab.domain.catalog.model.AssetStatus;
 import io.github.timemachinelab.domain.catalog.model.AssetType;
 import io.github.timemachinelab.domain.catalog.model.AuthScheme;
@@ -65,6 +66,18 @@ public class ApiAssetResp {
     @JsonProperty("asyncTaskConfig")
     private AsyncTaskConfigResp asyncTaskConfig;
 
+    @JsonRawValue
+    @JsonProperty("capabilityExtensions")
+    private String capabilityExtensions;
+
+    @JsonRawValue
+    @JsonProperty("policyExtensions")
+    private String policyExtensions;
+
+    @JsonRawValue
+    @JsonProperty("metadataExtensions")
+    private String metadataExtensions;
+
     @JsonProperty("aiCapabilityProfile")
     private AiCapabilityProfileResp aiCapabilityProfile;
 
@@ -119,6 +132,9 @@ public class ApiAssetResp {
                 null,
                 null,
                 null,
+                null,
+                null,
+                null,
                 aiCapabilityProfile,
                 deleted,
                 createdAt,
@@ -166,6 +182,9 @@ public class ApiAssetResp {
                 null,
                 null,
                 asyncTaskConfig,
+                null,
+                null,
+                null,
                 aiCapabilityProfile,
                 deleted,
                 createdAt,
@@ -192,6 +211,9 @@ public class ApiAssetResp {
             String requestJsonSchema,
             String responseJsonSchema,
             AsyncTaskConfigResp asyncTaskConfig,
+            String capabilityExtensions,
+            String policyExtensions,
+            String metadataExtensions,
             AiCapabilityProfileResp aiCapabilityProfile,
             boolean deleted,
             String createdAt,
@@ -214,6 +236,9 @@ public class ApiAssetResp {
         this.requestJsonSchema = requestJsonSchema;
         this.responseJsonSchema = responseJsonSchema;
         this.asyncTaskConfig = asyncTaskConfig;
+        this.capabilityExtensions = capabilityExtensions;
+        this.policyExtensions = policyExtensions;
+        this.metadataExtensions = metadataExtensions;
         this.aiCapabilityProfile = aiCapabilityProfile;
         this.deleted = deleted;
         this.createdAt = createdAt;
@@ -366,6 +391,30 @@ public class ApiAssetResp {
 
     public void setAsyncTaskConfig(AsyncTaskConfigResp asyncTaskConfig) {
         this.asyncTaskConfig = asyncTaskConfig;
+    }
+
+    public String getCapabilityExtensions() {
+        return capabilityExtensions;
+    }
+
+    public void setCapabilityExtensions(String capabilityExtensions) {
+        this.capabilityExtensions = capabilityExtensions;
+    }
+
+    public String getPolicyExtensions() {
+        return policyExtensions;
+    }
+
+    public void setPolicyExtensions(String policyExtensions) {
+        this.policyExtensions = policyExtensions;
+    }
+
+    public String getMetadataExtensions() {
+        return metadataExtensions;
+    }
+
+    public void setMetadataExtensions(String metadataExtensions) {
+        this.metadataExtensions = metadataExtensions;
     }
 
     public void setAiCapabilityProfile(AiCapabilityProfileResp aiCapabilityProfile) {

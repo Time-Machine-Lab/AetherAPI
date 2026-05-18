@@ -110,6 +110,42 @@ class UnifiedAccessApplicationServiceTest {
         assertEquals(0, observabilityUseCase.recordedCommands.size());
     }
 
+        @Test
+        @DisplayName("resolveInvocation should ignore generic extension blocks on published asset")
+        void shouldIgnoreGenericExtensionBlocksDuringInvocationResolution() {
+                InMemoryCredentialValidationUseCase credentialValidationUseCase = validCredentialUseCase();
+                InMemoryApiAssetRepositoryPort apiAssetRepositoryPort = new InMemoryApiAssetRepositoryPort();
+                InMemoryUnifiedAccessDownstreamProxyPort downstreamProxyPort = new InMemoryUnifiedAccessDownstreamProxyPort();
+                InMemoryObservabilityUseCase observabilityUseCase = new InMemoryObservabilityUseCase();
+                apiAssetRepositoryPort.save(publishedAssetWithExtensions("chat-completions", AssetType.AI_API, true));
+
+                UnifiedAccessApplicationService service = newService(
+                                credentialValidationUseCase,
+                                apiAssetRepositoryPort,
+                                downstreamProxyPort,
+                                observabilityUseCase
+                );
+
+                UnifiedAccessInvocationModel invocation = service.resolveInvocation(new ResolveUnifiedAccessInvocationCommand(
+                                "chat-completions",
+                                "ak_live_validation_key",
+                                "post",
+                                Map.of("X-Trace-Id", List.of("trace-1")),
+                                Map.of("stream", List.of("true")),
+                                "{\"message\":\"hello\"}".getBytes(),
+                                "application/json",
+                                null
+                ));
+
+                assertEquals("chat-completions", invocation.getTargetApi().getApiCode());
+                assertEquals("POST", invocation.getHttpMethod());
+                assertEquals("https://upstream.example.com/v1/chat-completions", invocation.getTargetApi().getUpstreamUrl());
+                assertTrue(invocation.getTargetApi().isStreamingSupported());
+                assertEquals(1, credentialValidationUseCase.validationCount);
+                assertEquals(1, apiAssetRepositoryPort.findByCodeCount);
+                assertEquals(0, downstreamProxyPort.invocationCount);
+        }
+
     @Test
     @DisplayName("invoke forwards only successfully resolved invocation to downstream proxy")
     void shouldForwardResolvedInvocationToDownstreamProxyBoundary() {
@@ -882,6 +918,43 @@ class UnifiedAccessApplicationServiceTest {
                 ),
                 "{\"model\":\"gpt-4.1\"}",
                 null,
+                assetType == AssetType.AI_API
+                        ? AiCapabilityProfile.of("OpenAI", "gpt-4.1", streamingSupported, List.of("chat"))
+                        : null,
+                null,
+                now.minusSeconds(300),
+                now.minusSeconds(120),
+                false,
+                0L
+        );
+    }
+
+    private ApiAssetAggregate publishedAssetWithExtensions(String apiCode, AssetType assetType, boolean streamingSupported) {
+        Instant now = Instant.now();
+        return ApiAssetAggregate.reconstitute(
+                AssetId.generate(),
+                ApiCode.of(apiCode),
+                "publisher-user-1",
+                "Chat Completions",
+                "Chat Completions",
+                assetType,
+                null,
+                AssetStatus.PUBLISHED,
+                now.minusSeconds(120),
+                UpstreamEndpointConfig.of(
+                        RequestMethod.POST,
+                        "https://upstream.example.com/v1/" + apiCode,
+                        AuthScheme.HEADER_TOKEN,
+                        "Authorization: Bearer upstream-token"
+                ),
+                "{\"model\":\"gpt-4.1\"}",
+                null,
+                null,
+                null,
+                null,
+                "{\"streaming\":true}",
+                "{\"rateLimitQps\":10}",
+                "{\"source\":\"import\"}",
                 assetType == AssetType.AI_API
                         ? AiCapabilityProfile.of("OpenAI", "gpt-4.1", streamingSupported, List.of("chat"))
                         : null,

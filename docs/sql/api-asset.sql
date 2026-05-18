@@ -26,6 +26,9 @@ CREATE TABLE IF NOT EXISTS api_asset (
     request_json_schema     TEXT NULL COMMENT '请求体 JSON Schema 快照，可为空',
     response_json_schema    TEXT NULL COMMENT '响应体 JSON Schema 快照，可为空',
     async_task_config       TEXT NULL COMMENT '异步任务查询配置 JSON。为空表示该资产不声明 Unified Access 任务查询通道',
+    capability_extensions   TEXT NULL COMMENT '能力扩展块 JSON。用于未来一等能力的 owner-scoped 扩展配置',
+    policy_extensions       TEXT NULL COMMENT '策略扩展块 JSON。用于未来策略类配置的 owner-scoped 扩展配置',
+    metadata_extensions     TEXT NULL COMMENT '元数据扩展块 JSON。用于未来附加元数据的 owner-scoped 扩展配置',
     ai_provider             VARCHAR(128) NULL COMMENT 'AI 提供方，仅 AI_API 使用',
     ai_model                VARCHAR(128) NULL COMMENT 'AI 模型标识，仅 AI_API 使用',
     ai_streaming_supported  BOOLEAN NULL COMMENT '是否支持流式，仅 AI_API 使用',
@@ -57,6 +60,9 @@ COMMENT ON COLUMN api_asset.response_example IS '响应示例快照';
 COMMENT ON COLUMN api_asset.request_json_schema IS '请求体 JSON Schema 快照，可为空';
 COMMENT ON COLUMN api_asset.response_json_schema IS '响应体 JSON Schema 快照，可为空';
 COMMENT ON COLUMN api_asset.async_task_config IS '异步任务查询配置 JSON。为空表示该资产不声明 Unified Access 任务查询通道';
+COMMENT ON COLUMN api_asset.capability_extensions IS '能力扩展块 JSON。用于未来一等能力的 owner-scoped 扩展配置';
+COMMENT ON COLUMN api_asset.policy_extensions IS '策略扩展块 JSON。用于未来策略类配置的 owner-scoped 扩展配置';
+COMMENT ON COLUMN api_asset.metadata_extensions IS '元数据扩展块 JSON。用于未来附加元数据的 owner-scoped 扩展配置';
 COMMENT ON COLUMN api_asset.ai_provider IS 'AI 提供方，仅 AI_API 使用';
 COMMENT ON COLUMN api_asset.ai_model IS 'AI 模型标识，仅 AI_API 使用';
 COMMENT ON COLUMN api_asset.ai_streaming_supported IS '是否支持流式，仅 AI_API 使用';

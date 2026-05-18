@@ -15,6 +15,9 @@ public class RegisterApiAssetCommand {
     private final String requestJsonSchema;
     private final String responseJsonSchema;
     private final AsyncTaskConfigModel asyncTaskConfig;
+    private final String capabilityExtensions;
+    private final String policyExtensions;
+    private final String metadataExtensions;
 
     public RegisterApiAssetCommand(
             String ownerUserId,
@@ -44,6 +47,23 @@ public class RegisterApiAssetCommand {
             String requestJsonSchema,
             String responseJsonSchema,
             AsyncTaskConfigModel asyncTaskConfig) {
+        this(ownerUserId, publisherDisplayName, apiCode, assetType, assetName,
+                requestJsonSchema, responseJsonSchema, asyncTaskConfig,
+                null, null, null);
+    }
+
+    public RegisterApiAssetCommand(
+            String ownerUserId,
+            String publisherDisplayName,
+            String apiCode,
+            AssetType assetType,
+            String assetName,
+            String requestJsonSchema,
+            String responseJsonSchema,
+            AsyncTaskConfigModel asyncTaskConfig,
+            String capabilityExtensions,
+            String policyExtensions,
+            String metadataExtensions) {
         this.ownerUserId = ownerUserId;
         this.publisherDisplayName = publisherDisplayName;
         this.apiCode = apiCode;
@@ -52,6 +72,9 @@ public class RegisterApiAssetCommand {
         this.requestJsonSchema = requestJsonSchema;
         this.responseJsonSchema = responseJsonSchema;
         this.asyncTaskConfig = asyncTaskConfig;
+        this.capabilityExtensions = capabilityExtensions;
+        this.policyExtensions = policyExtensions;
+        this.metadataExtensions = metadataExtensions;
     }
 
     public String getOwnerUserId() {
@@ -84,5 +107,17 @@ public class RegisterApiAssetCommand {
 
     public AsyncTaskConfigModel getAsyncTaskConfig() {
         return asyncTaskConfig;
+    }
+
+    public String getCapabilityExtensions() {
+        return capabilityExtensions;
+    }
+
+    public String getPolicyExtensions() {
+        return policyExtensions;
+    }
+
+    public String getMetadataExtensions() {
+        return metadataExtensions;
     }
 }

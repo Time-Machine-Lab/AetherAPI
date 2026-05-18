@@ -333,6 +333,12 @@ components:
           description: 响应体 JSON Schema 快照，可为空
         asyncTaskConfig:
           $ref: '#/components/schemas/AsyncTaskConfig'
+        capabilityExtensions:
+          $ref: '#/components/schemas/AssetExtensionBlock'
+        policyExtensions:
+          $ref: '#/components/schemas/AssetExtensionBlock'
+        metadataExtensions:
+          $ref: '#/components/schemas/AssetExtensionBlock'
 
     ReviseApiAssetReq:
       type: object
@@ -394,6 +400,12 @@ components:
           description: 响应体 JSON Schema 快照，可为空；传 null 表示清空
         asyncTaskConfig:
           $ref: '#/components/schemas/AsyncTaskConfig'
+        capabilityExtensions:
+          $ref: '#/components/schemas/AssetExtensionBlock'
+        policyExtensions:
+          $ref: '#/components/schemas/AssetExtensionBlock'
+        metadataExtensions:
+          $ref: '#/components/schemas/AssetExtensionBlock'
 
     AttachAiCapabilityProfileReq:
       type: object
@@ -551,6 +563,12 @@ components:
           description: 响应体 JSON Schema 快照，可为空
         asyncTaskConfig:
           $ref: '#/components/schemas/AsyncTaskConfig'
+        capabilityExtensions:
+          $ref: '#/components/schemas/AssetExtensionBlock'
+        policyExtensions:
+          $ref: '#/components/schemas/AssetExtensionBlock'
+        metadataExtensions:
+          $ref: '#/components/schemas/AssetExtensionBlock'
         aiCapabilityProfile:
           $ref: '#/components/schemas/AiCapabilityProfileResp'
         deleted:
@@ -569,6 +587,18 @@ components:
           type: string
         message:
           type: string
+
+    AssetExtensionBlock:
+      type: object
+      nullable: true
+      description: |
+        API 资产的未来功能扩展块。当前仅用于 owner-scoped 资产管理写模型承载未来一等能力的扩展配置。
+        一期为透传式 JSON 对象：后端负责空值清理与原样往返，不对内部键名做通用业务解释。
+      additionalProperties: true
+      example:
+        testConfig:
+          enabled: true
+          timeoutMillis: 5000
 
     AsyncTaskConfig:
       type: object

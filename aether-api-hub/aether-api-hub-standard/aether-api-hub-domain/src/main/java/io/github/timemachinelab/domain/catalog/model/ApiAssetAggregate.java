@@ -23,6 +23,9 @@ public class ApiAssetAggregate {
     private String requestJsonSchema;
     private String responseJsonSchema;
     private AsyncTaskConfig asyncTaskConfig;
+    private String capabilityExtensions;
+    private String policyExtensions;
+    private String metadataExtensions;
     private AiCapabilityProfile aiCapabilityProfile;
     private String proxyProfileId;
     private Instant createdAt;
@@ -49,6 +52,9 @@ public class ApiAssetAggregate {
             String requestJsonSchema,
             String responseJsonSchema,
             AsyncTaskConfig asyncTaskConfig,
+            String capabilityExtensions,
+            String policyExtensions,
+            String metadataExtensions,
             AiCapabilityProfile aiCapabilityProfile,
             String proxyProfileId,
             Instant createdAt,
@@ -70,6 +76,9 @@ public class ApiAssetAggregate {
         this.requestJsonSchema = normalizeOptional(requestJsonSchema);
         this.responseJsonSchema = normalizeOptional(responseJsonSchema);
         this.asyncTaskConfig = asyncTaskConfig;
+        this.capabilityExtensions = normalizeOptional(capabilityExtensions);
+        this.policyExtensions = normalizeOptional(policyExtensions);
+        this.metadataExtensions = normalizeOptional(metadataExtensions);
         this.aiCapabilityProfile = aiCapabilityProfile;
         this.proxyProfileId = normalizeOptional(proxyProfileId);
         this.createdAt = Objects.requireNonNull(createdAt, "Created time must not be null");
@@ -101,6 +110,9 @@ public class ApiAssetAggregate {
                 type,
                 null,
                 AssetStatus.DRAFT,
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -195,6 +207,9 @@ public class ApiAssetAggregate {
                 null,
                 null,
                 asyncTaskConfig,
+                null,
+                null,
+                null,
                 aiCapabilityProfile,
                 proxyProfileId,
                 createdAt,
@@ -241,6 +256,9 @@ public class ApiAssetAggregate {
                 requestJsonSchema,
                 responseJsonSchema,
                 null,
+                null,
+                null,
+                null,
                 aiCapabilityProfile,
                 proxyProfileId,
                 createdAt,
@@ -266,6 +284,59 @@ public class ApiAssetAggregate {
             String requestJsonSchema,
             String responseJsonSchema,
             AsyncTaskConfig asyncTaskConfig,
+                AiCapabilityProfile aiCapabilityProfile,
+                String proxyProfileId,
+                Instant createdAt,
+                Instant updatedAt,
+                boolean deleted,
+                long version) {
+            return reconstitute(
+                id,
+                code,
+                ownerUserId,
+                publisherDisplayName,
+                name,
+                type,
+                categoryRef,
+                status,
+                publishedAt,
+                upstreamConfig,
+                requestTemplate,
+                exampleSnapshot,
+                requestJsonSchema,
+                responseJsonSchema,
+                asyncTaskConfig,
+                null,
+                null,
+                null,
+                aiCapabilityProfile,
+                proxyProfileId,
+                createdAt,
+                updatedAt,
+                deleted,
+                version
+            );
+            }
+
+            public static ApiAssetAggregate reconstitute(
+                AssetId id,
+                ApiCode code,
+                String ownerUserId,
+                String publisherDisplayName,
+                String name,
+                AssetType type,
+                CategoryRef categoryRef,
+                AssetStatus status,
+                Instant publishedAt,
+                UpstreamEndpointConfig upstreamConfig,
+                String requestTemplate,
+                ExampleSnapshot exampleSnapshot,
+                String requestJsonSchema,
+                String responseJsonSchema,
+                AsyncTaskConfig asyncTaskConfig,
+            String capabilityExtensions,
+            String policyExtensions,
+            String metadataExtensions,
             AiCapabilityProfile aiCapabilityProfile,
             String proxyProfileId,
             Instant createdAt,
@@ -288,6 +359,9 @@ public class ApiAssetAggregate {
                 requestJsonSchema,
                 responseJsonSchema,
                 asyncTaskConfig,
+                capabilityExtensions,
+                policyExtensions,
+                metadataExtensions,
                 aiCapabilityProfile,
                 proxyProfileId,
                 createdAt,
@@ -322,6 +396,9 @@ public class ApiAssetAggregate {
                 this.requestJsonSchema,
                 this.responseJsonSchema,
                 this.asyncTaskConfig,
+                this.capabilityExtensions,
+                this.policyExtensions,
+                this.metadataExtensions,
                 newPublisherDisplayName
         );
     }
@@ -346,6 +423,9 @@ public class ApiAssetAggregate {
                 newRequestJsonSchema,
                 newResponseJsonSchema,
                 this.asyncTaskConfig,
+                this.capabilityExtensions,
+                this.policyExtensions,
+                this.metadataExtensions,
                 newPublisherDisplayName
         );
     }
@@ -369,6 +449,9 @@ public class ApiAssetAggregate {
                 this.requestJsonSchema,
                 this.responseJsonSchema,
                 newAsyncTaskConfig,
+                this.capabilityExtensions,
+                this.policyExtensions,
+                this.metadataExtensions,
                 newPublisherDisplayName
         );
     }
@@ -383,6 +466,9 @@ public class ApiAssetAggregate {
             String newRequestJsonSchema,
             String newResponseJsonSchema,
             AsyncTaskConfig newAsyncTaskConfig,
+            String newCapabilityExtensions,
+            String newPolicyExtensions,
+            String newMetadataExtensions,
             String newPublisherDisplayName) {
         ensureNotDeleted();
 
@@ -403,6 +489,9 @@ public class ApiAssetAggregate {
         this.requestJsonSchema = normalizeOptional(newRequestJsonSchema);
         this.responseJsonSchema = normalizeOptional(newResponseJsonSchema);
         this.asyncTaskConfig = newAsyncTaskConfig;
+        this.capabilityExtensions = normalizeOptional(newCapabilityExtensions);
+        this.policyExtensions = normalizeOptional(newPolicyExtensions);
+        this.metadataExtensions = normalizeOptional(newMetadataExtensions);
 
         if (this.type != AssetType.AI_API) {
             this.aiCapabilityProfile = null;
@@ -615,6 +704,18 @@ public class ApiAssetAggregate {
 
     public AsyncTaskConfig getAsyncTaskConfig() {
         return asyncTaskConfig;
+    }
+
+    public String getCapabilityExtensions() {
+        return capabilityExtensions;
+    }
+
+    public String getPolicyExtensions() {
+        return policyExtensions;
+    }
+
+    public String getMetadataExtensions() {
+        return metadataExtensions;
     }
 
     public AiCapabilityProfile getAiCapabilityProfile() {

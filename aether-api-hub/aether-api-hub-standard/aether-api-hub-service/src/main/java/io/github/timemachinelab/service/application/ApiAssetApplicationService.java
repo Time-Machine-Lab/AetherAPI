@@ -86,7 +86,10 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
         );
         if (command.getRequestJsonSchema() != null
                 || command.getResponseJsonSchema() != null
-                || command.getAsyncTaskConfig() != null) {
+                || command.getAsyncTaskConfig() != null
+                || command.getCapabilityExtensions() != null
+                || command.getPolicyExtensions() != null
+                || command.getMetadataExtensions() != null) {
             aggregate.revise(
                     aggregate.getName(),
                     aggregate.getType(),
@@ -97,6 +100,9 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
                     command.getRequestJsonSchema(),
                     command.getResponseJsonSchema(),
                     toAsyncTaskConfig(command.getAsyncTaskConfig()),
+                    command.getCapabilityExtensions(),
+                    command.getPolicyExtensions(),
+                    command.getMetadataExtensions(),
                     aggregate.getPublisherDisplayName()
             );
         }
@@ -129,6 +135,15 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
         AsyncTaskConfig asyncTaskConfig = command.isAsyncTaskConfigSet()
                 ? toAsyncTaskConfig(command.getAsyncTaskConfig())
                 : aggregate.getAsyncTaskConfig();
+        String capabilityExtensions = command.isCapabilityExtensionsSet()
+            ? command.getCapabilityExtensions()
+            : aggregate.getCapabilityExtensions();
+        String policyExtensions = command.isPolicyExtensionsSet()
+            ? command.getPolicyExtensions()
+            : aggregate.getPolicyExtensions();
+        String metadataExtensions = command.isMetadataExtensionsSet()
+            ? command.getMetadataExtensions()
+            : aggregate.getMetadataExtensions();
 
         aggregate.revise(
                 assetName,
@@ -140,6 +155,9 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
                 requestJsonSchema,
                 responseJsonSchema,
                 asyncTaskConfig,
+                capabilityExtensions,
+                policyExtensions,
+                metadataExtensions,
                 normalizePublisherDisplayName(command.getPublisherDisplayName(), command.getOwnerUserId())
         );
         apiAssetRepositoryPort.save(aggregate);
@@ -303,6 +321,9 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
                 aggregate.getRequestJsonSchema(),
                 aggregate.getResponseJsonSchema(),
                 toAsyncTaskConfigModel(aggregate.getAsyncTaskConfig()),
+                aggregate.getCapabilityExtensions(),
+                aggregate.getPolicyExtensions(),
+                aggregate.getMetadataExtensions(),
                 aggregate.getAiCapabilityProfile() == null ? null : aggregate.getAiCapabilityProfile().getProvider(),
                 aggregate.getAiCapabilityProfile() == null ? null : aggregate.getAiCapabilityProfile().getModel(),
                 aggregate.getAiCapabilityProfile() == null ? null : aggregate.getAiCapabilityProfile().isStreamingSupported(),

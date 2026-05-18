@@ -372,6 +372,53 @@ class ApiAssetApplicationServiceTest {
             assertEquals(null, cleared.getResponseJsonSchema());
         }
 
+    @Test
+    @DisplayName("should keep published status when revising extension blocks only")
+    void shouldKeepPublishedStatusWhenRevisingExtensionBlocksOnly() {
+        ApiAssetApplicationService lifecycleService = lifecycleService(categoryRef -> true);
+
+        ApiAssetModel draft = lifecycleService.registerAsset(new RegisterApiAssetCommand(
+            CURRENT_USER_ID,
+            PUBLISHER_DISPLAY_NAME,
+            "weather-forecast",
+            AssetType.STANDARD_API,
+            "Weather Forecast",
+            null,
+            null,
+            null,
+            "{\"streaming\":true}",
+            "{\"rateLimitQps\":10}",
+            "{\"source\":\"import\"}"
+        ));
+        assertEquals("{\"streaming\":true}", draft.getCapabilityExtensions());
+        assertEquals("{\"rateLimitQps\":10}", draft.getPolicyExtensions());
+        assertEquals("{\"source\":\"import\"}", draft.getMetadataExtensions());
+
+        lifecycleService.reviseAsset(completeRevisionCommand("weather-forecast"));
+        lifecycleService.publishAsset(CURRENT_USER_ID, PUBLISHER_DISPLAY_NAME, "weather-forecast");
+
+        ApiAssetModel revised = lifecycleService.reviseAsset(extensionRevisionCommand(
+            "weather-forecast",
+            "{\"streaming\":false,\"batch\":true}",
+            true,
+            null,
+            true,
+            "{\"source\":\"sync\"}",
+            true
+        ));
+
+        assertEquals("PUBLISHED", revised.getStatus());
+        assertEquals("{\"streaming\":false,\"batch\":true}", revised.getCapabilityExtensions());
+        assertEquals(null, revised.getPolicyExtensions());
+        assertEquals("{\"source\":\"sync\"}", revised.getMetadataExtensions());
+
+        ApiAssetModel detail = lifecycleService.getAssetByCode(CURRENT_USER_ID, "weather-forecast");
+        assertEquals("PUBLISHED", detail.getStatus());
+        assertEquals("{\"streaming\":false,\"batch\":true}", detail.getCapabilityExtensions());
+        assertEquals(null, detail.getPolicyExtensions());
+        assertEquals("{\"source\":\"sync\"}", detail.getMetadataExtensions());
+    }
+
         @Test
         @DisplayName("should reject publish when asset is incomplete")
         void shouldRejectPublishWhenAssetIsIncomplete() {
@@ -557,6 +604,53 @@ class ApiAssetApplicationServiceTest {
                 "$.status",
                 "$.result",
                 "$.error"
+        );
+    }
+
+    private ReviseApiAssetCommand extensionRevisionCommand(
+            String apiCode,
+            String capabilityExtensions,
+            boolean capabilityExtensionsSet,
+            String policyExtensions,
+            boolean policyExtensionsSet,
+            String metadataExtensions,
+            boolean metadataExtensionsSet) {
+        return new ReviseApiAssetCommand(
+                CURRENT_USER_ID,
+                PUBLISHER_DISPLAY_NAME,
+                apiCode,
+                null,
+                false,
+                null,
+                false,
+                null,
+                false,
+                null,
+                false,
+                null,
+                false,
+                null,
+                false,
+                null,
+                false,
+                null,
+                false,
+                null,
+                false,
+                null,
+                false,
+                null,
+                false,
+                null,
+                false,
+                null,
+                false,
+                capabilityExtensions,
+                capabilityExtensionsSet,
+                policyExtensions,
+                policyExtensionsSet,
+                metadataExtensions,
+                metadataExtensionsSet
         );
     }
 

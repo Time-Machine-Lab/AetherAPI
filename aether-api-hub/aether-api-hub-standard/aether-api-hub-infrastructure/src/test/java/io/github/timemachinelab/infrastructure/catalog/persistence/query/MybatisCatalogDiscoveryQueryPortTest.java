@@ -139,6 +139,12 @@ class MybatisCatalogDiscoveryQueryPortTest {
         assertSqlContains(selectAssetDetail, "a.request_json_schema AS requestJsonSchema");
         assertSqlContains(selectAssetDetail, "a.response_json_schema AS responseJsonSchema");
         assertSqlContains(selectAssetDetail, "a.async_task_config AS asyncTaskConfig");
+        assertSqlNotContains(selectAssetSummaries, "capability_extensions");
+        assertSqlNotContains(selectAssetSummaries, "policy_extensions");
+        assertSqlNotContains(selectAssetSummaries, "metadata_extensions");
+        assertSqlNotContains(selectAssetDetail, "capability_extensions");
+        assertSqlNotContains(selectAssetDetail, "policy_extensions");
+        assertSqlNotContains(selectAssetDetail, "metadata_extensions");
     }
 
     private CatalogDiscoveryAssetRecord assetRecord(String apiCode, String status, String assetType, String publisher) {
@@ -162,5 +168,10 @@ class MybatisCatalogDiscoveryQueryPortTest {
     private void assertSqlContains(Method method, String expected) {
         String sql = String.join("\n", method.getAnnotation(Select.class).value());
         assertTrue(sql.contains(expected), () -> "Expected SQL to contain: " + expected + "\n" + sql);
+    }
+
+    private void assertSqlNotContains(Method method, String unexpected) {
+        String sql = String.join("\n", method.getAnnotation(Select.class).value());
+        assertFalse(sql.contains(unexpected), () -> "Expected SQL to exclude: " + unexpected + "\n" + sql);
     }
 }

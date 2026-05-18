@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.util.Map;
+
 /**
  * 注册 API 资产请求。
  */
@@ -32,6 +34,15 @@ public class RegisterApiAssetReq {
 
     @JsonProperty("asyncTaskConfig")
     private AsyncTaskConfigReq asyncTaskConfig;
+
+    @JsonProperty("capabilityExtensions")
+    private Map<String, Object> capabilityExtensions;
+
+    @JsonProperty("policyExtensions")
+    private Map<String, Object> policyExtensions;
+
+    @JsonProperty("metadataExtensions")
+    private Map<String, Object> metadataExtensions;
 
     public RegisterApiAssetReq() {
     }
@@ -88,6 +99,30 @@ public class RegisterApiAssetReq {
 
     public void setAsyncTaskConfig(AsyncTaskConfigReq asyncTaskConfig) {
         this.asyncTaskConfig = asyncTaskConfig;
+    }
+
+    public Map<String, Object> getCapabilityExtensions() {
+        return capabilityExtensions;
+    }
+
+    public void setCapabilityExtensions(Map<String, Object> capabilityExtensions) {
+        this.capabilityExtensions = capabilityExtensions;
+    }
+
+    public Map<String, Object> getPolicyExtensions() {
+        return policyExtensions;
+    }
+
+    public void setPolicyExtensions(Map<String, Object> policyExtensions) {
+        this.policyExtensions = policyExtensions;
+    }
+
+    public Map<String, Object> getMetadataExtensions() {
+        return metadataExtensions;
+    }
+
+    public void setMetadataExtensions(Map<String, Object> metadataExtensions) {
+        this.metadataExtensions = metadataExtensions;
     }
 }
 
