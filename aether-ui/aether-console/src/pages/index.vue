@@ -537,11 +537,13 @@ watch(
                       v-if="detail.requestJsonSchema"
                       :label="t('console.home.requestJsonSchema')"
                       :value="detail.requestJsonSchema"
+                      presentation="overlay"
                     />
                     <JsonSchemaViewer
                       v-if="detail.responseJsonSchema"
                       :label="t('console.home.responseJsonSchema')"
                       :value="detail.responseJsonSchema"
+                      presentation="overlay"
                     />
                   </div>
                 </FieldGroup>

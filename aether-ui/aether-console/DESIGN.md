@@ -452,6 +452,8 @@ The default API asset management workspace uses a two-region composition on wide
 - 请求模板、请求示例、响应示例、Header、Payload、调用结果、日志 `usageSnapshot` 均使用 `CodeBlock`。
 - 合法 JSON 自动格式化；非法 JSON 或普通文本以原文展示，并给出非阻塞提示。
 - 代码块可按场景提供复制与折叠；复制反馈使用 i18n 文案。
+- API 市场中的请求体/响应体 Schema 不再只以内联原始 JSON 长块展示；应使用紧凑触发入口，并在独立检查层中提供结构化查看。
+- Schema 检查层在桌面端使用大尺寸居中弹层，在窄屏端使用全高抽屉式布局；必须支持字段树展开/收缩、类型/必填/枚举等元数据展示，并保留原始 JSON 兜底入口。
 
 ### 11.6 状态反馈
 
