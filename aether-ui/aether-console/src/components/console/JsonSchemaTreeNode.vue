@@ -78,7 +78,10 @@ function formatTypeLabel(typeLabel: string): string {
       </div>
     </summary>
 
-    <div class="space-y-3 border-t border-[rgb(34_34_34_/_0.06)] px-4 py-4" :class="level > 0 ? 'ml-3' : ''">
+    <div
+      class="space-y-3 border-t border-[rgb(34_34_34_/_0.06)] px-4 py-4"
+      :class="level > 0 ? 'ml-3' : ''"
+    >
       <p v-if="node.description" class="text-sm leading-6 text-muted-foreground">
         {{ node.description }}
       </p>
@@ -102,7 +105,9 @@ function formatTypeLabel(typeLabel: string): string {
       </div>
 
       <div v-if="node.enumValues.length > 0" class="space-y-2">
-        <p class="text-xs font-semibold text-foreground">{{ t('console.shared.schemaEnumValues') }}</p>
+        <p class="text-xs font-semibold text-foreground">
+          {{ t('console.shared.schemaEnumValues') }}
+        </p>
         <div class="flex flex-wrap gap-2">
           <span
             v-for="enumValue in node.enumValues"
@@ -169,7 +174,9 @@ function formatTypeLabel(typeLabel: string): string {
     </div>
 
     <div v-if="node.enumValues.length > 0" class="mt-3 space-y-2">
-      <p class="text-xs font-semibold text-foreground">{{ t('console.shared.schemaEnumValues') }}</p>
+      <p class="text-xs font-semibold text-foreground">
+        {{ t('console.shared.schemaEnumValues') }}
+      </p>
       <div class="flex flex-wrap gap-2">
         <span
           v-for="enumValue in node.enumValues"

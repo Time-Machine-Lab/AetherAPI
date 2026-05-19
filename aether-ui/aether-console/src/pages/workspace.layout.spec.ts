@@ -27,7 +27,9 @@ describe('workspace layout composition', () => {
   })
 
   it('routes the import-agent hash to the dedicated workspace section', () => {
-    expect(source).toContain("const isImportAgentSection = computed(() => route.hash === '#import-agent')")
+    expect(source).toContain(
+      "const isImportAgentSection = computed(() => route.hash === '#import-agent')",
+    )
     expect(source).toContain('<ImportAgentWorkspace v-else-if="isImportAgentSection" />')
   })
 })

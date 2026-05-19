@@ -177,7 +177,8 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
   const deps = options.deps ?? defaultDeps
   const storage = options.storage ?? defaultStorage()
   const pollDelayMs = options.pollDelayMs ?? 3000
-  const schedule = options.schedule ?? ((callback: () => void, delayMs: number) => setTimeout(callback, delayMs))
+  const schedule =
+    options.schedule ?? ((callback: () => void, delayMs: number) => setTimeout(callback, delayMs))
   const cancelSchedule = options.cancelSchedule ?? clearTimeout
 
   const documentSource = ref('')
@@ -285,7 +286,9 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
       sections.push(manualSource)
     }
     if (draftAttachments.value.length > 0) {
-      sections.push(`本地文件：${draftAttachments.value.map((attachment) => attachment.fileName).join('、')}`)
+      sections.push(
+        `本地文件：${draftAttachments.value.map((attachment) => attachment.fileName).join('、')}`,
+      )
     }
     const normalized = trimJoinedSections(sections, 1024)
     return normalized.length > 0 ? normalized : undefined
@@ -543,7 +546,10 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
     confirming.value = true
     sessionError.value = ''
     try {
-      const session = await deps.confirmPlan(activeSession.value.sessionId, currentPlan.value.version)
+      const session = await deps.confirmPlan(
+        activeSession.value.sessionId,
+        currentPlan.value.version,
+      )
       applySession(session)
       return session
     } catch (error) {
@@ -632,7 +638,9 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
   }
 
   function removeDraftAttachment(attachmentId: string) {
-    draftAttachments.value = draftAttachments.value.filter((attachment) => attachment.id !== attachmentId)
+    draftAttachments.value = draftAttachments.value.filter(
+      (attachment) => attachment.id !== attachmentId,
+    )
     if (draftAttachments.value.length === 0) {
       attachmentError.value = ''
     }
@@ -683,7 +691,10 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
           continue
         }
 
-        const { excerpt, truncated } = truncateContent(normalizedContent, MAX_ATTACHMENT_EXCERPT_LENGTH)
+        const { excerpt, truncated } = truncateContent(
+          normalizedContent,
+          MAX_ATTACHMENT_EXCERPT_LENGTH,
+        )
         importedAttachments.push({
           id: nextAttachmentId(),
           fileName: file.name,

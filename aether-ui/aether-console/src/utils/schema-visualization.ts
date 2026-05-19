@@ -1,11 +1,6 @@
 type SchemaKeyword = Record<string, unknown>
 
-export type SchemaNodeRelation =
-  | 'root'
-  | 'property'
-  | 'items'
-  | 'variant'
-  | 'additionalProperties'
+export type SchemaNodeRelation = 'root' | 'property' | 'items' | 'variant' | 'additionalProperties'
 
 export interface SchemaDisplayNode {
   id: string

@@ -435,7 +435,8 @@ export default {
       turnsTitle: 'Clarification turns',
       turnsDescription: 'Review the dialogue with the agent and add more constraints when needed.',
       fieldTurnMessage: 'Clarification message',
-      turnMessagePlaceholder: 'Add more constraints, corrections, or answers to the agent questions.',
+      turnMessagePlaceholder:
+        'Add more constraints, corrections, or answers to the agent questions.',
       appendTurn: 'Send clarification',
       appending: 'Sending…',
       actor: {
@@ -445,7 +446,8 @@ export default {
       turnPlanVersionLabel: 'Plan v{version}',
       planTitle: 'Current plan',
       planEmptyTitle: 'No plan yet',
-      planEmptyDescription: 'A plan appears after the session is created or a clarification turn is submitted.',
+      planEmptyDescription:
+        'A plan appears after the session is created or a clarification turn is submitted.',
       planExecutable: 'Executable',
       planNeedsClarification: 'Needs clarification',
       planConfirmed: 'Confirmed',

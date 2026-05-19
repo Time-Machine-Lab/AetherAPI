@@ -362,7 +362,8 @@ export default {
       title: 'API 导入代理',
       description: '用对话方式描述导入目标、附加本地文件上下文、确认计划并跟踪导入执行结果。',
       conversationTitle: '导入对话',
-      conversationDescription: '像聊天一样描述导入目标；首次发送会自动创建会话，后续消息继续澄清计划。',
+      conversationDescription:
+        '像聊天一样描述导入目标；首次发送会自动创建会话，后续消息继续澄清计划。',
       sessionTitle: '导入会话',
       sessionDescription: '查看当前会话快照、上下文和最新计划版本。',
       sessionEmptyTitle: '会话摘要会显示在这里',
@@ -381,7 +382,8 @@ export default {
       sendFollowup: '发送消息',
       sendingFollowup: '正在发送…',
       addFiles: '添加文件',
-      attachmentLocalOnly: '文件仅在当前浏览器中按文本读取，并作为本次发送的上下文附加，不会直接上传原始文件。',
+      attachmentLocalOnly:
+        '文件仅在当前浏览器中按文本读取，并作为本次发送的上下文附加，不会直接上传原始文件。',
       showAdvancedContext: '展开高级上下文',
       hideAdvancedContext: '收起高级上下文',
       contextDescription: '这里的补充上下文会随首次消息一起发送，用来帮助代理更快理解导入目标。',

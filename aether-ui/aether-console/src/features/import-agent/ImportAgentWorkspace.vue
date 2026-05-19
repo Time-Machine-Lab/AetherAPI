@@ -88,7 +88,9 @@ const showContextPanel = ref(false)
 const isPlanConfirmed = computed(
   () => activeSession.value?.confirmedPlanVersion === currentPlan.value?.version,
 )
-const composerError = computed(() => (hasActiveSession.value ? turnError.value : sessionError.value))
+const composerError = computed(() =>
+  hasActiveSession.value ? turnError.value : sessionError.value,
+)
 const sendButtonBusy = computed(() => (hasActiveSession.value ? appending.value : creating.value))
 const conversationTurns = computed(() => activeSession.value?.turns ?? [])
 const showStreamingReply = computed(
@@ -123,13 +125,19 @@ function shouldShowSecurityConfig(assetPlan: ImportAssetPlan) {
 }
 
 function needsSecurityConfig(assetPlan: ImportAssetPlan) {
-  return hasText(assetPlan.authScheme) && assetPlan.authScheme !== 'NONE' && !hasText(assetPlan.authConfig)
+  return (
+    hasText(assetPlan.authScheme) &&
+    assetPlan.authScheme !== 'NONE' &&
+    !hasText(assetPlan.authConfig)
+  )
 }
 
 function shouldShowAsyncAuthConfig(config: ImportAsyncTaskConfig) {
-  return config.authMode === 'OVERRIDE'
-    || (hasText(config.authScheme) && config.authScheme !== 'NONE')
-    || hasText(config.authConfig)
+  return (
+    config.authMode === 'OVERRIDE' ||
+    (hasText(config.authScheme) && config.authScheme !== 'NONE') ||
+    hasText(config.authConfig)
+  )
 }
 
 function formatFileSize(size: number) {
@@ -219,12 +227,13 @@ watch(
       <div class="pointer-events-none absolute inset-x-0 top-10 h-[28rem] rounded-[48px]" />
 
       <div class="relative flex-1">
-        <div class="mx-auto flex h-full w-full max-w-[88rem] flex-col gap-6 px-0 py-4 sm:px-2 sm:py-6 lg:px-4">
+        <div
+          class="mx-auto flex h-full w-full max-w-[88rem] flex-col gap-6 px-0 py-4 sm:px-2 sm:py-6 lg:px-4"
+        >
           <div
             v-if="!activeSession && !pendingTurn"
             class="flex flex-1 items-center justify-center py-12"
-          >
-          </div>
+          ></div>
 
           <div
             v-for="turn in conversationTurns"
@@ -242,9 +251,11 @@ watch(
             </div>
             <div
               class="rounded-[16px] px-3 py-2"
-              :class="turn.actorType === 'USER'
-                ? 'max-w-[38rem] border border-[rgb(181_213_248)] bg-[rgba(244,248,255,0.98)] text-[rgb(21_46_83)] shadow-[rgba(86,135,194,0.12)_0px_16px_30px]'
-                : 'w-full max-w-[56rem] border border-[rgb(34_34_34_/_0.06)] bg-white/94 text-foreground shadow-[rgba(0,0,0,0.02)_0px_0px_0px_1px,rgba(0,0,0,0.04)_0px_2px_6px,rgba(0,0,0,0.08)_0px_14px_30px]'"
+              :class="
+                turn.actorType === 'USER'
+                  ? 'max-w-[38rem] border border-[rgb(181_213_248)] bg-[rgba(244,248,255,0.98)] text-[rgb(21_46_83)] shadow-[rgba(86,135,194,0.12)_0px_16px_30px]'
+                  : 'w-full max-w-[56rem] border border-[rgb(34_34_34_/_0.06)] bg-white/94 text-foreground shadow-[rgba(0,0,0,0.02)_0px_0px_0px_1px,rgba(0,0,0,0.04)_0px_2px_6px,rgba(0,0,0,0.08)_0px_14px_30px]'
+              "
             >
               <p class="whitespace-pre-wrap text-sm leading-7">{{ turn.message }}</p>
             </div>
@@ -259,7 +270,9 @@ watch(
           </div>
 
           <div v-if="pendingTurn" class="flex items-start justify-end gap-3">
-            <div class="max-w-[38rem] rounded-[16px] border border-[rgb(181_213_248)] px-3 py-2 text-[rgb(21_46_83)] shadow-[rgba(86,135,194,0.12)_0px_16px_30px]">
+            <div
+              class="max-w-[38rem] rounded-[16px] border border-[rgb(181_213_248)] px-3 py-2 text-[rgb(21_46_83)] shadow-[rgba(86,135,194,0.12)_0px_16px_30px]"
+            >
               <p class="whitespace-pre-wrap text-sm leading-7">{{ pendingTurn.message }}</p>
             </div>
             <div
@@ -279,10 +292,15 @@ watch(
             >
               <Bot class="size-5" />
             </div>
-            <div class="w-full max-w-[56rem] rounded-[16px] border border-[rgb(34_34_34_/_0.06)] bg-white/96 px-3 py-2 shadow-[rgba(0,0,0,0.02)_0px_0px_0px_1px,rgba(0,0,0,0.04)_0px_2px_6px,rgba(0,0,0,0.08)_0px_14px_30px]">
+            <div
+              class="w-full max-w-[56rem] rounded-[16px] border border-[rgb(34_34_34_/_0.06)] bg-white/96 px-3 py-2 shadow-[rgba(0,0,0,0.02)_0px_0px_0px_1px,rgba(0,0,0,0.04)_0px_2px_6px,rgba(0,0,0,0.08)_0px_14px_30px]"
+            >
               <div class="space-y-3">
                 <div class="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <Loader2 v-if="sendButtonBusy" class="size-4 animate-spin text-[rgb(62_96_139)]" />
+                  <Loader2
+                    v-if="sendButtonBusy"
+                    class="size-4 animate-spin text-[rgb(62_96_139)]"
+                  />
                   <span>{{ t('console.importAgent.streamingReplyTitle') }}</span>
                 </div>
                 <p v-if="streamingPhase" class="text-xs text-muted-foreground">
@@ -291,7 +309,10 @@ watch(
                 <p v-if="streamingStatusMessage" class="text-sm text-muted-foreground">
                   {{ streamingStatusMessage }}
                 </p>
-                <p v-if="streamingReply" class="whitespace-pre-wrap text-sm leading-7 text-foreground">
+                <p
+                  v-if="streamingReply"
+                  class="whitespace-pre-wrap text-sm leading-7 text-foreground"
+                >
                   {{ streamingReply }}
                 </p>
               </div>
@@ -299,7 +320,9 @@ watch(
           </div>
 
           <div v-if="currentPlan" class="flex justify-start">
-            <div class="w-full max-w-[56rem] rounded-[16px] border border-[rgb(34_34_34_/_0.06)] px-6 py-6 shadow-[rgba(0,0,0,0.02)_0px_0px_0px_1px,rgba(0,0,0,0.04)_0px_2px_6px,rgba(0,0,0,0.08)_0px_16px_32px]">
+            <div
+              class="w-full max-w-[56rem] rounded-[16px] border border-[rgb(34_34_34_/_0.06)] px-6 py-6 shadow-[rgba(0,0,0,0.02)_0px_0px_0px_1px,rgba(0,0,0,0.04)_0px_2px_6px,rgba(0,0,0,0.08)_0px_16px_32px]"
+            >
               <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div class="space-y-2">
                   <div class="flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -326,13 +349,19 @@ watch(
                   />
                   <DisplayTag
                     tone="info"
-                    :label="t('console.importAgent.planVersionLabel', { version: currentPlan.version })"
+                    :label="
+                      t('console.importAgent.planVersionLabel', { version: currentPlan.version })
+                    "
                   />
                 </div>
               </div>
 
-              <div class="mt-5 rounded-[16px] border border-[rgb(181_213_248_/_0.6)] bg-[rgb(244,248,255)] p-4">
-                <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(62_96_139)]">
+              <div
+                class="mt-5 rounded-[16px] border border-[rgb(181_213_248_/_0.6)] bg-[rgb(244,248,255)] p-4"
+              >
+                <p
+                  class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(62_96_139)]"
+                >
                   {{ t('console.importAgent.planSummaryTitle') }}
                 </p>
                 <p class="mt-3 whitespace-pre-wrap text-sm leading-7 text-[rgb(21_46_83)]">
@@ -351,7 +380,9 @@ watch(
                     :key="question"
                     class="rounded-[18px] border border-[rgb(234_197_79_/_0.5)] bg-[linear-gradient(135deg,rgba(255,248,219,0.98),rgba(255,241,188,0.88))] p-4"
                   >
-                    <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(141_94_0)]">
+                    <p
+                      class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(141_94_0)]"
+                    >
                       {{ t('console.importAgent.questionLabel', { index: index + 1 }) }}
                     </p>
                     <p class="mt-3 text-sm leading-6 text-[rgb(92_64_0)]">
@@ -372,7 +403,9 @@ watch(
                     class="rounded-[18px] border border-[rgb(34_34_34_/_0.06)] bg-white/84 p-4"
                   >
                     <div class="flex flex-wrap items-center gap-2">
-                      <span class="text-sm font-medium text-foreground">{{ categoryPlan.categoryName }}</span>
+                      <span class="text-sm font-medium text-foreground">{{
+                        categoryPlan.categoryName
+                      }}</span>
                       <DisplayTag tone="neutral" :label="categoryPlan.categoryCode" />
                       <DisplayTag
                         tone="info"
@@ -396,7 +429,9 @@ watch(
                     <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div class="space-y-2">
                         <div class="flex flex-wrap items-center gap-2">
-                          <span class="text-sm font-semibold text-foreground">{{ assetPlan.assetName }}</span>
+                          <span class="text-sm font-semibold text-foreground">{{
+                            assetPlan.assetName
+                          }}</span>
                           <DisplayTag tone="neutral" :label="assetPlan.apiCode" />
                           <DisplayTag tone="info" :label="assetPlan.assetType" />
                         </div>
@@ -417,8 +452,16 @@ watch(
                         </div>
                       </div>
                       <div class="flex flex-wrap gap-2">
-                        <DisplayTag v-if="assetPlan.requestMethod" tone="neutral" :label="assetPlan.requestMethod" />
-                        <DisplayTag v-if="assetPlan.authScheme" tone="neutral" :label="assetPlan.authScheme" />
+                        <DisplayTag
+                          v-if="assetPlan.requestMethod"
+                          tone="neutral"
+                          :label="assetPlan.requestMethod"
+                        />
+                        <DisplayTag
+                          v-if="assetPlan.authScheme"
+                          tone="neutral"
+                          :label="assetPlan.authScheme"
+                        />
                       </div>
                     </div>
 
@@ -443,7 +486,9 @@ watch(
                       </div>
                       <div v-if="assetPlan.upstreamUrl" class="sm:col-span-2">
                         <dt>{{ t('console.importAgent.assetMetaUpstreamUrl') }}</dt>
-                        <dd class="mt-1 break-all text-sm text-foreground">{{ assetPlan.upstreamUrl }}</dd>
+                        <dd class="mt-1 break-all text-sm text-foreground">
+                          {{ assetPlan.upstreamUrl }}
+                        </dd>
                       </div>
                     </dl>
 
@@ -451,10 +496,16 @@ watch(
                       v-if="shouldShowSecurityConfig(assetPlan)"
                       class="mt-4 rounded-[16px] border border-[rgb(34_34_34_/_0.06)] bg-[color-mix(in_srgb,var(--primary)_10%,white)] p-4"
                     >
-                      <div class="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
+                      <div
+                        class="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground"
+                      >
                         <ShieldCheck class="size-4 text-[rgb(28_100_82)]" />
                         <span>{{ t('console.importAgent.assetSecurityConfigTitle') }}</span>
-                        <DisplayTag v-if="assetPlan.authScheme" tone="neutral" :label="assetPlan.authScheme" />
+                        <DisplayTag
+                          v-if="assetPlan.authScheme"
+                          tone="neutral"
+                          :label="assetPlan.authScheme"
+                        />
                       </div>
                       <dl class="mt-3 grid gap-3 text-xs text-muted-foreground sm:grid-cols-2">
                         <div v-if="assetPlan.authScheme">
@@ -487,7 +538,9 @@ watch(
                       v-if="assetPlan.asyncTaskConfig?.enabled"
                       class="mt-4 rounded-[16px] border border-[rgb(34_34_34_/_0.06)] bg-[color-mix(in_srgb,var(--accent)_18%,white)] p-4"
                     >
-                      <div class="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
+                      <div
+                        class="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground"
+                      >
                         <Clock3 class="size-4 text-[rgb(62_96_139)]" />
                         <span>{{ t('console.workspace.asyncTaskConfigGroup') }}</span>
                         <DisplayTag
@@ -502,7 +555,10 @@ watch(
                         />
                       </div>
                       <dl class="mt-3 grid gap-3 text-xs text-muted-foreground sm:grid-cols-2">
-                        <div v-if="assetPlan.asyncTaskConfig.queryUrlTemplate" class="sm:col-span-2">
+                        <div
+                          v-if="assetPlan.asyncTaskConfig.queryUrlTemplate"
+                          class="sm:col-span-2"
+                        >
                           <dt>{{ t('console.workspace.fieldAsyncTaskQueryUrlTemplate') }}</dt>
                           <dd class="mt-1 break-all text-sm text-foreground">
                             {{ assetPlan.asyncTaskConfig.queryUrlTemplate }}
@@ -510,7 +566,9 @@ watch(
                         </div>
                         <div v-if="assetPlan.asyncTaskConfig.authScheme">
                           <dt>{{ t('console.workspace.fieldAsyncTaskAuthScheme') }}</dt>
-                          <dd class="mt-1 text-sm text-foreground">{{ assetPlan.asyncTaskConfig.authScheme }}</dd>
+                          <dd class="mt-1 text-sm text-foreground">
+                            {{ assetPlan.asyncTaskConfig.authScheme }}
+                          </dd>
                         </div>
                         <div
                           v-if="shouldShowAsyncAuthConfig(assetPlan.asyncTaskConfig)"
@@ -529,15 +587,21 @@ watch(
                         </div>
                         <div v-if="assetPlan.asyncTaskConfig.statusPath">
                           <dt>{{ t('console.workspace.fieldAsyncTaskStatusPath') }}</dt>
-                          <dd class="mt-1 text-sm text-foreground">{{ assetPlan.asyncTaskConfig.statusPath }}</dd>
+                          <dd class="mt-1 text-sm text-foreground">
+                            {{ assetPlan.asyncTaskConfig.statusPath }}
+                          </dd>
                         </div>
                         <div v-if="assetPlan.asyncTaskConfig.resultPath">
                           <dt>{{ t('console.workspace.fieldAsyncTaskResultPath') }}</dt>
-                          <dd class="mt-1 text-sm text-foreground">{{ assetPlan.asyncTaskConfig.resultPath }}</dd>
+                          <dd class="mt-1 text-sm text-foreground">
+                            {{ assetPlan.asyncTaskConfig.resultPath }}
+                          </dd>
                         </div>
                         <div v-if="assetPlan.asyncTaskConfig.errorPath">
                           <dt>{{ t('console.workspace.fieldAsyncTaskErrorPath') }}</dt>
-                          <dd class="mt-1 text-sm text-foreground">{{ assetPlan.asyncTaskConfig.errorPath }}</dd>
+                          <dd class="mt-1 text-sm text-foreground">
+                            {{ assetPlan.asyncTaskConfig.errorPath }}
+                          </dd>
                         </div>
                       </dl>
                     </div>
@@ -546,28 +610,40 @@ watch(
                       v-if="assetPlan.aiProfile"
                       class="mt-4 rounded-[16px] border border-[rgb(34_34_34_/_0.06)] bg-[color-mix(in_srgb,var(--secondary)_18%,white)] p-4"
                     >
-                      <div class="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
+                      <div
+                        class="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground"
+                      >
                         <Bot class="size-4 text-[rgb(48_92_57)]" />
                         <span>{{ t('console.home.aiCapability') }}</span>
                       </div>
                       <dl class="mt-3 grid gap-3 text-xs text-muted-foreground sm:grid-cols-3">
                         <div>
                           <dt>{{ t('console.workspace.fieldProvider') }}</dt>
-                          <dd class="mt-1 text-sm text-foreground">{{ assetPlan.aiProfile.provider }}</dd>
+                          <dd class="mt-1 text-sm text-foreground">
+                            {{ assetPlan.aiProfile.provider }}
+                          </dd>
                         </div>
                         <div>
                           <dt>{{ t('console.workspace.fieldModel') }}</dt>
-                          <dd class="mt-1 text-sm text-foreground">{{ assetPlan.aiProfile.model }}</dd>
+                          <dd class="mt-1 text-sm text-foreground">
+                            {{ assetPlan.aiProfile.model }}
+                          </dd>
                         </div>
                         <div>
                           <dt>{{ t('console.playground.streamingSupported') }}</dt>
                           <dd class="mt-1 text-sm text-foreground">
-                            {{ assetPlan.aiProfile.streamingSupported ? t('console.shared.yes') : t('console.shared.no') }}
+                            {{
+                              assetPlan.aiProfile.streamingSupported
+                                ? t('console.shared.yes')
+                                : t('console.shared.no')
+                            }}
                           </dd>
                         </div>
                       </dl>
                       <div v-if="assetPlan.aiProfile.capabilityTags.length" class="mt-3 space-y-2">
-                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        <p
+                          class="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+                        >
                           {{ t('console.home.docExport.markdown.tags') }}
                         </p>
                         <div class="flex flex-wrap gap-2">
@@ -635,22 +711,37 @@ watch(
               <p v-if="sessionError" class="mt-4 text-sm text-destructive">{{ sessionError }}</p>
 
               <div class="mt-5 flex flex-wrap gap-2">
-                <Button variant="outline" class="rounded-full" :disabled="!canConfirmPlan" @click="confirmPlan">
+                <Button
+                  variant="outline"
+                  class="rounded-full"
+                  :disabled="!canConfirmPlan"
+                  @click="confirmPlan"
+                >
                   <Loader2 v-if="confirming" class="mr-2 size-4 animate-spin" />
                   <CheckCircle2 v-else class="mr-2 size-4" />
-                  {{ confirming ? t('console.importAgent.confirming') : t('console.importAgent.confirmPlan') }}
+                  {{
+                    confirming
+                      ? t('console.importAgent.confirming')
+                      : t('console.importAgent.confirmPlan')
+                  }}
                 </Button>
                 <Button class="rounded-full" :disabled="!canStartRun" @click="startRun">
                   <Loader2 v-if="startingRun" class="mr-2 size-4 animate-spin" />
                   <Play v-else class="mr-2 size-4" />
-                  {{ startingRun ? t('console.importAgent.startingRun') : t('console.importAgent.startRun') }}
+                  {{
+                    startingRun
+                      ? t('console.importAgent.startingRun')
+                      : t('console.importAgent.startRun')
+                  }}
                 </Button>
               </div>
             </div>
           </div>
 
           <div v-if="activeRun || runError" class="flex justify-start">
-            <div class="w-full max-w-[56rem] rounded-[16px] border border-[rgb(34_34_34_/_0.06)] bg-white/96 px-6 py-6 shadow-[rgba(0,0,0,0.02)_0px_0px_0px_1px,rgba(0,0,0,0.04)_0px_2px_6px,rgba(0,0,0,0.08)_0px_16px_32px]">
+            <div
+              class="w-full max-w-[56rem] rounded-[16px] border border-[rgb(34_34_34_/_0.06)] bg-white/96 px-6 py-6 shadow-[rgba(0,0,0,0.02)_0px_0px_0px_1px,rgba(0,0,0,0.04)_0px_2px_6px,rgba(0,0,0,0.08)_0px_16px_32px]"
+            >
               <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div class="space-y-2">
                   <div class="flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -705,10 +796,16 @@ watch(
                   >
                     <div class="flex flex-wrap items-center gap-2">
                       <DisplayTag tone="info" :label="stepResult.stepType" />
-                      <DisplayTag :tone="stepStatusTone(stepResult.status)" :label="stepResult.status" />
+                      <DisplayTag
+                        :tone="stepStatusTone(stepResult.status)"
+                        :label="stepResult.status"
+                      />
                       <span class="text-sm text-foreground">{{ stepResult.targetRef }}</span>
                     </div>
-                    <p v-if="stepResult.message" class="mt-2 text-sm leading-6 text-muted-foreground">
+                    <p
+                      v-if="stepResult.message"
+                      class="mt-2 text-sm leading-6 text-muted-foreground"
+                    >
                       {{ stepResult.message }}
                     </p>
                   </div>
@@ -721,13 +818,19 @@ watch(
         </div>
       </div>
 
-      <div class="pointer-events-none fixed inset-x-0 bottom-0 z-10 h-28 bg-[linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,0.9),rgba(255,255,255,0.98))]" />
+      <div
+        class="pointer-events-none fixed inset-x-0 bottom-0 z-10 h-28 bg-[linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,0.9),rgba(255,255,255,0.98))]"
+      />
       <div class="fixed bottom-5 left-4 right-4 z-20 lg:left-[calc(248px+2rem)] lg:right-8">
         <div class="mx-auto w-full max-w-[88rem]">
-          <div class="rounded-[16px] p-4 shadow-[rgba(0,0,0,0.02)_0px_0px_0px_1px,rgba(0,0,0,0.04)_0px_2px_6px,rgba(0,0,0,0.1)_0px_18px_38px] backdrop-blur">
+          <div
+            class="rounded-[16px] p-4 shadow-[rgba(0,0,0,0.02)_0px_0px_0px_1px,rgba(0,0,0,0.04)_0px_2px_6px,rgba(0,0,0,0.1)_0px_18px_38px] backdrop-blur"
+          >
             <div v-if="draftAttachments.length" class="space-y-3">
               <p class="text-sm font-semibold text-foreground">
-                {{ t('console.importAgent.filesAttachedTitle', { count: draftAttachments.length }) }}
+                {{
+                  t('console.importAgent.filesAttachedTitle', { count: draftAttachments.length })
+                }}
               </p>
               <div class="flex flex-wrap gap-3">
                 <div
@@ -737,7 +840,9 @@ watch(
                 >
                   <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
-                      <p class="truncate text-sm font-medium text-foreground">{{ attachment.fileName }}</p>
+                      <p class="truncate text-sm font-medium text-foreground">
+                        {{ attachment.fileName }}
+                      </p>
                       <p class="mt-1 text-xs text-muted-foreground">
                         {{ formatFileSize(attachment.size) }}
                       </p>
@@ -750,19 +855,28 @@ watch(
                       <X class="size-4" />
                     </button>
                   </div>
-                  <p class="mt-3 line-clamp-4 whitespace-pre-wrap text-xs leading-5 text-muted-foreground">
+                  <p
+                    class="mt-3 line-clamp-4 whitespace-pre-wrap text-xs leading-5 text-muted-foreground"
+                  >
                     {{ attachment.excerpt }}
                   </p>
-                  <p v-if="attachment.truncated" class="mt-2 text-[11px] font-medium text-foreground">
+                  <p
+                    v-if="attachment.truncated"
+                    class="mt-2 text-[11px] font-medium text-foreground"
+                  >
                     {{ t('console.importAgent.fileTruncated') }}
                   </p>
                 </div>
               </div>
             </div>
 
-            <p v-if="attachmentError" class="mt-2 text-sm text-destructive">{{ attachmentError }}</p>
+            <p v-if="attachmentError" class="mt-2 text-sm text-destructive">
+              {{ attachmentError }}
+            </p>
 
-            <div class="mt-4 rounded-[40px] border border-[rgb(34_34_34_/_0.14)] px-4 py-3 shadow-[inset_0px_1px_0px_rgba(255,255,255,0.8)]">
+            <div
+              class="mt-4 rounded-[40px] border border-[rgb(34_34_34_/_0.14)] px-4 py-3 shadow-[inset_0px_1px_0px_rgba(255,255,255,0.8)]"
+            >
               <div class="flex items-end gap-3">
                 <Button
                   variant="ghost"
@@ -829,7 +943,7 @@ watch(
               multiple
               :accept="attachedFileAccept"
               @change="handleFileSelection"
-            >
+            />
 
             <div class="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div class="flex flex-wrap items-center gap-2">

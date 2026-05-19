@@ -8,10 +8,7 @@ import FieldGroup from '@/components/console/FieldGroup.vue'
 import JsonSchemaTreeNode from '@/components/console/JsonSchemaTreeNode.vue'
 import StateBlock from '@/components/console/StateBlock.vue'
 import { Button } from '@/components/ui/button'
-import {
-  parseSchemaDocument,
-  summarizeSchemaTree,
-} from '@/utils/schema-visualization'
+import { parseSchemaDocument, summarizeSchemaTree } from '@/utils/schema-visualization'
 
 const props = withDefaults(
   defineProps<{
@@ -130,7 +127,9 @@ function formatTypeLabel(typeLabel: string): string {
             <div class="border-b border-[rgb(34_34_34_/_0.06)] px-4 py-4 sm:px-6">
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0 space-y-2">
-                  <p class="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">
+                  <p
+                    class="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase"
+                  >
                     {{ label }}
                   </p>
                   <div class="flex flex-wrap gap-2">
@@ -138,17 +137,29 @@ function formatTypeLabel(typeLabel: string): string {
                     <DisplayTag
                       v-if="schemaSummary?.fieldCount"
                       tone="neutral"
-                      :label="t('console.shared.schemaFieldCount', { count: schemaSummary.fieldCount })"
+                      :label="
+                        t('console.shared.schemaFieldCount', { count: schemaSummary.fieldCount })
+                      "
                     />
                     <DisplayTag
                       v-if="schemaSummary?.requiredCount"
                       tone="danger"
-                      :label="t('console.shared.schemaRequiredCount', { count: schemaSummary.requiredCount })"
+                      :label="
+                        t('console.shared.schemaRequiredCount', {
+                          count: schemaSummary.requiredCount,
+                        })
+                      "
                     />
                   </div>
                 </div>
 
-                <Button type="button" size="icon-sm" variant="ghost" :title="t('console.shared.close')" @click="closeOverlay">
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="ghost"
+                  :title="t('console.shared.close')"
+                  @click="closeOverlay"
+                >
                   <X class="size-4" />
                 </Button>
               </div>
@@ -187,7 +198,9 @@ function formatTypeLabel(typeLabel: string): string {
                     <DisplayTag
                       v-if="schemaTree.enumValues.length > 0"
                       tone="warning"
-                      :label="t('console.shared.schemaEnumCount', { count: schemaTree.enumValues.length })"
+                      :label="
+                        t('console.shared.schemaEnumCount', { count: schemaTree.enumValues.length })
+                      "
                     />
                   </div>
 
@@ -196,17 +209,23 @@ function formatTypeLabel(typeLabel: string): string {
                     class="grid gap-3 text-xs text-muted-foreground sm:grid-cols-2"
                   >
                     <div v-if="schemaTree.format" class="space-y-1">
-                      <p class="font-semibold text-foreground">{{ t('console.shared.schemaFormatLabel') }}</p>
+                      <p class="font-semibold text-foreground">
+                        {{ t('console.shared.schemaFormatLabel') }}
+                      </p>
                       <p>{{ schemaTree.format }}</p>
                     </div>
                     <div v-if="schemaTree.defaultValue !== undefined" class="space-y-1">
-                      <p class="font-semibold text-foreground">{{ t('console.shared.schemaDefaultLabel') }}</p>
+                      <p class="font-semibold text-foreground">
+                        {{ t('console.shared.schemaDefaultLabel') }}
+                      </p>
                       <p class="font-mono text-[11px]">{{ schemaTree.defaultValue }}</p>
                     </div>
                   </div>
 
                   <div v-if="schemaTree.enumValues.length > 0" class="space-y-2">
-                    <p class="text-xs font-semibold text-foreground">{{ t('console.shared.schemaEnumValues') }}</p>
+                    <p class="text-xs font-semibold text-foreground">
+                      {{ t('console.shared.schemaEnumValues') }}
+                    </p>
                     <div class="flex flex-wrap gap-2">
                       <span
                         v-for="enumValue in schemaTree.enumValues"

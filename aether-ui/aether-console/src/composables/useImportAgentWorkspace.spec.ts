@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useAuthStore } from '@/stores/useAuthStore'
-import { createConsoleSession, createHttpError, createStorageMock, installWindowWithStorage } from '@/test/console-test-kit'
+import {
+  createConsoleSession,
+  createHttpError,
+  createStorageMock,
+  installWindowWithStorage,
+} from '@/test/console-test-kit'
 import type {
   CreateImportAgentSessionInput,
   ImportAgentRun,
@@ -153,11 +158,16 @@ describe('useImportAgentWorkspace', () => {
       }),
     )
     expect(workspace.activeSession.value?.sessionId).toBe('session-001')
-    expect(storage.dump()).toHaveProperty('aether:console:auth:import-agent:active-session:console-user-001', 'session-001')
+    expect(storage.dump()).toHaveProperty(
+      'aether:console:auth:import-agent:active-session:console-user-001',
+      'session-001',
+    )
   })
 
   it('creates the first session message with attached file context', async () => {
-    const readFileText = vi.fn().mockResolvedValueOnce('openapi: 3.0.0\ninfo:\n  title: Weather API')
+    const readFileText = vi
+      .fn()
+      .mockResolvedValueOnce('openapi: 3.0.0\ninfo:\n  title: Weather API')
     const { workspace, deps } = createWorkspace({ readFileText })
 
     workspace.messageDraft.value = 'Import weather API'
@@ -211,7 +221,9 @@ describe('useImportAgentWorkspace', () => {
     await workspace.restoreActiveSession()
 
     expect(workspace.activeSession.value).toBeNull()
-    expect(storage.dump()).not.toHaveProperty('aether:console:auth:import-agent:active-session:console-user-001')
+    expect(storage.dump()).not.toHaveProperty(
+      'aether:console:auth:import-agent:active-session:console-user-001',
+    )
   })
 
   it('appends a clarification turn and clears the draft message', async () => {

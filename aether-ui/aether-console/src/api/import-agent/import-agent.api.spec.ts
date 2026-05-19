@@ -135,8 +135,8 @@ describe('import-agent api', () => {
         event: {
           target: {
             responseText:
-              'event: status\ndata: {"phase":"planning","message":"Planning"}\n\n'
-              + 'event: message\ndata: {"actorType":"AGENT","delta":"Hello"}\n\n',
+              'event: status\ndata: {"phase":"planning","message":"Planning"}\n\n' +
+              'event: message\ndata: {"actorType":"AGENT","delta":"Hello"}\n\n',
           },
         },
       } as never)
@@ -144,10 +144,10 @@ describe('import-agent api', () => {
       return {
         status: 200,
         data:
-          'event: status\ndata: {"phase":"planning","message":"Planning"}\n\n'
-          + 'event: message\ndata: {"actorType":"AGENT","delta":"Hello"}\n\n'
-          + `event: session\ndata: ${JSON.stringify(createSessionDto())}\n\n`
-          + 'event: done\ndata: {"phase":"completed"}\n\n',
+          'event: status\ndata: {"phase":"planning","message":"Planning"}\n\n' +
+          'event: message\ndata: {"actorType":"AGENT","delta":"Hello"}\n\n' +
+          `event: session\ndata: ${JSON.stringify(createSessionDto())}\n\n` +
+          'event: done\ndata: {"phase":"completed"}\n\n',
       }
     })
 
@@ -155,16 +155,19 @@ describe('import-agent api', () => {
     const onMessage = vi.fn()
     const onDone = vi.fn()
 
-    const result = await createImportAgentSession({
-      documentSource: 'https://docs.example.com/weather',
-      documentSummary: 'Import weather API',
-      importIntent: 'Import weather API and publish after import',
-      publisherDisplayName: 'Console Operator',
-    }, {
-      onStatus,
-      onMessage,
-      onDone,
-    })
+    const result = await createImportAgentSession(
+      {
+        documentSource: 'https://docs.example.com/weather',
+        documentSummary: 'Import weather API',
+        importIntent: 'Import weather API and publish after import',
+        publisherDisplayName: 'Console Operator',
+      },
+      {
+        onStatus,
+        onMessage,
+        onDone,
+      },
+    )
 
     expect(mockedRequest).toHaveBeenCalledWith({
       url: '/v1/current-user/import-agent/sessions/stream',
@@ -195,25 +198,29 @@ describe('import-agent api', () => {
     mockedRequest.mockResolvedValueOnce({
       status: 200,
       data:
-        `event: session\ndata: ${JSON.stringify(createSessionDto({
-          turns: [
-            {
-              turnId: 'turn-002',
-              actorType: 'USER',
-              message: 'Use category weather-tools instead.',
-              planVersion: 2,
-              createdAt: '2026-05-18T12:08:00Z',
-            },
-          ],
-        }))}\n\n`
-        + 'event: done\ndata: {"phase":"completed"}\n\n',
+        `event: session\ndata: ${JSON.stringify(
+          createSessionDto({
+            turns: [
+              {
+                turnId: 'turn-002',
+                actorType: 'USER',
+                message: 'Use category weather-tools instead.',
+                planVersion: 2,
+                createdAt: '2026-05-18T12:08:00Z',
+              },
+            ],
+          }),
+        )}\n\n` + 'event: done\ndata: {"phase":"completed"}\n\n',
     })
     mockedPatch.mockResolvedValueOnce({
       data: createSessionDto({ confirmedPlanVersion: 2 }),
     })
 
     const loaded = await getImportAgentSession('session-001')
-    const appended = await appendImportAgentTurn('session-001', 'Use category weather-tools instead.')
+    const appended = await appendImportAgentTurn(
+      'session-001',
+      'Use category weather-tools instead.',
+    )
     const confirmed = await confirmImportAgentPlan('session-001', 2)
 
     expect(mockedGet).toHaveBeenCalledWith('/v1/current-user/import-agent/sessions/session-001')
@@ -242,9 +249,12 @@ describe('import-agent api', () => {
     const started = await startImportAgentRun('session-001', 2)
     const loaded = await getImportAgentRun('run-001')
 
-    expect(mockedPost).toHaveBeenCalledWith('/v1/current-user/import-agent/sessions/session-001/runs', {
-      planVersion: 2,
-    })
+    expect(mockedPost).toHaveBeenCalledWith(
+      '/v1/current-user/import-agent/sessions/session-001/runs',
+      {
+        planVersion: 2,
+      },
+    )
     expect(mockedGet).toHaveBeenCalledWith('/v1/current-user/import-agent/runs/run-001')
     expect(started.status).toBe('RUNNING')
     expect(loaded.status).toBe('SUCCEEDED')

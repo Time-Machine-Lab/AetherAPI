@@ -12,7 +12,9 @@ const componentSource = readFileSync(
 
 describe('JsonSchemaViewer', () => {
   it('supports overlay-based visual inspection on top of raw code display', () => {
-    const parsed = parseSchemaDocument('{"type":"object","required":["city"],"properties":{"city":{"type":"string"}}}')
+    const parsed = parseSchemaDocument(
+      '{"type":"object","required":["city"],"properties":{"city":{"type":"string"}}}',
+    )
     const summary = summarizeSchemaTree(parsed.tree)
 
     expect(componentSource).toContain('<CodeBlock')
@@ -37,7 +39,7 @@ describe('JsonSchemaViewer', () => {
     expect(formatted.formatted).toBe(false)
     expect(formatted.display).toBe('{invalid-schema')
     expect(parsed.visualizable).toBe(false)
-    expect(componentSource).toContain("schemaVisualUnavailableTitle")
+    expect(componentSource).toContain('schemaVisualUnavailableTitle')
   })
 
   it('uses an empty state instead of an empty code block for absent schemas', () => {
