@@ -2,6 +2,7 @@ package io.github.timemachinelab.adapter.web.delegate;
 
 import io.github.timemachinelab.service.model.ResolveUnifiedAccessInvocationCommand;
 import io.github.timemachinelab.service.model.ResolveUnifiedAccessTaskQueryCommand;
+import io.github.timemachinelab.service.model.UnifiedAccessExecutionOutcomeType;
 import io.github.timemachinelab.service.model.UnifiedAccessProxyResponseModel;
 import io.github.timemachinelab.service.port.in.UnifiedAccessUseCase;
 import jakarta.servlet.http.HttpServletResponse;
@@ -66,6 +67,7 @@ public class UnifiedAccessWebDelegate {
                 DEFAULT_ACCESS_CHANNEL
         );
         UnifiedAccessProxyResponseModel response = unifiedAccessUseCase.invoke(command);
+        logFailureResponse(apiCode, DEFAULT_ACCESS_CHANNEL, response);
         if (response.isStreaming() && response.hasResponseStream()) {
             StreamingResponseBody body = outputStream -> writeStreamingResponse(response, outputStream);
             return ResponseEntity.status(response.getStatusCode())
@@ -96,6 +98,7 @@ public class UnifiedAccessWebDelegate {
                 DEFAULT_ACCESS_CHANNEL
         );
         UnifiedAccessProxyResponseModel response = unifiedAccessUseCase.invoke(command);
+        logFailureResponse(apiCode, DEFAULT_ACCESS_CHANNEL, response);
         writeServletResponse(response, servletResponse);
     }
 
@@ -117,7 +120,26 @@ public class UnifiedAccessWebDelegate {
                 TASK_QUERY_ACCESS_CHANNEL
         );
         UnifiedAccessProxyResponseModel response = unifiedAccessUseCase.queryTask(command);
+        logFailureResponse(apiCode, TASK_QUERY_ACCESS_CHANNEL, response);
         writeServletResponse(response, servletResponse);
+    }
+
+    private void logFailureResponse(
+            String apiCode,
+            String accessChannel,
+            UnifiedAccessProxyResponseModel response) {
+        if (response == null || response.getOutcomeType() == UnifiedAccessExecutionOutcomeType.SUCCESS) {
+            return;
+        }
+        log.warn(
+                "Unified access downstream failure response: apiCode={}, accessChannel={}, statusCode={}, outcomeType={}, message={}, contentType={}",
+                apiCode,
+                accessChannel,
+                response.getStatusCode(),
+                response.getOutcomeType(),
+                response.getMessage(),
+                response.getContentType()
+        );
     }
 
     private HttpHeaders toHttpHeaders(UnifiedAccessProxyResponseModel response) {
@@ -126,7 +148,17 @@ public class UnifiedAccessWebDelegate {
             if (isAdapterControlledResponseHeader(entry.getKey())) {
                 continue;
             }
-            headers.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+            try {
+                headers.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+            } catch (RuntimeException ex) {
+                log.warn(
+                        "Unified access skipped invalid upstream response header for ResponseEntity. headerName={}, statusCode={}, outcomeType={}",
+                        entry.getKey(),
+                        response.getStatusCode(),
+                        response.getOutcomeType(),
+                        ex
+                );
+            }
         }
         if (response.getContentType() != null && !response.getContentType().isBlank()) {
             try {
@@ -160,24 +192,34 @@ public class UnifiedAccessWebDelegate {
     private void writeServletResponse(
             UnifiedAccessProxyResponseModel response,
             HttpServletResponse servletResponse) {
-        servletResponse.setStatus(response.getStatusCode());
-        for (Map.Entry<String, List<String>> entry : response.getResponseHeaders().entrySet()) {
-            if (isAdapterControlledResponseHeader(entry.getKey())) {
-                continue;
-            }
-            for (String value : entry.getValue()) {
-                servletResponse.addHeader(entry.getKey(), value);
-            }
-        }
-        if (response.getContentType() != null && !response.getContentType().isBlank()) {
-            try {
-                servletResponse.setContentType(MediaType.parseMediaType(response.getContentType()).toString());
-            } catch (IllegalArgumentException ex) {
-                log.warn("Unified access upstream returned an invalid content type; skipping servlet Content-Type. contentType={}",
-                        response.getContentType());
-            }
-        }
         try {
+            servletResponse.setStatus(response.getStatusCode());
+            for (Map.Entry<String, List<String>> entry : response.getResponseHeaders().entrySet()) {
+                if (isAdapterControlledResponseHeader(entry.getKey())) {
+                    continue;
+                }
+                for (String value : entry.getValue()) {
+                    try {
+                        servletResponse.addHeader(entry.getKey(), value);
+                    } catch (RuntimeException ex) {
+                        log.warn(
+                                "Unified access skipped invalid upstream servlet response header. headerName={}, statusCode={}, outcomeType={}",
+                                entry.getKey(),
+                                response.getStatusCode(),
+                                response.getOutcomeType(),
+                                ex
+                        );
+                    }
+                }
+            }
+            if (response.getContentType() != null && !response.getContentType().isBlank()) {
+                try {
+                    servletResponse.setContentType(MediaType.parseMediaType(response.getContentType()).toString());
+                } catch (IllegalArgumentException ex) {
+                    log.warn("Unified access upstream returned an invalid content type; skipping servlet Content-Type. contentType={}",
+                            response.getContentType());
+                }
+            }
             OutputStream outputStream = servletResponse.getOutputStream();
             if (response.isStreaming() && response.hasResponseStream()) {
                 writeStreamingResponse(response, outputStream);
@@ -195,6 +237,15 @@ public class UnifiedAccessWebDelegate {
                     response.getContentType(),
                     ex
             );
+        } catch (RuntimeException ex) {
+            log.error(
+                    "Unified access servlet response assembly failed before response completed. statusCode={}, outcomeType={}, contentType={}",
+                    response.getStatusCode(),
+                    response.getOutcomeType(),
+                    response.getContentType(),
+                    ex
+            );
+            throw ex;
         }
     }
 

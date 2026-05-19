@@ -100,6 +100,7 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
         try {
             UnifiedAccessInvocationModel invocation = resolveInvocation(command);
             UnifiedAccessProxyResponseModel response = unifiedAccessDownstreamProxyPort.forward(invocation);
+            logDownstreamFailure(invocation, response);
             observabilityUseCase.recordApiCallLog(toCompletionLogCommand(invocation, response, invocationStartedAt));
             return response;
         } catch (UnifiedAccessPlatformFailureException ex) {
@@ -114,6 +115,7 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
         try {
             UnifiedAccessInvocationModel invocation = resolveTaskQueryInvocation(command);
             UnifiedAccessProxyResponseModel response = unifiedAccessDownstreamProxyPort.forward(invocation);
+            logDownstreamFailure(invocation, response);
             observabilityUseCase.recordApiCallLog(toCompletionLogCommand(invocation, response, invocationStartedAt));
             return response;
         } catch (UnifiedAccessPlatformFailureException ex) {
@@ -592,6 +594,24 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
             return response.getMessage();
         }
         return "Unified access invocation finished with result " + response.getOutcomeType().name();
+    }
+
+    private void logDownstreamFailure(
+            UnifiedAccessInvocationModel invocation,
+            UnifiedAccessProxyResponseModel response) {
+        if (response == null || response.getOutcomeType() == UnifiedAccessExecutionOutcomeType.SUCCESS) {
+            return;
+        }
+        log.log(
+                System.Logger.Level.WARNING,
+                "Unified access downstream call failed. apiCode={0}, requestMethod={1}, accessChannel={2}, statusCode={3}, outcomeType={4}, detail={5}",
+                invocation.getTargetApi().getApiCode(),
+                invocation.getHttpMethod(),
+                invocation.getAccessChannel(),
+                response.getStatusCode(),
+                response.getOutcomeType(),
+                defaultFailureSummary(response)
+        );
     }
 
     private Boolean resolveAiStreaming(TargetApiSnapshotModel targetApi) {

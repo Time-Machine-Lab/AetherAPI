@@ -199,6 +199,31 @@ class JdkUnifiedAccessDownstreamProxyPortTest {
         assertEquals(List.of("30"), response.getResponseHeaders().get("retry-after"));
     }
 
+        @Test
+        @DisplayName("forward should drop invalid upstream failure response headers while preserving original status")
+        void shouldDropInvalidUpstreamFailureResponseHeaders() {
+        FixedHttpClient httpClient = new FixedHttpClient(
+            400,
+            Map.of(
+                "Content-Type", List.of("application/json"),
+                "X-Upstream-Trace", List.of("up-400"),
+                "X-Bad-Header", List.of("bad\r\nvalue")
+            ),
+            "{\"error\":\"bad_request\"}".getBytes(StandardCharsets.UTF_8)
+        );
+        JdkUnifiedAccessDownstreamProxyPort proxyPort = new JdkUnifiedAccessDownstreamProxyPort(httpClient);
+
+        UnifiedAccessProxyResponseModel response = proxyPort.forward(
+            invocation("https://secure-upstream.example.com/v1/chat-completions", false)
+        );
+
+        assertEquals(UnifiedAccessExecutionOutcomeType.UPSTREAM_FAILURE, response.getOutcomeType());
+        assertEquals(400, response.getStatusCode());
+        assertEquals(List.of("up-400"), response.getResponseHeaders().get("X-Upstream-Trace"));
+        assertFalse(response.getResponseHeaders().containsKey("X-Bad-Header"));
+        assertArrayEquals("{\"error\":\"bad_request\"}".getBytes(StandardCharsets.UTF_8), response.getResponseBody());
+        }
+
     @Test
     @DisplayName("forward should resolve proxied clients through the proxy-aware resolver")
     void shouldResolveProxiedClientThroughProxyAwareResolver() {

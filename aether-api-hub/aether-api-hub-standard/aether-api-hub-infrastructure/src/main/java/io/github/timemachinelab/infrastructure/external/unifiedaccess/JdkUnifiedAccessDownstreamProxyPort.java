@@ -53,6 +53,8 @@ import java.util.StringJoiner;
  */
 public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstreamProxyPort {
 
+    private static final System.Logger log = System.getLogger(JdkUnifiedAccessDownstreamProxyPort.class.getName());
+
     private static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(30);
     private static final Duration DEFAULT_STREAMING_SETUP_TIMEOUT = Duration.ofMinutes(5);
     private static final String JSON_CONTENT_TYPE = "application/json";
@@ -124,6 +126,7 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
             HttpResponse<byte[]> response = selectedClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
             return toByteArrayOutcome(response);
         } catch (IllegalArgumentException ex) {
+            logTransportFailure(invocation, ex, 502, "UPSTREAM_FAILURE");
             return UnifiedAccessProxyResponseModel.upstreamFailure(
                     502,
                     Map.of(),
@@ -133,6 +136,7 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
                     ex.getMessage()
             );
         } catch (HttpTimeoutException ex) {
+                    logTransportFailure(invocation, ex, 504, "UPSTREAM_TIMEOUT");
             return UnifiedAccessProxyResponseModel.upstreamTimeout(
                     504,
                     timeoutPayload(invocation, ex).getBytes(StandardCharsets.UTF_8),
@@ -140,6 +144,7 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
                     ex.getMessage()
             );
         } catch (IOException ex) {
+                    logTransportFailure(invocation, ex, 502, "UPSTREAM_FAILURE");
             return UnifiedAccessProxyResponseModel.upstreamFailure(
                     502,
                     Map.of(),
@@ -150,6 +155,7 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
             );
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
+                    logTransportFailure(invocation, ex, 502, "UPSTREAM_FAILURE");
             return UnifiedAccessProxyResponseModel.upstreamFailure(
                     502,
                     Map.of(),
@@ -159,6 +165,30 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
                     ex.getMessage()
             );
         }
+    }
+
+    private void logTransportFailure(
+            UnifiedAccessInvocationModel invocation,
+            Exception ex,
+            int statusCode,
+            String outcomeType) {
+        log.log(
+                System.Logger.Level.WARNING,
+                "Unified access downstream transport failure: apiCode="
+                        + invocation.getTargetApi().getApiCode()
+                        + ", requestMethod="
+                        + resolveOutgoingMethod(invocation)
+                        + ", accessChannel="
+                        + invocation.getAccessChannel()
+                        + ", statusCode="
+                        + statusCode
+                        + ", outcomeType="
+                        + outcomeType
+                        + ", exceptionType="
+                        + ex.getClass().getSimpleName()
+                        + ", detail="
+                        + sanitizeDetail(invocation, ex.getMessage())
+        );
     }
 
     private UnifiedAccessProxyResponseModel forwardWithApacheHttpClient(UnifiedAccessInvocationModel invocation)
@@ -455,7 +485,11 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
             if (!shouldForwardResponseHeader(entry.getKey())) {
                 continue;
             }
-            copied.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+            List<String> sanitizedValues = sanitizeResponseHeaderValues(entry.getKey(), entry.getValue());
+            if (sanitizedValues.isEmpty()) {
+                continue;
+            }
+            copied.put(entry.getKey(), sanitizedValues);
         }
         return copied;
     }
@@ -480,6 +514,10 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
             if (!shouldForwardResponseHeader(header.getName())) {
                 continue;
             }
+            if (!isForwardableResponseHeaderValue(header.getValue())) {
+                logDroppedResponseHeader(header.getName());
+                continue;
+            }
             copied.computeIfAbsent(header.getName(), ignored -> new ArrayList<>()).add(header.getValue());
         }
         return copied;
@@ -489,7 +527,61 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
         if (headerName == null || headerName.isBlank()) {
             return false;
         }
-        return !HOP_BY_HOP_HEADERS.contains(headerName.toLowerCase(Locale.ROOT));
+        return !HOP_BY_HOP_HEADERS.contains(headerName.toLowerCase(Locale.ROOT))
+                && isForwardableResponseHeaderName(headerName);
+    }
+
+    private List<String> sanitizeResponseHeaderValues(String headerName, List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return List.of();
+        }
+        List<String> sanitized = new ArrayList<>();
+        for (String value : values) {
+            if (!isForwardableResponseHeaderValue(value)) {
+                logDroppedResponseHeader(headerName);
+                continue;
+            }
+            sanitized.add(value);
+        }
+        return sanitized;
+    }
+
+    private boolean isForwardableResponseHeaderName(String headerName) {
+        for (int index = 0; index < headerName.length(); index++) {
+            char current = headerName.charAt(index);
+            if ((current >= 'a' && current <= 'z')
+                    || (current >= 'A' && current <= 'Z')
+                    || (current >= '0' && current <= '9')
+                    || "!#$%&'*+-.^_`|~".indexOf(current) >= 0) {
+                continue;
+            }
+            return false;
+        }
+        return true;
+    }
+
+    private boolean isForwardableResponseHeaderValue(String headerValue) {
+        if (headerValue == null) {
+            return false;
+        }
+        for (int index = 0; index < headerValue.length(); index++) {
+            char current = headerValue.charAt(index);
+            if (current == '\t') {
+                continue;
+            }
+            if (current < 0x20 || current == 0x7f || current > 0xff) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void logDroppedResponseHeader(String headerName) {
+        log.log(
+                System.Logger.Level.WARNING,
+                "Unified access dropped invalid upstream response header. headerName={0}",
+                headerName
+        );
     }
 
     private boolean isSuccessful(int statusCode) {
