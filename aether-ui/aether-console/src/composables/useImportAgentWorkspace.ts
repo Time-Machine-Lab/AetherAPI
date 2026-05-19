@@ -11,8 +11,11 @@ import {
 } from '@/api/import-agent/import-agent.api'
 import type {
   CreateImportAgentSessionInput,
+  ImportAgentStreamCallbacks,
+  ImportAgentStreamPhase,
   ImportAgentRun,
   ImportAgentSession,
+  ImportAgentTurn,
 } from '@/api/import-agent/import-agent.types'
 import { useAuthStore } from '@/stores/useAuthStore'
 
@@ -113,7 +116,7 @@ function truncateContent(content: string, maxLength: number) {
     return { excerpt: content, truncated: false }
   }
   return {
-    excerpt: `${content.slice(0, maxLength)}\n...[truncated]`,
+    excerpt: `${content.slice(0, maxLength)}\n...[已截断]`,
     truncated: true,
   }
 }
@@ -125,10 +128,10 @@ function trimJoinedSections(sections: string[], maxLength: number) {
 
 function formatAttachmentSection(attachment: ImportAgentDraftAttachment) {
   return [
-    `File: ${attachment.fileName}`,
-    attachment.mimeType ? `Type: ${attachment.mimeType}` : undefined,
-    `Size: ${attachment.size} bytes`,
-    'Content:',
+    `文件：${attachment.fileName}`,
+    attachment.mimeType ? `类型：${attachment.mimeType}` : undefined,
+    `大小：${attachment.size} 字节`,
+    '内容：',
     attachment.excerpt,
   ]
     .filter((line) => typeof line === 'string' && line.length > 0)
@@ -186,6 +189,10 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
 
   const activeSession = ref<ImportAgentSession | null>(null)
   const activeRun = ref<ImportAgentRun | null>(null)
+  const pendingTurn = ref<ImportAgentTurn | null>(null)
+  const streamingReply = ref('')
+  const streamingPhase = ref<ImportAgentStreamPhase | null>(null)
+  const streamingStatusMessage = ref('')
 
   const restoring = ref(false)
   const creating = ref(false)
@@ -278,7 +285,7 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
       sections.push(manualSource)
     }
     if (draftAttachments.value.length > 0) {
-      sections.push(`Local files: ${draftAttachments.value.map((attachment) => attachment.fileName).join(', ')}`)
+      sections.push(`本地文件：${draftAttachments.value.map((attachment) => attachment.fileName).join('、')}`)
     }
     const normalized = trimJoinedSections(sections, 1024)
     return normalized.length > 0 ? normalized : undefined
@@ -292,7 +299,7 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
     }
     const attachmentSections = buildAttachmentSections()
     if (attachmentSections.length > 0) {
-      sections.push('Attached files')
+      sections.push('已附加文件')
       sections.push(...attachmentSections)
     }
     const normalized = trimJoinedSections(sections, MAX_DOCUMENT_SUMMARY_LENGTH)
@@ -341,6 +348,51 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
     persistSessionId(session.sessionId)
   }
 
+  function resetStreamingState() {
+    pendingTurn.value = null
+    streamingReply.value = ''
+    streamingPhase.value = null
+    streamingStatusMessage.value = ''
+  }
+
+  function beginStreamingTurn(message: string) {
+    pendingTurn.value = {
+      turnId: `pending-${Date.now()}`,
+      actorType: 'USER',
+      message,
+      createdAt: new Date().toISOString(),
+    }
+    streamingReply.value = ''
+    streamingPhase.value = 'planning'
+    streamingStatusMessage.value = ''
+  }
+
+  function buildStreamingCallbacks(): ImportAgentStreamCallbacks {
+    return {
+      onStatus: (event) => {
+        streamingPhase.value = event.phase
+        streamingStatusMessage.value = event.message ?? ''
+      },
+      onMessage: (event) => {
+        if (event.actorType !== 'AGENT') {
+          return
+        }
+        streamingPhase.value = 'replying'
+        streamingReply.value += event.delta
+      },
+      onSession: (session) => {
+        applySession(session)
+        activeRun.value = null
+      },
+      onError: () => {
+        resetStreamingState()
+      },
+      onDone: () => {
+        streamingPhase.value = 'completed'
+      },
+    }
+  }
+
   function resetDraft(createDefaults = false) {
     activeSession.value = null
     activeRun.value = null
@@ -350,6 +402,7 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
     turnMessage.value = ''
     clearErrors()
     clearDraftAttachments()
+    resetStreamingState()
     stopRunPolling()
     persistSessionId(null)
 
@@ -373,13 +426,16 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
         importIntent: importIntent.value.trim(),
         publisherDisplayName: normalizeOptional(publisherDisplayName.value),
       }
-      const session = await deps.createSession(payload)
+      beginStreamingTurn(payload.importIntent)
+      const session = await deps.createSession(payload, buildStreamingCallbacks())
       applySession(session)
       activeRun.value = null
       turnMessage.value = ''
       clearDraftAttachments()
+      resetStreamingState()
       return session
     } catch (error) {
+      resetStreamingState()
       sessionError.value = resolveErrorMessage(
         error,
         options.t,
@@ -453,13 +509,21 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
     appending.value = true
     turnError.value = ''
     try {
-      const session = await deps.appendTurn(activeSession.value.sessionId, buildAppendTurnMessage())
+      const message = buildAppendTurnMessage()
+      beginStreamingTurn(message)
+      const session = await deps.appendTurn(
+        activeSession.value.sessionId,
+        message,
+        buildStreamingCallbacks(),
+      )
       applySession(session)
       activeRun.value = null
       turnMessage.value = ''
       clearDraftAttachments()
+      resetStreamingState()
       return session
     } catch (error) {
+      resetStreamingState()
       turnError.value = resolveErrorMessage(
         error,
         options.t,
@@ -663,6 +727,10 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
     draftAttachments,
     activeSession,
     activeRun,
+    pendingTurn,
+    streamingReply,
+    streamingPhase,
+    streamingStatusMessage,
     currentPlan,
     restoring,
     creating,

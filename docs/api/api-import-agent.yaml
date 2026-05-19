@@ -41,6 +41,47 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResp'
 
+  /current-user/import-agent/sessions/stream:
+    post:
+      summary: 以流式事件创建当前用户导入会话
+      operationId: createImportSessionStream
+      tags:
+        - CurrentUserImportAgent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateImportAgentSessionReq'
+      responses:
+        '200':
+          description: 以 Server-Sent Events 返回导入计划阶段、消息增量和最终会话快照
+          content:
+            text/event-stream:
+              schema:
+                type: string
+              examples:
+                createSessionStream:
+                  summary: 流式创建会话事件序列
+                  value: |
+                    event: status
+                    data: {"phase":"planning","message":"Planning the import conversation."}
+
+                    event: message
+                    data: {"actorType":"AGENT","delta":"I need one more detail about the upstream auth."}
+
+                    event: session
+                    data: {"sessionId":"session-001","status":"WAITING_FOR_CLARIFICATION","documentSource":"https://docs.example.com/openapi.yaml","documentSummary":"OpenAPI summary","importIntent":"Import weather API","publisherDisplayName":"Console Operator","currentPlanVersion":1,"confirmedPlanVersion":null,"latestRunId":null,"currentPlan":{"version":1,"executable":false,"summary":"Import weather API into the tools category.","clarificationQuestions":["Which auth scheme should be used for upstream requests?"],"categoryPlans":[],"assetPlans":[]},"turns":[{"turnId":"turn-001","actorType":"USER","message":"Import weather API","planVersion":null,"createdAt":"2026-05-18T12:00:00Z"},{"turnId":"turn-002","actorType":"AGENT","message":"Which auth scheme should be used for upstream requests?","planVersion":1,"createdAt":"2026-05-18T12:00:01Z"}],"createdAt":"2026-05-18T12:00:00Z","updatedAt":"2026-05-18T12:00:01Z"}
+
+                    event: done
+                    data: {"phase":"completed"}
+        '400':
+          description: 请求参数非法
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
   /current-user/import-agent/sessions/{sessionId}:
     get:
       summary: 查询当前用户导入会话详情
@@ -92,6 +133,56 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiImportAgentSessionResp'
+        '404':
+          description: 会话不存在或不属于当前用户
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResp'
+
+  /current-user/import-agent/sessions/{sessionId}/turns/stream:
+    post:
+      summary: 以流式事件追加当前用户导入会话轮次
+      operationId: appendImportSessionTurnStream
+      tags:
+        - CurrentUserImportAgent
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppendImportAgentTurnReq'
+      responses:
+        '200':
+          description: 以 Server-Sent Events 返回追加轮次后的消息增量和最终会话快照
+          content:
+            text/event-stream:
+              schema:
+                type: string
+              examples:
+                appendTurnStream:
+                  summary: 流式追加轮次事件序列
+                  value: |
+                    event: status
+                    data: {"phase":"planning","message":"Planning the import conversation."}
+
+                    event: status
+                    data: {"phase":"replying","message":"Preparing the assistant reply."}
+
+                    event: message
+                    data: {"actorType":"AGENT","delta":"Use HEADER_TOKEN auth and publish after import."}
+
+                    event: session
+                    data: {"sessionId":"session-001","status":"WAITING_FOR_CONFIRMATION","documentSource":"https://docs.example.com/openapi.yaml","documentSummary":"OpenAPI summary","importIntent":"Import weather API","publisherDisplayName":"Console Operator","currentPlanVersion":2,"confirmedPlanVersion":null,"latestRunId":null,"currentPlan":{"version":2,"executable":true,"summary":"Import weather API with HEADER_TOKEN auth and publish after import.","clarificationQuestions":[],"categoryPlans":[],"assetPlans":[]},"turns":[{"turnId":"turn-001","actorType":"USER","message":"Import weather API","planVersion":null,"createdAt":"2026-05-18T12:00:00Z"},{"turnId":"turn-002","actorType":"AGENT","message":"Which auth scheme should be used for upstream requests?","planVersion":1,"createdAt":"2026-05-18T12:00:01Z"},{"turnId":"turn-003","actorType":"USER","message":"Use HEADER_TOKEN auth and publish after import.","planVersion":1,"createdAt":"2026-05-18T12:03:00Z"},{"turnId":"turn-004","actorType":"AGENT","message":"Understood. The plan is now executable.","planVersion":2,"createdAt":"2026-05-18T12:03:01Z"}],"createdAt":"2026-05-18T12:00:00Z","updatedAt":"2026-05-18T12:03:01Z"}
+
+                    event: done
+                    data: {"phase":"completed"}
         '404':
           description: 会话不存在或不属于当前用户
           content:
@@ -383,8 +474,60 @@ components:
           nullable: true
         publishAfterImport:
           type: boolean
+        asyncTaskConfig:
+          $ref: '#/components/schemas/AsyncTaskConfig'
         aiProfile:
           $ref: '#/components/schemas/ImportAiProfileResp'
+
+    AsyncTaskConfig:
+      type: object
+      nullable: true
+      description: API 资产的异步任务查询配置。为空表示导入计划不声明任务查询通道。
+      properties:
+        enabled:
+          type: boolean
+          description: 是否启用该资产的异步任务查询通道
+        queryMethod:
+          type: string
+          description: 上游任务查询请求方法。一期推荐 GET。
+          enum:
+            - GET
+            - POST
+        queryUrlTemplate:
+          type: string
+          nullable: true
+          description: 上游任务查询 URL 模板，启用时必须包含 `{taskId}` 占位符
+          example: https://provider.example.com/v1/tasks/{taskId}
+        authMode:
+          type: string
+          description: 任务查询鉴权模式。SAME_AS_SUBMIT 表示复用资产上游鉴权配置。
+          enum:
+            - SAME_AS_SUBMIT
+            - OVERRIDE
+        authScheme:
+          type: string
+          nullable: true
+          description: authMode 为 OVERRIDE 时使用的任务查询鉴权方案
+          enum:
+            - NONE
+            - HEADER_TOKEN
+            - QUERY_TOKEN
+        authConfig:
+          type: string
+          nullable: true
+          description: authMode 为 OVERRIDE 时使用的任务查询鉴权配置
+        statusPath:
+          type: string
+          nullable: true
+          description: 上游任务状态字段 JSONPath
+        resultPath:
+          type: string
+          nullable: true
+          description: 上游任务结果字段 JSONPath
+        errorPath:
+          type: string
+          nullable: true
+          description: 上游任务错误字段 JSONPath
 
     ImportAiProfileResp:
       type: object
@@ -419,6 +562,39 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    ImportAgentStreamStatusEvent:
+      type: object
+      properties:
+        phase:
+          type: string
+          enum:
+            - planning
+            - replying
+            - completed
+        message:
+          type: string
+          nullable: true
+
+    ImportAgentStreamMessageEvent:
+      type: object
+      properties:
+        actorType:
+          type: string
+          enum:
+            - USER
+            - AGENT
+        delta:
+          type: string
+
+    ImportAgentStreamErrorEvent:
+      type: object
+      properties:
+        code:
+          type: string
+          nullable: true
+        message:
+          type: string
 
     ApiImportAgentRunResp:
       type: object

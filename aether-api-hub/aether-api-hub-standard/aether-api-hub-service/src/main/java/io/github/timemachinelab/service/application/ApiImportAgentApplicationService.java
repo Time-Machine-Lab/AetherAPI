@@ -30,6 +30,7 @@ import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
 import io.github.timemachinelab.service.port.in.ApiImportAgentUseCase;
 import io.github.timemachinelab.service.port.in.CategoryUseCase;
 import io.github.timemachinelab.service.port.out.ApiImportAgentPlannerPort;
+import io.github.timemachinelab.service.port.out.ApiImportAgentReplyPort;
 import io.github.timemachinelab.service.port.out.ApiImportAgentRunRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiImportAgentSessionRepositoryPort;
 
@@ -40,6 +41,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 /**
  * Import agent application service.
@@ -51,6 +53,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
     private final ApiImportAgentSessionRepositoryPort sessionRepositoryPort;
     private final ApiImportAgentRunRepositoryPort runRepositoryPort;
     private final ApiImportAgentPlannerPort plannerPort;
+    private final ApiImportAgentReplyPort replyPort;
     private final CategoryUseCase categoryUseCase;
     private final ApiAssetUseCase apiAssetUseCase;
 
@@ -58,22 +61,29 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
             ApiImportAgentSessionRepositoryPort sessionRepositoryPort,
             ApiImportAgentRunRepositoryPort runRepositoryPort,
             ApiImportAgentPlannerPort plannerPort,
+            ApiImportAgentReplyPort replyPort,
             CategoryUseCase categoryUseCase,
             ApiAssetUseCase apiAssetUseCase) {
         this.sessionRepositoryPort = sessionRepositoryPort;
         this.runRepositoryPort = runRepositoryPort;
         this.plannerPort = plannerPort;
+        this.replyPort = replyPort;
         this.categoryUseCase = categoryUseCase;
         this.apiAssetUseCase = apiAssetUseCase;
     }
 
     @Override
     public ApiImportAgentSessionModel createSession(CreateImportAgentSessionCommand command) {
-        String ownerUserId = normalizeRequired(command.getOwnerUserId(), "Current user id");
+        return createSession(command, null);
+    }
+
+    @Override
+    public ApiImportAgentSessionModel createSession(CreateImportAgentSessionCommand command, Consumer<String> deltaConsumer) {
+        String ownerUserId = normalizeRequired(command.getOwnerUserId(), "当前用户 ID");
         String now = now();
         String sessionId = UUID.randomUUID().toString();
         String publisherDisplayName = normalizePublisherDisplayName(command.getPublisherDisplayName(), ownerUserId);
-        String initialMessage = normalizeRequired(command.getImportIntent(), "Import intent");
+        String initialMessage = normalizeRequired(command.getImportIntent(), "导入意图");
         ImportAgentTurnModel userTurn = new ImportAgentTurnModel(
                 UUID.randomUUID().toString(),
                 sessionId,
@@ -93,6 +103,20 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 List.of(userTurn)
         ));
         ImportAgentPlanModel plan = plannerResult.getPlan();
+            String agentMessage = resolveAgentMessage(
+                new ImportAgentPlannerRequest(
+                    normalizeOptional(command.getDocumentSource()),
+                    normalizeOptional(command.getDocumentSummary()),
+                    initialMessage,
+                    initialMessage,
+                    null,
+                    1,
+                    List.of(userTurn)
+                ),
+                plan,
+                plannerResult.getAgentMessage(),
+                deltaConsumer
+            );
         ApiImportAgentSessionModel session = new ApiImportAgentSessionModel(
                 sessionId,
                 ownerUserId,
@@ -115,7 +139,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 sessionId,
                 2,
                 ImportAgentActorType.AGENT,
-                plannerResult.getAgentMessage(),
+            agentMessage,
                 plan == null ? null : plan.getVersion(),
                 now
         );
@@ -149,9 +173,14 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
 
     @Override
     public ApiImportAgentSessionModel appendTurn(AppendImportAgentTurnCommand command) {
+        return appendTurn(command, null);
+    }
+
+    @Override
+    public ApiImportAgentSessionModel appendTurn(AppendImportAgentTurnCommand command, Consumer<String> deltaConsumer) {
         ApiImportAgentSessionModel session = loadOwnedSession(command.getOwnerUserId(), command.getSessionId());
         String now = now();
-        String message = normalizeRequired(command.getMessage(), "Turn message");
+        String message = normalizeRequired(command.getMessage(), "对话消息");
         int nextUserTurnIndex = sessionRepositoryPort.countTurns(session.getSessionId()) + 1;
         ImportAgentTurnModel userTurn = new ImportAgentTurnModel(
                 UUID.randomUUID().toString(),
@@ -175,6 +204,20 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 plannerTurns
         ));
         ImportAgentPlanModel newPlan = plannerResult.getPlan();
+            String agentMessage = resolveAgentMessage(
+                new ImportAgentPlannerRequest(
+                    session.getDocumentSource(),
+                    session.getDocumentSummary(),
+                    session.getImportIntent(),
+                    message,
+                    session.getCurrentPlan(),
+                    nextPlanVersion,
+                    plannerTurns
+                ),
+                newPlan,
+                plannerResult.getAgentMessage(),
+                deltaConsumer
+            );
         ApiImportAgentSessionModel updatedSession = new ApiImportAgentSessionModel(
                 session.getSessionId(),
                 session.getOwnerUserId(),
@@ -197,7 +240,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 session.getSessionId(),
                 nextUserTurnIndex + 1,
                 ImportAgentActorType.AGENT,
-                plannerResult.getAgentMessage(),
+            agentMessage,
                 newPlan == null ? null : newPlan.getVersion(),
                 now
         );
@@ -207,15 +250,37 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
         return getSession(command.getOwnerUserId(), command.getSessionId());
     }
 
+    private String resolveAgentMessage(
+            ImportAgentPlannerRequest request,
+            ImportAgentPlanModel plan,
+            String fallbackMessage,
+            Consumer<String> deltaConsumer) {
+        if (deltaConsumer == null || replyPort == null || plan == null) {
+            return fallbackMessage;
+        }
+        try {
+            String streamedMessage = replyPort.streamReply(request, plan, deltaConsumer);
+            if (streamedMessage != null && !streamedMessage.isBlank()) {
+                return streamedMessage;
+            }
+        } catch (RuntimeException ignored) {
+            // Fall through to the existing deterministic message when streaming reply generation fails.
+        }
+        if (fallbackMessage != null && !fallbackMessage.isBlank()) {
+            deltaConsumer.accept(fallbackMessage);
+        }
+        return fallbackMessage;
+    }
+
     @Override
     public ApiImportAgentSessionModel confirmPlan(ConfirmImportAgentPlanCommand command) {
         ApiImportAgentSessionModel session = loadOwnedSession(command.getOwnerUserId(), command.getSessionId());
         ImportAgentPlanModel plan = session.getCurrentPlan();
         if (plan == null || plan.getVersion() == null || plan.getVersion() != command.getPlanVersion()) {
-            throw new ImportAgentDomainException("Import plan version mismatch");
+            throw new ImportAgentDomainException("导入计划版本不匹配");
         }
         if (!plan.isExecutable()) {
-            throw new ImportAgentDomainException("Import plan is not executable");
+            throw new ImportAgentDomainException("导入计划暂不可执行");
         }
         String now = now();
         sessionRepositoryPort.saveSession(new ApiImportAgentSessionModel(
@@ -243,11 +308,11 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
         ApiImportAgentSessionModel session = loadOwnedSession(command.getOwnerUserId(), command.getSessionId());
         ImportAgentPlanModel plan = session.getCurrentPlan();
         if (plan == null || !plan.isExecutable()) {
-            throw new ImportAgentDomainException("Import plan is not executable");
+            throw new ImportAgentDomainException("导入计划暂不可执行");
         }
         if (!Objects.equals(session.getCurrentPlanVersion(), command.getPlanVersion())
                 || !Objects.equals(session.getConfirmedPlanVersion(), command.getPlanVersion())) {
-            throw new ImportAgentDomainException("Import plan confirmation required");
+            throw new ImportAgentDomainException("请先确认导入计划");
         }
 
         String now = now();
@@ -361,15 +426,15 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
 
     @Override
     public ApiImportAgentRunModel getRun(String ownerUserId, String runId) {
-        return runRepositoryPort.findOwnedRun(normalizeRequired(ownerUserId, "Current user id"), normalizeRequired(runId, "Run id"))
-                .orElseThrow(() -> new ImportAgentDomainException("Import run not found: " + runId));
+        return runRepositoryPort.findOwnedRun(normalizeRequired(ownerUserId, "当前用户 ID"), normalizeRequired(runId, "运行 ID"))
+                .orElseThrow(() -> new ImportAgentDomainException("未找到导入运行：" + runId));
     }
 
     private ApiImportAgentSessionModel loadOwnedSession(String ownerUserId, String sessionId) {
         return sessionRepositoryPort.findOwnedSession(
-                        normalizeRequired(ownerUserId, "Current user id"),
-                        normalizeRequired(sessionId, "Session id"))
-                .orElseThrow(() -> new ImportAgentDomainException("Import session not found: " + sessionId));
+                        normalizeRequired(ownerUserId, "当前用户 ID"),
+                        normalizeRequired(sessionId, "会话 ID"))
+                .orElseThrow(() -> new ImportAgentDomainException("未找到导入会话：" + sessionId));
     }
 
     private ImportAgentSessionStatus resolveSessionStatus(ImportAgentPlanModel plan) {
@@ -399,51 +464,16 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                         assetPlan.getAssetName(),
                         assetPlan.getRequestJsonSchema(),
                         assetPlan.getResponseJsonSchema(),
-                        null,
+                        assetPlan.getAsyncTaskConfig(),
                         null,
                         null,
                         null
                 ));
-                steps.add(successStep(ImportAgentStepType.REGISTER_ASSET, assetPlan.getApiCode(), "Asset draft created"));
+                apiAssetUseCase.reviseAsset(buildAssetRevisionCommand(command, assetPlan));
+                steps.add(successStep(ImportAgentStepType.REGISTER_ASSET, assetPlan.getApiCode(), "资产草稿已创建"));
             } else {
-                apiAssetUseCase.reviseAsset(new ReviseApiAssetCommand(
-                        command.getOwnerUserId(),
-                        normalizePublisherDisplayName(command.getPublisherDisplayName(), command.getOwnerUserId()),
-                        assetPlan.getApiCode(),
-                        assetPlan.getAssetName(),
-                        assetPlan.getAssetName() != null,
-                        assetPlan.getAssetType(),
-                        assetPlan.getAssetType() != null,
-                        assetPlan.getCategoryCode(),
-                        assetPlan.getCategoryCode() != null,
-                        assetPlan.getRequestMethod(),
-                        assetPlan.getRequestMethod() != null,
-                        assetPlan.getUpstreamUrl(),
-                        assetPlan.getUpstreamUrl() != null,
-                        assetPlan.getAuthScheme(),
-                        assetPlan.getAuthScheme() != null,
-                        assetPlan.getAuthConfig(),
-                        assetPlan.getAuthConfig() != null,
-                        assetPlan.getRequestTemplate(),
-                        assetPlan.getRequestTemplate() != null,
-                        assetPlan.getRequestExample(),
-                        assetPlan.getRequestExample() != null,
-                        assetPlan.getResponseExample(),
-                        assetPlan.getResponseExample() != null,
-                        assetPlan.getRequestJsonSchema(),
-                        assetPlan.getRequestJsonSchema() != null,
-                        assetPlan.getResponseJsonSchema(),
-                        assetPlan.getResponseJsonSchema() != null,
-                        null,
-                        false,
-                        null,
-                        false,
-                        null,
-                        false,
-                        null,
-                        false
-                ));
-                steps.add(successStep(ImportAgentStepType.REVISE_ASSET, assetPlan.getApiCode(), "Asset configuration revised"));
+                apiAssetUseCase.reviseAsset(buildAssetRevisionCommand(command, assetPlan));
+                steps.add(successStep(ImportAgentStepType.REVISE_ASSET, assetPlan.getApiCode(), "资产配置已更新"));
             }
 
             if (assetPlan.getAiProfile() != null) {
@@ -456,7 +486,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                         assetPlan.getAiProfile().isStreamingSupported(),
                         assetPlan.getAiProfile().getCapabilityTags()
                 ));
-                steps.add(successStep(ImportAgentStepType.ATTACH_AI_PROFILE, assetPlan.getApiCode(), "AI profile attached"));
+                steps.add(successStep(ImportAgentStepType.ATTACH_AI_PROFILE, assetPlan.getApiCode(), "AI 能力配置已关联"));
             }
             if (assetPlan.isPublishAfterImport()) {
                 apiAssetUseCase.publishAsset(
@@ -464,7 +494,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                         normalizePublisherDisplayName(command.getPublisherDisplayName(), command.getOwnerUserId()),
                         assetPlan.getApiCode()
                 );
-                steps.add(successStep(ImportAgentStepType.PUBLISH_ASSET, assetPlan.getApiCode(), "Asset published"));
+                steps.add(successStep(ImportAgentStepType.PUBLISH_ASSET, assetPlan.getApiCode(), "资产已发布"));
             }
             return steps;
         } catch (RuntimeException ex) {
@@ -473,13 +503,53 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
         }
     }
 
+    private ReviseApiAssetCommand buildAssetRevisionCommand(StartImportAgentRunCommand command, ImportAssetPlanModel assetPlan) {
+        return new ReviseApiAssetCommand(
+                command.getOwnerUserId(),
+                normalizePublisherDisplayName(command.getPublisherDisplayName(), command.getOwnerUserId()),
+                assetPlan.getApiCode(),
+                assetPlan.getAssetName(),
+                assetPlan.getAssetName() != null,
+                assetPlan.getAssetType(),
+                assetPlan.getAssetType() != null,
+                assetPlan.getCategoryCode(),
+                assetPlan.getCategoryCode() != null,
+                assetPlan.getRequestMethod(),
+                assetPlan.getRequestMethod() != null,
+                assetPlan.getUpstreamUrl(),
+                assetPlan.getUpstreamUrl() != null,
+                assetPlan.getAuthScheme(),
+                assetPlan.getAuthScheme() != null,
+                assetPlan.getAuthConfig(),
+                assetPlan.getAuthConfig() != null,
+                assetPlan.getRequestTemplate(),
+                assetPlan.getRequestTemplate() != null,
+                assetPlan.getRequestExample(),
+                assetPlan.getRequestExample() != null,
+                assetPlan.getResponseExample(),
+                assetPlan.getResponseExample() != null,
+                assetPlan.getRequestJsonSchema(),
+                assetPlan.getRequestJsonSchema() != null,
+                assetPlan.getResponseJsonSchema(),
+                assetPlan.getResponseJsonSchema() != null,
+                assetPlan.getAsyncTaskConfig(),
+                assetPlan.getAsyncTaskConfig() != null,
+                null,
+                false,
+                null,
+                false,
+                null,
+                false
+        );
+    }
+
     private ImportStepResultModel ensureCategory(ImportCategoryPlanModel categoryPlan) {
         if (categoryPlan.getCategoryCode() == null || categoryPlan.getCategoryCode().isBlank()) {
-            return failedStep(ImportAgentStepType.ENSURE_CATEGORY, null, "Category code must not be blank");
+            return failedStep(ImportAgentStepType.ENSURE_CATEGORY, null, "分类编码不能为空");
         }
         try {
             categoryUseCase.getCategoryByCode(categoryPlan.getCategoryCode());
-            return successStep(ImportAgentStepType.ENSURE_CATEGORY, categoryPlan.getCategoryCode(), "Category already exists");
+            return successStep(ImportAgentStepType.ENSURE_CATEGORY, categoryPlan.getCategoryCode(), "分类已存在");
         } catch (RuntimeException ex) {
             if (categoryPlan.getAction() != ImportCategoryPlanAction.CREATE_IF_MISSING) {
                 return failedStep(ImportAgentStepType.ENSURE_CATEGORY, categoryPlan.getCategoryCode(), ex.getMessage());
@@ -491,7 +561,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                                 ? categoryPlan.getCategoryCode()
                                 : categoryPlan.getCategoryName()
                 ));
-                return successStep(ImportAgentStepType.ENSURE_CATEGORY, categoryPlan.getCategoryCode(), "Category created");
+                return successStep(ImportAgentStepType.ENSURE_CATEGORY, categoryPlan.getCategoryCode(), "分类已创建");
             } catch (RuntimeException createEx) {
                 return failedStep(ImportAgentStepType.ENSURE_CATEGORY, categoryPlan.getCategoryCode(), createEx.getMessage());
             }
@@ -506,7 +576,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
     }
 
     private String buildRunSummary(ImportAgentPlanModel plan, ImportAgentRunStatus status, int affectedCount) {
-        return "Import run " + status.name() + " for plan version " + plan.getVersion() + ", affected assets: " + affectedCount;
+        return "导入运行状态：" + status.name() + "，计划版本：" + plan.getVersion() + "，影响资产数：" + affectedCount;
     }
 
     private ImportStepResultModel successStep(ImportAgentStepType stepType, String targetRef, String message) {
@@ -519,7 +589,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
 
     private String normalizeRequired(String value, String fieldName) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(fieldName + " must not be blank");
+            throw new IllegalArgumentException(fieldName + "不能为空");
         }
         return value.trim();
     }

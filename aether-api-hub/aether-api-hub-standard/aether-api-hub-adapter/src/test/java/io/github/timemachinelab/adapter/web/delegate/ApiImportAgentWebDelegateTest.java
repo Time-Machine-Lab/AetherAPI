@@ -3,6 +3,7 @@ package io.github.timemachinelab.adapter.web.delegate;
 import io.github.timemachinelab.domain.catalog.model.AssetType;
 import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
+import io.github.timemachinelab.adapter.web.config.ImportAgentStreamProperties;
 import io.github.timemachinelab.api.req.CreateImportAgentSessionReq;
 import io.github.timemachinelab.service.model.ApiImportAgentRunModel;
 import io.github.timemachinelab.service.model.ApiImportAgentSessionModel;
@@ -34,12 +35,14 @@ import static org.mockito.Mockito.when;
 
 class ApiImportAgentWebDelegateTest {
 
+    private static final ImportAgentStreamProperties STREAM_PROPERTIES = streamProperties();
+
     @Test
     @DisplayName("create session should map request into command and nested response")
     void shouldCreateSessionWithMappedResponse() {
         ApiImportAgentUseCase useCase = mock(ApiImportAgentUseCase.class);
         when(useCase.createSession(any(CreateImportAgentSessionCommand.class))).thenReturn(sessionModel());
-        ApiImportAgentWebDelegate delegate = new ApiImportAgentWebDelegate(useCase);
+        ApiImportAgentWebDelegate delegate = new ApiImportAgentWebDelegate(useCase, STREAM_PROPERTIES);
 
         CreateImportAgentSessionReq req = new CreateImportAgentSessionReq();
         req.setDocumentSource("https://docs.example.com/weather");
@@ -56,6 +59,8 @@ class ApiImportAgentWebDelegateTest {
         assertEquals("session-1", response.getSessionId());
         assertEquals("WAITING_FOR_CONFIRMATION", response.getStatus());
         assertEquals("tools", response.getCurrentPlan().getCategoryPlans().get(0).getCategoryCode());
+        assertEquals("HEADER_TOKEN", response.getCurrentPlan().getAssetPlans().get(0).getAuthScheme());
+        assertEquals("Authorization: Bearer upstream-token", response.getCurrentPlan().getAssetPlans().get(0).getAuthConfig());
         assertEquals("OpenAI", response.getCurrentPlan().getAssetPlans().get(0).getAiProfile().getProvider());
         assertEquals("AGENT", response.getTurns().get(0).getActorType());
     }
@@ -65,7 +70,7 @@ class ApiImportAgentWebDelegateTest {
     void shouldMapRunResponse() {
         ApiImportAgentUseCase useCase = mock(ApiImportAgentUseCase.class);
         when(useCase.getRun("user-1", "run-1")).thenReturn(runModel());
-        ApiImportAgentWebDelegate delegate = new ApiImportAgentWebDelegate(useCase);
+        ApiImportAgentWebDelegate delegate = new ApiImportAgentWebDelegate(useCase, STREAM_PROPERTIES);
 
         var response = delegate.getRun("user-1", "run-1");
 
@@ -107,10 +112,11 @@ class ApiImportAgentWebDelegateTest {
                                 "template",
                                 "{\"city\":\"Shanghai\"}",
                                 "{\"temperature\":26}",
-                                "{\"type\":\"object\"}",
-                                "{\"type\":\"object\"}",
-                                true,
-                                new ImportAiProfileModel("OpenAI", "gpt-4.1", true, List.of("chat", "reasoning"))
+                                 "{\"type\":\"object\"}",
+                                 "{\"type\":\"object\"}",
+                                 true,
+                                 null,
+                                 new ImportAiProfileModel("OpenAI", "gpt-4.1", true, List.of("chat", "reasoning"))
                         ))
                 ),
                 List.of(new ImportAgentTurnModel("turn-1", "session-1", 1, ImportAgentActorType.AGENT, "ready", 1, "2026-05-18T10:00:00Z")),
@@ -136,5 +142,11 @@ class ApiImportAgentWebDelegateTest {
                 "2026-05-18T10:10:00Z",
                 "2026-05-18T10:11:00Z"
         );
+    }
+
+    private static ImportAgentStreamProperties streamProperties() {
+        ImportAgentStreamProperties properties = new ImportAgentStreamProperties();
+        properties.setTimeoutSeconds(180);
+        return properties;
     }
 }

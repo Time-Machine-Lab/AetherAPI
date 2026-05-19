@@ -9,6 +9,7 @@ export type ImportAgentSessionStatus =
 
 export type ImportAgentRunStatus = 'RUNNING' | 'SUCCEEDED' | 'PARTIALLY_FAILED' | 'FAILED'
 export type ImportAgentActorType = 'USER' | 'AGENT'
+export type ImportAgentStreamPhase = 'planning' | 'replying' | 'completed'
 export type ImportCategoryPlanAction = 'USE_EXISTING' | 'CREATE_IF_MISSING'
 export type ImportAssetType = 'STANDARD_API' | 'AI_API'
 export type ImportStepType =
@@ -26,11 +27,46 @@ export interface CreateImportAgentSessionInput {
   publisherDisplayName?: string
 }
 
+export interface ImportAgentStreamStatusEvent {
+  phase: ImportAgentStreamPhase
+  message?: string
+}
+
+export interface ImportAgentStreamMessageEvent {
+  actorType: ImportAgentActorType
+  delta: string
+}
+
+export interface ImportAgentStreamErrorEvent {
+  code?: string
+  message: string
+}
+
+export interface ImportAgentStreamCallbacks {
+  onStatus?: (event: ImportAgentStreamStatusEvent) => void
+  onMessage?: (event: ImportAgentStreamMessageEvent) => void
+  onSession?: (session: ImportAgentSession) => void
+  onError?: (event: ImportAgentStreamErrorEvent) => void
+  onDone?: () => void
+}
+
 export interface ImportAiProfile {
   provider: string
   model: string
   streamingSupported: boolean
   capabilityTags: string[]
+}
+
+export interface ImportAsyncTaskConfig {
+  enabled?: boolean
+  queryMethod?: 'GET' | 'POST'
+  queryUrlTemplate?: string
+  authMode?: 'SAME_AS_SUBMIT' | 'OVERRIDE'
+  authScheme?: 'NONE' | 'HEADER_TOKEN' | 'QUERY_TOKEN' | null
+  authConfig?: string | null
+  statusPath?: string | null
+  resultPath?: string | null
+  errorPath?: string | null
 }
 
 export interface ImportCategoryPlan {
@@ -54,6 +90,7 @@ export interface ImportAssetPlan {
   requestJsonSchema?: string
   responseJsonSchema?: string
   publishAfterImport: boolean
+  asyncTaskConfig: ImportAsyncTaskConfig | null
   aiProfile: ImportAiProfile | null
 }
 

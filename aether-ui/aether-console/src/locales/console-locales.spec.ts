@@ -7,6 +7,8 @@ describe('console locales', () => {
     expect(enUS.app.subtitle).toBe('Console')
     expect(enUS.console.home.metaTitle).toBe('API Market')
     expect(enUS.console.signIn.submit).toBe('Sign in')
+    expect(enUS.console.importAgent.title).toBe('API Import Agent')
+    expect(enUS.console.importAgent.createSession).toBe('Create import session')
 
     expect(zhCN.app.subtitle).toBe('控制台')
     expect(zhCN.console.home.metaTitle).toBe('API 市场')

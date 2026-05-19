@@ -7,6 +7,8 @@ import io.github.timemachinelab.service.model.ConfirmImportAgentPlanCommand;
 import io.github.timemachinelab.service.model.CreateImportAgentSessionCommand;
 import io.github.timemachinelab.service.model.StartImportAgentRunCommand;
 
+import java.util.function.Consumer;
+
 /**
  * Import agent use case.
  */
@@ -14,9 +16,13 @@ public interface ApiImportAgentUseCase {
 
     ApiImportAgentSessionModel createSession(CreateImportAgentSessionCommand command);
 
+    ApiImportAgentSessionModel createSession(CreateImportAgentSessionCommand command, Consumer<String> deltaConsumer);
+
     ApiImportAgentSessionModel getSession(String ownerUserId, String sessionId);
 
     ApiImportAgentSessionModel appendTurn(AppendImportAgentTurnCommand command);
+
+    ApiImportAgentSessionModel appendTurn(AppendImportAgentTurnCommand command, Consumer<String> deltaConsumer);
 
     ApiImportAgentSessionModel confirmPlan(ConfirmImportAgentPlanCommand command);
 

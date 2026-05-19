@@ -21,9 +21,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.security.Principal;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -110,6 +112,68 @@ class ApiImportAgentControllerWebMvcTest {
         verify(delegate).appendTurn(eq("user-1"), eq("session-1"), reqCaptor.capture());
         assertEquals("please publish it", reqCaptor.getValue().getMessage());
     }
+
+                @Test
+                @DisplayName("stream endpoints should expose text event stream payloads")
+                void shouldExposeStreamEndpoints() throws Exception {
+                                ApiImportAgentWebDelegate delegate = mock(ApiImportAgentWebDelegate.class);
+                                doAnswer(invocation -> {
+                                                var response = invocation.getArgument(4, jakarta.servlet.http.HttpServletResponse.class);
+                                                response.setStatus(200);
+                                                response.setContentType("text/event-stream");
+                                                response.getOutputStream().write("event: status\ndata: {\"phase\":\"planning\"}\n\n".getBytes(StandardCharsets.UTF_8));
+                                                response.getOutputStream().flush();
+                                                return null;
+                                }).when(delegate).createSessionStreamToResponse(
+                                                                eq("user-1"),
+                                                                eq("Alice"),
+                                                                org.mockito.ArgumentMatchers.any(CreateImportAgentSessionReq.class),
+                                                                org.mockito.ArgumentMatchers.any(),
+                                                                org.mockito.ArgumentMatchers.any()
+                                );
+                                doAnswer(invocation -> {
+                                                var response = invocation.getArgument(4, jakarta.servlet.http.HttpServletResponse.class);
+                                                response.setStatus(200);
+                                                response.setContentType("text/event-stream");
+                                                response.getOutputStream().write("event: message\ndata: {\"delta\":\"hello\"}\n\n".getBytes(StandardCharsets.UTF_8));
+                                                response.getOutputStream().flush();
+                                                return null;
+                                }).when(delegate).appendTurnStreamToResponse(
+                                                                eq("user-1"),
+                                                                eq("session-1"),
+                                                                org.mockito.ArgumentMatchers.any(AppendImportAgentTurnReq.class),
+                                                                org.mockito.ArgumentMatchers.any(),
+                                                                org.mockito.ArgumentMatchers.any()
+                                );
+
+                                MockMvc mockMvc = mockMvc(delegate);
+
+                                mockMvc.perform(post("/api/v1/current-user/import-agent/sessions/stream")
+                                                                                                .principal(CURRENT_USER)
+                                                                                                .requestAttr(ConsoleSessionPrincipal.REQUEST_ATTRIBUTE, consolePrincipal())
+                                                                                                .contentType("application/json")
+                                                                                                .content("""
+                                                                                                                                {
+                                                                                                                                        "importIntent": "import weather api"
+                                                                                                                                }
+                                                                                                                                """))
+                                                                .andExpect(status().isOk())
+                                                                                                                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().contentType("text/event-stream"))
+                                                                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string("event: status\ndata: {\"phase\":\"planning\"}\n\n"));
+
+                                mockMvc.perform(post("/api/v1/current-user/import-agent/sessions/session-1/turns/stream")
+                                                                                                .principal(CURRENT_USER)
+                                                                                                .requestAttr(ConsoleSessionPrincipal.REQUEST_ATTRIBUTE, consolePrincipal())
+                                                                                                .contentType("application/json")
+                                                                                                .content("""
+                                                                                                                                {
+                                                                                                                                        "message": "please publish it"
+                                                                                                                                }
+                                                                                                                                """))
+                                                                .andExpect(status().isOk())
+                                                                                                                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().contentType("text/event-stream"))
+                                                                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string("event: message\ndata: {\"delta\":\"hello\"}\n\n"));
+                }
 
     @Test
     @DisplayName("confirm should reject invalid plan version")
@@ -204,11 +268,12 @@ class ApiImportAgentControllerWebMvcTest {
                                 null,
                                 null,
                                 null,
-                                null,
-                                null,
-                                true,
-                                null
-                        ))
+                                 null,
+                                 null,
+                                 true,
+                                 null,
+                                 null
+                         ))
                 ),
                 List.of(new ImportAgentTurnResp("turn-1", "AGENT", "ready", 1, "2026-05-18T10:00:00Z")),
                 "2026-05-18T10:00:00Z",

@@ -4,12 +4,12 @@
 The system MUST provide owner-scoped Import Agent session APIs in `docs/api/api-import-agent.yaml`, mapped one-to-one to `ApiImportAgentController.java`, so the current authenticated user can create, view, and continue only their own import sessions.
 
 #### Scenario: Create an owned import session
-- **WHEN** the current authenticated user submits a valid import-session creation request with a document source or import intent
+- **WHEN** the current authenticated user submits a valid import-session creation request with `importIntent` and optional `documentSource` or `documentSummary`
 - **THEN** the system creates a new import session owned by that user in a non-executing state
 
 #### Scenario: View an owned import session
 - **WHEN** the current authenticated user requests a session detail they own
-- **THEN** the system returns that session's current status, latest plan snapshot reference, and visible turn history summary
+- **THEN** the system returns that session's current status, latest full plan snapshot, and visible turn history summary
 
 #### Scenario: Reject access to another user's import session
 - **WHEN** the current authenticated user requests a session owned by another user
@@ -24,7 +24,18 @@ The system MUST persist import session state, user/agent turn history, and curre
 
 #### Scenario: Planner updates the current structured plan
 - **WHEN** the planner produces a new structured import plan for the current session
-- **THEN** the system stores the new plan snapshot reference on the session without mutating API Catalog assets yet
+- **THEN** the system stores the new full plan snapshot on the session without mutating API Catalog assets yet
+
+### Requirement: Current authenticated users MUST access streamed planning endpoints for session create and append flows
+The system MUST provide stream variants of import-session creation and turn append in `docs/api/api-import-agent.yaml`, mapped to `ApiImportAgentController.java`, so the current authenticated user can receive planning status, assistant deltas, and the final session snapshot without changing owner-scoped semantics.
+
+#### Scenario: Create an owned import session through SSE
+- **WHEN** the current authenticated user calls the stream create-session endpoint with a valid request
+- **THEN** the system emits planning status events, assistant message deltas when available, and the final owned session snapshot
+
+#### Scenario: Append a user turn through SSE
+- **WHEN** the current authenticated user calls the stream append-turn endpoint for a session they own
+- **THEN** the system emits planning status events, assistant message deltas when available, and the refreshed owned session snapshot
 
 ### Requirement: Planner output MUST remain non-mutating until user confirmation
 The system MUST treat planner output as a draft import plan and MUST NOT create categories, assets, AI profiles, or publish actions before the current user explicitly confirms the target plan version.

@@ -16,7 +16,7 @@ class ProviderBackedApiImportAgentPlannerTest {
     @Test
     @DisplayName("planner should delegate to the first supporting provider")
     void shouldDelegateToFirstSupportingProvider() {
-        ProviderBackedApiImportAgentPlanner planner = planner(false, List.of(
+        ProviderBackedApiImportAgentPlanner planner = planner(List.of(
                 new StubPlannerProvider(false, "skipped"),
                 new StubPlannerProvider(true, "chosen"),
                 new StubPlannerProvider(true, "later")
@@ -37,31 +37,9 @@ class ProviderBackedApiImportAgentPlannerTest {
     }
 
     @Test
-    @DisplayName("planner should fall back to next provider when earlier provider fails and fallback is enabled")
-    void shouldFallBackWhenEarlierProviderFailsAndFallbackEnabled() {
-        ProviderBackedApiImportAgentPlanner planner = planner(true, List.of(
-                new FailingPlannerProvider(),
-                new StubPlannerProvider(true, "fallback")
-        ));
-
-        ImportAgentPlannerResult result = planner.plan(new ImportAgentPlannerRequest(
-                null,
-                null,
-                "import weather api",
-                "continue",
-                null,
-                4,
-                List.of()
-        ));
-
-        assertEquals("fallback", result.getAgentMessage());
-        assertEquals(4, result.getPlan().getVersion());
-    }
-
-    @Test
-    @DisplayName("planner should fail fast when earlier provider fails and fallback is disabled")
-    void shouldFailFastWhenEarlierProviderFailsAndFallbackDisabled() {
-        ProviderBackedApiImportAgentPlanner planner = planner(false, List.of(
+    @DisplayName("planner should fail fast when earlier provider fails")
+    void shouldFailFastWhenEarlierProviderFails() {
+        ProviderBackedApiImportAgentPlanner planner = planner(List.of(
                 new FailingPlannerProvider(),
                 new StubPlannerProvider(true, "fallback")
         ));
@@ -76,16 +54,12 @@ class ProviderBackedApiImportAgentPlannerTest {
                 List.of()
         )));
 
-        assertEquals("Import agent planner provider failed and provider fallback is disabled", exception.getMessage());
+        assertEquals("Import agent planner provider failed", exception.getMessage());
         assertEquals("simulated llm failure", exception.getCause().getMessage());
     }
 
-    private static ProviderBackedApiImportAgentPlanner planner(
-            boolean allowProviderFallback,
-            List<ImportAgentPlannerProvider> providers) {
-        ImportAgentPlannerProperties properties = new ImportAgentPlannerProperties();
-        properties.setAllowProviderFallback(allowProviderFallback);
-        return new ProviderBackedApiImportAgentPlanner(providers, properties);
+    private static ProviderBackedApiImportAgentPlanner planner(List<ImportAgentPlannerProvider> providers) {
+        return new ProviderBackedApiImportAgentPlanner(providers);
     }
 
     private static final class StubPlannerProvider implements ImportAgentPlannerProvider {

@@ -1,4 +1,5 @@
 import { http } from '@/api/http'
+import type { NormalizedHttpError } from '@/api/http'
 import type {
   ApiImportAgentRunRespDto,
   ApiImportAgentSessionRespDto,
@@ -6,8 +7,12 @@ import type {
   ConfirmImportAgentPlanReqDto,
   CreateImportAgentSessionReqDto,
   ImportAgentPlanDto,
+  ImportAgentStreamErrorEventDto,
+  ImportAgentStreamMessageEventDto,
+  ImportAgentStreamStatusEventDto,
   ImportAgentTurnDto,
   ImportAiProfileDto,
+  ImportAsyncTaskConfigDto,
   ImportAssetPlanDto,
   ImportCategoryPlanDto,
   ImportStepResultDto,
@@ -18,8 +23,10 @@ import type {
   ImportAgentPlan,
   ImportAgentRun,
   ImportAgentSession,
+  ImportAgentStreamCallbacks,
   ImportAgentTurn,
   ImportAiProfile,
+  ImportAsyncTaskConfig,
   ImportAssetPlan,
   ImportCategoryPlan,
   ImportStepResult,
@@ -35,6 +42,24 @@ function mapAiProfile(dto?: ImportAiProfileDto | null): ImportAiProfile | null {
     model: dto.model,
     streamingSupported: dto.streamingSupported,
     capabilityTags: dto.capabilityTags,
+  }
+}
+
+function mapAsyncTaskConfig(dto?: ImportAsyncTaskConfigDto | null): ImportAsyncTaskConfig | null {
+  if (!dto) {
+    return null
+  }
+
+  return {
+    enabled: dto.enabled,
+    queryMethod: dto.queryMethod,
+    queryUrlTemplate: dto.queryUrlTemplate ?? undefined,
+    authMode: dto.authMode,
+    authScheme: dto.authScheme ?? null,
+    authConfig: dto.authConfig ?? null,
+    statusPath: dto.statusPath ?? null,
+    resultPath: dto.resultPath ?? null,
+    errorPath: dto.errorPath ?? null,
   }
 }
 
@@ -62,6 +87,7 @@ function mapAssetPlan(dto: ImportAssetPlanDto): ImportAssetPlan {
     requestJsonSchema: dto.requestJsonSchema ?? undefined,
     responseJsonSchema: dto.responseJsonSchema ?? undefined,
     publishAfterImport: dto.publishAfterImport,
+    asyncTaskConfig: mapAsyncTaskConfig(dto.asyncTaskConfig),
     aiProfile: mapAiProfile(dto.aiProfile),
   }
 }
@@ -142,14 +168,176 @@ function toCreateSessionReq(body: CreateImportAgentSessionInput): CreateImportAg
   }
 }
 
+function toStreamError(error: ImportAgentStreamErrorEventDto): NormalizedHttpError {
+  return {
+    status: 200,
+    code: error.code,
+    message: error.message,
+  }
+}
+
+function parseSseEventBlock(block: string) {
+  const lines = block
+    .split('\n')
+    .map((line) => line.replace(/\r$/, ''))
+    .filter((line) => line.length > 0)
+
+  if (lines.length === 0) {
+    return null
+  }
+
+  let eventName = 'message'
+  const dataLines: string[] = []
+
+  for (const line of lines) {
+    if (line.startsWith('event:')) {
+      eventName = line.slice('event:'.length).trim()
+      continue
+    }
+    if (line.startsWith('data:')) {
+      dataLines.push(line.slice('data:'.length).trimStart())
+    }
+  }
+
+  if (dataLines.length === 0) {
+    return null
+  }
+
+  return {
+    eventName,
+    payloadText: dataLines.join('\n'),
+  }
+}
+
+function consumeSseChunk(
+  chunk: string,
+  onEvent: (eventName: string, payloadText: string) => void,
+  state: { buffer: string },
+) {
+  state.buffer += chunk
+
+  while (true) {
+    const separatorIndex = state.buffer.indexOf('\n\n')
+    if (separatorIndex < 0) {
+      return
+    }
+
+    const block = state.buffer.slice(0, separatorIndex)
+    state.buffer = state.buffer.slice(separatorIndex + 2)
+    const parsed = parseSseEventBlock(block)
+    if (!parsed) {
+      continue
+    }
+    onEvent(parsed.eventName, parsed.payloadText)
+  }
+}
+
+function finalizeSseBuffer(
+  state: { buffer: string },
+  onEvent: (eventName: string, payloadText: string) => void,
+) {
+  const trailing = state.buffer.trim()
+  state.buffer = ''
+  if (!trailing) {
+    return
+  }
+  const parsed = parseSseEventBlock(trailing)
+  if (parsed) {
+    onEvent(parsed.eventName, parsed.payloadText)
+  }
+}
+
+async function requestImportAgentSessionStream(
+  url: string,
+  body: CreateImportAgentSessionReqDto | AppendImportAgentTurnReqDto,
+  callbacks?: ImportAgentStreamCallbacks,
+): Promise<ImportAgentSession> {
+  const parserState = { buffer: '' }
+  let consumedLength = 0
+  let latestSession: ImportAgentSession | null = null
+  let streamError: NormalizedHttpError | null = null
+
+  const handleEvent = (eventName: string, payloadText: string) => {
+    switch (eventName) {
+      case 'status': {
+        const payload = JSON.parse(payloadText) as ImportAgentStreamStatusEventDto
+        callbacks?.onStatus?.(payload)
+        return
+      }
+      case 'message': {
+        const payload = JSON.parse(payloadText) as ImportAgentStreamMessageEventDto
+        callbacks?.onMessage?.(payload)
+        return
+      }
+      case 'session': {
+        const payload = JSON.parse(payloadText) as ApiImportAgentSessionRespDto
+        latestSession = mapSession(payload)
+        callbacks?.onSession?.(latestSession)
+        return
+      }
+      case 'error': {
+        const payload = JSON.parse(payloadText) as ImportAgentStreamErrorEventDto
+        callbacks?.onError?.(payload)
+        streamError = toStreamError(payload)
+        return
+      }
+      case 'done': {
+        callbacks?.onDone?.()
+        return
+      }
+      default:
+        return
+    }
+  }
+
+  const response = await http.request<string>({
+    url,
+    method: 'post',
+    data: body,
+    timeout: 0,
+    responseType: 'text',
+    transformResponse: [(data) => data],
+    onDownloadProgress: (progressEvent) => {
+      const responseText = (progressEvent.event?.target as { responseText?: string } | undefined)
+        ?.responseText
+      if (typeof responseText !== 'string' || responseText.length <= consumedLength) {
+        return
+      }
+      const nextChunk = responseText.slice(consumedLength)
+      consumedLength = responseText.length
+      consumeSseChunk(nextChunk, handleEvent, parserState)
+    },
+  })
+
+  if (typeof response.data === 'string' && response.data.length > consumedLength) {
+    consumeSseChunk(response.data.slice(consumedLength), handleEvent, parserState)
+    consumedLength = response.data.length
+  }
+  finalizeSseBuffer(parserState, handleEvent)
+
+  if (streamError) {
+    throw streamError
+  }
+  if (!latestSession) {
+    throw {
+      status: response.status,
+      code: 'IMPORT_AGENT_STREAM_SESSION_MISSING',
+      message: 'Stream completed without a session snapshot.',
+    } satisfies NormalizedHttpError
+  }
+
+  return latestSession
+}
+
 export async function createImportAgentSession(
   body: CreateImportAgentSessionInput,
+  callbacks?: ImportAgentStreamCallbacks,
 ): Promise<ImportAgentSession> {
-  const { data } = await http.post<ApiImportAgentSessionRespDto>(
-    '/v1/current-user/import-agent/sessions',
+  return requestImportAgentSessionStream(
+    '/v1/current-user/import-agent/sessions/stream',
     toCreateSessionReq(body),
+    callbacks,
   )
-  return mapSession(data)
 }
 
 export async function getImportAgentSession(sessionId: string): Promise<ImportAgentSession> {
@@ -162,13 +350,14 @@ export async function getImportAgentSession(sessionId: string): Promise<ImportAg
 export async function appendImportAgentTurn(
   sessionId: string,
   message: string,
+  callbacks?: ImportAgentStreamCallbacks,
 ): Promise<ImportAgentSession> {
   const body: AppendImportAgentTurnReqDto = { message }
-  const { data } = await http.post<ApiImportAgentSessionRespDto>(
-    `/v1/current-user/import-agent/sessions/${encodeURIComponent(sessionId)}/turns`,
+  return requestImportAgentSessionStream(
+    `/v1/current-user/import-agent/sessions/${encodeURIComponent(sessionId)}/turns/stream`,
     body,
+    callbacks,
   )
-  return mapSession(data)
 }
 
 export async function confirmImportAgentPlan(

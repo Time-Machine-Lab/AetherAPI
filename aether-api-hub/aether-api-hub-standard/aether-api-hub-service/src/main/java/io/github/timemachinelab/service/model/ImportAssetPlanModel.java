@@ -23,6 +23,7 @@ public class ImportAssetPlanModel {
     private final String requestJsonSchema;
     private final String responseJsonSchema;
     private final boolean publishAfterImport;
+    private final AsyncTaskConfigModel asyncTaskConfig;
     private final ImportAiProfileModel aiProfile;
 
     public ImportAssetPlanModel(
@@ -40,6 +41,7 @@ public class ImportAssetPlanModel {
             String requestJsonSchema,
             String responseJsonSchema,
             boolean publishAfterImport,
+            AsyncTaskConfigModel asyncTaskConfig,
             ImportAiProfileModel aiProfile) {
         this.apiCode = apiCode;
         this.assetName = assetName;
@@ -55,6 +57,7 @@ public class ImportAssetPlanModel {
         this.requestJsonSchema = requestJsonSchema;
         this.responseJsonSchema = responseJsonSchema;
         this.publishAfterImport = publishAfterImport;
+        this.asyncTaskConfig = asyncTaskConfig;
         this.aiProfile = aiProfile;
     }
 
@@ -112,6 +115,10 @@ public class ImportAssetPlanModel {
 
     public boolean isPublishAfterImport() {
         return publishAfterImport;
+    }
+
+    public AsyncTaskConfigModel getAsyncTaskConfig() {
+        return asyncTaskConfig;
     }
 
     public ImportAiProfileModel getAiProfile() {

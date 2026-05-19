@@ -9,6 +9,7 @@ export type ImportAgentSessionStatusDto =
 
 export type ImportAgentRunStatusDto = 'RUNNING' | 'SUCCEEDED' | 'PARTIALLY_FAILED' | 'FAILED'
 export type ImportAgentActorTypeDto = 'USER' | 'AGENT'
+export type ImportAgentStreamPhaseDto = 'planning' | 'replying' | 'completed'
 export type ImportCategoryPlanActionDto = 'USE_EXISTING' | 'CREATE_IF_MISSING'
 export type ImportAssetTypeDto = 'STANDARD_API' | 'AI_API'
 export type ImportStepTypeDto =
@@ -30,6 +31,21 @@ export interface AppendImportAgentTurnReqDto {
   message: string
 }
 
+export interface ImportAgentStreamStatusEventDto {
+  phase: ImportAgentStreamPhaseDto
+  message?: string
+}
+
+export interface ImportAgentStreamMessageEventDto {
+  actorType: ImportAgentActorTypeDto
+  delta: string
+}
+
+export interface ImportAgentStreamErrorEventDto {
+  code?: string
+  message: string
+}
+
 export interface ConfirmImportAgentPlanReqDto {
   planVersion: number
 }
@@ -43,6 +59,18 @@ export interface ImportAiProfileDto {
   model: string
   streamingSupported: boolean
   capabilityTags: string[]
+}
+
+export interface ImportAsyncTaskConfigDto {
+  enabled?: boolean
+  queryMethod?: 'GET' | 'POST'
+  queryUrlTemplate?: string | null
+  authMode?: 'SAME_AS_SUBMIT' | 'OVERRIDE'
+  authScheme?: 'NONE' | 'HEADER_TOKEN' | 'QUERY_TOKEN' | null
+  authConfig?: string | null
+  statusPath?: string | null
+  resultPath?: string | null
+  errorPath?: string | null
 }
 
 export interface ImportCategoryPlanDto {
@@ -66,6 +94,7 @@ export interface ImportAssetPlanDto {
   requestJsonSchema?: string | null
   responseJsonSchema?: string | null
   publishAfterImport: boolean
+  asyncTaskConfig?: ImportAsyncTaskConfigDto | null
   aiProfile?: ImportAiProfileDto | null
 }
 

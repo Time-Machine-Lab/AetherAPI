@@ -1,17 +1,17 @@
 ## Why
 
-当前仓库已经验证了“离线脚本驱动的 API 批量导入”可以通过现有分类、资产、AI 档案与发布链路完成上架，但这套能力仍停留在开发工具和脚本编排层，后端内并没有一个可持续演进的会话、计划与执行工作流。与此同时，顶层产品文档已经把“外部 API 导入”和“Agent 时代入口”列为核心方向，因此现在需要把这套导入能力内生为后端受控能力，而不是继续依赖工作区脚本和人工串联。
+当前后端代码已经把 API Import Agent 落地为 owner-scoped 的会话、规划与执行工作流。本变更文档需要反映已经交付的实现状态，而不是继续停留在“离线脚本尚未内生化”的前置语境里。
+
+当前实现的核心价值是：把原先依赖工作区脚本和人工串联的导入过程收敛为平台内受控流程，同时保持 API Catalog 的主数据和生命周期规则不被绕过。与此同时，当前实现也暴露出新的运行时边界，例如 Planner 依赖 OpenAI-compatible provider、tool calling 为可选增强且默认关闭，这些都应在变更记录中如实体现。
 
 ## What Changes
 
-- 新增一个后端内生的 API Import Agent 工作流，支持用户以“导入会话”的方式提交 API 文档来源、补充约束和导入意图，由 Planner 生成结构化导入计划，再由确定性 Executor 执行。
-- 新增 owner-scoped 的导入 Agent 会话接口，统一承载会话创建、会话详情读取、追加用户消息、查看计划、确认执行和查询执行结果。
-- 新增导入 Agent 的持久化模型，用于保存会话状态、对话轮次、结构化计划快照和执行批次结果，替代当前仅存在于 `docs/api-import-runs/` 的离线产物。
-- 明确 Agent 只负责“理解与规划”，不直接写数据库、不直接绕过业务规则；真正的分类创建、资产注册、资产修订、AI 档案绑定和发布仍通过现有确定性应用服务完成。
-- 将新增或更新对应的顶层权威文档：
-  - `docs/api/api-import-agent.yaml`，映射 `ApiImportAgentController.java`，并要求通过 `tml-docs-spec-generate` 的 API 模板生成。
-  - `docs/sql/api_import_agent_session.sql`、`docs/sql/api_import_agent_turn.sql`、`docs/sql/api_import_agent_run.sql`，分别描述导入会话、对话轮次和执行批次表结构，并要求通过 `tml-docs-spec-generate` 的 SQL 模板生成。
-- 保持现有 `docs/api/api-asset-management.yaml` 和 `docs/sql/api-asset.sql` 的资产主模型地位不变；Agent 工作流是编排入口，不替代 API Catalog 的主数据与生命周期规则。
+- 已新增一个后端内生的 API Import Agent 工作流，允许当前用户创建导入会话、追加多轮消息、确认计划版本并启动执行批次。
+- 已新增 owner-scoped 的导入 Agent HTTP 接口与对应权威契约 `docs/api/api-import-agent.yaml`，包括普通会话接口和流式会话接口。
+- 已新增导入 Agent 的会话、轮次和执行批次持久化模型，并通过 `docs/sql/api_import_agent_session.sql`、`docs/sql/api_import_agent_turn.sql`、`docs/sql/api_import_agent_run.sql` 对齐权威表结构。
+- 已实现 Planner/Executor 分层：Planner 只产生结构化计划草稿与澄清问题，Executor 仅在显式确认后复用现有分类与资产应用服务完成确定性写操作。
+- 已实现 OpenAI-compatible Planner provider 与 streamed reply port，并通过 `aether.import-agent.llm.*` 和 `aether.import-agent.stream.*` 配置项控制启用状态、超时、模型和 tool-calling 开关。
+- 已保持 `docs/api/api-asset-management.yaml` 和相关资产主模型权威地位不变；Import Agent 仍是编排入口，而不是 API Catalog 的平行写路径。
 
 ## Capabilities
 
@@ -25,16 +25,17 @@
 ## Impact
 
 - Affected docs:
-  - `docs/api/api-import-agent.yaml`（新增，权威接口契约）
-  - `docs/sql/api_import_agent_session.sql`（新增，权威表结构）
-  - `docs/sql/api_import_agent_turn.sql`（新增，权威表结构）
-  - `docs/sql/api_import_agent_run.sql`（新增，权威表结构）
+  - `docs/api/api-import-agent.yaml`（已新增，权威接口契约）
+  - `docs/sql/api_import_agent_session.sql`（已新增，权威表结构）
+  - `docs/sql/api_import_agent_turn.sql`（已新增，权威表结构）
+  - `docs/sql/api_import_agent_run.sql`（已新增，权威表结构）
   - `docs/design/aehter-api-hub/` 下与 API Catalog / 导入编排相关的顶层设计文档
 - Affected backend modules:
-  - `aether-api-hub-adapter`：新增 `ApiImportAgentController` 与 Web delegate
-  - `aether-api-hub-service`：新增会话编排、Planner port、Executor service 与结果查询模型
-  - `aether-api-hub-domain`：新增导入会话/执行聚合或等价领域模型，明确状态机与审批边界
-  - `aether-api-hub-infrastructure`：新增 Planner 适配、会话/轮次/执行批次持久化实现
+  - `aether-api-hub-adapter`：已新增 `ApiImportAgentController` 与 Web delegate
+  - `aether-api-hub-service`：已新增会话编排、Planner port、Executor service 与结果查询模型
+  - `aether-api-hub-domain`：当前仅引入 `ImportAgentDomainException` 等导入域边界异常，核心会话与运行态模型仍主要位于 service / infrastructure 层
+  - `aether-api-hub-infrastructure`：已新增 Planner 适配、streamed reply 适配、会话/轮次/执行批次持久化实现
 - External/runtime impact:
-  - 需要一个可替换的 Planner 适配边界，以便后续接入 LLM 或规则规划器
-  - Discovery、Unified Access 和现有资产工作台接口不应因该 change 改变对外响应语义
+  - 当前运行时通过 `aether.import-agent.llm.*` 配置接入 OpenAI-compatible Planner provider；tool calling 为可选增强，`application-dev.yml` 与 `application-prod.yml` 中默认关闭
+  - 当前主源码中未提供第二个生产级 Planner provider；当没有 provider 命中时，ProviderBacked planner 会直接失败
+  - Discovery、Unified Access 和现有资产工作台接口未因该 change 改变对外响应语义

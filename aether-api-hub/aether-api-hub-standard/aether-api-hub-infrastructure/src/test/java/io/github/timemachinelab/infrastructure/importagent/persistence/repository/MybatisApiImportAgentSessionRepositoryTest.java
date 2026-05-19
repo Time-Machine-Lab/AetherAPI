@@ -141,10 +141,11 @@ class MybatisApiImportAgentSessionRepositoryTest {
                                 null,
                                 null,
                                 null,
-                                null,
-                                null,
-                                true,
-                                new ImportAiProfileModel("OpenAI", "gpt-4.1", true, List.of("chat"))
+                                 null,
+                                 null,
+                                 true,
+                                 null,
+                                 new ImportAiProfileModel("OpenAI", "gpt-4.1", true, List.of("chat"))
                         ))
                 ),
                 List.of(new ImportAgentTurnModel("turn-1", "session-1", 1, ImportAgentActorType.AGENT, "ready", 2, "2026-05-18T10:04:00Z")),

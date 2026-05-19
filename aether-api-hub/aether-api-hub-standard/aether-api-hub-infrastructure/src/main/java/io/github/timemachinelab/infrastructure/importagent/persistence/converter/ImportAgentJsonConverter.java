@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.github.timemachinelab.domain.catalog.model.AssetType;
 import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
+import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
 import io.github.timemachinelab.service.model.ImportAgentPlanModel;
 import io.github.timemachinelab.service.model.ImportAgentStepType;
 import io.github.timemachinelab.service.model.ImportAiProfileModel;
@@ -72,6 +73,9 @@ public final class ImportAgentJsonConverter {
             assetNode.put("requestJsonSchema", assetPlan.getRequestJsonSchema());
             assetNode.put("responseJsonSchema", assetPlan.getResponseJsonSchema());
             assetNode.put("publishAfterImport", assetPlan.isPublishAfterImport());
+            if (assetPlan.getAsyncTaskConfig() != null) {
+                serializeAsyncTaskConfig(assetNode.putObject("asyncTaskConfig"), assetPlan.getAsyncTaskConfig());
+            }
             if (assetPlan.getAiProfile() != null) {
                 ObjectNode aiNode = assetNode.putObject("aiProfile");
                 aiNode.put("provider", assetPlan.getAiProfile().getProvider());
@@ -121,6 +125,7 @@ public final class ImportAgentJsonConverter {
                         textValue(assetNode, "requestJsonSchema"),
                         textValue(assetNode, "responseJsonSchema"),
                         assetNode.path("publishAfterImport").asBoolean(false),
+                        deserializeAsyncTaskConfig(assetNode.path("asyncTaskConfig")),
                         deserializeAiProfile(assetNode.path("aiProfile"))
                 ));
             }
@@ -135,6 +140,35 @@ public final class ImportAgentJsonConverter {
         } catch (IOException ex) {
             throw new IllegalArgumentException("Invalid import plan json", ex);
         }
+    }
+
+    private static void serializeAsyncTaskConfig(ObjectNode target, AsyncTaskConfigModel config) {
+        target.put("enabled", config.getEnabled());
+        target.put("queryMethod", config.getQueryMethod());
+        target.put("queryUrlTemplate", config.getQueryUrlTemplate());
+        target.put("authMode", config.getAuthMode());
+        target.put("authScheme", config.getAuthScheme());
+        target.put("authConfig", config.getAuthConfig());
+        target.put("statusPath", config.getStatusPath());
+        target.put("resultPath", config.getResultPath());
+        target.put("errorPath", config.getErrorPath());
+    }
+
+    private static AsyncTaskConfigModel deserializeAsyncTaskConfig(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull() || !node.isObject()) {
+            return null;
+        }
+        return new AsyncTaskConfigModel(
+                node.has("enabled") ? node.path("enabled").asBoolean(false) : null,
+                textValue(node, "queryMethod"),
+                textValue(node, "queryUrlTemplate"),
+                textValue(node, "authMode"),
+                textValue(node, "authScheme"),
+                textValue(node, "authConfig"),
+                textValue(node, "statusPath"),
+                textValue(node, "resultPath"),
+                textValue(node, "errorPath")
+        );
     }
 
     public static String serializeStringList(List<String> values) {

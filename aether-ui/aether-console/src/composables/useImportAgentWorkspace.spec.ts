@@ -2,7 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { createConsoleSession, createHttpError, createStorageMock, installWindowWithStorage } from '@/test/console-test-kit'
-import type { CreateImportAgentSessionInput, ImportAgentRun, ImportAgentSession } from '@/api/import-agent/import-agent.types'
+import type {
+  CreateImportAgentSessionInput,
+  ImportAgentRun,
+  ImportAgentSession,
+  ImportAgentStreamCallbacks,
+} from '@/api/import-agent/import-agent.types'
 
 vi.mock('@/api/import-agent/import-agent.api', () => ({
   createImportAgentSession: vi.fn(),
@@ -15,9 +20,16 @@ vi.mock('@/api/import-agent/import-agent.api', () => ({
 
 import { useImportAgentWorkspace } from './useImportAgentWorkspace'
 
-type CreateSessionDep = (body: CreateImportAgentSessionInput) => Promise<ImportAgentSession>
+type CreateSessionDep = (
+  body: CreateImportAgentSessionInput,
+  callbacks?: ImportAgentStreamCallbacks,
+) => Promise<ImportAgentSession>
 type GetSessionDep = (sessionId: string) => Promise<ImportAgentSession>
-type AppendTurnDep = (sessionId: string, message: string) => Promise<ImportAgentSession>
+type AppendTurnDep = (
+  sessionId: string,
+  message: string,
+  callbacks?: ImportAgentStreamCallbacks,
+) => Promise<ImportAgentSession>
 type ConfirmPlanDep = (sessionId: string, planVersion: number) => Promise<ImportAgentSession>
 type StartRunDep = (sessionId: string, planVersion: number) => Promise<ImportAgentRun>
 type GetRunDep = (runId: string) => Promise<ImportAgentRun>
@@ -125,12 +137,21 @@ describe('useImportAgentWorkspace', () => {
 
     await workspace.createSession()
 
-    expect(deps.createSession).toHaveBeenCalledWith({
+    expect(deps.createSession.mock.calls[0]?.[0]).toEqual({
       documentSource: undefined,
       documentSummary: undefined,
       importIntent: 'Import weather API',
       publisherDisplayName: undefined,
     })
+    expect(deps.createSession.mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({
+        onStatus: expect.any(Function),
+        onMessage: expect.any(Function),
+        onSession: expect.any(Function),
+        onError: expect.any(Function),
+        onDone: expect.any(Function),
+      }),
+    )
     expect(workspace.activeSession.value?.sessionId).toBe('session-001')
     expect(storage.dump()).toHaveProperty('aether:console:auth:import-agent:active-session:console-user-001', 'session-001')
   })
@@ -217,7 +238,17 @@ describe('useImportAgentWorkspace', () => {
 
     await workspace.appendTurn()
 
-    expect(deps.appendTurn).toHaveBeenCalledWith('session-001', 'Use category weather-tools instead.')
+    expect(deps.appendTurn.mock.calls[0]?.[0]).toBe('session-001')
+    expect(deps.appendTurn.mock.calls[0]?.[1]).toBe('Use category weather-tools instead.')
+    expect(deps.appendTurn.mock.calls[0]?.[2]).toEqual(
+      expect.objectContaining({
+        onStatus: expect.any(Function),
+        onMessage: expect.any(Function),
+        onSession: expect.any(Function),
+        onError: expect.any(Function),
+        onDone: expect.any(Function),
+      }),
+    )
     expect(workspace.turnMessage.value).toBe('')
     expect(workspace.activeSession.value?.turns[0].message).toContain('weather-tools')
   })
@@ -247,6 +278,35 @@ describe('useImportAgentWorkspace', () => {
     expect(deps.appendTurn.mock.calls[0]?.[1]).toContain('profile.json')
     expect(deps.appendTurn.mock.calls[0]?.[1]).toContain('https://api.example.com')
     expect(workspace.draftAttachments.value).toHaveLength(0)
+  })
+
+  it('tracks transient streaming reply state before the session snapshot lands', async () => {
+    const { workspace, deps } = createWorkspace()
+
+    workspace.importIntent.value = 'Import weather API'
+    let resolveSession!: (session: ImportAgentSession) => void
+    deps.createSession.mockImplementationOnce(
+      (_body, callbacks) =>
+        new Promise<ImportAgentSession>((resolve) => {
+          resolveSession = resolve
+          callbacks?.onStatus?.({ phase: 'planning', message: 'Planning' })
+          callbacks?.onMessage?.({ actorType: 'AGENT', delta: 'Let me inspect the source.' })
+        }),
+    )
+
+    const pendingRequest = workspace.createSession()
+
+    expect(workspace.pendingTurn.value?.message).toBe('Import weather API')
+    expect(workspace.streamingPhase.value).toBe('replying')
+    expect(workspace.streamingReply.value).toBe('Let me inspect the source.')
+    expect(workspace.streamingStatusMessage.value).toBe('Planning')
+
+    resolveSession(createSession())
+    await pendingRequest
+
+    expect(workspace.pendingTurn.value).toBeNull()
+    expect(workspace.streamingReply.value).toBe('')
+    expect(workspace.streamingPhase.value).toBeNull()
   })
 
   it('confirms the plan and starts a run with polling when the run is still active', async () => {

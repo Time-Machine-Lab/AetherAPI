@@ -14,18 +14,14 @@ import java.util.List;
 public class ProviderBackedApiImportAgentPlanner implements ApiImportAgentPlannerPort {
 
     private final List<ImportAgentPlannerProvider> plannerProviders;
-    private final ImportAgentPlannerProperties properties;
 
     public ProviderBackedApiImportAgentPlanner(
-            List<ImportAgentPlannerProvider> plannerProviders,
-            ImportAgentPlannerProperties properties) {
+            List<ImportAgentPlannerProvider> plannerProviders) {
         this.plannerProviders = plannerProviders == null ? List.of() : List.copyOf(plannerProviders);
-        this.properties = properties == null ? new ImportAgentPlannerProperties() : properties;
     }
 
     @Override
     public ImportAgentPlannerResult plan(ImportAgentPlannerRequest request) {
-        RuntimeException lastFailure = null;
         boolean matched = false;
         for (ImportAgentPlannerProvider provider : plannerProviders) {
             if (!provider.supports(request)) {
@@ -35,18 +31,12 @@ public class ProviderBackedApiImportAgentPlanner implements ApiImportAgentPlanne
             try {
                 return provider.plan(request);
             } catch (RuntimeException ex) {
-                if (!properties.isAllowProviderFallback()) {
-                    throw new IllegalStateException(
-                            "Import agent planner provider failed and provider fallback is disabled",
-                            ex
-                    );
-                }
-                lastFailure = ex;
+                throw new IllegalStateException("Import agent planner provider failed", ex);
             }
         }
         if (!matched) {
             throw new IllegalStateException("No import agent planner provider matched request");
         }
-        throw new IllegalStateException("No import agent planner provider produced a plan", lastFailure);
+        throw new IllegalStateException("No import agent planner provider produced a plan");
     }
 }

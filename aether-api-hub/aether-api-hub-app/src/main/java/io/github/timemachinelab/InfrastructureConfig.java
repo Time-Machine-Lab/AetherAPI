@@ -9,10 +9,10 @@ import io.github.timemachinelab.domain.consumerauth.repository.UserConsumerMappi
 import io.github.timemachinelab.domain.observability.repository.ApiCallLogRepository;
 import io.github.timemachinelab.domain.platformproxy.repository.PlatformProxyProfileRepository;
 import io.github.timemachinelab.domain.subscription.repository.ApiSubscriptionRepository;
+import io.github.timemachinelab.adapter.web.config.ImportAgentStreamProperties;
 import io.github.timemachinelab.infrastructure.external.unifiedaccess.JdkUnifiedAccessHttpClientResolver;
 import io.github.timemachinelab.infrastructure.external.unifiedaccess.JdkUnifiedAccessDownstreamProxyPort;
 import io.github.timemachinelab.infrastructure.importagent.planner.ImportAgentLlmPlannerProperties;
-import io.github.timemachinelab.infrastructure.importagent.planner.ImportAgentPlannerProperties;
 import io.github.timemachinelab.service.adapter.ApiCallLogRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.ApiAssetRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.ApiCredentialRepositoryAdapter;
@@ -49,6 +49,7 @@ import io.github.timemachinelab.service.port.in.UnifiedAccessUseCase;
 import io.github.timemachinelab.service.port.out.ApiCallLogRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiCredentialRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiImportAgentPlannerPort;
+import io.github.timemachinelab.service.port.out.ApiImportAgentReplyPort;
 import io.github.timemachinelab.service.port.out.ApiImportAgentRunRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiImportAgentSessionRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
@@ -118,12 +119,14 @@ public class InfrastructureConfig {
             ApiImportAgentSessionRepositoryPort apiImportAgentSessionRepositoryPort,
             ApiImportAgentRunRepositoryPort apiImportAgentRunRepositoryPort,
             ApiImportAgentPlannerPort apiImportAgentPlannerPort,
+            ApiImportAgentReplyPort apiImportAgentReplyPort,
             CategoryUseCase categoryUseCase,
             ApiAssetUseCase apiAssetUseCase) {
         return new ApiImportAgentApplicationService(
                 apiImportAgentSessionRepositoryPort,
                 apiImportAgentRunRepositoryPort,
                 apiImportAgentPlannerPort,
+                apiImportAgentReplyPort,
                 categoryUseCase,
                 apiAssetUseCase
         );
@@ -200,9 +203,9 @@ public class InfrastructureConfig {
     }
 
     @Bean
-    @ConfigurationProperties(prefix = "aether.import-agent.planner")
-    public ImportAgentPlannerProperties importAgentPlannerProperties() {
-        return new ImportAgentPlannerProperties();
+    @ConfigurationProperties(prefix = "aether.import-agent.stream")
+    public ImportAgentStreamProperties importAgentStreamProperties() {
+        return new ImportAgentStreamProperties();
     }
 
     @Bean

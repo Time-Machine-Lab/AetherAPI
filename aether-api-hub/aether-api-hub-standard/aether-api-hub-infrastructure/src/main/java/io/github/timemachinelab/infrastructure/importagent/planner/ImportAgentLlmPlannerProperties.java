@@ -14,6 +14,7 @@ public class ImportAgentLlmPlannerProperties {
     private Integer maxCompletionTokens;
     private Integer requestTimeoutSeconds;
     private String systemPrompt;
+    private boolean toolCallingEnabled;
 
     public boolean isEnabled() {
         return enabled;
@@ -85,5 +86,13 @@ public class ImportAgentLlmPlannerProperties {
 
     public void setSystemPrompt(String systemPrompt) {
         this.systemPrompt = systemPrompt;
+    }
+
+    public boolean isToolCallingEnabled() {
+        return toolCallingEnabled;
+    }
+
+    public void setToolCallingEnabled(boolean toolCallingEnabled) {
+        this.toolCallingEnabled = toolCallingEnabled;
     }
 }

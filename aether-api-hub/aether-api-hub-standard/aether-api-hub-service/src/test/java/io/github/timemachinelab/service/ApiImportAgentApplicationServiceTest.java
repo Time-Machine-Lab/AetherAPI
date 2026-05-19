@@ -8,6 +8,7 @@ import io.github.timemachinelab.domain.importagent.model.ImportAgentDomainExcept
 import io.github.timemachinelab.service.application.ApiImportAgentApplicationService;
 import io.github.timemachinelab.service.model.ApiImportAgentRunModel;
 import io.github.timemachinelab.service.model.ApiImportAgentSessionModel;
+import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
 import io.github.timemachinelab.service.model.ImportAgentRunStatus;
 import io.github.timemachinelab.service.model.ImportAgentStepType;
 import io.github.timemachinelab.service.model.ImportAiProfileModel;
@@ -18,10 +19,13 @@ import io.github.timemachinelab.service.model.ImportAgentPlanModel;
 import io.github.timemachinelab.service.model.ImportAgentSessionStatus;
 import io.github.timemachinelab.service.model.ImportAssetPlanModel;
 import io.github.timemachinelab.service.model.ImportStepResultStatus;
+import io.github.timemachinelab.service.model.RegisterApiAssetCommand;
+import io.github.timemachinelab.service.model.ReviseApiAssetCommand;
 import io.github.timemachinelab.service.model.StartImportAgentRunCommand;
 import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
 import io.github.timemachinelab.service.port.in.CategoryUseCase;
 import io.github.timemachinelab.service.port.out.ApiImportAgentPlannerPort;
+import io.github.timemachinelab.service.port.out.ApiImportAgentReplyPort;
 import io.github.timemachinelab.service.port.out.ApiImportAgentRunRepositoryPort;
 import io.github.timemachinelab.service.port.out.ApiImportAgentSessionRepositoryPort;
 import org.junit.jupiter.api.DisplayName;
@@ -31,8 +35,10 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
@@ -40,6 +46,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doAnswer;
 import org.mockito.ArgumentCaptor;
 
 class ApiImportAgentApplicationServiceTest {
@@ -50,12 +57,14 @@ class ApiImportAgentApplicationServiceTest {
         ApiImportAgentSessionRepositoryPort sessionRepositoryPort = mock(ApiImportAgentSessionRepositoryPort.class);
         ApiImportAgentRunRepositoryPort runRepositoryPort = mock(ApiImportAgentRunRepositoryPort.class);
         ApiImportAgentPlannerPort plannerPort = mock(ApiImportAgentPlannerPort.class);
+        ApiImportAgentReplyPort replyPort = mock(ApiImportAgentReplyPort.class);
         CategoryUseCase categoryUseCase = mock(CategoryUseCase.class);
         ApiAssetUseCase apiAssetUseCase = mock(ApiAssetUseCase.class);
         ApiImportAgentApplicationService service = new ApiImportAgentApplicationService(
                 sessionRepositoryPort,
                 runRepositoryPort,
                 plannerPort,
+                replyPort,
                 categoryUseCase,
                 apiAssetUseCase
         );
@@ -89,11 +98,12 @@ class ApiImportAgentApplicationServiceTest {
                                 null,
                                 null,
                                 null,
-                                null,
-                                null,
-                                false,
-                                null
-                        ))
+                                 null,
+                                 null,
+                                 false,
+                                 null,
+                                 null
+                         ))
                 ),
                 List.of(),
                 "2026-05-18T10:00:00Z",
@@ -106,7 +116,7 @@ class ApiImportAgentApplicationServiceTest {
                 () -> service.startRun(new StartImportAgentRunCommand("user-1", "Alice", "session-1", 1))
         );
 
-        assertEquals("Import plan confirmation required", exception.getMessage());
+        assertEquals("请先确认导入计划", exception.getMessage());
         verify(runRepositoryPort, never()).saveRun(any());
         verify(apiAssetUseCase, never()).registerAsset(any());
         verify(categoryUseCase, never()).createCategory(any());
@@ -118,12 +128,14 @@ class ApiImportAgentApplicationServiceTest {
         ApiImportAgentSessionRepositoryPort sessionRepositoryPort = mock(ApiImportAgentSessionRepositoryPort.class);
         ApiImportAgentRunRepositoryPort runRepositoryPort = mock(ApiImportAgentRunRepositoryPort.class);
         ApiImportAgentPlannerPort plannerPort = mock(ApiImportAgentPlannerPort.class);
+        ApiImportAgentReplyPort replyPort = mock(ApiImportAgentReplyPort.class);
         CategoryUseCase categoryUseCase = mock(CategoryUseCase.class);
         ApiAssetUseCase apiAssetUseCase = mock(ApiAssetUseCase.class);
         ApiImportAgentApplicationService service = new ApiImportAgentApplicationService(
                 sessionRepositoryPort,
                 runRepositoryPort,
                 plannerPort,
+                replyPort,
                 categoryUseCase,
                 apiAssetUseCase
         );
@@ -151,7 +163,7 @@ class ApiImportAgentApplicationServiceTest {
                 () -> service.confirmPlan(new ConfirmImportAgentPlanCommand("user-1", "session-1", 2))
         );
 
-        assertEquals("Import plan is not executable", exception.getMessage());
+        assertEquals("导入计划暂不可执行", exception.getMessage());
         verify(sessionRepositoryPort, never()).saveSession(any());
     }
 
@@ -161,12 +173,14 @@ class ApiImportAgentApplicationServiceTest {
         ApiImportAgentSessionRepositoryPort sessionRepositoryPort = mock(ApiImportAgentSessionRepositoryPort.class);
         ApiImportAgentRunRepositoryPort runRepositoryPort = mock(ApiImportAgentRunRepositoryPort.class);
         ApiImportAgentPlannerPort plannerPort = mock(ApiImportAgentPlannerPort.class);
+        ApiImportAgentReplyPort replyPort = mock(ApiImportAgentReplyPort.class);
         CategoryUseCase categoryUseCase = mock(CategoryUseCase.class);
         ApiAssetUseCase apiAssetUseCase = mock(ApiAssetUseCase.class);
         ApiImportAgentApplicationService service = new ApiImportAgentApplicationService(
                 sessionRepositoryPort,
                 runRepositoryPort,
                 plannerPort,
+                replyPort,
                 categoryUseCase,
                 apiAssetUseCase
         );
@@ -179,7 +193,10 @@ class ApiImportAgentApplicationServiceTest {
         ApiImportAgentRunModel result = service.startRun(new StartImportAgentRunCommand("user-1", "Alice", "session-1", 1));
 
         verify(categoryUseCase).createCategory(any());
-        verify(apiAssetUseCase).registerAsset(any());
+        ArgumentCaptor<RegisterApiAssetCommand> registerCaptor = ArgumentCaptor.forClass(RegisterApiAssetCommand.class);
+        ArgumentCaptor<ReviseApiAssetCommand> reviseCaptor = ArgumentCaptor.forClass(ReviseApiAssetCommand.class);
+        verify(apiAssetUseCase).registerAsset(registerCaptor.capture());
+        verify(apiAssetUseCase).reviseAsset(reviseCaptor.capture());
         verify(apiAssetUseCase).attachAiCapabilityProfile(any());
         verify(apiAssetUseCase).publishAsset("user-1", "Alice", "weather-forecast");
         verify(runRepositoryPort, atLeastOnce()).saveRun(any());
@@ -188,6 +205,27 @@ class ApiImportAgentApplicationServiceTest {
         assertEquals(4, result.getStepResults().size());
         assertEquals(ImportAgentStepType.ENSURE_CATEGORY, result.getStepResults().get(0).getStepType());
         assertEquals(ImportAgentStepType.PUBLISH_ASSET, result.getStepResults().get(3).getStepType());
+        assertEquals("分类已创建", result.getStepResults().get(0).getMessage());
+        assertEquals("资产已发布", result.getStepResults().get(3).getMessage());
+        RegisterApiAssetCommand registerCommand = registerCaptor.getValue();
+        assertEquals("weather-forecast", registerCommand.getApiCode());
+        assertEquals("Weather Forecast", registerCommand.getAssetName());
+        assertEquals("{\"type\":\"object\"}", registerCommand.getRequestJsonSchema());
+        assertEquals("{\"type\":\"object\"}", registerCommand.getResponseJsonSchema());
+        assertNotNull(registerCommand.getAsyncTaskConfig());
+        assertEquals("https://upstream.example.com/weather/tasks/{taskId}", registerCommand.getAsyncTaskConfig().getQueryUrlTemplate());
+        ReviseApiAssetCommand reviseCommand = reviseCaptor.getValue();
+        assertEquals("tools", reviseCommand.getCategoryCode());
+        assertEquals(RequestMethod.GET, reviseCommand.getRequestMethod());
+        assertEquals("https://upstream.example.com/weather", reviseCommand.getUpstreamUrl());
+        assertEquals(AuthScheme.HEADER_TOKEN, reviseCommand.getAuthScheme());
+        assertTrue(reviseCommand.isAuthConfigSet());
+        assertEquals("Authorization: Bearer upstream-token", reviseCommand.getAuthConfig());
+        assertEquals("template", reviseCommand.getRequestTemplate());
+        assertEquals("{\"city\":\"Shanghai\"}", reviseCommand.getRequestExample());
+        assertEquals("{\"temperature\":26}", reviseCommand.getResponseExample());
+        assertTrue(reviseCommand.isAsyncTaskConfigSet());
+        assertEquals("https://upstream.example.com/weather/tasks/{taskId}", reviseCommand.getAsyncTaskConfig().getQueryUrlTemplate());
     }
 
     @Test
@@ -196,12 +234,14 @@ class ApiImportAgentApplicationServiceTest {
         ApiImportAgentSessionRepositoryPort sessionRepositoryPort = mock(ApiImportAgentSessionRepositoryPort.class);
         ApiImportAgentRunRepositoryPort runRepositoryPort = mock(ApiImportAgentRunRepositoryPort.class);
         ApiImportAgentPlannerPort plannerPort = mock(ApiImportAgentPlannerPort.class);
+        ApiImportAgentReplyPort replyPort = mock(ApiImportAgentReplyPort.class);
         CategoryUseCase categoryUseCase = mock(CategoryUseCase.class);
         ApiAssetUseCase apiAssetUseCase = mock(ApiAssetUseCase.class);
         ApiImportAgentApplicationService service = new ApiImportAgentApplicationService(
                 sessionRepositoryPort,
                 runRepositoryPort,
                 plannerPort,
+                replyPort,
                 categoryUseCase,
                 apiAssetUseCase
         );
@@ -225,6 +265,82 @@ class ApiImportAgentApplicationServiceTest {
         assertEquals(2, finalRun.getStepResults().size());
         assertEquals(ImportAgentStepType.REVISE_ASSET, finalRun.getStepResults().get(1).getStepType());
         assertEquals(ImportStepResultStatus.FAILED, finalRun.getStepResults().get(1).getStatus());
+    }
+
+    @Test
+    @DisplayName("create session streaming should persist the streamed agent reply")
+    void shouldPersistStreamedAgentReply() {
+        ApiImportAgentSessionRepositoryPort sessionRepositoryPort = mock(ApiImportAgentSessionRepositoryPort.class);
+        ApiImportAgentRunRepositoryPort runRepositoryPort = mock(ApiImportAgentRunRepositoryPort.class);
+        ApiImportAgentPlannerPort plannerPort = mock(ApiImportAgentPlannerPort.class);
+        ApiImportAgentReplyPort replyPort = mock(ApiImportAgentReplyPort.class);
+        CategoryUseCase categoryUseCase = mock(CategoryUseCase.class);
+        ApiAssetUseCase apiAssetUseCase = mock(ApiAssetUseCase.class);
+        ApiImportAgentApplicationService service = new ApiImportAgentApplicationService(
+                sessionRepositoryPort,
+                runRepositoryPort,
+                plannerPort,
+                replyPort,
+                categoryUseCase,
+                apiAssetUseCase
+        );
+        ImportAgentPlanModel plan = new ImportAgentPlanModel(1, true, "ready", List.of(), List.of(), List.of());
+        when(plannerPort.plan(any())).thenReturn(new io.github.timemachinelab.service.model.ImportAgentPlannerResult(plan, "fallback message"));
+        doAnswer(invocation -> {
+            invocation.getArgument(2, java.util.function.Consumer.class).accept("Hello ");
+            invocation.getArgument(2, java.util.function.Consumer.class).accept("world");
+            return "Hello world";
+        }).when(replyPort).streamReply(any(), any(), any());
+        when(sessionRepositoryPort.findOwnedSession(any(), any())).thenAnswer(invocation -> Optional.of(new ApiImportAgentSessionModel(
+                invocation.getArgument(1),
+                invocation.getArgument(0),
+                ImportAgentSessionStatus.WAITING_FOR_CONFIRMATION,
+                null,
+                null,
+                "import weather api",
+                "Alice",
+                1,
+                null,
+                null,
+                null,
+                plan,
+                List.of(
+                        new io.github.timemachinelab.service.model.ImportAgentTurnModel("turn-1", invocation.getArgument(1), 1, io.github.timemachinelab.service.model.ImportAgentActorType.USER, "import weather api", null, "2026-05-18T10:00:00Z"),
+                        new io.github.timemachinelab.service.model.ImportAgentTurnModel("turn-2", invocation.getArgument(1), 2, io.github.timemachinelab.service.model.ImportAgentActorType.AGENT, "Hello world", 1, "2026-05-18T10:00:00Z")
+                ),
+                "2026-05-18T10:00:00Z",
+                "2026-05-18T10:00:00Z"
+        )));
+        when(sessionRepositoryPort.listTurns(any())).thenReturn(List.of(
+                new io.github.timemachinelab.service.model.ImportAgentTurnModel("turn-1", "session-1", 1, io.github.timemachinelab.service.model.ImportAgentActorType.USER, "import weather api", null, "2026-05-18T10:00:00Z"),
+                new io.github.timemachinelab.service.model.ImportAgentTurnModel("turn-2", "session-1", 2, io.github.timemachinelab.service.model.ImportAgentActorType.AGENT, "Hello world", 1, "2026-05-18T10:00:00Z")
+        ));
+
+        List<String> deltas = new java.util.ArrayList<>();
+        ApiImportAgentSessionModel result = service.createSession(
+                new io.github.timemachinelab.service.model.CreateImportAgentSessionCommand(
+                        "user-1",
+                        "Alice",
+                        null,
+                        null,
+                        "import weather api"
+                ),
+                deltas::add
+        );
+
+        ArgumentCaptor<io.github.timemachinelab.service.model.ImportAgentTurnModel> turnCaptor = ArgumentCaptor.forClass(io.github.timemachinelab.service.model.ImportAgentTurnModel.class);
+        verify(sessionRepositoryPort, atLeastOnce()).saveTurn(turnCaptor.capture());
+        assertEquals(List.of("Hello ", "world"), deltas);
+        assertEquals("Hello world", turnCaptor.getAllValues().get(turnCaptor.getAllValues().size() - 1).getMessage());
+        assertFalse(result.getTurns().isEmpty());
+        assertEquals(
+                "Hello world",
+                result.getTurns().stream()
+                        .filter(turn -> turn.getActorType() == io.github.timemachinelab.service.model.ImportAgentActorType.AGENT)
+                        .reduce((first, second) -> second)
+                        .orElseThrow()
+                        .getMessage()
+        );
     }
 
     private ApiImportAgentSessionModel confirmedSession(ImportAgentPlanModel plan) {
@@ -269,6 +385,17 @@ class ApiImportAgentApplicationServiceTest {
                         "{\"type\":\"object\"}",
                         "{\"type\":\"object\"}",
                         true,
+                        new AsyncTaskConfigModel(
+                                true,
+                                "GET",
+                                "https://upstream.example.com/weather/tasks/{taskId}",
+                                "SAME_AS_SUBMIT",
+                                null,
+                                null,
+                                "$.data.status",
+                                "$.data.result",
+                                "$.data.error"
+                        ),
                         new ImportAiProfileModel("OpenAI", "gpt-4.1", true, List.of("chat"))
                 ))
         );

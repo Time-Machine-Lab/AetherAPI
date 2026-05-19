@@ -9,8 +9,11 @@ import io.github.timemachinelab.api.req.StartImportAgentRunReq;
 import io.github.timemachinelab.api.resp.ApiImportAgentRunResp;
 import io.github.timemachinelab.api.resp.ApiImportAgentSessionResp;
 import io.github.timemachinelab.common.annotation.AutoResp;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -47,6 +50,23 @@ public class ApiImportAgentController {
         return delegate.createSession(currentUserId(consoleSessionPrincipal, principal), publisherDisplayName(consoleSessionPrincipal, principal), req);
     }
 
+    @PostMapping(value = "/sessions/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public void createSessionStream(
+            @Valid @RequestBody CreateImportAgentSessionReq req,
+            @RequestAttribute(name = ConsoleSessionPrincipal.REQUEST_ATTRIBUTE, required = false)
+            ConsoleSessionPrincipal consoleSessionPrincipal,
+            Principal principal,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+        delegate.createSessionStreamToResponse(
+                currentUserId(consoleSessionPrincipal, principal),
+                publisherDisplayName(consoleSessionPrincipal, principal),
+                req,
+                request,
+                response
+        );
+    }
+
     @GetMapping("/sessions/{sessionId}")
     public ApiImportAgentSessionResp getSession(
             @PathVariable("sessionId") String sessionId,
@@ -64,6 +84,24 @@ public class ApiImportAgentController {
             ConsoleSessionPrincipal consoleSessionPrincipal,
             Principal principal) {
         return delegate.appendTurn(currentUserId(consoleSessionPrincipal, principal), sessionId, req);
+    }
+
+    @PostMapping(value = "/sessions/{sessionId}/turns/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public void appendTurnStream(
+            @PathVariable("sessionId") String sessionId,
+            @Valid @RequestBody AppendImportAgentTurnReq req,
+            @RequestAttribute(name = ConsoleSessionPrincipal.REQUEST_ATTRIBUTE, required = false)
+            ConsoleSessionPrincipal consoleSessionPrincipal,
+            Principal principal,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+        delegate.appendTurnStreamToResponse(
+                currentUserId(consoleSessionPrincipal, principal),
+                sessionId,
+                req,
+                request,
+                response
+        );
     }
 
     @PatchMapping("/sessions/{sessionId}/confirm")

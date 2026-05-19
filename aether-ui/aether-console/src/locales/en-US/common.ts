@@ -389,8 +389,6 @@ export default {
       conversationTitle: 'Import conversation',
       conversationDescription:
         'Describe the import as a chat. The first message creates the session automatically, and later messages refine the plan.',
-      conversationStarterHint:
-        'Start by telling the agent what APIs should be imported, which naming or category rules matter, and attach local docs when helpful.',
       sessionTitle: 'Import session',
       sessionDescription: 'Review the current session snapshot, context, and latest plan version.',
       sessionEmptyTitle: 'Session details appear here',
@@ -402,6 +400,7 @@ export default {
       restoreLoadingTitle: 'Restoring the latest session',
       restoreLoadingDescription:
         'If the current user has a recent active session, the console restores it automatically.',
+      draftSessionLabel: 'New session draft',
       startFresh: 'New session',
       refreshSession: 'Refresh session',
       createSession: 'Create import session',
@@ -445,8 +444,6 @@ export default {
       },
       turnPlanVersionLabel: 'Plan v{version}',
       planTitle: 'Current plan',
-      planDescription:
-        'Review the generated plan summary, category and asset actions, then confirm before execution.',
       planEmptyTitle: 'No plan yet',
       planEmptyDescription: 'A plan appears after the session is created or a clarification turn is submitted.',
       planExecutable: 'Executable',
@@ -454,7 +451,9 @@ export default {
       planConfirmed: 'Confirmed',
       planUnconfirmed: 'Unconfirmed',
       planVersionLabel: 'Plan v{version}',
+      planSummaryTitle: 'Plan summary',
       clarificationTitle: 'Open clarification questions',
+      questionLabel: 'Question {index}',
       categoryPlansTitle: 'Category actions',
       assetPlansTitle: 'Asset actions',
       categoryAction: {
@@ -465,13 +464,19 @@ export default {
       keepAsDraft: 'Keep as draft',
       assetMetaCategory: 'Category code',
       assetMetaMethod: 'Request method',
+      assetMetaAuthScheme: 'Auth scheme',
+      assetMetaAiModel: 'AI model',
       assetMetaUpstreamUrl: 'Upstream URL',
+      assetSecurityConfigTitle: 'Security configuration',
+      assetSecurityConfigMissing:
+        'This auth scheme requires a Header/Query parameter name and value template.',
+      assetSecurityConfigNone: 'No upstream auth configuration required',
+      assetAsyncAuthConfigInherited: 'Reuses submit endpoint auth configuration',
       confirmPlan: 'Confirm plan',
       confirming: 'Confirming…',
       startRun: 'Start import',
       startingRun: 'Starting…',
       runTitle: 'Run result',
-      runDescription: 'Inspect the current import run status, affected APIs, and step-level results.',
       refreshRun: 'Refresh run',
       runEmptyTitle: 'No run yet',
       runEmptyDescription: 'Confirm the current plan and start the import to see run results here.',
@@ -493,6 +498,12 @@ export default {
         PARTIALLY_FAILED: 'Partially failed',
         FAILED: 'Failed',
       },
+      streamPhase: {
+        planning: 'Analyzing the request',
+        replying: 'Writing the reply',
+        completed: 'Reply complete',
+      },
+      streamingReplyTitle: 'Agent reply in progress',
       errors: {
         IMPORT_AGENT_INVALID_REQUEST: 'The import request is invalid. Please review the inputs.',
         IMPORT_AGENT_SESSION_NOT_FOUND:
