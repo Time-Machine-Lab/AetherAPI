@@ -72,7 +72,7 @@ final class ImportAgentPlannerJsonSupport {
         List<String> validationQuestions = validatePlan(categoryPlans, assetPlans);
         LinkedHashSet<String> mergedQuestions = new LinkedHashSet<>(clarificationQuestions);
         mergedQuestions.addAll(validationQuestions);
-        boolean executable = validationQuestions.isEmpty();
+        boolean executable = mergedQuestions.isEmpty();
         String resolvedSummary = summary == null
                 ? buildDefaultSummary(request.getNextPlanVersion(), categoryPlans, assetPlans)
                 : summary;

@@ -42,21 +42,28 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
     private final HttpClient httpClient;
     private final ImportAgentLlmPlannerProperties properties;
     private final ImportAgentPlanningToolRegistry toolRegistry;
+    private final ImportAgentPlannerSubagentOrchestrator subagentOrchestrator;
 
     @Autowired
     public OpenAiCompatibleImportAgentPlannerProvider(
             HttpClient httpClient,
             ImportAgentLlmPlannerProperties properties,
-            ImportAgentPlanningToolRegistry toolRegistry) {
+            ImportAgentPlanningToolRegistry toolRegistry,
+            ImportAgentPlannerSubagentOrchestrator subagentOrchestrator) {
         this.httpClient = Objects.requireNonNull(httpClient, "HTTP client must not be null");
         this.properties = Objects.requireNonNull(properties, "LLM planner properties must not be null");
         this.toolRegistry = Objects.requireNonNull(toolRegistry, "Planning tool registry must not be null");
+        this.subagentOrchestrator = Objects.requireNonNull(subagentOrchestrator, "Planner subagent orchestrator must not be null");
     }
 
     OpenAiCompatibleImportAgentPlannerProvider(
             HttpClient httpClient,
             ImportAgentLlmPlannerProperties properties) {
-        this(httpClient, properties, ImportAgentPlanningToolRegistry.defaultRegistry());
+        this(
+                httpClient,
+                properties,
+                ImportAgentPlanningToolRegistry.defaultRegistry(),
+                ImportAgentPlannerSubagentOrchestrator.defaultOrchestrator());
     }
 
     @Override
@@ -70,10 +77,12 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
     @Override
     public ImportAgentPlannerResult plan(ImportAgentPlannerRequest request) {
         try {
+            JsonNode extractedFacts = null;
+            JsonNode slotPatches = null;
             JsonNode planSource;
             if (properties.isToolCallingEnabled()) {
-                JsonNode extractedFacts = executePlanningStage(request, PlannerStage.EXTRACT_FACTS, null, null);
-                JsonNode slotPatches = executePlanningStage(request, PlannerStage.FILL_SLOTS, extractedFacts, null);
+                extractedFacts = executePlanningStage(request, PlannerStage.EXTRACT_FACTS, null, null);
+                slotPatches = executePlanningStage(request, PlannerStage.FILL_SLOTS, extractedFacts, null);
                 planSource = executePlanningStage(request, PlannerStage.SUBMIT_PLAN, extractedFacts, slotPatches);
             } else {
                 HttpRequest httpRequest = HttpRequest.newBuilder(buildEndpointUri())
@@ -89,6 +98,7 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
                 JsonNode payload = OBJECT_MAPPER.readTree(response.body());
                 planSource = extractPlanSource(payload, null, true);
             }
+            planSource = subagentOrchestrator.orchestrate(request, extractedFacts, slotPatches, planSource);
             if (planSource == null) {
                 throw new IllegalStateException("LLM planner returned non-JSON plan content");
             }

@@ -174,6 +174,47 @@ class OpenAiCompatibleImportAgentPlannerProviderTest {
         verify(httpClient, times(3)).send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class));
         }
 
+        @Test
+        @DisplayName("provider should merge internal subagent outputs into one unified plan result")
+        void shouldMergeInternalSubagentOutputsIntoUnifiedPlanResult() throws Exception {
+        HttpClient httpClient = mock(HttpClient.class);
+        @SuppressWarnings("unchecked")
+        HttpResponse<String> extractResponse = mock(HttpResponse.class);
+        @SuppressWarnings("unchecked")
+        HttpResponse<String> fillResponse = mock(HttpResponse.class);
+        @SuppressWarnings("unchecked")
+        HttpResponse<String> submitResponse = mock(HttpResponse.class);
+        when(extractResponse.statusCode()).thenReturn(200);
+        when(fillResponse.statusCode()).thenReturn(200);
+        when(submitResponse.statusCode()).thenReturn(200);
+        when(extractResponse.body()).thenReturn(responseBodyWithToolCallArguments(
+            "extract_import_facts",
+            "{\"assetFacts\":[{\"apiCode\":\"weather-tool\",\"assetName\":\"Weather Tool\",\"assetType\":\"STANDARD_API\",\"requestMethod\":\"GET\",\"upstreamUrl\":\"https://upstream.example.com/weather\"}],\"authHints\":[{\"apiCode\":\"weather-tool\",\"authScheme\":\"HEADER_TOKEN\"}]}"));
+        when(fillResponse.body()).thenReturn(responseBodyWithToolCallArguments(
+            "fill_import_slots",
+            "{\"assetPlans\":[{\"apiCode\":\"weather-tool\",\"authConfig\":\"Authorization: Bearer upstream-token\"}],\"remainingMissingSlots\":[]}"));
+        when(submitResponse.body()).thenReturn(responseBodyWithToolCallArguments(
+            "submit_import_plan",
+            "{\"summary\":\"ready\",\"assetPlans\":[{\"apiCode\":\"weather-tool\",\"assetName\":\"Weather Tool\",\"assetType\":\"STANDARD_API\",\"categoryCode\":\"tools\",\"requestMethod\":\"GET\",\"upstreamUrl\":\"https://upstream.example.com/weather\",\"publishAfterImport\":true}]}"));
+        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+            .thenReturn(extractResponse, fillResponse, submitResponse);
+
+        ImportAgentLlmPlannerProperties properties = new ImportAgentLlmPlannerProperties();
+        properties.setEnabled(true);
+        properties.setToolCallingEnabled(true);
+        properties.setBaseUrl("https://api.openai.com/v1");
+        properties.setEndpointPath("/chat/completions");
+        properties.setApiKey("sk-test");
+        properties.setModel("gpt-4.1-mini");
+        OpenAiCompatibleImportAgentPlannerProvider provider = new OpenAiCompatibleImportAgentPlannerProvider(httpClient, properties);
+
+        var result = provider.plan(request());
+
+        assertTrue(result.getPlan().isExecutable());
+        assertEquals("HEADER_TOKEN", result.getPlan().getAssetPlans().get(0).getAuthScheme().name());
+        assertEquals("Authorization: Bearer upstream-token", result.getPlan().getAssetPlans().get(0).getAuthConfig());
+        }
+
     @Test
     @DisplayName("provider should reject asset plan when auth scheme lacks security config")
     void shouldRejectPlanWhenAuthSchemeLacksSecurityConfig() throws Exception {
