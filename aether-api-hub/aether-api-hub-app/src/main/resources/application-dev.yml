@@ -7,7 +7,7 @@ spring:
 
 mybatis-plus:
   configuration:
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
     map-underscore-to-camel-case: true
   global-config:
     db-config:
@@ -18,8 +18,10 @@ mybatis-plus:
 
 logging:
   level:
-    io.github.timemachinelab: DEBUG
-    com.baomidou.mybatisplus: INFO
+    root: INFO
+    io.github.timemachinelab: WARN
+    io.github.timemachinelab.infrastructure.importagent.planner: DEBUG
+    com.baomidou.mybatisplus: ERROR
 
 aether:
   console:
@@ -37,12 +39,12 @@ aether:
       timeout-seconds: ${AETHER_IMPORT_AGENT_STREAM_TIMEOUT_SECONDS:180}
     llm:
       enabled: ${AETHER_IMPORT_AGENT_LLM_ENABLED:true}
-      base-url: ${AETHER_IMPORT_AGENT_LLM_BASE_URL:https://api.qnaigc.com}
-      endpoint-path: ${AETHER_IMPORT_AGENT_LLM_ENDPOINT_PATH:/v1/chat/completions}
-      api-key: ${AETHER_IMPORT_AGENT_LLM_API_KEY:sk-6a669def65df45a7039ffcb75f78b095f7375f0599dbc15ff787a4435033bbeb}
-      model: ${AETHER_IMPORT_AGENT_LLM_MODEL:deepseek/deepseek-v4-flash}
+      base-url: ${AETHER_IMPORT_AGENT_LLM_BASE_URL:https://api.deepseek.com}
+      endpoint-path: ${AETHER_IMPORT_AGENT_LLM_ENDPOINT_PATH:/chat/completions}
+      api-key: ${AETHER_IMPORT_AGENT_LLM_API_KEY:sk-b377a81b84534cda9edb7fbee12f4a4c}
+      model: ${AETHER_IMPORT_AGENT_LLM_MODEL:deepseek-v4-flash}
       temperature: ${AETHER_IMPORT_AGENT_LLM_TEMPERATURE:0.2}
-      max-completion-tokens: ${AETHER_IMPORT_AGENT_LLM_MAX_COMPLETION_TOKENS:10000}
+      max-completion-tokens: ${AETHER_IMPORT_AGENT_LLM_MAX_COMPLETION_TOKENS:128000}
       request-timeout-seconds: ${AETHER_IMPORT_AGENT_LLM_REQUEST_TIMEOUT_SECONDS:600}
       tool-calling-enabled: ${AETHER_IMPORT_AGENT_LLM_TOOL_CALLING_ENABLED:false}
       system-prompt: ${AETHER_IMPORT_AGENT_LLM_SYSTEM_PROMPT:}

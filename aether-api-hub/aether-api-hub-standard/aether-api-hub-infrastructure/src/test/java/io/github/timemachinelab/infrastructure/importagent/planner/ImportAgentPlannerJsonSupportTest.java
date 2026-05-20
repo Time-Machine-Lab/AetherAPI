@@ -27,8 +27,8 @@ class ImportAgentPlannerJsonSupportTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Test
-    @DisplayName("buildPlan should recover authConfig from latest user answer and preserve current plan fields")
-    void shouldRecoverAuthConfigFromLatestUserAnswerAndPreserveCurrentPlanFields() {
+    @DisplayName("buildPlan should preserve current plan fields but keep missing auth config non-executable")
+    void shouldPreserveCurrentPlanFieldsButKeepMissingAuthConfigNonExecutable() {
         ImportAgentPlanModel currentPlan = new ImportAgentPlanModel(
                 1,
                 false,
@@ -71,15 +71,16 @@ class ImportAgentPlannerJsonSupportTest {
 
         ImportAgentPlanModel result = ImportAgentPlannerJsonSupport.buildPlan(request, source);
 
-        assertTrue(result.isExecutable());
-        assertEquals("Authorization: Bearer upstream-token", result.getAssetPlans().get(0).getAuthConfig());
+        assertFalse(result.isExecutable());
+        assertEquals(null, result.getAssetPlans().get(0).getAuthConfig());
         assertEquals(RequestMethod.GET, result.getAssetPlans().get(0).getRequestMethod());
         assertEquals("https://provider.example.com/weather", result.getAssetPlans().get(0).getUpstreamUrl());
+        assertTrue(result.getClarificationQuestions().stream().anyMatch(question -> question.contains("authConfig")));
     }
 
     @Test
-    @DisplayName("buildPlan should recover async query fields and aiProfile from document summary")
-    void shouldRecoverAsyncQueryFieldsAndAiProfileFromDocumentSummary() {
+    @DisplayName("buildPlan should keep async query and ai profile missing when only free text evidence exists")
+    void shouldKeepAsyncQueryAndAiProfileMissingWhenOnlyFreeTextEvidenceExists() {
         ObjectNode source = OBJECT_MAPPER.createObjectNode();
         ObjectNode assetNode = source.putArray("assetPlans").addObject();
         assetNode.put("apiCode", "video-submit");
@@ -103,11 +104,13 @@ class ImportAgentPlannerJsonSupportTest {
 
         ImportAgentPlanModel result = ImportAgentPlannerJsonSupport.buildPlan(request, source);
 
-        assertTrue(result.isExecutable());
-        assertEquals("GET", result.getAssetPlans().get(0).getAsyncTaskConfig().getQueryMethod());
-        assertEquals("https://provider.example.com/v1/tasks/{taskId}", result.getAssetPlans().get(0).getAsyncTaskConfig().getQueryUrlTemplate());
-        assertEquals("OpenAI", result.getAssetPlans().get(0).getAiProfile().getProvider());
-        assertEquals("gpt-4.1", result.getAssetPlans().get(0).getAiProfile().getModel());
+        assertFalse(result.isExecutable());
+        assertEquals(null, result.getAssetPlans().get(0).getAsyncTaskConfig().getQueryMethod());
+        assertEquals(null, result.getAssetPlans().get(0).getAsyncTaskConfig().getQueryUrlTemplate());
+        assertEquals(null, result.getAssetPlans().get(0).getAiProfile());
+        assertTrue(result.getClarificationQuestions().stream().anyMatch(question -> question.contains("asyncTaskConfig.queryMethod")));
+        assertTrue(result.getClarificationQuestions().stream().anyMatch(question -> question.contains("queryUrlTemplate")));
+        assertTrue(result.getClarificationQuestions().stream().anyMatch(question -> question.contains("aiProfile")));
     }
 
     @Test
@@ -138,6 +141,27 @@ class ImportAgentPlannerJsonSupportTest {
     }
 
     @Test
+    @DisplayName("buildPlan should normalize assetType aliases from planner output")
+    void shouldNormalizeAssetTypeAliasesFromPlannerOutput() {
+        ObjectNode source = OBJECT_MAPPER.createObjectNode();
+        ObjectNode assetNode = source.putArray("assetPlans").addObject();
+        assetNode.put("apiCode", "dashscope-video");
+        assetNode.put("assetName", "DashScope Video");
+        assetNode.put("assetType", "API");
+        assetNode.put("categoryCode", "video");
+        assetNode.put("requestMethod", "POST");
+        assetNode.put("upstreamUrl", "https://dashscope.aliyuncs.com/api/v1/services/aigc/video-generation/video-synthesis");
+        assetNode.put("authScheme", "HEADER_TOKEN");
+        assetNode.put("authConfig", "Authorization: Bearer test-token");
+        assetNode.put("publishAfterImport", true);
+
+        ImportAgentPlanModel result = ImportAgentPlannerJsonSupport.buildPlan(baseRequest(), source);
+
+        assertTrue(result.isExecutable());
+        assertEquals(AssetType.STANDARD_API, result.getAssetPlans().get(0).getAssetType());
+    }
+
+    @Test
     @DisplayName("buildPlan should keep async override plan non-executable when override credentials are still missing")
     void shouldRequireAsyncOverrideCredentialsWhenStillMissing() {
         ObjectNode source = OBJECT_MAPPER.createObjectNode();
@@ -161,6 +185,153 @@ class ImportAgentPlannerJsonSupportTest {
         assertFalse(result.isExecutable());
         assertTrue(result.getClarificationQuestions().stream().anyMatch(question -> question.contains("asyncTaskConfig.authConfig")));
     }
+
+    @Test
+    @DisplayName("buildPlan should keep folded async query non-executable when query asset lacks explicit task placeholder")
+    void shouldKeepFoldedAsyncQueryNonExecutableWithoutExplicitTaskPlaceholder() {
+        ObjectNode source = OBJECT_MAPPER.createObjectNode();
+
+        ObjectNode submitAsset = source.putArray("assetPlans").addObject();
+        submitAsset.put("apiCode", "image-submit");
+        submitAsset.put("assetName", "Image Submit");
+        submitAsset.put("assetType", "STANDARD_API");
+        submitAsset.put("categoryCode", "image");
+        submitAsset.put("requestMethod", "POST");
+        submitAsset.put("upstreamUrl", "https://provider.example.com/v1/image/submit");
+        submitAsset.put("authScheme", "NONE");
+        submitAsset.put("publishAfterImport", true);
+
+        ObjectNode queryAsset = source.withArray("assetPlans").addObject();
+        queryAsset.put("apiCode", "image-status");
+        queryAsset.put("assetName", "Image Status");
+        queryAsset.put("assetType", "STANDARD_API");
+        queryAsset.put("categoryCode", "image");
+        queryAsset.put("requestMethod", "GET");
+        queryAsset.put("upstreamUrl", "https://provider.example.com/v1/image/status");
+        queryAsset.put("authScheme", "NONE");
+        queryAsset.put("publishAfterImport", false);
+
+        ImportAgentPlanModel result = ImportAgentPlannerJsonSupport.buildPlan(baseRequest(), source);
+
+        assertFalse(result.isExecutable());
+        assertEquals(1, result.getAssetPlans().size());
+        assertEquals(null, result.getAssetPlans().get(0).getAsyncTaskConfig().getQueryUrlTemplate());
+        assertTrue(result.getClarificationQuestions().stream().anyMatch(question -> question.contains("queryUrlTemplate")));
+    }
+
+    @Test
+    @DisplayName("buildPlan should normalize malformed async authMode values that actually contain authScheme")
+    void shouldNormalizeMalformedAsyncAuthModeAlias() {
+        ObjectNode source = OBJECT_MAPPER.createObjectNode();
+        ObjectNode assetNode = source.putArray("assetPlans").addObject();
+        assetNode.put("apiCode", "task-submit");
+        assetNode.put("assetName", "Task Submit");
+        assetNode.put("assetType", "STANDARD_API");
+        assetNode.put("categoryCode", "tools");
+        assetNode.put("requestMethod", "POST");
+        assetNode.put("upstreamUrl", "https://provider.example.com/task/submit");
+        assetNode.put("authScheme", "NONE");
+        assetNode.put("publishAfterImport", true);
+        assetNode.putObject("asyncTaskConfig")
+                .put("enabled", true)
+                .put("queryMethod", "GET")
+                .put("queryUrlTemplate", "https://provider.example.com/task/{taskId}")
+                .put("authMode", "HEADER_TOKEN")
+                .put("authConfig", "Authorization: Bearer upstream-token");
+
+        ImportAgentPlanModel result = ImportAgentPlannerJsonSupport.buildPlan(baseRequest(), source);
+
+        assertTrue(result.isExecutable());
+        assertEquals("OVERRIDE", result.getAssetPlans().get(0).getAsyncTaskConfig().getAuthMode());
+        assertEquals("HEADER_TOKEN", result.getAssetPlans().get(0).getAsyncTaskConfig().getAuthScheme());
+    }
+
+    @Test
+    @DisplayName("buildPlan should normalize malformed asset authScheme aliases")
+    void shouldNormalizeMalformedAssetAuthSchemeAlias() {
+        ObjectNode source = OBJECT_MAPPER.createObjectNode();
+        ObjectNode assetNode = source.putArray("assetPlans").addObject();
+        assetNode.put("apiCode", "weather-tool");
+        assetNode.put("assetName", "Weather Tool");
+        assetNode.put("assetType", "STANDARD_API");
+        assetNode.put("categoryCode", "tools");
+        assetNode.put("requestMethod", "GET");
+        assetNode.put("upstreamUrl", "https://provider.example.com/weather");
+        assetNode.put("authScheme", "BEARER_TOKEN");
+        assetNode.put("authConfig", "Authorization: Bearer upstream-token");
+        assetNode.put("publishAfterImport", true);
+
+        ImportAgentPlanModel result = ImportAgentPlannerJsonSupport.buildPlan(baseRequest(), source);
+
+        assertTrue(result.isExecutable());
+        assertEquals(AuthScheme.HEADER_TOKEN, result.getAssetPlans().get(0).getAuthScheme());
+    }
+
+        @Test
+        @DisplayName("buildPlan should preserve current structured fields during partial updates without reinterpreting prose")
+        void shouldPreserveCurrentStructuredFieldsDuringPartialUpdatesWithoutReinterpretingProse() {
+        ImportAgentPlanModel currentPlan = new ImportAgentPlanModel(
+            1,
+            false,
+            "draft",
+            List.of("请确认任务查询鉴权方案"),
+            List.of(new ImportCategoryPlanModel("video", "Video", ImportCategoryPlanAction.CREATE_IF_MISSING)),
+            List.of(new ImportAssetPlanModel(
+                "video-submit",
+                "Video Submit",
+                AssetType.STANDARD_API,
+                "video",
+                RequestMethod.POST,
+                "https://provider.example.com/v1/video/submit",
+                AuthScheme.HEADER_TOKEN,
+                "Authorization: Bearer upstream-token",
+                null,
+                null,
+                null,
+                null,
+                null,
+                true,
+                new AsyncTaskConfigModel(
+                    true,
+                    "GET",
+                    "https://provider.example.com/v1/tasks/{taskId}",
+                    "OVERRIDE",
+                    "HEADER_TOKEN",
+                    "Authorization: Bearer upstream-task-token",
+                    null,
+                    null,
+                    null),
+                new io.github.timemachinelab.service.model.ImportAiProfileModel("OpenAI", "gpt-4.1", true, List.of("video"))
+            )));
+
+        ObjectNode source = OBJECT_MAPPER.createObjectNode();
+        ObjectNode assetNode = source.putArray("assetPlans").addObject();
+        assetNode.put("apiCode", "video-submit");
+        assetNode.put("assetName", "Video Submit");
+        assetNode.put("assetType", "STANDARD_API");
+        assetNode.put("publishAfterImport", true);
+
+        ImportAgentPlannerRequest request = new ImportAgentPlannerRequest(
+            "https://docs.example.com/video",
+            "这里提到另一个示例 Authorization: Bearer unrelated-token 和一个无关 URL https://other.example.com/tasks/123",
+            "import video api",
+            "继续",
+            currentPlan,
+            2,
+            List.of());
+
+        ImportAgentPlanModel result = ImportAgentPlannerJsonSupport.buildPlan(request, source);
+
+        assertTrue(result.isExecutable());
+        assertEquals(RequestMethod.POST, result.getAssetPlans().get(0).getRequestMethod());
+        assertEquals("https://provider.example.com/v1/video/submit", result.getAssetPlans().get(0).getUpstreamUrl());
+        assertEquals("Authorization: Bearer upstream-token", result.getAssetPlans().get(0).getAuthConfig());
+        assertEquals("GET", result.getAssetPlans().get(0).getAsyncTaskConfig().getQueryMethod());
+        assertEquals("https://provider.example.com/v1/tasks/{taskId}", result.getAssetPlans().get(0).getAsyncTaskConfig().getQueryUrlTemplate());
+        assertEquals("Authorization: Bearer upstream-task-token", result.getAssetPlans().get(0).getAsyncTaskConfig().getAuthConfig());
+        assertEquals("OpenAI", result.getAssetPlans().get(0).getAiProfile().getProvider());
+        assertEquals("gpt-4.1", result.getAssetPlans().get(0).getAiProfile().getModel());
+        }
 
     private ImportAgentPlannerRequest baseRequest() {
         return new ImportAgentPlannerRequest(

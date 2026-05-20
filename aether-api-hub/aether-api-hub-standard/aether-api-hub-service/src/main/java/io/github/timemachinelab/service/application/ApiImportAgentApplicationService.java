@@ -2,9 +2,11 @@ package io.github.timemachinelab.service.application;
 
 import io.github.timemachinelab.domain.catalog.model.AssetDomainException;
 import io.github.timemachinelab.domain.importagent.model.ImportAgentDomainException;
+import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.service.model.ApiImportAgentRunModel;
 import io.github.timemachinelab.service.model.ApiImportAgentSessionModel;
 import io.github.timemachinelab.service.model.ApiAssetModel;
+import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
 import io.github.timemachinelab.service.model.AppendImportAgentTurnCommand;
 import io.github.timemachinelab.service.model.AttachAiCapabilityProfileCommand;
 import io.github.timemachinelab.service.model.ConfirmImportAgentPlanCommand;
@@ -39,6 +41,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -431,10 +434,136 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
     }
 
     private ApiImportAgentSessionModel loadOwnedSession(String ownerUserId, String sessionId) {
-        return sessionRepositoryPort.findOwnedSession(
+        ApiImportAgentSessionModel session = sessionRepositoryPort.findOwnedSession(
                         normalizeRequired(ownerUserId, "当前用户 ID"),
                         normalizeRequired(sessionId, "会话 ID"))
                 .orElseThrow(() -> new ImportAgentDomainException("未找到导入会话：" + sessionId));
+        return normalizeSessionPlan(session);
+    }
+
+    private ApiImportAgentSessionModel normalizeSessionPlan(ApiImportAgentSessionModel session) {
+        if (session == null) {
+            return null;
+        }
+        return new ApiImportAgentSessionModel(
+                session.getSessionId(),
+                session.getOwnerUserId(),
+                session.getStatus(),
+                session.getDocumentSource(),
+                session.getDocumentSummary(),
+                session.getImportIntent(),
+                session.getPublisherDisplayName(),
+                session.getCurrentPlanVersion(),
+                session.getConfirmedPlanVersion(),
+                session.getLatestRunId(),
+                session.getLatestConfirmedAt(),
+                normalizePlan(session.getCurrentPlan()),
+                session.getTurns(),
+                session.getCreatedAt(),
+                session.getUpdatedAt()
+        );
+    }
+
+    private ImportAgentPlanModel normalizePlan(ImportAgentPlanModel plan) {
+        if (plan == null) {
+            return null;
+        }
+        return new ImportAgentPlanModel(
+                plan.getVersion(),
+                plan.isExecutable(),
+                plan.getSummary(),
+                plan.getClarificationQuestions(),
+                plan.getCategoryPlans(),
+                plan.getAssetPlans().stream().map(this::normalizeAssetPlan).toList()
+        );
+    }
+
+    private ImportAssetPlanModel normalizeAssetPlan(ImportAssetPlanModel assetPlan) {
+        if (assetPlan == null) {
+            return null;
+        }
+        return new ImportAssetPlanModel(
+                assetPlan.getApiCode(),
+                assetPlan.getAssetName(),
+                assetPlan.getAssetType(),
+                assetPlan.getCategoryCode(),
+                assetPlan.getRequestMethod(),
+                assetPlan.getUpstreamUrl(),
+                assetPlan.getAuthScheme(),
+                assetPlan.getAuthConfig(),
+                assetPlan.getRequestTemplate(),
+                assetPlan.getRequestExample(),
+                assetPlan.getResponseExample(),
+                assetPlan.getRequestJsonSchema(),
+                assetPlan.getResponseJsonSchema(),
+                assetPlan.isPublishAfterImport(),
+                normalizeAsyncTaskConfig(assetPlan.getAsyncTaskConfig()),
+                assetPlan.getAiProfile()
+        );
+    }
+
+    private AsyncTaskConfigModel normalizeAsyncTaskConfig(AsyncTaskConfigModel config) {
+        if (config == null) {
+            return null;
+        }
+        String authScheme = normalizeAsyncTaskAuthScheme(config.getAuthMode(), config.getAuthScheme(), config.getAuthConfig());
+        String authMode = normalizeAsyncTaskAuthMode(config.getAuthMode(), authScheme, config.getAuthConfig());
+        return new AsyncTaskConfigModel(
+                config.getEnabled(),
+                config.getQueryMethod(),
+                config.getQueryUrlTemplate(),
+                authMode,
+                authScheme,
+                config.getAuthConfig(),
+                config.getStatusPath(),
+                config.getResultPath(),
+                config.getErrorPath()
+        );
+    }
+
+    private String normalizeAsyncTaskAuthMode(String authMode, String authScheme, String authConfig) {
+        String normalized = normalizeEnumText(authMode);
+        if ("SAME_AS_SUBMIT".equals(normalized) || "OVERRIDE".equals(normalized)) {
+            return normalized;
+        }
+        if (authScheme != null || (authConfig != null && !authConfig.isBlank())) {
+            return "OVERRIDE";
+        }
+        return null;
+    }
+
+    private String normalizeAsyncTaskAuthScheme(String authMode, String authScheme, String authConfig) {
+        AuthScheme normalizedScheme = resolveAuthScheme(authScheme);
+        if (normalizedScheme != null) {
+            return normalizedScheme.name();
+        }
+        normalizedScheme = resolveAuthScheme(authMode);
+        if (normalizedScheme != null) {
+            return normalizedScheme.name();
+        }
+        if (authConfig == null || authConfig.isBlank()) {
+            return null;
+        }
+        return authConfig.contains(":") ? AuthScheme.HEADER_TOKEN.name() : AuthScheme.QUERY_TOKEN.name();
+    }
+
+    private AuthScheme resolveAuthScheme(String value) {
+        String normalized = normalizeEnumText(value);
+        if (normalized == null) {
+            return null;
+        }
+        try {
+            return AuthScheme.fromToken(normalized);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private String normalizeEnumText(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim().toUpperCase(Locale.ROOT);
     }
 
     private ImportAgentSessionStatus resolveSessionStatus(ImportAgentPlanModel plan) {

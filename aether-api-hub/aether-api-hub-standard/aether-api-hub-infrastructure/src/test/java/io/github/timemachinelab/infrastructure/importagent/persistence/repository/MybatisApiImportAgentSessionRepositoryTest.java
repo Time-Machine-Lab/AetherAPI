@@ -82,8 +82,8 @@ class MybatisApiImportAgentSessionRepositoryTest {
         sessionDo.setCurrentPlanVersion(2);
         sessionDo.setConfirmedPlanVersion(1);
         sessionDo.setPlanSnapshotJson("""
-                {"version":2,"executable":true,"summary":"ready","clarificationQuestions":[],"categoryPlans":[{"categoryCode":"tools","categoryName":"Tools","action":"CREATE_IF_MISSING"}],"assetPlans":[{"apiCode":"weather-forecast","assetName":"Weather Forecast","assetType":"AI_API","categoryCode":"tools","requestMethod":"GET","upstreamUrl":"https://upstream.example.com/weather","authScheme":"HEADER_TOKEN","authConfig":"Authorization: Bearer upstream-token","publishAfterImport":true,"aiProfile":{"provider":"OpenAI","model":"gpt-4.1","streamingSupported":true,"capabilityTags":["chat"]}}]}
-                """);
+            {"version":2,"executable":true,"summary":"ready","clarificationQuestions":[],"categoryPlans":[{"categoryCode":"tools","categoryName":"Tools","action":"CREATE_IF_MISSING"}],"assetPlans":[{"apiCode":"weather-forecast","assetName":"Weather Forecast","assetType":"AI_API","categoryCode":"tools","requestMethod":"GET","upstreamUrl":"https://upstream.example.com/weather","authScheme":"BEARER_TOKEN","authConfig":"Authorization: Bearer upstream-token","publishAfterImport":true,"aiProfile":{"provider":"OpenAI","model":"gpt-4.1","streamingSupported":true,"capabilityTags":["chat"]}}]}
+            """);
         sessionDo.setCreatedAt(LocalDateTime.of(2026, 5, 18, 10, 0));
         sessionDo.setUpdatedAt(LocalDateTime.of(2026, 5, 18, 10, 5));
         when(sessionMapper.selectOwnedById("user-1", "session-1")).thenReturn(sessionDo);
@@ -104,6 +104,7 @@ class MybatisApiImportAgentSessionRepositoryTest {
 
         assertEquals(ImportAgentSessionStatus.CONFIRMED, session.getStatus());
         assertEquals("weather-forecast", session.getCurrentPlan().getAssetPlans().get(0).getApiCode());
+        assertEquals(AuthScheme.HEADER_TOKEN, session.getCurrentPlan().getAssetPlans().get(0).getAuthScheme());
         assertEquals("OpenAI", session.getCurrentPlan().getAssetPlans().get(0).getAiProfile().getProvider());
         assertEquals(1, repository.countTurns("session-1"));
         assertEquals("AGENT", turns.get(0).getActorType().name());

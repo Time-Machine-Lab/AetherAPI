@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.github.timemachinelab.service.model.ImportAgentPlanModel;
 import io.github.timemachinelab.service.model.ImportAgentPlannerRequest;
 import io.github.timemachinelab.service.model.ImportAgentPlannerResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -28,6 +30,7 @@ import java.util.Objects;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPlannerProvider {
 
+    private static final Logger log = LoggerFactory.getLogger(OpenAiCompatibleImportAgentPlannerProvider.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String DEFAULT_ENDPOINT_PATH = "/chat/completions";
     private static final String DEFAULT_SYSTEM_PROMPT = """
@@ -77,6 +80,11 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
     @Override
     public ImportAgentPlannerResult plan(ImportAgentPlannerRequest request) {
         try {
+            log.info("Import-agent planner start: nextPlanVersion={}, toolCallingEnabled={}, hasCurrentPlan={}, turns={}",
+                    request.getNextPlanVersion(),
+                    properties.isToolCallingEnabled(),
+                    request.getCurrentPlan() != null,
+                    request.getTurns().size());
             JsonNode extractedFacts = null;
             JsonNode slotPatches = null;
             JsonNode planSource;
@@ -97,18 +105,30 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
                 }
                 JsonNode payload = OBJECT_MAPPER.readTree(response.body());
                 planSource = extractPlanSource(payload, null, true);
+                log.debug("Import-agent planner direct response parsed: {}", summarizePlanNode(planSource));
             }
             planSource = subagentOrchestrator.orchestrate(request, extractedFacts, slotPatches, planSource);
             if (planSource == null) {
                 throw new IllegalStateException("LLM planner returned non-JSON plan content");
             }
+            log.debug("Import-agent planner candidate after subagents: {}", summarizePlanNode(planSource));
             ImportAgentPlanModel plan = ImportAgentPlannerJsonSupport.buildPlan(request, planSource);
+            log.info("Import-agent planner complete: executable={}, categoryPlans={}, assetPlans={}, clarificationQuestions={}",
+                    plan.isExecutable(),
+                    plan.getCategoryPlans().size(),
+                    plan.getAssetPlans().size(),
+                    plan.getClarificationQuestions().size());
             return new ImportAgentPlannerResult(plan, ImportAgentPlannerJsonSupport.buildAgentMessage("LLM 规划器", plan));
         } catch (IOException ex) {
+            log.error("Import-agent planner IO failure", ex);
             throw new IllegalStateException("LLM planner request failed", ex);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
+            log.warn("Import-agent planner interrupted", ex);
             throw new IllegalStateException("LLM planner request interrupted", ex);
+        } catch (RuntimeException ex) {
+            log.error("Import-agent planner failed: {}", ex.getMessage(), ex);
+            throw ex;
         }
     }
 
@@ -193,7 +213,8 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
         prompt.append("信息不足时，请保留已有计划数据，并返回自然对话式的 clarificationQuestions，不要返回空洞的通用占位问题。\n");
         prompt.append("异步任务模式下，查询接口必须并入提交接口的 asyncTaskConfig，不要作为独立资产导入。\n");
         prompt.append("需要发布且使用鉴权的资产必须有明确 authConfig；不能确认时请追问，不要编造默认密钥、环境变量名或平台特例。\n");
-        prompt.append("如果资产使用 HEADER_TOKEN 或 QUERY_TOKEN，必须把安全配置写进 assetPlans[].authConfig；不要只在计划摘要或回复文案中描述。\n");
+        prompt.append("如果资产使用 HEADER_TOKEN 或 QUERY_TOKEN，必须把安全配置写进 assetPlans[].authConfig；不要只在计划摘要或回复文案中描述，也不要假设后端会从自由文本自动补齐。\n");
+        prompt.append("缺少 requestMethod、upstreamUrl、authScheme、authConfig、asyncTaskConfig.queryMethod、asyncTaskConfig.queryUrlTemplate、asyncTaskConfig.authMode、asyncTaskConfig.authScheme、asyncTaskConfig.authConfig、aiProfile.provider 或 aiProfile.model 时，请保留非 executable 计划并提出定向 clarificationQuestions。\n");
         prompt.append("如果用户正在回答某个缺失项，请把答案写回 currentPlanJson 对应字段，并返回更新后的完整计划。\n");
         if (primaryTool != null) {
             String stageInstruction = primaryTool.tool().stagePromptInstruction();
@@ -234,6 +255,11 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
             JsonNode extractedFacts,
             JsonNode slotPatches) throws IOException, InterruptedException {
         ImportAgentPlanningToolDescriptor primaryTool = toolRegistry.primaryTool(stage);
+        log.debug("Import-agent planner stage start: stage={}, tool={}, extractedFacts={}, slotPatches={}",
+            stage.name(),
+            primaryTool.name(),
+            summarizePlanNode(extractedFacts),
+            summarizePlanNode(slotPatches));
         HttpRequest httpRequest = HttpRequest.newBuilder(buildEndpointUri())
                 .header("Authorization", "Bearer " + properties.getApiKey().trim())
                 .header("Content-Type", "application/json")
@@ -244,10 +270,13 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
                 .build();
         HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            log.warn("Import-agent planner stage failed: stage={}, status={}", stage.name(), response.statusCode());
             throw new IllegalStateException("LLM planner request failed with status " + response.statusCode());
         }
         JsonNode payload = OBJECT_MAPPER.readTree(response.body());
-        return extractPlanSource(payload, primaryTool.name(), primaryTool.tool().requiresStrictContentFallback());
+        JsonNode stageResult = extractPlanSource(payload, primaryTool.name(), primaryTool.tool().requiresStrictContentFallback());
+        log.debug("Import-agent planner stage complete: stage={}, result={}", stage.name(), summarizePlanNode(stageResult));
+        return stageResult;
     }
 
     private JsonNode extractPlanSource(JsonNode payload, String expectedToolName, boolean strict) {
@@ -324,5 +353,29 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private String summarizePlanNode(JsonNode node) {
+        if (node == null || node.isNull()) {
+            return "null";
+        }
+        if (node.isArray()) {
+            return "array(size=" + node.size() + ")";
+        }
+        if (!node.isObject()) {
+            return node.getNodeType().name().toLowerCase();
+        }
+        return "object(assetPlans=" + sizeOfArray(node, "assetPlans")
+                + ", categoryPlans=" + sizeOfArray(node, "categoryPlans")
+                + ", clarificationQuestions=" + sizeOfArray(node, "clarificationQuestions")
+                + ", assetFacts=" + sizeOfArray(node, "assetFacts")
+                + ", authHints=" + sizeOfArray(node, "authHints")
+                + ", asyncHints=" + sizeOfArray(node, "asyncHints")
+                + ")";
+    }
+
+    private int sizeOfArray(JsonNode node, String fieldName) {
+        JsonNode child = node.path(fieldName);
+        return child.isArray() ? child.size() : 0;
     }
 }

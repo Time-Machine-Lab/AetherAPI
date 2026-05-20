@@ -78,8 +78,58 @@ final class ImportAgentPlanningToolSupport {
         return schema;
     }
 
+    static ObjectNode constBooleanSchema(ObjectMapper objectMapper, boolean value) {
+        return objectMapper.createObjectNode().put("const", value);
+    }
+
+    static ObjectNode stringSchema(ObjectMapper objectMapper, String description, String pattern) {
+        ObjectNode schema = stringSchema(objectMapper);
+        if (description != null && !description.isBlank()) {
+            schema.put("description", description);
+        }
+        if (pattern != null && !pattern.isBlank()) {
+            schema.put("pattern", pattern);
+        }
+        return schema;
+    }
+
+    static void appendConditionalRequired(
+            ObjectMapper objectMapper,
+            ObjectNode schema,
+            Consumer<ObjectNode> ifPropertiesCustomizer,
+            String[] ifRequiredProperties,
+            Consumer<ObjectNode> thenPropertiesCustomizer,
+            String... thenRequiredProperties) {
+        ArrayNode allOf = schema.has("allOf") && schema.get("allOf").isArray()
+                ? (ArrayNode) schema.get("allOf")
+                : schema.putArray("allOf");
+        ObjectNode condition = allOf.addObject();
+
+        ObjectNode ifNode = condition.putObject("if");
+        ifNode.put("type", "object");
+        ObjectNode ifProperties = ifNode.putObject("properties");
+        ifPropertiesCustomizer.accept(ifProperties);
+        if (ifRequiredProperties != null && ifRequiredProperties.length > 0) {
+            ArrayNode required = ifNode.putArray("required");
+            for (String field : ifRequiredProperties) {
+                required.add(field);
+            }
+        }
+
+        ObjectNode thenNode = condition.putObject("then");
+        thenNode.put("type", "object");
+        ObjectNode thenProperties = thenNode.putObject("properties");
+        thenPropertiesCustomizer.accept(thenProperties);
+        if (thenRequiredProperties != null && thenRequiredProperties.length > 0) {
+            ArrayNode required = thenNode.putArray("required");
+            for (String field : thenRequiredProperties) {
+                required.add(field);
+            }
+        }
+    }
+
     static ObjectNode buildAssetPlanSchema(ObjectMapper objectMapper, boolean strictRequired) {
-        return strictObjectSchema(objectMapper, assetProperties -> {
+        ObjectNode schema = strictObjectSchema(objectMapper, assetProperties -> {
             assetProperties.set("apiCode", stringSchema(objectMapper));
             assetProperties.set("assetName", stringSchema(objectMapper));
             assetProperties.set("assetType", enumStringSchema(objectMapper, null,
@@ -104,13 +154,44 @@ final class ImportAgentPlanningToolSupport {
         }, strictRequired
                 ? new String[]{"apiCode", "assetName", "assetType"}
                 : new String[]{"apiCode"});
+            appendConditionalRequired(
+                objectMapper,
+                schema,
+                ifProperties -> ifProperties.set("authScheme", enumStringSchema(objectMapper, null,
+                    "HEADER_TOKEN", "QUERY_TOKEN")),
+                new String[]{"authScheme"},
+                thenProperties -> {
+                },
+                "authConfig");
+            appendConditionalRequired(
+                objectMapper,
+                schema,
+                ifProperties -> ifProperties.set("publishAfterImport", constBooleanSchema(objectMapper, true)),
+                new String[]{"publishAfterImport"},
+                thenProperties -> {
+                },
+                "categoryCode", "requestMethod", "upstreamUrl", "authScheme");
+            appendConditionalRequired(
+                objectMapper,
+                schema,
+                ifProperties -> {
+                    ifProperties.set("publishAfterImport", constBooleanSchema(objectMapper, true));
+                    ifProperties.set("assetType", enumStringSchema(objectMapper, null, "AI_API"));
+                },
+                new String[]{"publishAfterImport", "assetType"},
+                thenProperties -> thenProperties.set("aiProfile", buildAiProfileSchema(objectMapper)),
+                "aiProfile");
+            return schema;
     }
 
     static ObjectNode buildAsyncTaskSchema(ObjectMapper objectMapper) {
         ObjectNode asyncTaskConfig = strictObjectSchema(objectMapper, asyncTaskProperties -> {
             asyncTaskProperties.set("enabled", booleanSchema(objectMapper));
             asyncTaskProperties.set("queryMethod", enumStringSchema(objectMapper, null, "GET", "POST"));
-            asyncTaskProperties.set("queryUrlTemplate", stringSchema(objectMapper));
+                asyncTaskProperties.set("queryUrlTemplate", stringSchema(
+                    objectMapper,
+                    "任务查询 URL 模板，必须包含 {taskId} 占位符。",
+                    ".*\\{taskId\\}.*"));
             asyncTaskProperties.set("authMode", enumStringSchema(objectMapper, null,
                     "SAME_AS_SUBMIT", "OVERRIDE"));
             asyncTaskProperties.set("authScheme", enumStringSchema(objectMapper,
@@ -123,6 +204,22 @@ final class ImportAgentPlanningToolSupport {
             asyncTaskProperties.set("errorPath", stringSchema(objectMapper));
         });
         asyncTaskConfig.put("description", "异步任务查询配置。上游提交任务后按 taskId 查询结果的接口应放在这里，不应单独创建资产。");
+        appendConditionalRequired(
+                objectMapper,
+                asyncTaskConfig,
+                ifProperties -> ifProperties.set("enabled", constBooleanSchema(objectMapper, true)),
+                new String[]{"enabled"},
+                thenProperties -> {
+                },
+                "queryMethod", "queryUrlTemplate", "authMode");
+        appendConditionalRequired(
+                objectMapper,
+                asyncTaskConfig,
+                ifProperties -> ifProperties.set("authMode", enumStringSchema(objectMapper, null, "OVERRIDE")),
+                new String[]{"authMode"},
+                thenProperties -> {
+                },
+                "authScheme", "authConfig");
         return asyncTaskConfig;
     }
 
@@ -132,7 +229,7 @@ final class ImportAgentPlanningToolSupport {
             aiProfileProperties.set("model", stringSchema(objectMapper));
             aiProfileProperties.set("streamingSupported", booleanSchema(objectMapper));
             aiProfileProperties.set("capabilityTags", stringArraySchema(objectMapper));
-        });
+        }, "provider", "model");
     }
 
     static ObjectNode buildCategoryPlanSchema(ObjectMapper objectMapper, boolean requireAction) {

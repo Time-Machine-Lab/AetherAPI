@@ -261,6 +261,10 @@ public final class ImportAgentJsonConverter {
         if (value == null || value.isBlank()) {
             return defaultValue;
         }
+        if (type == AuthScheme.class) {
+            AuthScheme resolved = AuthScheme.fromToken(value);
+            return resolved == null ? defaultValue : type.cast(resolved);
+        }
         return Enum.valueOf(type, value);
     }
 }

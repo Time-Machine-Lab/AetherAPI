@@ -265,6 +265,9 @@ class OpenAiCompatibleImportAgentPlannerProviderTest {
         assertTrue(requestBody.contains("提交当前 API 导入请求的完整导入计划"));
         assertTrue(requestBody.contains("查询接口必须并入提交接口的 asyncTaskConfig"));
         assertTrue(requestBody.contains("请把答案写回 currentPlanJson"));
+        assertTrue(requestBody.contains("不要假设后端会从自由文本自动补齐"));
+        assertTrue(requestBody.contains("asyncTaskConfig.authMode"));
+        assertTrue(requestBody.contains("aiProfile.provider"));
         assertFalse(requestBody.contains("UPSTREAM_API_KEY"));
         assertFalse(requestBody.contains("When information is missing"));
         assertFalse(requestBody.contains("Prepare an import plan"));

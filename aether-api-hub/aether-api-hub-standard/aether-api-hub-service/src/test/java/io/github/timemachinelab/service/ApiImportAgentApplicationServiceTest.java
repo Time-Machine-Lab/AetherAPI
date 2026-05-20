@@ -229,6 +229,37 @@ class ApiImportAgentApplicationServiceTest {
     }
 
     @Test
+    @DisplayName("run should normalize malformed async authMode aliases from stored sessions before asset revision")
+    void shouldNormalizeMalformedAsyncAuthModeFromStoredSession() {
+        ApiImportAgentSessionRepositoryPort sessionRepositoryPort = mock(ApiImportAgentSessionRepositoryPort.class);
+        ApiImportAgentRunRepositoryPort runRepositoryPort = mock(ApiImportAgentRunRepositoryPort.class);
+        ApiImportAgentPlannerPort plannerPort = mock(ApiImportAgentPlannerPort.class);
+        ApiImportAgentReplyPort replyPort = mock(ApiImportAgentReplyPort.class);
+        CategoryUseCase categoryUseCase = mock(CategoryUseCase.class);
+        ApiAssetUseCase apiAssetUseCase = mock(ApiAssetUseCase.class);
+        ApiImportAgentApplicationService service = new ApiImportAgentApplicationService(
+                sessionRepositoryPort,
+                runRepositoryPort,
+                plannerPort,
+                replyPort,
+                categoryUseCase,
+                apiAssetUseCase
+        );
+        when(sessionRepositoryPort.findOwnedSession("user-1", "session-1"))
+                .thenReturn(Optional.of(confirmedSession(executablePlanWithMalformedAsyncAuthMode())));
+        when(categoryUseCase.getCategoryByCode("tools")).thenThrow(new RuntimeException("Category not found"));
+        when(apiAssetUseCase.getAssetByCode("user-1", "weather-forecast"))
+                .thenThrow(new AssetDomainException("Asset not found"));
+
+        service.startRun(new StartImportAgentRunCommand("user-1", "Alice", "session-1", 1));
+
+        ArgumentCaptor<ReviseApiAssetCommand> reviseCaptor = ArgumentCaptor.forClass(ReviseApiAssetCommand.class);
+        verify(apiAssetUseCase).reviseAsset(reviseCaptor.capture());
+        assertEquals("OVERRIDE", reviseCaptor.getValue().getAsyncTaskConfig().getAuthMode());
+        assertEquals("HEADER_TOKEN", reviseCaptor.getValue().getAsyncTaskConfig().getAuthScheme());
+    }
+
+    @Test
     @DisplayName("run should record failed execution steps and final failure state")
     void shouldRecordFailureWhenAssetExecutionFails() {
         ApiImportAgentSessionRepositoryPort sessionRepositoryPort = mock(ApiImportAgentSessionRepositoryPort.class);
@@ -392,6 +423,44 @@ class ApiImportAgentApplicationServiceTest {
                                 "SAME_AS_SUBMIT",
                                 null,
                                 null,
+                                "$.data.status",
+                                "$.data.result",
+                                "$.data.error"
+                        ),
+                        new ImportAiProfileModel("OpenAI", "gpt-4.1", true, List.of("chat"))
+                ))
+        );
+    }
+
+    private ImportAgentPlanModel executablePlanWithMalformedAsyncAuthMode() {
+        return new ImportAgentPlanModel(
+                1,
+                true,
+                "ready",
+                List.of(),
+                List.of(new ImportCategoryPlanModel("tools", "Tools", ImportCategoryPlanAction.CREATE_IF_MISSING)),
+                List.of(new ImportAssetPlanModel(
+                        "weather-forecast",
+                        "Weather Forecast",
+                        AssetType.AI_API,
+                        "tools",
+                        RequestMethod.GET,
+                        "https://upstream.example.com/weather",
+                        AuthScheme.HEADER_TOKEN,
+                        "Authorization: Bearer upstream-token",
+                        "template",
+                        "{\"city\":\"Shanghai\"}",
+                        "{\"temperature\":26}",
+                        "{\"type\":\"object\"}",
+                        "{\"type\":\"object\"}",
+                        true,
+                        new AsyncTaskConfigModel(
+                                true,
+                                "GET",
+                                "https://upstream.example.com/weather/tasks/{taskId}",
+                                "HEADER_TOKEN",
+                                null,
+                                "Authorization: Bearer upstream-token",
                                 "$.data.status",
                                 "$.data.result",
                                 "$.data.error"

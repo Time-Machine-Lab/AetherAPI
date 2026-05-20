@@ -8,7 +8,6 @@ import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
 import io.github.timemachinelab.service.model.ImportAgentPlanModel;
 import io.github.timemachinelab.service.model.ImportAgentPlannerRequest;
-import io.github.timemachinelab.service.model.ImportAgentTurnModel;
 import io.github.timemachinelab.service.model.ImportAiProfileModel;
 import io.github.timemachinelab.service.model.ImportAssetPlanModel;
 import io.github.timemachinelab.service.model.ImportCategoryPlanAction;
@@ -21,8 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Locale;
 import java.net.URI;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Shared JSON planning support for import agent planners.
@@ -30,60 +27,88 @@ import java.util.regex.Pattern;
 final class ImportAgentPlannerJsonSupport {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final Pattern HEADER_AUTH_PATTERN = Pattern.compile("(?im)(Authorization|X-API-Key|Api-Key|X-Auth-Token|Token)\\s*[:=]\\s*([^\\r\\n]+)");
-    private static final Pattern QUERY_AUTH_PATTERN = Pattern.compile("(?im)(access_token|api_key|apikey|token|key)\\s*=\\s*([^\\s&;,]+)");
-    private static final Pattern URL_PATTERN = Pattern.compile("https?://[^\\s)]+", Pattern.CASE_INSENSITIVE);
-    private static final Pattern MODEL_PATTERN = Pattern.compile("(?i)(gpt-[\\w.-]+|claude-[\\w.-]+|gemini-[\\w.-]+|deepseek-[\\w.-]+|qwen-[\\w.-]+|doubao-[\\w.-]+|glm-[\\w.-]+|moonshot-[\\w.-]+)");
 
     private ImportAgentPlannerJsonSupport() {
     }
 
     static ImportAgentPlanModel buildPlan(ImportAgentPlannerRequest request, JsonNode sourceNode) {
-        List<ImportCategoryPlanModel> currentCategoryPlans = request.getCurrentPlan() == null
-            ? List.of()
-            : request.getCurrentPlan().getCategoryPlans();
-        List<ImportAssetPlanModel> currentAssetPlans = request.getCurrentPlan() == null
-            ? List.of()
-            : request.getCurrentPlan().getAssetPlans();
-        List<ImportCategoryPlanModel> categoryPlans = currentCategoryPlans;
-        List<ImportAssetPlanModel> assetPlans = currentAssetPlans;
-        List<String> clarificationQuestions = List.of();
-        String summary = request.getCurrentPlan() == null ? null : request.getCurrentPlan().getSummary();
-
-        if (sourceNode != null && sourceNode.isObject()) {
-            if (hasCategoryPlanField(sourceNode)) {
-                categoryPlans = parseCategoryPlans(sourceNode, currentCategoryPlans);
-            }
-            if (hasAssetPlanField(sourceNode)) {
-                assetPlans = parseAssetPlans(sourceNode, currentAssetPlans);
-            }
-            clarificationQuestions = parseStringArray(sourceNode, "clarificationQuestions");
-            String resolvedSummary = textValue(sourceNode, "summary");
-            if (resolvedSummary != null) {
-                summary = resolvedSummary;
-            }
-        }
-
-        assetPlans = reconcileMissingSlots(request, assetPlans);
-        AsyncAssetPlanNormalizationResult normalizationResult = normalizeAsyncTaskQueryAssets(assetPlans);
-        assetPlans = normalizationResult.assetPlans;
-        categoryPlans = pruneFoldedAsyncQueryCategories(categoryPlans, assetPlans, normalizationResult.foldedCategoryCodes);
-        categoryPlans = ensureCategoryCoverage(categoryPlans, assetPlans);
-        List<String> validationQuestions = validatePlan(categoryPlans, assetPlans);
-        LinkedHashSet<String> mergedQuestions = new LinkedHashSet<>(clarificationQuestions);
-        mergedQuestions.addAll(validationQuestions);
-        boolean executable = mergedQuestions.isEmpty();
-        String resolvedSummary = summary == null
-                ? buildDefaultSummary(request.getNextPlanVersion(), categoryPlans, assetPlans)
-                : summary;
+        CurrentPlanState currentPlanState = currentPlanState(request);
+        ParsedPlannerPayload parsedPayload = parsePlannerPayload(sourceNode, currentPlanState.summary());
+        PlanDraft mergedDraft = mergeWithCurrentPlan(sourceNode, currentPlanState, parsedPayload);
+        PlanDraft normalizedDraft = normalizeDraft(mergedDraft);
+        PlanValidationResult validationResult = validateDraft(request.getNextPlanVersion(), normalizedDraft);
         return new ImportAgentPlanModel(
                 request.getNextPlanVersion(),
-                executable,
-                resolvedSummary,
-                List.copyOf(mergedQuestions),
-                categoryPlans,
-                assetPlans
+                validationResult.executable(),
+                validationResult.summary(),
+                validationResult.clarificationQuestions(),
+                normalizedDraft.categoryPlans(),
+                normalizedDraft.assetPlans()
         );
+    }
+
+    private static CurrentPlanState currentPlanState(ImportAgentPlannerRequest request) {
+        if (request.getCurrentPlan() == null) {
+            return new CurrentPlanState(List.of(), List.of(), null);
+        }
+        return new CurrentPlanState(
+                request.getCurrentPlan().getCategoryPlans(),
+                request.getCurrentPlan().getAssetPlans(),
+                request.getCurrentPlan().getSummary());
+    }
+
+    private static ParsedPlannerPayload parsePlannerPayload(JsonNode sourceNode, String currentSummary) {
+        if (sourceNode == null || !sourceNode.isObject()) {
+            return new ParsedPlannerPayload(false, false, List.of(), currentSummary);
+        }
+        String parsedSummary = textValue(sourceNode, "summary");
+        return new ParsedPlannerPayload(
+                hasCategoryPlanField(sourceNode),
+                hasAssetPlanField(sourceNode),
+                parseStringArray(sourceNode, "clarificationQuestions"),
+                parsedSummary == null ? currentSummary : parsedSummary);
+    }
+
+    private static PlanDraft mergeWithCurrentPlan(
+            JsonNode sourceNode,
+            CurrentPlanState currentPlanState,
+            ParsedPlannerPayload parsedPayload) {
+        List<ImportCategoryPlanModel> categoryPlans = parsedPayload.hasCategoryPlanPatch()
+                ? parseCategoryPlans(sourceNode, currentPlanState.categoryPlans())
+                : currentPlanState.categoryPlans();
+        List<ImportAssetPlanModel> assetPlans = parsedPayload.hasAssetPlanPatch()
+                ? parseAssetPlans(sourceNode, currentPlanState.assetPlans())
+                : currentPlanState.assetPlans();
+        return new PlanDraft(categoryPlans, assetPlans, parsedPayload.clarificationQuestions(), parsedPayload.summary());
+    }
+
+    private static PlanDraft normalizeDraft(PlanDraft draft) {
+        List<ImportAssetPlanModel> reconciledAssetPlans = reconcileMissingSlots(draft.assetPlans());
+        AsyncAssetPlanNormalizationResult normalizationResult = normalizeAsyncTaskQueryAssets(reconciledAssetPlans);
+        List<ImportCategoryPlanModel> prunedCategoryPlans = pruneFoldedAsyncQueryCategories(
+                draft.categoryPlans(),
+                normalizationResult.assetPlans,
+                normalizationResult.foldedCategoryCodes);
+        List<ImportCategoryPlanModel> coveredCategoryPlans = ensureCategoryCoverage(
+                prunedCategoryPlans,
+                normalizationResult.assetPlans);
+        return new PlanDraft(
+                coveredCategoryPlans,
+                normalizationResult.assetPlans,
+                draft.clarificationQuestions(),
+                draft.summary());
+    }
+
+    private static PlanValidationResult validateDraft(int nextPlanVersion, PlanDraft draft) {
+        List<String> validationQuestions = validatePlan(draft.categoryPlans(), draft.assetPlans());
+        LinkedHashSet<String> mergedQuestions = new LinkedHashSet<>(draft.clarificationQuestions());
+        mergedQuestions.addAll(validationQuestions);
+        List<String> clarificationQuestions = List.copyOf(mergedQuestions);
+        boolean executable = clarificationQuestions.isEmpty();
+        String summary = draft.summary() == null
+                ? buildDefaultSummary(nextPlanVersion, draft.categoryPlans(), draft.assetPlans())
+                : draft.summary();
+        return new PlanValidationResult(executable, summary, clarificationQuestions);
     }
 
     private static boolean hasCategoryPlanField(JsonNode root) {
@@ -283,6 +308,9 @@ final class ImportAgentPlannerJsonSupport {
                     questions.add("需要发布的 AI_API 资产计划必须提供 aiProfile 的 provider 和 model。");
                 }
                 if (assetPlan.getAsyncTaskConfig() != null && Boolean.TRUE.equals(assetPlan.getAsyncTaskConfig().getEnabled())) {
+                    if (assetPlan.getAsyncTaskConfig().getAuthMode() == null || assetPlan.getAsyncTaskConfig().getAuthMode().isBlank()) {
+                        questions.add("启用异步任务查询时必须提供 asyncTaskConfig.authMode。");
+                    }
                     if (assetPlan.getAsyncTaskConfig().getQueryMethod() == null || assetPlan.getAsyncTaskConfig().getQueryMethod().isBlank()) {
                         questions.add("启用异步任务查询时必须提供 asyncTaskConfig.queryMethod。");
                     }
@@ -460,7 +488,7 @@ final class ImportAgentPlannerJsonSupport {
 
     private static ImportAssetPlanModel mergeAsyncTaskConfig(ImportAssetPlanModel submitAsset, ImportAssetPlanModel queryAsset) {
         AsyncTaskConfigModel current = submitAsset.getAsyncTaskConfig();
-        AsyncTaskConfigModel merged = new AsyncTaskConfigModel(
+        AsyncTaskConfigModel merged = normalizeAsyncTaskConfig(new AsyncTaskConfigModel(
                 true,
                 queryAsset.getRequestMethod() == null
                         ? currentValue(current, AsyncTaskConfigModel::getQueryMethod, "GET")
@@ -472,7 +500,7 @@ final class ImportAgentPlannerJsonSupport {
                 currentValue(current, AsyncTaskConfigModel::getStatusPath),
                 currentValue(current, AsyncTaskConfigModel::getResultPath),
                 currentValue(current, AsyncTaskConfigModel::getErrorPath)
-        );
+            ));
         return new ImportAssetPlanModel(
                 submitAsset.getApiCode(),
                 submitAsset.getAssetName(),
@@ -494,27 +522,11 @@ final class ImportAgentPlannerJsonSupport {
     }
 
     private static String resolveAsyncTaskQueryUrlTemplate(ImportAssetPlanModel queryAsset, AsyncTaskConfigModel current) {
-        String currentTemplate = currentValue(current, AsyncTaskConfigModel::getQueryUrlTemplate);
-        if (currentTemplate != null && currentTemplate.contains("{taskId}")) {
+        String currentTemplate = normalizeTaskIdPlaceholder(currentValue(current, AsyncTaskConfigModel::getQueryUrlTemplate));
+        if (currentTemplate != null) {
             return currentTemplate;
         }
-        String candidate = firstText(queryAsset.getUpstreamUrl(), queryAsset.getRequestExample(), currentTemplate);
-        if (candidate == null) {
-            return null;
-        }
-        String normalized = candidate
-                .replace("{id}", "{taskId}")
-                .replace("{task_id}", "{taskId}")
-                .replace("{video_id}", "{taskId}")
-                .replace("<task_id>", "{taskId}")
-                .replace("<video_id>", "{taskId}")
-                .replace(":task_id", "{taskId}")
-                .replace(":video_id", "{taskId}");
-        normalized = normalized.replaceAll("(?i)([?&](?:id|task_id|taskId|video_id)=)[^&#\\s]+", "$1{taskId}");
-        if (normalized.contains("{taskId}")) {
-            return normalized;
-        }
-        return normalized + (normalized.contains("?") ? "&" : "?") + "id={taskId}";
+        return normalizeTaskIdPlaceholder(queryAsset.getUpstreamUrl());
     }
 
     private static String resolveAsyncTaskAuthMode(
@@ -636,17 +648,17 @@ final class ImportAgentPlannerJsonSupport {
         if (!node.isObject()) {
             return current;
         }
-        return new AsyncTaskConfigModel(
+        return normalizeAsyncTaskConfig(new AsyncTaskConfigModel(
                 hasField(node, "enabled") ? node.path("enabled").asBoolean(false) : currentValue(current, AsyncTaskConfigModel::getEnabled),
                 hasField(node, "queryMethod") ? textValue(node, "queryMethod") : currentValue(current, AsyncTaskConfigModel::getQueryMethod),
                 hasField(node, "queryUrlTemplate") ? textValue(node, "queryUrlTemplate") : currentValue(current, AsyncTaskConfigModel::getQueryUrlTemplate),
                 hasField(node, "authMode") ? textValue(node, "authMode") : currentValue(current, AsyncTaskConfigModel::getAuthMode),
                 hasField(node, "authScheme") ? textValue(node, "authScheme") : currentValue(current, AsyncTaskConfigModel::getAuthScheme),
-            hasField(node, "authConfig") ? authConfigValue(node.path("authConfig")) : currentValue(current, AsyncTaskConfigModel::getAuthConfig),
+                hasField(node, "authConfig") ? authConfigValue(node.path("authConfig")) : currentValue(current, AsyncTaskConfigModel::getAuthConfig),
                 hasField(node, "statusPath") ? textValue(node, "statusPath") : currentValue(current, AsyncTaskConfigModel::getStatusPath),
                 hasField(node, "resultPath") ? textValue(node, "resultPath") : currentValue(current, AsyncTaskConfigModel::getResultPath),
                 hasField(node, "errorPath") ? textValue(node, "errorPath") : currentValue(current, AsyncTaskConfigModel::getErrorPath)
-        );
+        ));
     }
 
     private static ImportAiProfileModel parseAiProfile(JsonNode node, ImportAiProfileModel currentAiProfile) {
@@ -672,76 +684,25 @@ final class ImportAgentPlannerJsonSupport {
         return node != null && node.has(fieldName);
     }
 
-    private static List<ImportAssetPlanModel> reconcileMissingSlots(
-            ImportAgentPlannerRequest request,
-            List<ImportAssetPlanModel> assetPlans) {
+    private static List<ImportAssetPlanModel> reconcileMissingSlots(List<ImportAssetPlanModel> assetPlans) {
         if (assetPlans == null || assetPlans.isEmpty()) {
             return assetPlans;
         }
-        List<String> evidence = collectEvidence(request);
         List<ImportAssetPlanModel> resolved = new ArrayList<>(assetPlans.size());
         for (ImportAssetPlanModel assetPlan : assetPlans) {
-            resolved.add(reconcileAssetPlan(assetPlan, evidence));
+            resolved.add(reconcileAssetPlan(assetPlan));
         }
         return List.copyOf(resolved);
     }
 
-    private static List<String> collectEvidence(ImportAgentPlannerRequest request) {
-        List<String> evidence = new ArrayList<>();
-        if (request.getLatestUserMessage() != null && !request.getLatestUserMessage().isBlank()) {
-            evidence.add(request.getLatestUserMessage().trim());
-        }
-        for (ImportAgentTurnModel turn : request.getTurns()) {
-            if (turn != null && turn.getMessage() != null && !turn.getMessage().isBlank()) {
-                evidence.add(turn.getMessage().trim());
-            }
-        }
-        if (request.getDocumentSummary() != null && !request.getDocumentSummary().isBlank()) {
-            evidence.add(request.getDocumentSummary().trim());
-        }
-        return evidence;
-    }
-
-    private static ImportAssetPlanModel reconcileAssetPlan(ImportAssetPlanModel assetPlan, List<String> evidence) {
+    private static ImportAssetPlanModel reconcileAssetPlan(ImportAssetPlanModel assetPlan) {
         if (assetPlan == null) {
             return null;
         }
-        String authConfig = assetPlan.getAuthConfig();
-        if ((authConfig == null || authConfig.isBlank())
-                && assetPlan.getAuthScheme() != null
-                && assetPlan.getAuthScheme() != AuthScheme.NONE) {
-            authConfig = inferAuthConfig(assetPlan.getAuthScheme(), evidence);
-        }
-
-        ImportAiProfileModel aiProfile = assetPlan.getAiProfile();
-        if (assetPlan.getAssetType() == AssetType.AI_API) {
-            String provider = aiProfile == null ? null : aiProfile.getProvider();
-            String model = aiProfile == null ? null : aiProfile.getModel();
-            if (provider == null || provider.isBlank()) {
-                provider = inferAiProvider(evidence);
-            }
-            if (model == null || model.isBlank()) {
-                model = inferAiModel(evidence);
-            }
-            if ((provider != null && !provider.isBlank()) || (model != null && !model.isBlank())) {
-                aiProfile = new ImportAiProfileModel(
-                        provider,
-                        model,
-                        aiProfile != null && aiProfile.isStreamingSupported(),
-                        aiProfile == null ? List.of() : aiProfile.getCapabilityTags());
-            }
-        }
-
         AsyncTaskConfigModel asyncTaskConfig = assetPlan.getAsyncTaskConfig();
         if (asyncTaskConfig != null && Boolean.TRUE.equals(asyncTaskConfig.getEnabled())) {
             String queryUrlTemplate = asyncTaskConfig.getQueryUrlTemplate();
-            if (queryUrlTemplate == null || queryUrlTemplate.isBlank()) {
-                queryUrlTemplate = inferAsyncQueryUrlTemplate(evidence);
-            }
             String queryMethod = asyncTaskConfig.getQueryMethod();
-            if ((queryMethod == null || queryMethod.isBlank()) && queryUrlTemplate != null) {
-                queryMethod = inferAsyncQueryMethod(evidence);
-            }
             String authMode = asyncTaskConfig.getAuthMode();
             if (authMode == null || authMode.isBlank()) {
                 authMode = (asyncTaskConfig.getAuthScheme() == null && (asyncTaskConfig.getAuthConfig() == null || asyncTaskConfig.getAuthConfig().isBlank()))
@@ -749,14 +710,8 @@ final class ImportAgentPlannerJsonSupport {
                         : "OVERRIDE";
             }
             String asyncAuthConfig = asyncTaskConfig.getAuthConfig();
-            if ("OVERRIDE".equalsIgnoreCase(authMode) && (asyncAuthConfig == null || asyncAuthConfig.isBlank())) {
-                asyncAuthConfig = inferAuthConfig(resolveAuthScheme(asyncTaskConfig.getAuthScheme()), evidence);
-            }
             String asyncAuthScheme = asyncTaskConfig.getAuthScheme();
-            if ("OVERRIDE".equalsIgnoreCase(authMode) && (asyncAuthScheme == null || asyncAuthScheme.isBlank())) {
-                asyncAuthScheme = inferAuthScheme(asyncAuthConfig);
-            }
-            asyncTaskConfig = new AsyncTaskConfigModel(
+            asyncTaskConfig = normalizeAsyncTaskConfig(new AsyncTaskConfigModel(
                     asyncTaskConfig.getEnabled(),
                     queryMethod,
                     queryUrlTemplate,
@@ -765,7 +720,7 @@ final class ImportAgentPlannerJsonSupport {
                     asyncAuthConfig,
                     asyncTaskConfig.getStatusPath(),
                     asyncTaskConfig.getResultPath(),
-                    asyncTaskConfig.getErrorPath());
+                    asyncTaskConfig.getErrorPath()));
         }
 
         return new ImportAssetPlanModel(
@@ -776,7 +731,7 @@ final class ImportAgentPlannerJsonSupport {
                 assetPlan.getRequestMethod(),
                 assetPlan.getUpstreamUrl(),
                 assetPlan.getAuthScheme(),
-                authConfig,
+                assetPlan.getAuthConfig(),
                 assetPlan.getRequestTemplate(),
                 assetPlan.getRequestExample(),
                 assetPlan.getResponseExample(),
@@ -784,112 +739,70 @@ final class ImportAgentPlannerJsonSupport {
                 assetPlan.getResponseJsonSchema(),
                 assetPlan.isPublishAfterImport(),
                 asyncTaskConfig,
-                aiProfile);
+                assetPlan.getAiProfile());
     }
 
-    private static String inferAuthConfig(AuthScheme authScheme, List<String> evidence) {
-        if (authScheme == null || authScheme == AuthScheme.NONE) {
+    private static AsyncTaskConfigModel normalizeAsyncTaskConfig(AsyncTaskConfigModel config) {
+        if (config == null) {
             return null;
         }
-        for (String candidate : evidence) {
-            if (authScheme == AuthScheme.HEADER_TOKEN) {
-                Matcher matcher = HEADER_AUTH_PATTERN.matcher(candidate);
-                if (matcher.find()) {
-                    return matcher.group(1).trim() + ": " + matcher.group(2).trim();
-                }
-            }
-            if (authScheme == AuthScheme.QUERY_TOKEN) {
-                Matcher matcher = QUERY_AUTH_PATTERN.matcher(candidate);
-                if (matcher.find()) {
-                    return matcher.group(1).trim() + "=" + matcher.group(2).trim();
-                }
-            }
+        String authMode = normalizeAsyncTaskAuthMode(config.getAuthMode(), config.getAuthScheme(), config.getAuthConfig());
+        String authScheme = normalizeAsyncTaskAuthScheme(config.getAuthMode(), config.getAuthScheme(), authMode);
+        return new AsyncTaskConfigModel(
+                config.getEnabled(),
+                config.getQueryMethod(),
+                config.getQueryUrlTemplate(),
+                authMode,
+                authScheme,
+                config.getAuthConfig(),
+                config.getStatusPath(),
+                config.getResultPath(),
+                config.getErrorPath());
+    }
+
+    private static String normalizeAsyncTaskAuthMode(String authMode, String authScheme, String authConfig) {
+        String normalized = normalizeEnumText(authMode);
+        if ("SAME_AS_SUBMIT".equals(normalized) || "OVERRIDE".equals(normalized)) {
+            return normalized;
+        }
+        if (resolveAuthScheme(normalized) != null) {
+            return "OVERRIDE";
         }
         return null;
     }
 
-    private static String inferAiProvider(List<String> evidence) {
-        for (String candidate : evidence) {
-            String lower = safeLower(candidate);
-            if (lower.contains("openai")) {
-                return "OpenAI";
-            }
-            if (lower.contains("anthropic") || lower.contains("claude")) {
-                return "Anthropic";
-            }
-            if (lower.contains("gemini") || lower.contains("google")) {
-                return "Google";
-            }
-            if (lower.contains("deepseek")) {
-                return "DeepSeek";
-            }
-            if (lower.contains("qwen") || lower.contains("tongyi")) {
-                return "Alibaba";
-            }
-            if (lower.contains("doubao") || lower.contains("volcengine")) {
-                return "Volcengine";
-            }
-            if (lower.contains("moonshot") || lower.contains("kimi")) {
-                return "Moonshot";
-            }
+    private static String normalizeAsyncTaskAuthScheme(String authMode, String authScheme, String normalizedAuthMode) {
+        AuthScheme normalizedScheme = resolveAuthScheme(authScheme);
+        if (normalizedScheme != null) {
+            return normalizedScheme.name();
         }
-        return null;
-    }
-
-    private static String inferAiModel(List<String> evidence) {
-        for (String candidate : evidence) {
-            Matcher matcher = MODEL_PATTERN.matcher(candidate);
-            if (matcher.find()) {
-                return matcher.group(1);
-            }
-        }
-        return null;
-    }
-
-    private static String inferAsyncQueryUrlTemplate(List<String> evidence) {
-        for (String candidate : evidence) {
-            Matcher matcher = URL_PATTERN.matcher(candidate);
-            while (matcher.find()) {
-                String url = matcher.group();
-                String lower = safeLower(url);
-                if (!lower.contains("task") && !lower.contains("status") && !lower.contains("result") && !lower.contains("query")) {
-                    continue;
-                }
-                return normalizeTaskIdPlaceholder(url);
-            }
-        }
-        return null;
-    }
-
-    private static String inferAsyncQueryMethod(List<String> evidence) {
-        for (String candidate : evidence) {
-            String upper = candidate.toUpperCase(Locale.ROOT);
-            if (upper.contains("GET ") || upper.contains("GET\n")) {
-                return "GET";
-            }
-            if (upper.contains("POST ") || upper.contains("POST\n")) {
-                return "POST";
-            }
-        }
-        return "GET";
-    }
-
-    private static String inferAuthScheme(String authConfig) {
-        if (authConfig == null || authConfig.isBlank()) {
+        if ("SAME_AS_SUBMIT".equals(normalizedAuthMode)) {
             return null;
         }
-        return authConfig.contains(":") ? AuthScheme.HEADER_TOKEN.name() : AuthScheme.QUERY_TOKEN.name();
+        normalizedScheme = resolveAuthScheme(authMode);
+        if (normalizedScheme != null) {
+            return normalizedScheme.name();
+        }
+        return null;
     }
 
     private static AuthScheme resolveAuthScheme(String authScheme) {
-        if (authScheme == null || authScheme.isBlank()) {
+        String normalized = normalizeEnumText(authScheme);
+        if (normalized == null) {
             return null;
         }
         try {
-            return AuthScheme.valueOf(authScheme);
+            return AuthScheme.fromToken(normalized);
         } catch (IllegalArgumentException ex) {
             return null;
         }
+    }
+
+    private static String normalizeEnumText(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim().toUpperCase(Locale.ROOT);
     }
 
     private static String schemaValue(JsonNode node, String currentValue, String... fieldNames) {
@@ -940,7 +853,7 @@ final class ImportAgentPlannerJsonSupport {
         if (normalized.contains("{taskId}")) {
             return normalized;
         }
-        return normalized + (normalized.contains("?") ? "&" : "?") + "taskId={taskId}";
+        return null;
     }
 
     private static <T, R> R currentValue(T current, java.util.function.Function<T, R> extractor) {
@@ -1009,6 +922,32 @@ final class ImportAgentPlannerJsonSupport {
         return value == null ? "" : value.toLowerCase(Locale.ROOT);
     }
 
+        private record CurrentPlanState(
+            List<ImportCategoryPlanModel> categoryPlans,
+            List<ImportAssetPlanModel> assetPlans,
+            String summary) {
+        }
+
+        private record ParsedPlannerPayload(
+            boolean hasCategoryPlanPatch,
+            boolean hasAssetPlanPatch,
+            List<String> clarificationQuestions,
+            String summary) {
+        }
+
+        private record PlanDraft(
+            List<ImportCategoryPlanModel> categoryPlans,
+            List<ImportAssetPlanModel> assetPlans,
+            List<String> clarificationQuestions,
+            String summary) {
+        }
+
+        private record PlanValidationResult(
+            boolean executable,
+            String summary,
+            List<String> clarificationQuestions) {
+        }
+
     private static String textValue(JsonNode node, String fieldName) {
         JsonNode valueNode = node.path(fieldName);
         if (valueNode.isMissingNode() || valueNode.isNull()) {
@@ -1022,7 +961,27 @@ final class ImportAgentPlannerJsonSupport {
         if (value == null || value.isBlank()) {
             return defaultValue;
         }
-        return Enum.valueOf(type, value);
+        if (type == AuthScheme.class) {
+            AuthScheme resolved = resolveAuthScheme(value);
+            return resolved == null ? defaultValue : type.cast(resolved);
+        }
+        return Enum.valueOf(type, normalizeEnumToken(type, value));
+    }
+
+    private static <T extends Enum<T>> String normalizeEnumToken(Class<T> type, String value) {
+        String normalized = value.trim().replace('-', '_').replace(' ', '_').toUpperCase(Locale.ROOT);
+        if (type == AssetType.class) {
+            return normalizeAssetTypeToken(normalized);
+        }
+        return normalized;
+    }
+
+    private static String normalizeAssetTypeToken(String normalized) {
+        return switch (normalized) {
+            case "API", "STANDARD", "STANDARDAPI", "REST_API", "HTTP_API" -> "STANDARD_API";
+            case "AI", "AI_MODEL", "MODEL", "LLM", "LLM_API" -> "AI_API";
+            default -> normalized;
+        };
     }
 
     private static final class AsyncAssetPlanNormalizationResult {

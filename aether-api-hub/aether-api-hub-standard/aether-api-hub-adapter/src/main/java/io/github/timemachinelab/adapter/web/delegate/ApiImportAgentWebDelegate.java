@@ -41,6 +41,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -202,7 +203,7 @@ public class ApiImportAgentWebDelegate {
                 // Response already failed; nothing else to do.
             }
         } finally {
-            asyncContext.complete();
+                asyncContext.complete();
         }
     }
 
@@ -304,17 +305,70 @@ public class ApiImportAgentWebDelegate {
         if (model == null) {
             return null;
         }
+        AsyncTaskAuthMode authMode = resolveAsyncTaskAuthMode(model);
+        AuthScheme authScheme = resolveAsyncTaskAuthScheme(model, authMode);
         return new AsyncTaskConfigResp(
                 model.getEnabled(),
                 model.getQueryMethod() == null ? null : RequestMethod.valueOf(model.getQueryMethod()),
                 model.getQueryUrlTemplate(),
-                model.getAuthMode() == null ? null : AsyncTaskAuthMode.valueOf(model.getAuthMode()),
-                model.getAuthScheme() == null ? null : AuthScheme.valueOf(model.getAuthScheme()),
+                authMode,
+                authScheme,
                 model.getAuthConfig(),
                 model.getStatusPath(),
                 model.getResultPath(),
                 model.getErrorPath()
         );
+    }
+
+    private AsyncTaskAuthMode resolveAsyncTaskAuthMode(AsyncTaskConfigModel model) {
+        String authMode = normalizeEnumText(model.getAuthMode());
+        if ("SAME_AS_SUBMIT".equals(authMode) || "OVERRIDE".equals(authMode)) {
+            return AsyncTaskAuthMode.valueOf(authMode);
+        }
+        if (resolveAuthScheme(model.getAuthMode()) != null
+                || resolveAuthScheme(model.getAuthScheme()) != null
+                || hasText(model.getAuthConfig())) {
+            return AsyncTaskAuthMode.OVERRIDE;
+        }
+        return null;
+    }
+
+    private AuthScheme resolveAsyncTaskAuthScheme(AsyncTaskConfigModel model, AsyncTaskAuthMode authMode) {
+        AuthScheme authScheme = resolveAuthScheme(model.getAuthScheme());
+        if (authScheme != null) {
+            return authScheme;
+        }
+        authScheme = resolveAuthScheme(model.getAuthMode());
+        if (authScheme != null) {
+            return authScheme;
+        }
+        if (authMode == AsyncTaskAuthMode.OVERRIDE && hasText(model.getAuthConfig())) {
+            return model.getAuthConfig().contains(":") ? AuthScheme.HEADER_TOKEN : AuthScheme.QUERY_TOKEN;
+        }
+        return null;
+    }
+
+    private AuthScheme resolveAuthScheme(String value) {
+        String normalized = normalizeEnumText(value);
+        if (normalized == null) {
+            return null;
+        }
+        try {
+            return AuthScheme.fromToken(normalized);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private String normalizeEnumText(String value) {
+        if (!hasText(value)) {
+            return null;
+        }
+        return value.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private ImportAiProfileResp toAiProfileResp(ImportAiProfileModel model) {

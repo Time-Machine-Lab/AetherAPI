@@ -7,6 +7,7 @@ import io.github.timemachinelab.adapter.web.config.ImportAgentStreamProperties;
 import io.github.timemachinelab.api.req.CreateImportAgentSessionReq;
 import io.github.timemachinelab.service.model.ApiImportAgentRunModel;
 import io.github.timemachinelab.service.model.ApiImportAgentSessionModel;
+import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
 import io.github.timemachinelab.service.model.CreateImportAgentSessionCommand;
 import io.github.timemachinelab.service.model.ImportAgentActorType;
 import io.github.timemachinelab.service.model.ImportAgentPlanModel;
@@ -81,6 +82,19 @@ class ApiImportAgentWebDelegateTest {
         assertEquals("AI profile attached", response.getStepResults().get(1).getMessage());
     }
 
+    @Test
+    @DisplayName("get session should tolerate malformed async authMode values stored in existing plans")
+    void shouldMapMalformedAsyncAuthModeAlias() {
+        ApiImportAgentUseCase useCase = mock(ApiImportAgentUseCase.class);
+        when(useCase.getSession("user-1", "session-1")).thenReturn(sessionModelWithMalformedAsyncAuthMode());
+        ApiImportAgentWebDelegate delegate = new ApiImportAgentWebDelegate(useCase, STREAM_PROPERTIES);
+
+        var response = delegate.getSession("user-1", "session-1");
+
+        assertEquals("OVERRIDE", response.getCurrentPlan().getAssetPlans().get(0).getAsyncTaskConfig().getAuthMode().name());
+        assertEquals("HEADER_TOKEN", response.getCurrentPlan().getAssetPlans().get(0).getAsyncTaskConfig().getAuthScheme().name());
+    }
+
     private ApiImportAgentSessionModel sessionModel() {
         return new ApiImportAgentSessionModel(
                 "session-1",
@@ -143,6 +157,59 @@ class ApiImportAgentWebDelegateTest {
                 "2026-05-18T10:11:00Z"
         );
     }
+
+            private ApiImportAgentSessionModel sessionModelWithMalformedAsyncAuthMode() {
+            return new ApiImportAgentSessionModel(
+                "session-1",
+                "user-1",
+                ImportAgentSessionStatus.WAITING_FOR_CONFIRMATION,
+                "https://docs.example.com/video",
+                "summary",
+                "import video api",
+                "Alice",
+                1,
+                null,
+                null,
+                null,
+                new ImportAgentPlanModel(
+                    1,
+                    true,
+                    "ready",
+                    List.of(),
+                    List.of(new ImportCategoryPlanModel("video", "Video", ImportCategoryPlanAction.CREATE_IF_MISSING)),
+                    List.of(new ImportAssetPlanModel(
+                        "video-submit",
+                        "Video Submit",
+                        AssetType.STANDARD_API,
+                        "video",
+                        RequestMethod.POST,
+                        "https://upstream.example.com/video/submit",
+                        AuthScheme.NONE,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        true,
+                        new AsyncTaskConfigModel(
+                            true,
+                            "GET",
+                            "https://upstream.example.com/tasks/{taskId}",
+                            "HEADER_TOKEN",
+                            null,
+                            "Authorization: Bearer upstream-token",
+                            null,
+                            null,
+                            null),
+                        null
+                    ))
+                ),
+                List.of(new ImportAgentTurnModel("turn-1", "session-1", 1, ImportAgentActorType.AGENT, "ready", 1, "2026-05-18T10:00:00Z")),
+                "2026-05-18T10:00:00Z",
+                "2026-05-18T10:05:00Z"
+            );
+            }
 
     private static ImportAgentStreamProperties streamProperties() {
         ImportAgentStreamProperties properties = new ImportAgentStreamProperties();
