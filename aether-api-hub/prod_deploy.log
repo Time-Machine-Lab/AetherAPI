@@ -8,3 +8,4 @@
 [AetherAPI-260503][prod][1.1.4] <Auto> -v:1.1.4 -rp:8090 -de:<-e ACTIVE=prod -e SERVER_PORT=8090>
 [AetherAPI-260510][prod][1.1.5] <Auto> -v:1.1.5 -rp:8090 -de:<-e ACTIVE=prod -e SERVER_PORT=8090>
 [AetherAPI-260517][prod][1.2.0] <Auto> -v:1.2.0 -rp:8090 -de:<-e ACTIVE=prod -e SERVER_PORT=8090 -e JAVA_OPTS=-Djdk.http.auth.tunneling.disabledSchemes=>
+[AetherAPI-260520][prod][1.2.3] <Auto> -v:1.2.3 -rp:8090 -de:<-e ACTIVE=prod -e SERVER_PORT=8090 -e JAVA_OPTS=-Djdk.http.auth.tunneling.disabledSchemes=>
