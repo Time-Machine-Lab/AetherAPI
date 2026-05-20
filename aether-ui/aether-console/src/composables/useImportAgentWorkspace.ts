@@ -10,7 +10,10 @@ import {
   startImportAgentRun,
 } from '@/api/import-agent/import-agent.api'
 import type {
+  AppendImportAgentTurnInput,
   CreateImportAgentSessionInput,
+  ImportAgentClarificationAnswerInput,
+  ImportAgentClarificationItem,
   ImportAgentStreamCallbacks,
   ImportAgentStreamPhase,
   ImportAgentRun,
@@ -68,7 +71,7 @@ const defaultDeps: ImportAgentWorkspaceDeps = {
 const ACTIVE_SESSION_STORAGE_KEY = `${appConfig.storageKey}:import-agent:active-session`
 const MAX_DRAFT_ATTACHMENT_SIZE = 512 * 1024
 const MAX_DRAFT_ATTACHMENT_COUNT = 5
-const MAX_ATTACHMENT_EXCERPT_LENGTH = 6000
+const MAX_ATTACHMENT_EXCERPT_LENGTH = 64000
 const MAX_DOCUMENT_SUMMARY_LENGTH = 20000
 const MAX_TURN_MESSAGE_LENGTH = 20000
 const SUPPORTED_TEXT_FILE_EXTENSIONS = new Set([
@@ -186,6 +189,7 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
   const importIntent = ref('')
   const publisherDisplayName = ref('')
   const turnMessage = ref('')
+  const clarificationDrafts = ref<Record<string, string>>({})
   const draftAttachments = ref<ImportAgentDraftAttachment[]>([])
 
   const activeSession = ref<ImportAgentSession | null>(null)
@@ -213,6 +217,7 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
   let attachmentSequence = 0
 
   const currentPlan = computed(() => activeSession.value?.currentPlan ?? null)
+  const currentClarificationItems = computed(() => currentPlan.value?.clarificationItems ?? [])
   const hasActiveSession = computed(() => activeSession.value !== null)
   const messageDraft = computed({
     get: () => (hasActiveSession.value ? turnMessage.value : importIntent.value),
@@ -236,8 +241,16 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
       attachingFiles.value,
   )
   const canCreateSession = computed(() => importIntent.value.trim().length > 0 && !creating.value)
+  const hasClarificationDrafts = computed(() =>
+    Object.values(clarificationDrafts.value).some((value) => value.trim().length > 0),
+  )
   const canAppendTurn = computed(
-    () => hasActiveSession.value && turnMessage.value.trim().length > 0 && !appending.value,
+    () =>
+      hasActiveSession.value &&
+      (turnMessage.value.trim().length > 0 ||
+        draftAttachments.value.length > 0 ||
+        hasClarificationDrafts.value) &&
+      !appending.value,
   )
   const canSendMessage = computed(() => {
     if (hasActiveSession.value) {
@@ -268,6 +281,10 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
   function clearDraftAttachments() {
     draftAttachments.value = []
     attachmentError.value = ''
+  }
+
+  function clearClarificationDrafts() {
+    clarificationDrafts.value = {}
   }
 
   function nextAttachmentId() {
@@ -312,6 +329,51 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
   function buildAppendTurnMessage() {
     const sections = [turnMessage.value.trim(), ...buildAttachmentSections()]
     return trimJoinedSections(sections, MAX_TURN_MESSAGE_LENGTH)
+  }
+
+  function buildClarificationAnswers(): ImportAgentClarificationAnswerInput[] {
+    const answers: ImportAgentClarificationAnswerInput[] = []
+    currentClarificationItems.value.forEach((item) => {
+      const value = clarificationDrafts.value[item.id]?.trim()
+      if (!value) {
+        return
+      }
+      answers.push({
+          clarificationId: item.id,
+          targetPath: item.targetPath,
+          fieldKey: item.fieldKey,
+          value,
+      })
+    })
+    return answers
+  }
+
+  function adoptClarificationDefault(item: ImportAgentClarificationItem) {
+    const value = item.defaultValue?.trim()
+    if (!value) {
+      return
+    }
+    clarificationDrafts.value = {
+      ...clarificationDrafts.value,
+      [item.id]: value,
+    }
+  }
+
+  function buildAppendTurnInput(): AppendImportAgentTurnInput {
+    const message = buildAppendTurnMessage()
+    const clarificationAnswers = buildClarificationAnswers()
+    return {
+      ...(message.length > 0 ? { message } : {}),
+      ...(clarificationAnswers.length > 0 ? { clarificationAnswers } : {}),
+    }
+  }
+
+  function appendTurnPendingSummary(input: AppendImportAgentTurnInput) {
+    if (input.message && input.message.trim().length > 0) {
+      return input.message
+    }
+    const count = input.clarificationAnswers?.length ?? 0
+    return options.t('console.importAgent.clarificationAnswerSummary', { count })
   }
 
   function persistSessionId(sessionId?: string | null) {
@@ -403,6 +465,7 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
     documentSummary.value = ''
     importIntent.value = ''
     turnMessage.value = ''
+    clearClarificationDrafts()
     clearErrors()
     clearDraftAttachments()
     resetStreamingState()
@@ -512,16 +575,17 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
     appending.value = true
     turnError.value = ''
     try {
-      const message = buildAppendTurnMessage()
-      beginStreamingTurn(message)
+      const input = buildAppendTurnInput()
+      beginStreamingTurn(appendTurnPendingSummary(input))
       const session = await deps.appendTurn(
         activeSession.value.sessionId,
-        message,
+        input,
         buildStreamingCallbacks(),
       )
       applySession(session)
       activeRun.value = null
       turnMessage.value = ''
+      clearClarificationDrafts()
       clearDraftAttachments()
       resetStreamingState()
       return session
@@ -725,6 +789,7 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
   if (getCurrentInstance()) {
     onBeforeUnmount(() => {
       stopRunPolling()
+      clearClarificationDrafts()
     })
   }
 
@@ -734,6 +799,7 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
     importIntent,
     publisherDisplayName,
     turnMessage,
+    clarificationDrafts,
     messageDraft,
     draftAttachments,
     activeSession,
@@ -743,6 +809,7 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
     streamingPhase,
     streamingStatusMessage,
     currentPlan,
+    currentClarificationItems,
     restoring,
     creating,
     refreshingSession,
@@ -759,6 +826,7 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
     isBusy,
     canCreateSession,
     canAppendTurn,
+    hasClarificationDrafts,
     canSendMessage,
     canConfirmPlan,
     canStartRun,
@@ -772,6 +840,7 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
     refreshRun,
     addDraftFiles,
     removeDraftAttachment,
+    adoptClarificationDefault,
     clearDraftAttachments,
     resetDraft,
     stopRunPolling,

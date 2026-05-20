@@ -15,5 +15,5 @@ export const env = {
   appId: import.meta.env.VITE_APP_ID ?? appConfig.appId,
   appName: import.meta.env.VITE_APP_NAME ?? appConfig.appName,
   defaultLocale: isSupportedLocale(defaultLocale) ? defaultLocale : 'zh-CN',
-  requestTimeoutMs: Number(import.meta.env.VITE_REQUEST_TIMEOUT_MS ?? '60000'),
+  requestTimeoutMs: Number(import.meta.env.VITE_REQUEST_TIMEOUT_MS ?? '0'),
 } as const

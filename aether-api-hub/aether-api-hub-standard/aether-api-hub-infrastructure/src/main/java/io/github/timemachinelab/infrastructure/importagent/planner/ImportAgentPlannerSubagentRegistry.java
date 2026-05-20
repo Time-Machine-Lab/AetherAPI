@@ -27,6 +27,7 @@ public class ImportAgentPlannerSubagentRegistry {
                 new DocumentFactsPlannerSubagent(),
                 new AuthRecognitionPlannerSubagent(),
                 new AsyncPatternPlannerSubagent(),
+                new SchemaGenerationPlannerSubagent(),
                 new PlanReviewPlannerSubagent(),
                 new ClarificationStrategyPlannerSubagent()
         ));

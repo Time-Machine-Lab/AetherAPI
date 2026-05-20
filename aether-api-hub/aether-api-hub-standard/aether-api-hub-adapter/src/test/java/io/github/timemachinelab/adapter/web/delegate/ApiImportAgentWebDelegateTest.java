@@ -4,12 +4,16 @@ import io.github.timemachinelab.domain.catalog.model.AssetType;
 import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 import io.github.timemachinelab.adapter.web.config.ImportAgentStreamProperties;
+import io.github.timemachinelab.api.req.AppendImportAgentTurnReq;
 import io.github.timemachinelab.api.req.CreateImportAgentSessionReq;
 import io.github.timemachinelab.service.model.ApiImportAgentRunModel;
 import io.github.timemachinelab.service.model.ApiImportAgentSessionModel;
 import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
+import io.github.timemachinelab.service.model.AppendImportAgentTurnCommand;
 import io.github.timemachinelab.service.model.CreateImportAgentSessionCommand;
 import io.github.timemachinelab.service.model.ImportAgentActorType;
+import io.github.timemachinelab.service.model.ImportAgentClarificationItemModel;
+import io.github.timemachinelab.service.model.ImportAgentClarificationOptionModel;
 import io.github.timemachinelab.service.model.ImportAgentPlanModel;
 import io.github.timemachinelab.service.model.ImportAgentRunStatus;
 import io.github.timemachinelab.service.model.ImportAgentSessionStatus;
@@ -95,6 +99,39 @@ class ApiImportAgentWebDelegateTest {
         assertEquals("HEADER_TOKEN", response.getCurrentPlan().getAssetPlans().get(0).getAsyncTaskConfig().getAuthScheme().name());
     }
 
+    @Test
+    @DisplayName("append turn should map structured answers and clarification items")
+    void shouldMapStructuredClarificationAnswersAndItems() {
+        ApiImportAgentUseCase useCase = mock(ApiImportAgentUseCase.class);
+        when(useCase.appendTurn(any(AppendImportAgentTurnCommand.class))).thenReturn(sessionModelWithClarificationItem());
+        ApiImportAgentWebDelegate delegate = new ApiImportAgentWebDelegate(useCase, STREAM_PROPERTIES);
+        AppendImportAgentTurnReq req = new AppendImportAgentTurnReq();
+        io.github.timemachinelab.api.req.ImportAgentClarificationAnswerReq answer =
+                new io.github.timemachinelab.api.req.ImportAgentClarificationAnswerReq();
+        answer.setClarificationId("plan-1:/assetPlans/0/authScheme:authScheme");
+        answer.setTargetPath("/assetPlans/0/authScheme");
+        answer.setFieldKey("authScheme");
+        answer.setValue("HEADER_TOKEN");
+        req.setClarificationAnswers(List.of(answer));
+
+        var response = delegate.appendTurn("user-1", "session-1", req);
+
+        ArgumentCaptor<AppendImportAgentTurnCommand> captor = ArgumentCaptor.forClass(AppendImportAgentTurnCommand.class);
+        verify(useCase).appendTurn(captor.capture());
+        assertEquals("user-1", captor.getValue().getOwnerUserId());
+        assertEquals("session-1", captor.getValue().getSessionId());
+        assertEquals(null, captor.getValue().getMessage());
+        assertEquals(1, captor.getValue().getClarificationAnswers().size());
+        assertEquals("authScheme", captor.getValue().getClarificationAnswers().get(0).getFieldKey());
+        assertEquals("HEADER_TOKEN", captor.getValue().getClarificationAnswers().get(0).getValue());
+        assertEquals(1, response.getCurrentPlan().getClarificationItems().size());
+        assertEquals("Authentication scheme", response.getCurrentPlan().getClarificationItems().get(0).getLabel());
+        assertEquals("SELECT", response.getCurrentPlan().getClarificationItems().get(0).getInputType());
+        assertEquals("HEADER_TOKEN", response.getCurrentPlan().getClarificationItems().get(0).getOptions().get(0).getValue());
+        assertEquals("HEADER_TOKEN", response.getCurrentPlan().getClarificationItems().get(0).getDefaultValue());
+        assertEquals("DOCUMENT", response.getCurrentPlan().getClarificationItems().get(0).getDefaultSource());
+    }
+
     private ApiImportAgentSessionModel sessionModel() {
         return new ApiImportAgentSessionModel(
                 "session-1",
@@ -155,6 +192,65 @@ class ApiImportAgentWebDelegateTest {
                 ),
                 "2026-05-18T10:10:00Z",
                 "2026-05-18T10:11:00Z"
+        );
+    }
+
+    private ApiImportAgentSessionModel sessionModelWithClarificationItem() {
+        return new ApiImportAgentSessionModel(
+                "session-1",
+                "user-1",
+                ImportAgentSessionStatus.WAITING_FOR_CLARIFICATION,
+                "https://docs.example.com/weather",
+                "summary",
+                "import weather api",
+                "Alice",
+                1,
+                null,
+                null,
+                null,
+                new ImportAgentPlanModel(
+                        1,
+                        false,
+                        "need auth scheme",
+                        List.of("Authentication scheme (authScheme): Choose the upstream authentication scheme."),
+                        List.of(new ImportAgentClarificationItemModel(
+                                "plan-1:/assetPlans/0/authScheme:authScheme",
+                                "/assetPlans/0/authScheme",
+                                "authScheme",
+                                "Authentication scheme",
+                                "Choose the upstream authentication scheme.",
+                                "SELECT",
+                                true,
+                                List.of(new ImportAgentClarificationOptionModel("HEADER_TOKEN", "HEADER_TOKEN")),
+                                null,
+                                "HEADER_TOKEN",
+                                "HEADER_TOKEN",
+                                "DOCUMENT",
+                                "HIGH"
+                        )),
+                        List.of(new ImportCategoryPlanModel("tools", "Tools", ImportCategoryPlanAction.CREATE_IF_MISSING)),
+                        List.of(new ImportAssetPlanModel(
+                                "weather-forecast",
+                                "Weather Forecast",
+                                AssetType.STANDARD_API,
+                                "tools",
+                                RequestMethod.GET,
+                                "https://upstream.example.com/weather",
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                true,
+                                null,
+                                null
+                        ))
+                ),
+                List.of(),
+                "2026-05-18T10:00:00Z",
+                "2026-05-18T10:05:00Z"
         );
     }
 

@@ -215,6 +215,47 @@ class OpenAiCompatibleImportAgentPlannerProviderTest {
         assertEquals("Authorization: Bearer upstream-token", result.getPlan().getAssetPlans().get(0).getAuthConfig());
         }
 
+        @Test
+        @DisplayName("provider should downgrade inferred async pair into clarification until asyncTaskConfig is explicit")
+        void shouldDowngradeInferredAsyncPairIntoClarification() throws Exception {
+        HttpClient httpClient = mock(HttpClient.class);
+        @SuppressWarnings("unchecked")
+        HttpResponse<String> extractResponse = mock(HttpResponse.class);
+        @SuppressWarnings("unchecked")
+        HttpResponse<String> fillResponse = mock(HttpResponse.class);
+        @SuppressWarnings("unchecked")
+        HttpResponse<String> submitResponse = mock(HttpResponse.class);
+        when(extractResponse.statusCode()).thenReturn(200);
+        when(fillResponse.statusCode()).thenReturn(200);
+        when(submitResponse.statusCode()).thenReturn(200);
+        when(extractResponse.body()).thenReturn(responseBodyWithToolCallArguments(
+            "extract_import_facts",
+            "{\"assetFacts\":[{\"apiCode\":\"video-submit\",\"assetName\":\"Video Submit\",\"assetType\":\"AI_API\",\"requestMethod\":\"POST\",\"upstreamUrl\":\"https://upstream.example.com/video/submit\"},{\"apiCode\":\"video-status\",\"assetName\":\"Video Status\",\"assetType\":\"STANDARD_API\",\"requestMethod\":\"GET\",\"upstreamUrl\":\"https://upstream.example.com/video/tasks/{taskId}\"}]}"));
+        when(fillResponse.body()).thenReturn(responseBodyWithToolCallArguments(
+            "fill_import_slots",
+            "{\"assetPlans\":[],\"remainingMissingSlots\":[]}"));
+        when(submitResponse.body()).thenReturn(responseBodyWithToolCallArguments(
+            "submit_import_plan",
+            "{\"summary\":\"draft\",\"assetPlans\":[{\"apiCode\":\"video-submit\",\"assetName\":\"Video Submit\",\"assetType\":\"AI_API\",\"categoryCode\":\"video\",\"requestMethod\":\"POST\",\"upstreamUrl\":\"https://upstream.example.com/video/submit\",\"authScheme\":\"NONE\",\"publishAfterImport\":true},{\"apiCode\":\"video-status\",\"assetName\":\"Video Status\",\"assetType\":\"STANDARD_API\",\"categoryCode\":\"video\",\"requestMethod\":\"GET\",\"upstreamUrl\":\"https://upstream.example.com/video/tasks/{taskId}\",\"authScheme\":\"NONE\",\"publishAfterImport\":false}]}"));
+        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+            .thenReturn(extractResponse, fillResponse, submitResponse);
+
+        ImportAgentLlmPlannerProperties properties = new ImportAgentLlmPlannerProperties();
+        properties.setEnabled(true);
+        properties.setToolCallingEnabled(true);
+        properties.setBaseUrl("https://api.openai.com/v1");
+        properties.setEndpointPath("/chat/completions");
+        properties.setApiKey("sk-test");
+        properties.setModel("gpt-4.1-mini");
+        OpenAiCompatibleImportAgentPlannerProvider provider = new OpenAiCompatibleImportAgentPlannerProvider(httpClient, properties);
+
+        var result = provider.plan(request());
+
+        assertFalse(result.getPlan().isExecutable());
+        assertTrue(result.getPlan().getClarificationQuestions().stream().anyMatch(question -> question.contains("任务查询方法")));
+        assertTrue(result.getPlan().getClarificationQuestions().stream().anyMatch(question -> question.contains("AI 能力信息")));
+        }
+
     @Test
     @DisplayName("provider should reject asset plan when auth scheme lacks security config")
     void shouldRejectPlanWhenAuthSchemeLacksSecurityConfig() throws Exception {
@@ -238,7 +279,7 @@ class OpenAiCompatibleImportAgentPlannerProviderTest {
         var result = provider.plan(request());
 
         assertFalse(result.getPlan().isExecutable());
-        assertTrue(result.getPlan().getClarificationQuestions().stream().anyMatch(question -> question.contains("authConfig")));
+        assertTrue(result.getPlan().getClarificationQuestions().stream().anyMatch(question -> question.contains("上游鉴权信息")));
     }
 
     @Test
@@ -265,7 +306,9 @@ class OpenAiCompatibleImportAgentPlannerProviderTest {
         assertTrue(requestBody.contains("提交当前 API 导入请求的完整导入计划"));
         assertTrue(requestBody.contains("查询接口必须并入提交接口的 asyncTaskConfig"));
         assertTrue(requestBody.contains("请把答案写回 currentPlanJson"));
-        assertTrue(requestBody.contains("不要假设后端会从自由文本自动补齐"));
+        assertTrue(requestBody.contains("请追问鉴权相关信息"));
+        assertTrue(requestBody.contains("不要要求用户手写后端配置"));
+        assertTrue(requestBody.contains("生成 assetPlans[].authConfig"));
         assertTrue(requestBody.contains("asyncTaskConfig.authMode"));
         assertTrue(requestBody.contains("aiProfile.provider"));
         assertFalse(requestBody.contains("UPSTREAM_API_KEY"));

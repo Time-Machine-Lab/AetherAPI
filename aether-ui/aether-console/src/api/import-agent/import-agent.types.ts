@@ -12,6 +12,13 @@ export type ImportAgentActorType = 'USER' | 'AGENT'
 export type ImportAgentStreamPhase = 'planning' | 'replying' | 'completed'
 export type ImportCategoryPlanAction = 'USE_EXISTING' | 'CREATE_IF_MISSING'
 export type ImportAssetType = 'STANDARD_API' | 'AI_API'
+export type ImportAgentClarificationInputType = 'TEXT' | 'SELECT' | 'BOOLEAN' | 'MULTILINE'
+export type ImportAgentClarificationDefaultSource =
+  | 'DOCUMENT'
+  | 'INFERRED_FROM_URL'
+  | 'CURRENT_PLAN'
+  | 'AGENT_HEURISTIC'
+export type ImportAgentClarificationDefaultConfidence = 'HIGH' | 'MEDIUM' | 'LOW'
 export type ImportStepType =
   | 'ENSURE_CATEGORY'
   | 'REGISTER_ASSET'
@@ -25,6 +32,18 @@ export interface CreateImportAgentSessionInput {
   documentSummary?: string
   importIntent: string
   publisherDisplayName?: string
+}
+
+export interface AppendImportAgentTurnInput {
+  message?: string
+  clarificationAnswers?: ImportAgentClarificationAnswerInput[]
+}
+
+export interface ImportAgentClarificationAnswerInput {
+  clarificationId?: string
+  targetPath?: string
+  fieldKey?: string
+  value: string
 }
 
 export interface ImportAgentStreamStatusEvent {
@@ -69,6 +88,27 @@ export interface ImportAsyncTaskConfig {
   errorPath?: string | null
 }
 
+export interface ImportAgentClarificationOption {
+  value: string
+  label: string
+}
+
+export interface ImportAgentClarificationItem {
+  id: string
+  targetPath: string
+  fieldKey: string
+  label: string
+  description?: string
+  inputType: ImportAgentClarificationInputType
+  required: boolean
+  options: ImportAgentClarificationOption[]
+  currentValue?: string
+  defaultValue?: string
+  defaultLabel?: string
+  defaultSource?: ImportAgentClarificationDefaultSource
+  defaultConfidence?: ImportAgentClarificationDefaultConfidence
+}
+
 export interface ImportCategoryPlan {
   categoryCode: string
   categoryName: string
@@ -99,6 +139,7 @@ export interface ImportAgentPlan {
   executable: boolean
   summary: string
   clarificationQuestions: string[]
+  clarificationItems: ImportAgentClarificationItem[]
   categoryPlans: ImportCategoryPlan[]
   assetPlans: ImportAssetPlan[]
 }

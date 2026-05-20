@@ -190,8 +190,8 @@ final class ImportAgentPlanningToolSupport {
             asyncTaskProperties.set("queryMethod", enumStringSchema(objectMapper, null, "GET", "POST"));
                 asyncTaskProperties.set("queryUrlTemplate", stringSchema(
                     objectMapper,
-                    "任务查询 URL 模板，必须包含 {taskId} 占位符。",
-                    ".*\\{taskId\\}.*"));
+                    "任务查询 URL 模板，内部标准占位符为 {taskId}；如果上游文档使用 {task_id}、{taskID} 或 {task-id}，系统会归一化为 {taskId}。",
+                    ".*\\{task(?:Id|ID|_id|-id)\\}.*"));
             asyncTaskProperties.set("authMode", enumStringSchema(objectMapper, null,
                     "SAME_AS_SUBMIT", "OVERRIDE"));
             asyncTaskProperties.set("authScheme", enumStringSchema(objectMapper,

@@ -8,6 +8,8 @@ import io.github.timemachinelab.api.req.StartImportAgentRunReq;
 import io.github.timemachinelab.api.resp.ApiImportAgentRunResp;
 import io.github.timemachinelab.api.resp.ApiImportAgentSessionResp;
 import io.github.timemachinelab.api.resp.AsyncTaskConfigResp;
+import io.github.timemachinelab.api.resp.ImportAgentClarificationItemResp;
+import io.github.timemachinelab.api.resp.ImportAgentClarificationOptionResp;
 import io.github.timemachinelab.api.resp.ImportAgentPlanResp;
 import io.github.timemachinelab.api.resp.ImportAgentTurnResp;
 import io.github.timemachinelab.api.resp.ImportAiProfileResp;
@@ -24,6 +26,9 @@ import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
 import io.github.timemachinelab.service.model.AppendImportAgentTurnCommand;
 import io.github.timemachinelab.service.model.ConfirmImportAgentPlanCommand;
 import io.github.timemachinelab.service.model.CreateImportAgentSessionCommand;
+import io.github.timemachinelab.service.model.ImportAgentClarificationAnswerModel;
+import io.github.timemachinelab.service.model.ImportAgentClarificationItemModel;
+import io.github.timemachinelab.service.model.ImportAgentClarificationOptionModel;
 import io.github.timemachinelab.service.model.ImportAgentPlanModel;
 import io.github.timemachinelab.service.model.ImportAiProfileModel;
 import io.github.timemachinelab.service.model.ImportAssetPlanModel;
@@ -83,7 +88,8 @@ public class ApiImportAgentWebDelegate {
         return toSessionResp(apiImportAgentUseCase.appendTurn(new AppendImportAgentTurnCommand(
                 currentUserId,
                 sessionId,
-                req.getMessage()
+                req.getMessage(),
+                toClarificationAnswers(req)
         )));
     }
 
@@ -122,7 +128,8 @@ public class ApiImportAgentWebDelegate {
                 new AppendImportAgentTurnCommand(
                     currentUserId,
                     sessionId,
-                    req.getMessage()
+                    req.getMessage(),
+                    toClarificationAnswers(req)
                 ),
                 deltaConsumer
             ))
@@ -271,9 +278,45 @@ public class ApiImportAgentWebDelegate {
                 model.isExecutable(),
                 model.getSummary(),
                 model.getClarificationQuestions(),
+                model.getClarificationItems().stream().map(this::toClarificationItemResp).toList(),
                 model.getCategoryPlans().stream().map(this::toCategoryPlanResp).toList(),
                 model.getAssetPlans().stream().map(this::toAssetPlanResp).toList()
         );
+    }
+
+    private List<ImportAgentClarificationAnswerModel> toClarificationAnswers(AppendImportAgentTurnReq req) {
+        if (req.getClarificationAnswers() == null) {
+            return List.of();
+        }
+        return req.getClarificationAnswers().stream()
+                .map(answer -> new ImportAgentClarificationAnswerModel(
+                        answer.getClarificationId(),
+                        answer.getTargetPath(),
+                        answer.getFieldKey(),
+                        answer.getValue()))
+                .toList();
+    }
+
+    private ImportAgentClarificationItemResp toClarificationItemResp(ImportAgentClarificationItemModel model) {
+        return new ImportAgentClarificationItemResp(
+                model.getId(),
+                model.getTargetPath(),
+                model.getFieldKey(),
+                model.getLabel(),
+                model.getDescription(),
+                model.getInputType(),
+                model.isRequired(),
+                model.getOptions().stream().map(this::toClarificationOptionResp).toList(),
+                model.getCurrentValue(),
+                model.getDefaultValue(),
+                model.getDefaultLabel(),
+                model.getDefaultSource(),
+                model.getDefaultConfidence()
+        );
+    }
+
+    private ImportAgentClarificationOptionResp toClarificationOptionResp(ImportAgentClarificationOptionModel model) {
+        return new ImportAgentClarificationOptionResp(model.getValue(), model.getLabel());
     }
 
     private ImportCategoryPlanResp toCategoryPlanResp(ImportCategoryPlanModel model) {

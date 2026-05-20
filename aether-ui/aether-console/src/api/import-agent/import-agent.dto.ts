@@ -12,6 +12,13 @@ export type ImportAgentActorTypeDto = 'USER' | 'AGENT'
 export type ImportAgentStreamPhaseDto = 'planning' | 'replying' | 'completed'
 export type ImportCategoryPlanActionDto = 'USE_EXISTING' | 'CREATE_IF_MISSING'
 export type ImportAssetTypeDto = 'STANDARD_API' | 'AI_API'
+export type ImportAgentClarificationInputTypeDto = 'TEXT' | 'SELECT' | 'BOOLEAN' | 'MULTILINE'
+export type ImportAgentClarificationDefaultSourceDto =
+  | 'DOCUMENT'
+  | 'INFERRED_FROM_URL'
+  | 'CURRENT_PLAN'
+  | 'AGENT_HEURISTIC'
+export type ImportAgentClarificationDefaultConfidenceDto = 'HIGH' | 'MEDIUM' | 'LOW'
 export type ImportStepTypeDto =
   | 'ENSURE_CATEGORY'
   | 'REGISTER_ASSET'
@@ -28,7 +35,36 @@ export interface CreateImportAgentSessionReqDto {
 }
 
 export interface AppendImportAgentTurnReqDto {
-  message: string
+  message?: string
+  clarificationAnswers?: ImportAgentClarificationAnswerDto[]
+}
+
+export interface ImportAgentClarificationAnswerDto {
+  clarificationId?: string
+  targetPath?: string
+  fieldKey?: string
+  value: string
+}
+
+export interface ImportAgentClarificationOptionDto {
+  value: string
+  label: string
+}
+
+export interface ImportAgentClarificationItemDto {
+  id: string
+  targetPath: string
+  fieldKey: string
+  label: string
+  description?: string | null
+  inputType: ImportAgentClarificationInputTypeDto
+  required: boolean
+  options?: ImportAgentClarificationOptionDto[] | null
+  currentValue?: string | null
+  defaultValue?: string | null
+  defaultLabel?: string | null
+  defaultSource?: ImportAgentClarificationDefaultSourceDto | null
+  defaultConfidence?: ImportAgentClarificationDefaultConfidenceDto | null
 }
 
 export interface ImportAgentStreamStatusEventDto {
@@ -102,7 +138,8 @@ export interface ImportAgentPlanDto {
   version: number
   executable: boolean
   summary: string
-  clarificationQuestions: string[]
+  clarificationQuestions?: string[] | null
+  clarificationItems?: ImportAgentClarificationItemDto[] | null
   categoryPlans: ImportCategoryPlanDto[]
   assetPlans: ImportAssetPlanDto[]
 }

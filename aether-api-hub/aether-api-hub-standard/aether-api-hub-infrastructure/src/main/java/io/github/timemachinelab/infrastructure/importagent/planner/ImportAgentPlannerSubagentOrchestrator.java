@@ -9,6 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -44,6 +46,11 @@ public class ImportAgentPlannerSubagentOrchestrator {
                 ? ((ObjectNode) planSource).deepCopy()
                 : OBJECT_MAPPER.createObjectNode();
         for (ImportAgentPlannerSubagentDescriptor descriptor : subagentRegistry.getSubagents()) {
+            ObjectNode beforeCandidatePlan = descriptor.role() == ImportAgentPlannerSubagentRole.PLAN_REVIEW
+                ? candidatePlan.deepCopy()
+                : null;
+            List<String> beforeClarifications = context.clarificationQuestions();
+            List<String> beforeFailures = context.failures();
             int beforeClarificationCount = context.clarificationCount();
             int beforeFailureCount = context.failureCount();
             int beforeAssetPlanCount = sizeOfArray(candidatePlan, "assetPlans");
@@ -55,6 +62,9 @@ public class ImportAgentPlannerSubagentOrchestrator {
                 log.warn("Import-agent subagent failed: name={}, role={}, message={}",
                         descriptor.name(), descriptor.role(), ex.getMessage(), ex);
                 context.addFailure(descriptor.name() + ": " + ex.getMessage());
+            }
+            if (descriptor.role() == ImportAgentPlannerSubagentRole.PLAN_REVIEW && beforeCandidatePlan != null) {
+                appendReviewDiagnostics(candidatePlan, descriptor, beforeCandidatePlan, beforeClarifications, beforeFailures, context);
             }
             log.debug("Import-agent subagent complete: name={}, assetPlansDelta={}, clarificationDelta={}, failureDelta={}",
                     descriptor.name(),
@@ -80,6 +90,69 @@ public class ImportAgentPlannerSubagentOrchestrator {
                 questions.add(safeQuestion);
             }
         }
+    }
+
+    private void appendReviewDiagnostics(
+            ObjectNode candidatePlan,
+            ImportAgentPlannerSubagentDescriptor descriptor,
+            ObjectNode beforeCandidatePlan,
+            List<String> beforeClarifications,
+            List<String> beforeFailures,
+            ImportAgentPlannerSubagentContext context) {
+        List<String> clarificationDelta = difference(beforeClarifications, context.clarificationQuestions());
+        List<String> failureDelta = difference(beforeFailures, context.failures());
+        ObjectNode structurePatch = buildStructurePatch(beforeCandidatePlan, candidatePlan);
+
+        ObjectNode diagnostics = OBJECT_MAPPER.createObjectNode();
+        diagnostics.put("subagent", descriptor.name());
+        diagnostics.put("role", descriptor.role().name());
+        diagnostics.set("structurePatch", structurePatch);
+
+        ArrayNode clarificationDeltaNode = diagnostics.putArray("clarificationQuestionsDelta");
+        for (String question : clarificationDelta) {
+            clarificationDeltaNode.add(question);
+        }
+
+        ArrayNode failureDeltaNode = diagnostics.putArray("failureDelta");
+        for (String failure : failureDelta) {
+            failureDeltaNode.add(failure);
+        }
+
+        String summary = "review=" + descriptor.name()
+                + ", structurePatchFields=" + structurePatch.size()
+                + ", clarificationDelta=" + clarificationDelta.size()
+                + ", failureDelta=" + failureDelta.size();
+        diagnostics.put("summary", summary);
+        ImportAgentPlannerSubagentSupport.ensureArray(candidatePlan, "reviewDiagnostics").add(diagnostics);
+        log.debug("Import-agent review summary: {}", summary);
+    }
+
+    private List<String> difference(List<String> before, List<String> after) {
+        LinkedHashSet<String> baseline = new LinkedHashSet<>(before);
+        return after.stream()
+                .filter(value -> !baseline.contains(value))
+                .toList();
+    }
+
+    private ObjectNode buildStructurePatch(ObjectNode before, ObjectNode after) {
+        ObjectNode patch = OBJECT_MAPPER.createObjectNode();
+        LinkedHashSet<String> fieldNames = new LinkedHashSet<>();
+        before.fieldNames().forEachRemaining(fieldNames::add);
+        after.fieldNames().forEachRemaining(fieldNames::add);
+        fieldNames.remove("reviewDiagnostics");
+        for (String fieldName : fieldNames) {
+            JsonNode beforeNode = before.get(fieldName);
+            JsonNode afterNode = after.get(fieldName);
+            if (Objects.equals(beforeNode, afterNode)) {
+                continue;
+            }
+            if (afterNode == null) {
+                patch.putNull(fieldName);
+                continue;
+            }
+            patch.set(fieldName, afterNode.deepCopy());
+        }
+        return patch;
     }
 
     private boolean containsText(ArrayNode questions, String expected) {

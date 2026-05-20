@@ -8,6 +8,7 @@ import {
   installWindowWithStorage,
 } from '@/test/console-test-kit'
 import type {
+  AppendImportAgentTurnInput,
   CreateImportAgentSessionInput,
   ImportAgentRun,
   ImportAgentSession,
@@ -32,7 +33,7 @@ type CreateSessionDep = (
 type GetSessionDep = (sessionId: string) => Promise<ImportAgentSession>
 type AppendTurnDep = (
   sessionId: string,
-  message: string,
+  input: string | AppendImportAgentTurnInput,
   callbacks?: ImportAgentStreamCallbacks,
 ) => Promise<ImportAgentSession>
 type ConfirmPlanDep = (sessionId: string, planVersion: number) => Promise<ImportAgentSession>
@@ -68,6 +69,7 @@ function createSession(overrides: Partial<ImportAgentSession> = {}): ImportAgent
       executable: true,
       summary: 'Import weather API',
       clarificationQuestions: [],
+      clarificationItems: [],
       categoryPlans: [],
       assetPlans: [],
     },
@@ -251,7 +253,9 @@ describe('useImportAgentWorkspace', () => {
     await workspace.appendTurn()
 
     expect(deps.appendTurn.mock.calls[0]?.[0]).toBe('session-001')
-    expect(deps.appendTurn.mock.calls[0]?.[1]).toBe('Use category weather-tools instead.')
+    expect(deps.appendTurn.mock.calls[0]?.[1]).toEqual({
+      message: 'Use category weather-tools instead.',
+    })
     expect(deps.appendTurn.mock.calls[0]?.[2]).toEqual(
       expect.objectContaining({
         onStatus: expect.any(Function),
@@ -263,6 +267,127 @@ describe('useImportAgentWorkspace', () => {
     )
     expect(workspace.turnMessage.value).toBe('')
     expect(workspace.activeSession.value?.turns[0].message).toContain('weather-tools')
+  })
+
+  it('submits structured clarification answers without forcing chat text', async () => {
+    const { workspace, deps } = createWorkspace()
+
+    deps.createSession.mockResolvedValueOnce(
+      createSession({
+        status: 'WAITING_FOR_CLARIFICATION',
+        currentPlan: {
+          version: 2,
+          executable: false,
+          summary: 'Need auth scheme',
+          clarificationQuestions: ['Authentication scheme (authScheme): Choose auth scheme.'],
+          clarificationItems: [
+            {
+              id: 'plan-2:/assetPlans/0/authScheme:authScheme',
+              targetPath: '/assetPlans/0/authScheme',
+              fieldKey: 'authScheme',
+              label: 'Authentication scheme',
+              description: 'Choose auth scheme.',
+              inputType: 'SELECT',
+              required: true,
+              options: [{ value: 'HEADER_TOKEN', label: 'HEADER_TOKEN' }],
+            },
+          ],
+          categoryPlans: [],
+          assetPlans: [],
+        },
+      }),
+    )
+    workspace.importIntent.value = 'Import weather API'
+    await workspace.createSession()
+
+    workspace.clarificationDrafts.value = {
+      'plan-2:/assetPlans/0/authScheme:authScheme': 'HEADER_TOKEN',
+    }
+    deps.appendTurn.mockResolvedValueOnce(
+      createSession({
+        currentPlan: {
+          version: 3,
+          executable: true,
+          summary: 'Ready',
+          clarificationQuestions: [],
+          clarificationItems: [],
+          categoryPlans: [],
+          assetPlans: [],
+        },
+      }),
+    )
+
+    await workspace.appendTurn()
+
+    expect(deps.appendTurn.mock.calls[0]?.[1]).toEqual({
+      clarificationAnswers: [
+        {
+          clarificationId: 'plan-2:/assetPlans/0/authScheme:authScheme',
+          targetPath: '/assetPlans/0/authScheme',
+          fieldKey: 'authScheme',
+          value: 'HEADER_TOKEN',
+        },
+      ],
+    })
+    expect(workspace.pendingTurn.value).toBeNull()
+    expect(workspace.clarificationDrafts.value).toEqual({})
+  })
+
+  it('keeps clarification defaults as suggestions until adopted', async () => {
+    const { workspace, deps } = createWorkspace()
+
+    deps.createSession.mockResolvedValueOnce(
+      createSession({
+        status: 'WAITING_FOR_CLARIFICATION',
+        currentPlan: {
+          version: 2,
+          executable: false,
+          summary: 'Need auth scheme',
+          clarificationQuestions: ['Authentication scheme (authScheme): Choose auth scheme.'],
+          clarificationItems: [
+            {
+              id: 'plan-2:/assetPlans/0/authScheme:authScheme',
+              targetPath: '/assetPlans/0/authScheme',
+              fieldKey: 'authScheme',
+              label: 'Authentication scheme',
+              description: 'Choose auth scheme.',
+              inputType: 'SELECT',
+              required: true,
+              options: [{ value: 'HEADER_TOKEN', label: 'HEADER_TOKEN' }],
+              defaultValue: 'HEADER_TOKEN',
+              defaultSource: 'DOCUMENT',
+              defaultConfidence: 'HIGH',
+            },
+          ],
+          categoryPlans: [],
+          assetPlans: [],
+        },
+      }),
+    )
+    workspace.importIntent.value = 'Import weather API'
+    await workspace.createSession()
+
+    expect(workspace.canAppendTurn.value).toBe(false)
+    expect(workspace.clarificationDrafts.value).toEqual({})
+
+    workspace.adoptClarificationDefault(workspace.currentClarificationItems.value[0])
+    expect(workspace.clarificationDrafts.value).toEqual({
+      'plan-2:/assetPlans/0/authScheme:authScheme': 'HEADER_TOKEN',
+    })
+
+    deps.appendTurn.mockResolvedValueOnce(createSession())
+    await workspace.appendTurn()
+
+    expect(deps.appendTurn.mock.calls[0]?.[1]).toEqual({
+      clarificationAnswers: [
+        {
+          clarificationId: 'plan-2:/assetPlans/0/authScheme:authScheme',
+          targetPath: '/assetPlans/0/authScheme',
+          fieldKey: 'authScheme',
+          value: 'HEADER_TOKEN',
+        },
+      ],
+    })
   })
 
   it('sends attached files together with a follow-up clarification', async () => {
@@ -286,9 +411,17 @@ describe('useImportAgentWorkspace', () => {
     await workspace.sendMessage()
 
     expect(deps.appendTurn).toHaveBeenCalledTimes(1)
-    expect(deps.appendTurn.mock.calls[0]?.[1]).toContain('Use this upstream profile.')
-    expect(deps.appendTurn.mock.calls[0]?.[1]).toContain('profile.json')
-    expect(deps.appendTurn.mock.calls[0]?.[1]).toContain('https://api.example.com')
+    expect(deps.appendTurn.mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({
+        message: expect.stringContaining('Use this upstream profile.'),
+      }),
+    )
+    expect((deps.appendTurn.mock.calls[0]?.[1] as { message: string }).message).toContain(
+      'profile.json',
+    )
+    expect((deps.appendTurn.mock.calls[0]?.[1] as { message: string }).message).toContain(
+      'https://api.example.com',
+    )
     expect(workspace.draftAttachments.value).toHaveLength(0)
   })
 

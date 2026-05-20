@@ -38,6 +38,7 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
             如果提供了 currentPlanJson，请将其视为当前基线，并在应用最新用户消息后返回完整更新后的 JSON 计划，而不是只返回增量字段。
             如果用户提供的信息不足，请先保留已有计划并尝试自动补槽，再使用用户的语言在 clarificationQuestions 中提出简洁、具体的追问。
             当最新用户消息已经回答了缺失项时，请优先把答案写回对应字段，而不是重复追问。
+            当 AI API 缺少 apiCode 但已有 aiProfile.provider 和 aiProfile.model 时，apiCode 默认使用规范化后的“模型服务商-模型名”，例如 dashscope-happyhorse-1-0-t2v。
             如果上游 API 是“提交任务后通过任务 ID 查询结果”的异步模式，请将查询信息并入提交资产的 asyncTaskConfig，不要拆成独立资产。
             只根据已提供的文档、当前计划和对话内容作答；不要编造未知值、默认密钥、环境变量名或平台特例。
             """;
@@ -211,9 +212,12 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
             prompt.append("slotPatchesJson:\n").append(slotPatches.toString()).append("\n");
         }
         prompt.append("信息不足时，请保留已有计划数据，并返回自然对话式的 clarificationQuestions，不要返回空洞的通用占位问题。\n");
+        prompt.append("如果文档中存在请求示例、响应示例、字段说明或 OpenAPI schema，请主动生成 assetPlans[].requestExample、responseExample、requestJsonSchema 和 responseJsonSchema；只有证据不足时才留空或追问。\n");
+        prompt.append("如果 AI API 缺少 apiCode 但已识别 aiProfile.provider 和 aiProfile.model，请默认按“模型服务商-模型名”生成合法小写 apiCode，非字母数字字符转换为连字符。\n");
         prompt.append("异步任务模式下，查询接口必须并入提交接口的 asyncTaskConfig，不要作为独立资产导入。\n");
-        prompt.append("需要发布且使用鉴权的资产必须有明确 authConfig；不能确认时请追问，不要编造默认密钥、环境变量名或平台特例。\n");
-        prompt.append("如果资产使用 HEADER_TOKEN 或 QUERY_TOKEN，必须把安全配置写进 assetPlans[].authConfig；不要只在计划摘要或回复文案中描述，也不要假设后端会从自由文本自动补齐。\n");
+        prompt.append("asyncTaskConfig.queryUrlTemplate 内部统一使用 {taskId} 占位符；如果上游文档写的是 {task_id}、{taskID} 或 {task-id}，请转换为 {taskId}。\n");
+        prompt.append("需要发布且使用鉴权的资产必须能形成明确 authConfig；不能确认时请追问鉴权相关信息，不要要求用户手写后端配置，也不要编造默认密钥、环境变量名或平台特例。\n");
+        prompt.append("如果资产使用 HEADER_TOKEN 或 QUERY_TOKEN，请根据用户提供的鉴权说明、Header/Query 名称、环境变量名或凭证来源生成 assetPlans[].authConfig；不要只在计划摘要或回复文案中描述。\n");
         prompt.append("缺少 requestMethod、upstreamUrl、authScheme、authConfig、asyncTaskConfig.queryMethod、asyncTaskConfig.queryUrlTemplate、asyncTaskConfig.authMode、asyncTaskConfig.authScheme、asyncTaskConfig.authConfig、aiProfile.provider 或 aiProfile.model 时，请保留非 executable 计划并提出定向 clarificationQuestions。\n");
         prompt.append("如果用户正在回答某个缺失项，请把答案写回 currentPlanJson 对应字段，并返回更新后的完整计划。\n");
         if (primaryTool != null) {

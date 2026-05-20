@@ -45,5 +45,5 @@ aether:
       temperature: ${AETHER_IMPORT_AGENT_LLM_TEMPERATURE:0.2}
       max-completion-tokens: ${AETHER_IMPORT_AGENT_LLM_MAX_COMPLETION_TOKENS:2000}
       request-timeout-seconds: ${AETHER_IMPORT_AGENT_LLM_REQUEST_TIMEOUT_SECONDS:120}
-      tool-calling-enabled: ${AETHER_IMPORT_AGENT_LLM_TOOL_CALLING_ENABLED:false}
+      tool-calling-enabled: ${AETHER_IMPORT_AGENT_LLM_TOOL_CALLING_ENABLED:true}
       system-prompt: ${AETHER_IMPORT_AGENT_LLM_SYSTEM_PROMPT:}

@@ -9,13 +9,18 @@ import io.github.timemachinelab.service.application.ApiImportAgentApplicationSer
 import io.github.timemachinelab.service.model.ApiImportAgentRunModel;
 import io.github.timemachinelab.service.model.ApiImportAgentSessionModel;
 import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
+import io.github.timemachinelab.service.model.AppendImportAgentTurnCommand;
 import io.github.timemachinelab.service.model.ImportAgentRunStatus;
 import io.github.timemachinelab.service.model.ImportAgentStepType;
+import io.github.timemachinelab.service.model.ImportAgentClarificationAnswerModel;
+import io.github.timemachinelab.service.model.ImportAgentClarificationItemModel;
 import io.github.timemachinelab.service.model.ImportAiProfileModel;
 import io.github.timemachinelab.service.model.ImportCategoryPlanAction;
 import io.github.timemachinelab.service.model.ImportCategoryPlanModel;
 import io.github.timemachinelab.service.model.ConfirmImportAgentPlanCommand;
 import io.github.timemachinelab.service.model.ImportAgentPlanModel;
+import io.github.timemachinelab.service.model.ImportAgentPlannerRequest;
+import io.github.timemachinelab.service.model.ImportAgentPlannerResult;
 import io.github.timemachinelab.service.model.ImportAgentSessionStatus;
 import io.github.timemachinelab.service.model.ImportAssetPlanModel;
 import io.github.timemachinelab.service.model.ImportStepResultStatus;
@@ -260,6 +265,41 @@ class ApiImportAgentApplicationServiceTest {
     }
 
     @Test
+    @DisplayName("run should drop invalid schema snapshots from stored sessions before asset commands")
+    void shouldDropInvalidSchemaSnapshotsFromStoredSessionBeforeAssetCommands() {
+        ApiImportAgentSessionRepositoryPort sessionRepositoryPort = mock(ApiImportAgentSessionRepositoryPort.class);
+        ApiImportAgentRunRepositoryPort runRepositoryPort = mock(ApiImportAgentRunRepositoryPort.class);
+        ApiImportAgentPlannerPort plannerPort = mock(ApiImportAgentPlannerPort.class);
+        ApiImportAgentReplyPort replyPort = mock(ApiImportAgentReplyPort.class);
+        CategoryUseCase categoryUseCase = mock(CategoryUseCase.class);
+        ApiAssetUseCase apiAssetUseCase = mock(ApiAssetUseCase.class);
+        ApiImportAgentApplicationService service = new ApiImportAgentApplicationService(
+                sessionRepositoryPort,
+                runRepositoryPort,
+                plannerPort,
+                replyPort,
+                categoryUseCase,
+                apiAssetUseCase
+        );
+        when(sessionRepositoryPort.findOwnedSession("user-1", "session-1"))
+                .thenReturn(Optional.of(confirmedSession(executablePlanWithInvalidSchemas())));
+        when(categoryUseCase.getCategoryByCode("tools")).thenThrow(new RuntimeException("Category not found"));
+        when(apiAssetUseCase.getAssetByCode("user-1", "weather-forecast"))
+                .thenThrow(new AssetDomainException("Asset not found"));
+
+        service.startRun(new StartImportAgentRunCommand("user-1", "Alice", "session-1", 1));
+
+        ArgumentCaptor<RegisterApiAssetCommand> registerCaptor = ArgumentCaptor.forClass(RegisterApiAssetCommand.class);
+        ArgumentCaptor<ReviseApiAssetCommand> reviseCaptor = ArgumentCaptor.forClass(ReviseApiAssetCommand.class);
+        verify(apiAssetUseCase).registerAsset(registerCaptor.capture());
+        verify(apiAssetUseCase).reviseAsset(reviseCaptor.capture());
+        assertEquals(null, registerCaptor.getValue().getRequestJsonSchema());
+        assertEquals(null, registerCaptor.getValue().getResponseJsonSchema());
+        assertFalse(reviseCaptor.getValue().isRequestJsonSchemaSet());
+        assertFalse(reviseCaptor.getValue().isResponseJsonSchemaSet());
+    }
+
+    @Test
     @DisplayName("run should record failed execution steps and final failure state")
     void shouldRecordFailureWhenAssetExecutionFails() {
         ApiImportAgentSessionRepositoryPort sessionRepositoryPort = mock(ApiImportAgentSessionRepositoryPort.class);
@@ -374,6 +414,97 @@ class ApiImportAgentApplicationServiceTest {
         );
     }
 
+    @Test
+    @DisplayName("append turn should apply structured answers before planner")
+    void shouldApplyStructuredAnswersBeforePlanner() {
+        ApiImportAgentSessionRepositoryPort sessionRepositoryPort = mock(ApiImportAgentSessionRepositoryPort.class);
+        ApiImportAgentRunRepositoryPort runRepositoryPort = mock(ApiImportAgentRunRepositoryPort.class);
+        ApiImportAgentPlannerPort plannerPort = mock(ApiImportAgentPlannerPort.class);
+        ApiImportAgentReplyPort replyPort = mock(ApiImportAgentReplyPort.class);
+        CategoryUseCase categoryUseCase = mock(CategoryUseCase.class);
+        ApiAssetUseCase apiAssetUseCase = mock(ApiAssetUseCase.class);
+        ApiImportAgentApplicationService service = new ApiImportAgentApplicationService(
+                sessionRepositoryPort,
+                runRepositoryPort,
+                plannerPort,
+                replyPort,
+                categoryUseCase,
+                apiAssetUseCase
+        );
+        ImportAgentPlanModel currentPlan = planWaitingForAuthConfig();
+        ApiImportAgentSessionModel session = new ApiImportAgentSessionModel(
+                "session-1",
+                "user-1",
+                ImportAgentSessionStatus.WAITING_FOR_CLARIFICATION,
+                "https://docs.example.com/weather",
+                "summary",
+                "import weather api",
+                "Alice",
+                1,
+                null,
+                null,
+                null,
+                currentPlan,
+                List.of(),
+                "2026-05-18T10:00:00Z",
+                "2026-05-18T10:00:00Z"
+        );
+        when(sessionRepositoryPort.findOwnedSession("user-1", "session-1")).thenReturn(Optional.of(session));
+        when(sessionRepositoryPort.countTurns("session-1")).thenReturn(2);
+        when(sessionRepositoryPort.listTurns("session-1")).thenReturn(List.of());
+        when(plannerPort.plan(any())).thenReturn(new ImportAgentPlannerResult(
+                new ImportAgentPlanModel(
+                        2,
+                        true,
+                        "ready",
+                        List.of(),
+                        List.of(),
+                        currentPlan.getCategoryPlans(),
+                        List.of(new ImportAssetPlanModel(
+                                "weather-forecast",
+                                "Weather Forecast",
+                                AssetType.STANDARD_API,
+                                "tools",
+                                RequestMethod.GET,
+                                "https://upstream.example.com/weather",
+                                AuthScheme.HEADER_TOKEN,
+                                "Authorization: Bearer upstream-token",
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                true,
+                                null,
+                                null
+                        ))),
+                "ready"));
+
+        service.appendTurn(new AppendImportAgentTurnCommand(
+                "user-1",
+                "session-1",
+                null,
+                List.of(new ImportAgentClarificationAnswerModel(
+                        "plan-1:/assetPlans/0/authConfig:authConfig",
+                        "/assetPlans/0/authConfig",
+                        "authConfig",
+                        "Authorization: Bearer upstream-token"
+                ))));
+
+        ArgumentCaptor<ImportAgentPlannerRequest> requestCaptor = ArgumentCaptor.forClass(ImportAgentPlannerRequest.class);
+        verify(plannerPort).plan(requestCaptor.capture());
+        ImportAgentPlannerRequest plannerRequest = requestCaptor.getValue();
+        assertEquals(
+                "用户已补充以下澄清信息，请据此更新导入计划：\n"
+                        + "- 上游鉴权信息：Authorization: Bearer upstream-token",
+                plannerRequest.getLatestUserMessage());
+        assertEquals(
+                "Authorization: Bearer upstream-token",
+                plannerRequest.getCurrentPlan().getAssetPlans().get(0).getAuthConfig()
+        );
+        assertEquals(AuthScheme.HEADER_TOKEN, plannerRequest.getCurrentPlan().getAssetPlans().get(0).getAuthScheme());
+    }
+
     private ApiImportAgentSessionModel confirmedSession(ImportAgentPlanModel plan) {
         return new ApiImportAgentSessionModel(
                 "session-1",
@@ -391,6 +522,45 @@ class ApiImportAgentApplicationServiceTest {
                 List.of(),
                 "2026-05-18T09:55:00Z",
                 "2026-05-18T10:00:00Z"
+        );
+    }
+
+    private ImportAgentPlanModel planWaitingForAuthConfig() {
+        return new ImportAgentPlanModel(
+                1,
+                false,
+                "need auth config",
+                List.of("上游鉴权信息: 请提供上游鉴权相关信息，例如文档说明、Header/Query 名称、环境变量名或凭证来源；Agent 会据此生成配置。"),
+                List.of(new ImportAgentClarificationItemModel(
+                        "plan-1:/assetPlans/0/authConfig:authConfig",
+                        "/assetPlans/0/authConfig",
+                        "authConfig",
+                        "上游鉴权信息",
+                        "请提供上游鉴权相关信息，例如文档说明、Header/Query 名称、环境变量名或凭证来源；Agent 会据此生成配置。",
+                        "TEXT",
+                        true,
+                        List.of(),
+                        null
+                )),
+                List.of(new ImportCategoryPlanModel("tools", "Tools", ImportCategoryPlanAction.CREATE_IF_MISSING)),
+                List.of(new ImportAssetPlanModel(
+                        "weather-forecast",
+                        "Weather Forecast",
+                        AssetType.STANDARD_API,
+                        "tools",
+                        RequestMethod.GET,
+                        "https://upstream.example.com/weather",
+                        AuthScheme.HEADER_TOKEN,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        true,
+                        null,
+                        null
+                ))
         );
     }
 
@@ -461,6 +631,44 @@ class ApiImportAgentApplicationServiceTest {
                                 "HEADER_TOKEN",
                                 null,
                                 "Authorization: Bearer upstream-token",
+                                "$.data.status",
+                                "$.data.result",
+                                "$.data.error"
+                        ),
+                        new ImportAiProfileModel("OpenAI", "gpt-4.1", true, List.of("chat"))
+                ))
+        );
+    }
+
+    private ImportAgentPlanModel executablePlanWithInvalidSchemas() {
+        return new ImportAgentPlanModel(
+                1,
+                true,
+                "ready",
+                List.of(),
+                List.of(new ImportCategoryPlanModel("tools", "Tools", ImportCategoryPlanAction.CREATE_IF_MISSING)),
+                List.of(new ImportAssetPlanModel(
+                        "weather-forecast",
+                        "Weather Forecast",
+                        AssetType.AI_API,
+                        "tools",
+                        RequestMethod.GET,
+                        "https://upstream.example.com/weather",
+                        AuthScheme.HEADER_TOKEN,
+                        "Authorization: Bearer upstream-token",
+                        "template",
+                        "{\"city\":\"Shanghai\"}",
+                        "{\"temperature\":26}",
+                        "{bad}",
+                        "[{\"type\":\"object\"}]",
+                        true,
+                        new AsyncTaskConfigModel(
+                                true,
+                                "GET",
+                                "https://upstream.example.com/weather/tasks/{taskId}",
+                                "SAME_AS_SUBMIT",
+                                null,
+                                null,
                                 "$.data.status",
                                 "$.data.result",
                                 "$.data.error"

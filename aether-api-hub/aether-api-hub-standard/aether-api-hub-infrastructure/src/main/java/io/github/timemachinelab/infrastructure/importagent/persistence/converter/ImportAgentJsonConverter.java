@@ -10,6 +10,8 @@ import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
 import io.github.timemachinelab.service.model.ImportAgentPlanModel;
 import io.github.timemachinelab.service.model.ImportAgentStepType;
+import io.github.timemachinelab.service.model.ImportAgentClarificationItemModel;
+import io.github.timemachinelab.service.model.ImportAgentClarificationOptionModel;
 import io.github.timemachinelab.service.model.ImportAiProfileModel;
 import io.github.timemachinelab.service.model.ImportAssetPlanModel;
 import io.github.timemachinelab.service.model.ImportCategoryPlanAction;
@@ -42,6 +44,28 @@ public final class ImportAgentJsonConverter {
         ArrayNode clarificationQuestions = root.putArray("clarificationQuestions");
         for (String question : plan.getClarificationQuestions()) {
             clarificationQuestions.add(question);
+        }
+        ArrayNode clarificationItems = root.putArray("clarificationItems");
+        for (ImportAgentClarificationItemModel item : plan.getClarificationItems()) {
+            ObjectNode itemNode = clarificationItems.addObject();
+            itemNode.put("id", item.getId());
+            itemNode.put("targetPath", item.getTargetPath());
+            itemNode.put("fieldKey", item.getFieldKey());
+            itemNode.put("label", item.getLabel());
+            itemNode.put("description", item.getDescription());
+            itemNode.put("inputType", item.getInputType());
+            itemNode.put("required", item.isRequired());
+            itemNode.put("currentValue", item.getCurrentValue());
+            itemNode.put("defaultValue", item.getDefaultValue());
+            itemNode.put("defaultLabel", item.getDefaultLabel());
+            itemNode.put("defaultSource", item.getDefaultSource());
+            itemNode.put("defaultConfidence", item.getDefaultConfidence());
+            ArrayNode optionsNode = itemNode.putArray("options");
+            for (ImportAgentClarificationOptionModel option : item.getOptions()) {
+                ObjectNode optionNode = optionsNode.addObject();
+                optionNode.put("value", option.getValue());
+                optionNode.put("label", option.getLabel());
+            }
         }
         ArrayNode categoryPlans = root.putArray("categoryPlans");
         for (ImportCategoryPlanModel categoryPlan : plan.getCategoryPlans()) {
@@ -100,6 +124,31 @@ public final class ImportAgentJsonConverter {
             for (JsonNode questionNode : root.path("clarificationQuestions")) {
                 clarificationQuestions.add(questionNode.asText());
             }
+            List<ImportAgentClarificationItemModel> clarificationItems = new ArrayList<>();
+            for (JsonNode itemNode : root.path("clarificationItems")) {
+                List<ImportAgentClarificationOptionModel> options = new ArrayList<>();
+                for (JsonNode optionNode : itemNode.path("options")) {
+                    options.add(new ImportAgentClarificationOptionModel(
+                            textValue(optionNode, "value"),
+                            textValue(optionNode, "label")
+                    ));
+                }
+                clarificationItems.add(new ImportAgentClarificationItemModel(
+                        textValue(itemNode, "id"),
+                        textValue(itemNode, "targetPath"),
+                        textValue(itemNode, "fieldKey"),
+                        textValue(itemNode, "label"),
+                        textValue(itemNode, "description"),
+                        textValue(itemNode, "inputType"),
+                        itemNode.path("required").asBoolean(false),
+                        options,
+                        textValue(itemNode, "currentValue"),
+                        textValue(itemNode, "defaultValue"),
+                        textValue(itemNode, "defaultLabel"),
+                        textValue(itemNode, "defaultSource"),
+                        textValue(itemNode, "defaultConfidence")
+                ));
+            }
             List<ImportCategoryPlanModel> categoryPlans = new ArrayList<>();
             for (JsonNode categoryNode : root.path("categoryPlans")) {
                 categoryPlans.add(new ImportCategoryPlanModel(
@@ -134,6 +183,7 @@ public final class ImportAgentJsonConverter {
                     root.path("executable").asBoolean(false),
                     textValue(root, "summary"),
                     clarificationQuestions,
+                    clarificationItems,
                     categoryPlans,
                     assetPlans
             );

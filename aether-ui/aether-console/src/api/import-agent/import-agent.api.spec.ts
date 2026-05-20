@@ -40,6 +40,23 @@ function createSessionDto(overrides: Record<string, unknown> = {}) {
       executable: true,
       summary: 'Create tools category and import weather API.',
       clarificationQuestions: [],
+      clarificationItems: [
+        {
+          id: 'plan-2:/assetPlans/0/authScheme:authScheme',
+          targetPath: '/assetPlans/0/authScheme',
+          fieldKey: 'authScheme',
+          label: 'Authentication scheme',
+          description: 'Choose the upstream authentication scheme.',
+          inputType: 'SELECT',
+          required: true,
+          options: [{ value: 'HEADER_TOKEN', label: 'HEADER_TOKEN' }],
+          currentValue: null,
+          defaultValue: 'HEADER_TOKEN',
+          defaultLabel: 'HEADER_TOKEN',
+          defaultSource: 'DOCUMENT',
+          defaultConfidence: 'HIGH',
+        },
+      ],
       categoryPlans: [
         {
           categoryCode: 'tools',
@@ -189,6 +206,16 @@ describe('import-agent api', () => {
     expect(result.currentPlan?.assetPlans[0].asyncTaskConfig?.queryUrlTemplate).toBe(
       'https://upstream.example.com/tasks/{taskId}',
     )
+    expect(result.currentPlan?.clarificationItems[0]).toEqual(
+      expect.objectContaining({
+        id: 'plan-2:/assetPlans/0/authScheme:authScheme',
+        fieldKey: 'authScheme',
+        inputType: 'SELECT',
+        options: [{ value: 'HEADER_TOKEN', label: 'HEADER_TOKEN' }],
+        defaultValue: 'HEADER_TOKEN',
+        defaultSource: 'DOCUMENT',
+      }),
+    )
     expect(result.currentPlan?.assetPlans[0].aiProfile?.provider).toBe('OpenAI')
     expect(result.turns[0].planVersion).toBe(1)
   })
@@ -240,6 +267,52 @@ describe('import-agent api', () => {
     expect(loaded.sessionId).toBe('session-001')
     expect(appended.turns[0].message).toContain('weather-tools')
     expect(confirmed.confirmedPlanVersion).toBe(2)
+  })
+
+  it('submits answer-only structured clarification payloads', async () => {
+    mockedRequest.mockResolvedValueOnce({
+      status: 200,
+      data:
+        `event: session\ndata: ${JSON.stringify(
+          createSessionDto({
+            currentPlan: {
+              ...(createSessionDto().currentPlan as Record<string, unknown>),
+              clarificationQuestions: [],
+              clarificationItems: [],
+            },
+          }),
+        )}\n\n` + 'event: done\ndata: {"phase":"completed"}\n\n',
+    })
+
+    await appendImportAgentTurn('session-001', {
+      clarificationAnswers: [
+        {
+          clarificationId: 'plan-2:/assetPlans/0/authScheme:authScheme',
+          targetPath: '/assetPlans/0/authScheme',
+          fieldKey: 'authScheme',
+          value: 'HEADER_TOKEN',
+        },
+      ],
+    })
+
+    expect(mockedRequest).toHaveBeenCalledWith({
+      url: '/v1/current-user/import-agent/sessions/session-001/turns/stream',
+      method: 'post',
+      data: {
+        clarificationAnswers: [
+          {
+            clarificationId: 'plan-2:/assetPlans/0/authScheme:authScheme',
+            targetPath: '/assetPlans/0/authScheme',
+            fieldKey: 'authScheme',
+            value: 'HEADER_TOKEN',
+          },
+        ],
+      },
+      timeout: 0,
+      responseType: 'text',
+      transformResponse: expect.any(Array),
+      onDownloadProgress: expect.any(Function),
+    })
   })
 
   it('starts and loads import runs', async () => {

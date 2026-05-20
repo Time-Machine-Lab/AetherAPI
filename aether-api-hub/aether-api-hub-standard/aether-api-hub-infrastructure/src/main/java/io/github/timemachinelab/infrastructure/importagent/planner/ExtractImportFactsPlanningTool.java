@@ -19,11 +19,13 @@ public class ExtractImportFactsPlanningTool implements ImportAgentPlanningTool {
                 "从文档摘要、用户最新消息和 currentPlan 中提取高确定性导入事实，不要输出最终计划。关注 assetType、鉴权、异步查询接口、AI profile 与 schema 线索。",
                 propertiesNode -> {
                     propertiesNode.set("assetFacts", ImportAgentPlanningToolSupport.buildNamedObjectArraySchema(objectMapper,
-                            "apiCode", "assetName", "assetType", "requestMethod", "upstreamUrl", "categoryCode"));
+                            "apiCode", "assetName", "assetType", "requestMethod", "upstreamUrl", "categoryCode",
+                            "requestExample", "responseExample"));
                     propertiesNode.set("authHints", ImportAgentPlanningToolSupport.buildNamedObjectArraySchema(objectMapper,
                             "apiCode", "authScheme", "authConfig"));
                     propertiesNode.set("asyncHints", ImportAgentPlanningToolSupport.buildNamedObjectArraySchema(objectMapper,
-                            "apiCode", "queryMethod", "queryUrlTemplate", "authMode", "authScheme", "authConfig"));
+                            "apiCode", "queryMethod", "queryUrlTemplate", "authMode", "authScheme", "authConfig",
+                            "statusPath", "resultPath", "errorPath"));
                     propertiesNode.set("aiProfileHints", ImportAgentPlanningToolSupport.buildNamedObjectArraySchema(objectMapper,
                             "apiCode", "provider", "model"));
                     propertiesNode.set("schemaHints", ImportAgentPlanningToolSupport.buildNamedObjectArraySchema(objectMapper,

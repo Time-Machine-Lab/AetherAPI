@@ -5,6 +5,8 @@ import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 import io.github.timemachinelab.service.model.ApiImportAgentSessionModel;
 import io.github.timemachinelab.service.model.ImportAgentActorType;
+import io.github.timemachinelab.service.model.ImportAgentClarificationItemModel;
+import io.github.timemachinelab.service.model.ImportAgentClarificationOptionModel;
 import io.github.timemachinelab.service.model.ImportAgentPlanModel;
 import io.github.timemachinelab.service.model.ImportAgentSessionStatus;
 import io.github.timemachinelab.service.model.ImportAgentTurnModel;
@@ -66,6 +68,8 @@ class MybatisApiImportAgentSessionRepositoryTest {
         assertEquals(Integer.valueOf(1), saved.getConfirmedPlanVersion());
         assertTrue(saved.getPlanSnapshotJson().contains("weather-forecast"));
         assertTrue(saved.getPlanSnapshotJson().contains("OpenAI"));
+        assertTrue(saved.getPlanSnapshotJson().contains("clarificationItems"));
+        assertTrue(saved.getPlanSnapshotJson().contains("/assetPlans/0/authScheme"));
     }
 
     @Test
@@ -82,7 +86,7 @@ class MybatisApiImportAgentSessionRepositoryTest {
         sessionDo.setCurrentPlanVersion(2);
         sessionDo.setConfirmedPlanVersion(1);
         sessionDo.setPlanSnapshotJson("""
-            {"version":2,"executable":true,"summary":"ready","clarificationQuestions":[],"categoryPlans":[{"categoryCode":"tools","categoryName":"Tools","action":"CREATE_IF_MISSING"}],"assetPlans":[{"apiCode":"weather-forecast","assetName":"Weather Forecast","assetType":"AI_API","categoryCode":"tools","requestMethod":"GET","upstreamUrl":"https://upstream.example.com/weather","authScheme":"BEARER_TOKEN","authConfig":"Authorization: Bearer upstream-token","publishAfterImport":true,"aiProfile":{"provider":"OpenAI","model":"gpt-4.1","streamingSupported":true,"capabilityTags":["chat"]}}]}
+            {"version":2,"executable":true,"summary":"ready","clarificationQuestions":[],"clarificationItems":[{"id":"plan-2:/assetPlans/0/authScheme:authScheme","targetPath":"/assetPlans/0/authScheme","fieldKey":"authScheme","label":"Authentication scheme","description":"Choose the upstream authentication scheme.","inputType":"SELECT","required":true,"options":[{"value":"HEADER_TOKEN","label":"HEADER_TOKEN"}],"currentValue":"HEADER_TOKEN"}],"categoryPlans":[{"categoryCode":"tools","categoryName":"Tools","action":"CREATE_IF_MISSING"}],"assetPlans":[{"apiCode":"weather-forecast","assetName":"Weather Forecast","assetType":"AI_API","categoryCode":"tools","requestMethod":"GET","upstreamUrl":"https://upstream.example.com/weather","authScheme":"BEARER_TOKEN","authConfig":"Authorization: Bearer upstream-token","publishAfterImport":true,"aiProfile":{"provider":"OpenAI","model":"gpt-4.1","streamingSupported":true,"capabilityTags":["chat"]}}]}
             """);
         sessionDo.setCreatedAt(LocalDateTime.of(2026, 5, 18, 10, 0));
         sessionDo.setUpdatedAt(LocalDateTime.of(2026, 5, 18, 10, 5));
@@ -104,6 +108,9 @@ class MybatisApiImportAgentSessionRepositoryTest {
 
         assertEquals(ImportAgentSessionStatus.CONFIRMED, session.getStatus());
         assertEquals("weather-forecast", session.getCurrentPlan().getAssetPlans().get(0).getApiCode());
+        assertEquals(1, session.getCurrentPlan().getClarificationItems().size());
+        assertEquals("authScheme", session.getCurrentPlan().getClarificationItems().get(0).getFieldKey());
+        assertEquals("HEADER_TOKEN", session.getCurrentPlan().getClarificationItems().get(0).getOptions().get(0).getValue());
         assertEquals(AuthScheme.HEADER_TOKEN, session.getCurrentPlan().getAssetPlans().get(0).getAuthScheme());
         assertEquals("OpenAI", session.getCurrentPlan().getAssetPlans().get(0).getAiProfile().getProvider());
         assertEquals(1, repository.countTurns("session-1"));
@@ -129,6 +136,17 @@ class MybatisApiImportAgentSessionRepositoryTest {
                         true,
                         "ready",
                         List.of(),
+                        List.of(new ImportAgentClarificationItemModel(
+                                "plan-2:/assetPlans/0/authScheme:authScheme",
+                                "/assetPlans/0/authScheme",
+                                "authScheme",
+                                "Authentication scheme",
+                                "Choose the upstream authentication scheme.",
+                                "SELECT",
+                                true,
+                                List.of(new ImportAgentClarificationOptionModel("HEADER_TOKEN", "HEADER_TOKEN")),
+                                "HEADER_TOKEN"
+                        )),
                         List.of(new ImportCategoryPlanModel("tools", "Tools", ImportCategoryPlanAction.CREATE_IF_MISSING)),
                         List.of(new ImportAssetPlanModel(
                                 "weather-forecast",

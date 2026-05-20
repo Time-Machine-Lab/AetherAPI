@@ -6,6 +6,8 @@ import type {
   AppendImportAgentTurnReqDto,
   ConfirmImportAgentPlanReqDto,
   CreateImportAgentSessionReqDto,
+  ImportAgentClarificationItemDto,
+  ImportAgentClarificationOptionDto,
   ImportAgentPlanDto,
   ImportAgentStreamErrorEventDto,
   ImportAgentStreamMessageEventDto,
@@ -19,7 +21,10 @@ import type {
   StartImportAgentRunReqDto,
 } from './import-agent.dto'
 import type {
+  AppendImportAgentTurnInput,
   CreateImportAgentSessionInput,
+  ImportAgentClarificationItem,
+  ImportAgentClarificationOption,
   ImportAgentPlan,
   ImportAgentRun,
   ImportAgentSession,
@@ -31,6 +36,33 @@ import type {
   ImportCategoryPlan,
   ImportStepResult,
 } from './import-agent.types'
+
+function mapClarificationOption(
+  dto: ImportAgentClarificationOptionDto,
+): ImportAgentClarificationOption {
+  return {
+    value: dto.value,
+    label: dto.label,
+  }
+}
+
+function mapClarificationItem(dto: ImportAgentClarificationItemDto): ImportAgentClarificationItem {
+  return {
+    id: dto.id,
+    targetPath: dto.targetPath,
+    fieldKey: dto.fieldKey,
+    label: dto.label,
+    description: dto.description ?? undefined,
+    inputType: dto.inputType,
+    required: dto.required,
+    options: (dto.options ?? []).map(mapClarificationOption),
+    currentValue: dto.currentValue ?? undefined,
+    defaultValue: dto.defaultValue ?? undefined,
+    defaultLabel: dto.defaultLabel ?? undefined,
+    defaultSource: dto.defaultSource ?? undefined,
+    defaultConfidence: dto.defaultConfidence ?? undefined,
+  }
+}
 
 function mapAiProfile(dto?: ImportAiProfileDto | null): ImportAiProfile | null {
   if (!dto) {
@@ -101,7 +133,8 @@ function mapPlan(dto?: ImportAgentPlanDto | null): ImportAgentPlan | null {
     version: dto.version,
     executable: dto.executable,
     summary: dto.summary,
-    clarificationQuestions: dto.clarificationQuestions,
+    clarificationQuestions: dto.clarificationQuestions ?? [],
+    clarificationItems: (dto.clarificationItems ?? []).map(mapClarificationItem),
     categoryPlans: dto.categoryPlans.map(mapCategoryPlan),
     assetPlans: dto.assetPlans.map(mapAssetPlan),
   }
@@ -165,6 +198,19 @@ function toCreateSessionReq(body: CreateImportAgentSessionInput): CreateImportAg
     documentSummary: body.documentSummary,
     importIntent: body.importIntent,
     publisherDisplayName: body.publisherDisplayName,
+  }
+}
+
+function toAppendTurnReq(input: string | AppendImportAgentTurnInput): AppendImportAgentTurnReqDto {
+  if (typeof input === 'string') {
+    return { message: input }
+  }
+  const message = input.message?.trim()
+  return {
+    ...(message ? { message } : {}),
+    ...(input.clarificationAnswers && input.clarificationAnswers.length > 0
+      ? { clarificationAnswers: input.clarificationAnswers }
+      : {}),
   }
 }
 
@@ -349,10 +395,10 @@ export async function getImportAgentSession(sessionId: string): Promise<ImportAg
 
 export async function appendImportAgentTurn(
   sessionId: string,
-  message: string,
+  input: string | AppendImportAgentTurnInput,
   callbacks?: ImportAgentStreamCallbacks,
 ): Promise<ImportAgentSession> {
-  const body: AppendImportAgentTurnReqDto = { message }
+  const body = toAppendTurnReq(input)
   return requestImportAgentSessionStream(
     `/v1/current-user/import-agent/sessions/${encodeURIComponent(sessionId)}/turns/stream`,
     body,

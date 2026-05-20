@@ -37,7 +37,7 @@ class ImportAgentPlanningToolSupportTest {
         assertTrue(hasConditionalRequirement(assetConditions, "publishAfterImport", "aiProfile"));
 
         JsonNode asyncSchema = schema.path("properties").path("asyncTaskConfig");
-        assertEquals(".*\\{taskId\\}.*", asyncSchema.path("properties").path("queryUrlTemplate").path("pattern").asText());
+        assertEquals(".*\\{task(?:Id|ID|_id|-id)\\}.*", asyncSchema.path("properties").path("queryUrlTemplate").path("pattern").asText());
         JsonNode asyncConditions = asyncSchema.path("allOf");
         assertTrue(asyncConditions.isArray());
         assertTrue(hasConditionalRequirement(asyncConditions, "enabled", "authMode"));

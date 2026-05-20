@@ -31,6 +31,7 @@ import FieldLabel from '@/components/console/FieldLabel.vue'
 import JsonSchemaViewer from '@/components/console/JsonSchemaViewer.vue'
 import StateBlock from '@/components/console/StateBlock.vue'
 import type {
+  ImportAgentClarificationItem,
   ImportAgentStreamPhase,
   ImportAssetPlan,
   ImportAsyncTaskConfig,
@@ -46,6 +47,7 @@ const {
   documentSource,
   documentSummary,
   publisherDisplayName,
+  clarificationDrafts,
   messageDraft,
   draftAttachments,
   activeSession,
@@ -55,6 +57,7 @@ const {
   streamingPhase,
   streamingStatusMessage,
   currentPlan,
+  currentClarificationItems,
   restoring,
   creating,
   refreshingSession,
@@ -79,6 +82,7 @@ const {
   refreshRun,
   addDraftFiles,
   removeDraftAttachment,
+  adoptClarificationDefault,
   resetDraft,
 } = workspace
 
@@ -105,6 +109,20 @@ const composerPlaceholder = computed(() => {
 const attachedFileAccept =
   '.txt,.md,.markdown,.json,.yaml,.yml,.csv,.http,.xml,.log,.js,.ts,.mjs,.cjs,text/*,application/json,application/xml,text/xml,text/csv'
 
+const clarificationGroups = computed(() => {
+  const groups = new Map<string, { key: string; title: string; items: ImportAgentClarificationItem[] }>()
+  currentClarificationItems.value.forEach((item) => {
+    const group = resolveClarificationGroup(item)
+    const existing = groups.get(group.key)
+    if (existing) {
+      existing.items.push(item)
+      return
+    }
+    groups.set(group.key, { ...group, items: [item] })
+  })
+  return Array.from(groups.values())
+})
+
 function streamingPhaseLabel(phase: ImportAgentStreamPhase | null) {
   if (!phase) {
     return ''
@@ -118,6 +136,63 @@ function stepStatusTone(status: 'SUCCEEDED' | 'FAILED') {
 
 function hasText(value?: string | null) {
   return Boolean(value?.trim())
+}
+
+function resolveClarificationGroup(item: ImportAgentClarificationItem) {
+  const assetMatch = item.targetPath.match(/^\/assetPlans\/(\d+)/)
+  if (assetMatch) {
+    const index = Number(assetMatch[1])
+    const assetPlan = currentPlan.value?.assetPlans[index]
+    return {
+      key: `asset-${index}`,
+      title:
+        assetPlan?.assetName ||
+        assetPlan?.apiCode ||
+        t('console.importAgent.clarificationAssetGroup', { index: index + 1 }),
+    }
+  }
+  const categoryMatch = item.targetPath.match(/^\/categoryPlans\/(\d+)/)
+  if (categoryMatch) {
+    const index = Number(categoryMatch[1])
+    const categoryPlan = currentPlan.value?.categoryPlans[index]
+    return {
+      key: `category-${index}`,
+      title:
+        categoryPlan?.categoryName ||
+        categoryPlan?.categoryCode ||
+        t('console.importAgent.clarificationCategoryGroup', { index: index + 1 }),
+    }
+  }
+  return {
+    key: 'plan',
+    title: t('console.importAgent.clarificationPlanGroup'),
+  }
+}
+
+function clarificationValue(item: ImportAgentClarificationItem) {
+  return clarificationDrafts.value[item.id] ?? item.currentValue ?? ''
+}
+
+function clarificationDefaultLabel(item: ImportAgentClarificationItem) {
+  return item.defaultLabel || item.defaultValue || ''
+}
+
+function clarificationDefaultMeta(item: ImportAgentClarificationItem) {
+  const parts: string[] = []
+  if (item.defaultSource) {
+    parts.push(t(`console.importAgent.clarificationDefaultSource.${item.defaultSource}`))
+  }
+  if (item.defaultConfidence) {
+    parts.push(t(`console.importAgent.clarificationDefaultConfidence.${item.defaultConfidence}`))
+  }
+  return parts.join(' · ')
+}
+
+function setClarificationDraft(item: ImportAgentClarificationItem, value: string) {
+  clarificationDrafts.value = {
+    ...clarificationDrafts.value,
+    [item.id]: value,
+  }
 }
 
 function shouldShowSecurityConfig(assetPlan: ImportAssetPlan) {
@@ -369,7 +444,115 @@ watch(
                 </p>
               </div>
 
-              <div v-if="currentPlan.clarificationQuestions.length" class="mt-5 space-y-3">
+              <div v-if="currentClarificationItems.length" class="mt-5 space-y-4">
+                <div class="flex items-center gap-2 text-sm font-semibold text-[rgb(118_85_5)]">
+                  <Sparkles class="size-4" />
+                  <span>{{ t('console.importAgent.clarificationTitle') }}</span>
+                </div>
+                <div class="space-y-4">
+                  <section
+                    v-for="group in clarificationGroups"
+                    :key="group.key"
+                    class="rounded-[18px] border border-[rgb(234_197_79_/_0.45)] bg-[rgb(255,249,226)] p-4"
+                  >
+                    <p class="text-sm font-semibold text-[rgb(92_64_0)]">{{ group.title }}</p>
+                    <div class="mt-4 grid gap-4 md:grid-cols-2">
+                      <div
+                        v-for="item in group.items"
+                        :key="item.id"
+                        class="space-y-2"
+                      >
+                        <div class="flex items-center gap-2">
+                          <FieldLabel :label="item.label || item.fieldKey" :optional="!item.required" />
+                        </div>
+                        <p v-if="item.description" class="text-xs leading-5 text-[rgb(92_64_0)]">
+                          {{ item.description }}
+                        </p>
+                        <div
+                          v-if="item.defaultValue"
+                          class="rounded-[14px] border border-[rgb(234_197_79_/_0.55)] bg-white/70 p-3"
+                        >
+                          <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div class="min-w-0 space-y-1">
+                              <p class="text-[11px] font-semibold text-[rgb(118_85_5)]">
+                                {{ t('console.importAgent.clarificationDefaultTitle') }}
+                              </p>
+                              <p
+                                class="max-h-24 overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-5 text-foreground"
+                              >
+                                {{ clarificationDefaultLabel(item) }}
+                              </p>
+                              <p
+                                v-if="clarificationDefaultMeta(item)"
+                                class="text-[11px] leading-5 text-[rgb(92_64_0)]"
+                              >
+                                {{ clarificationDefaultMeta(item) }}
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              class="shrink-0"
+                              @click="adoptClarificationDefault(item)"
+                            >
+                              {{ t('console.importAgent.useClarificationDefault') }}
+                            </Button>
+                          </div>
+                        </div>
+                        <select
+                          v-if="item.inputType === 'SELECT'"
+                          class="h-11 w-full rounded-[14px] border border-[rgb(34_34_34_/_0.14)] bg-white px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                          :value="clarificationValue(item)"
+                          @change="setClarificationDraft(item, ($event.target as HTMLSelectElement).value)"
+                        >
+                          <option value="">
+                            {{ t('console.importAgent.clarificationSelectPlaceholder') }}
+                          </option>
+                          <option
+                            v-for="option in item.options"
+                            :key="`${item.id}:${option.value}`"
+                            :value="option.value"
+                          >
+                            {{ option.label }}
+                          </option>
+                        </select>
+                        <select
+                          v-else-if="item.inputType === 'BOOLEAN'"
+                          class="h-11 w-full rounded-[14px] border border-[rgb(34_34_34_/_0.14)] bg-white px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                          :value="clarificationValue(item)"
+                          @change="setClarificationDraft(item, ($event.target as HTMLSelectElement).value)"
+                        >
+                          <option value="">
+                            {{ t('console.importAgent.clarificationSelectPlaceholder') }}
+                          </option>
+                          <option value="true">{{ t('console.shared.yes') }}</option>
+                          <option value="false">{{ t('console.shared.no') }}</option>
+                        </select>
+                        <textarea
+                          v-else-if="item.inputType === 'MULTILINE'"
+                          rows="3"
+                          class="w-full resize-y rounded-[14px] border border-[rgb(34_34_34_/_0.14)] bg-white p-3 text-sm leading-6 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                          :value="clarificationValue(item)"
+                          :placeholder="t('console.importAgent.clarificationTextPlaceholder')"
+                          @input="setClarificationDraft(item, ($event.target as HTMLTextAreaElement).value)"
+                        />
+                        <Input
+                          v-else
+                          :model-value="clarificationValue(item)"
+                          :placeholder="t('console.importAgent.clarificationTextPlaceholder')"
+                          @update:model-value="setClarificationDraft(item, String($event))"
+                        />
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              </div>
+
+              <div
+                v-else-if="currentPlan.clarificationQuestions.length"
+                class="mt-5 space-y-3"
+              >
                 <div class="flex items-center gap-2 text-sm font-semibold text-[rgb(118_85_5)]">
                   <Sparkles class="size-4" />
                   <span>{{ t('console.importAgent.clarificationTitle') }}</span>

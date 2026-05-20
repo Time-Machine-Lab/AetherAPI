@@ -48,6 +48,14 @@ public class AuthRecognitionPlannerSubagent implements ImportAgentPlannerSubagen
 
     private String conflictMessage(String apiCode, String fieldName) {
         String displayApiCode = apiCode == null || apiCode.isBlank() ? "<unknown>" : apiCode;
-        return "资产计划 " + displayApiCode + " 的 " + fieldName + " 存在冲突，请确认。";
+        return "资产计划 " + displayApiCode + " 的" + displayFieldName(fieldName) + "存在冲突，请确认。";
+    }
+
+    private String displayFieldName(String fieldName) {
+        return switch (fieldName) {
+            case "authScheme" -> "上游鉴权方式";
+            case "authConfig" -> "上游鉴权信息";
+            default -> fieldName;
+        };
     }
 }

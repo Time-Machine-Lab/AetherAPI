@@ -11,7 +11,7 @@ public class CreateImportAgentSessionReq {
     @Size(max = 1024)
     private String documentSource;
 
-    @Size(max = 20000)
+    @Size(max = 64000)
     private String documentSummary;
 
     @NotBlank

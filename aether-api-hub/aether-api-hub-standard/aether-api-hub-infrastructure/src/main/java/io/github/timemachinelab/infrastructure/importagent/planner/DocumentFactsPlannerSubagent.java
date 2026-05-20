@@ -22,7 +22,7 @@ public class DocumentFactsPlannerSubagent implements ImportAgentPlannerSubagent 
             String apiCode = ImportAgentPlannerSubagentSupport.textValue(factNode, "apiCode");
             ObjectNode assetNode = ImportAgentPlannerSubagentSupport.findOrCreateAsset(assetPlans, apiCode);
             ImportAgentPlannerSubagentSupport.applyStringField(assetNode, "apiCode", factNode, "apiCode", context,
-                    "资产计划 apiCode 存在冲突，请确认最终导入目标。");
+                    "资产计划的 API 编码存在冲突，请确认最终导入目标。");
             ImportAgentPlannerSubagentSupport.applyStringField(assetNode, "assetName", factNode, "assetName", context,
                     conflictMessage(apiCode, "assetName"));
             ImportAgentPlannerSubagentSupport.applyStringField(assetNode, "assetType", factNode, "assetType", context,
@@ -33,11 +33,28 @@ public class DocumentFactsPlannerSubagent implements ImportAgentPlannerSubagent 
                     conflictMessage(apiCode, "upstreamUrl"));
             ImportAgentPlannerSubagentSupport.applyStringField(assetNode, "categoryCode", factNode, "categoryCode", context,
                     conflictMessage(apiCode, "categoryCode"));
+            ImportAgentPlannerSubagentSupport.applyStringField(assetNode, "requestExample", factNode, "requestExample", context,
+                    conflictMessage(apiCode, "requestExample"));
+            ImportAgentPlannerSubagentSupport.applyStringField(assetNode, "responseExample", factNode, "responseExample", context,
+                    conflictMessage(apiCode, "responseExample"));
         }
     }
 
     private String conflictMessage(String apiCode, String fieldName) {
         String displayApiCode = apiCode == null || apiCode.isBlank() ? "<unknown>" : apiCode;
-        return "资产计划 " + displayApiCode + " 的 " + fieldName + " 存在冲突，请确认。";
+        return "资产计划 " + displayApiCode + " 的" + displayFieldName(fieldName) + "存在冲突，请确认。";
+    }
+
+    private String displayFieldName(String fieldName) {
+        return switch (fieldName) {
+            case "assetName" -> "资产名称";
+            case "assetType" -> "资产类型";
+            case "requestMethod" -> "请求方法";
+            case "upstreamUrl" -> "上游地址";
+            case "categoryCode" -> "分类编码";
+            case "requestExample" -> "请求示例";
+            case "responseExample" -> "响应示例";
+            default -> fieldName;
+        };
     }
 }
