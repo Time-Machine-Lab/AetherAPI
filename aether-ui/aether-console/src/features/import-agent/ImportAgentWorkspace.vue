@@ -506,7 +506,7 @@ watch(
 
           <div v-if="currentPlan" class="flex justify-start">
             <div
-              class="w-full max-w-[100] rounded-[16px] border border-[rgb(34_34_34_/_0.06)] px-6 pt-6 shadow-[rgba(0,0,0,0.02)_0px_0px_0px_1px,rgba(0,0,0,0.04)_0px_2px_6px,rgba(0,0,0,0.08)_0px_16px_32px]"
+              class="w-full max-w-[56rem] rounded-[16px] border border-[rgb(34_34_34_/_0.06)] px-6 pt-6 shadow-[rgba(0,0,0,0.02)_0px_0px_0px_1px,rgba(0,0,0,0.04)_0px_2px_6px,rgba(0,0,0,0.08)_0px_16px_32px]"
               :class="planExpanded ? 'pb-6' : 'pb-0'"
             >
               <div
