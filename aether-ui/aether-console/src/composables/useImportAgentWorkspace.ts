@@ -341,10 +341,10 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
         return
       }
       answers.push({
-          clarificationId: item.id,
-          targetPath: item.targetPath,
-          fieldKey: item.fieldKey,
-          value,
+        clarificationId: item.id,
+        targetPath: item.targetPath,
+        fieldKey: item.fieldKey,
+        value,
       })
     })
     return answers

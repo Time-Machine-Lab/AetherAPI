@@ -106,7 +106,9 @@ function createPlan(overrides: Partial<ImportAgentPlan> = {}): ImportAgentPlan {
     summary: '需要补充导入信息',
     clarificationQuestions: [],
     clarificationItems: [],
-    categoryPlans: [{ categoryCode: 'video', categoryName: '视频分类', action: 'CREATE_IF_MISSING' }],
+    categoryPlans: [
+      { categoryCode: 'video', categoryName: '视频分类', action: 'CREATE_IF_MISSING' },
+    ],
     assetPlans: [
       {
         apiCode: 'happyhorse-t2v',
@@ -311,7 +313,9 @@ describe('ImportAgentWorkspace', () => {
     )
 
     await wrapper.findAll('select')[0].setValue('HEADER_TOKEN')
-    await wrapper.find('textarea').setValue('Authorization Header，凭证来自用户自己的阿里云百炼 API Key')
+    await wrapper
+      .find('textarea')
+      .setValue('Authorization Header，凭证来自用户自己的阿里云百炼 API Key')
     await wrapper.find('[data-test-id="stub-input"]').setValue('video-ai')
     await wrapper.findAll('select')[1].setValue('true')
 

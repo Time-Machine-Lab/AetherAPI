@@ -124,7 +124,10 @@ const attachedFileAccept =
   '.txt,.md,.markdown,.json,.yaml,.yml,.csv,.http,.xml,.log,.js,.ts,.mjs,.cjs,text/*,application/json,application/xml,text/xml,text/csv'
 
 const clarificationGroups = computed(() => {
-  const groups = new Map<string, { key: string; title: string; items: ImportAgentClarificationItem[] }>()
+  const groups = new Map<
+    string,
+    { key: string; title: string; items: ImportAgentClarificationItem[] }
+  >()
   currentClarificationItems.value.forEach((item) => {
     const group = resolveClarificationGroup(item)
     const existing = groups.get(group.key)
@@ -482,7 +485,10 @@ watch(
                       <p class="mt-1 text-xs leading-5 text-muted-foreground">
                         {{ thought.summary }}
                       </p>
-                      <p v-if="thought.detail" class="mt-1 text-[11px] leading-5 text-muted-foreground">
+                      <p
+                        v-if="thought.detail"
+                        class="mt-1 text-[11px] leading-5 text-muted-foreground"
+                      >
                         {{ thought.detail }}
                       </p>
                     </div>
@@ -571,478 +577,498 @@ watch(
                 </div>
 
                 <div v-if="currentClarificationItems.length" class="mt-5 space-y-4">
-                <div class="flex items-center gap-2 text-sm font-semibold text-[rgb(118_85_5)]">
-                  <Sparkles class="size-4" />
-                  <span>{{ t('console.importAgent.clarificationTitle') }}</span>
-                </div>
-                <div class="space-y-4">
-                  <section
-                    v-for="group in clarificationGroups"
-                    :key="group.key"
-                    class="rounded-[18px] border border-[rgb(234_197_79_/_0.45)] bg-[rgb(255,249,226)] p-4"
-                  >
-                    <p class="text-sm font-semibold text-[rgb(92_64_0)]">{{ group.title }}</p>
-                    <div class="mt-4 grid gap-4 md:grid-cols-2">
-                      <div
-                        v-for="item in group.items"
-                        :key="item.id"
-                        class="space-y-2"
-                      >
-                        <div class="flex items-center gap-2">
-                          <FieldLabel :label="item.label || item.fieldKey" :optional="!item.required" />
-                        </div>
-                        <p v-if="item.description" class="text-xs leading-5 text-[rgb(92_64_0)]">
-                          {{ item.description }}
-                        </p>
-                        <div
-                          v-if="item.defaultValue"
-                          class="rounded-[14px] border border-[rgb(234_197_79_/_0.55)] bg-white/70 p-3"
-                        >
-                          <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                            <div class="min-w-0 space-y-1">
-                              <p class="text-[11px] font-semibold text-[rgb(118_85_5)]">
-                                {{ t('console.importAgent.clarificationDefaultTitle') }}
-                              </p>
-                              <p
-                                class="max-h-24 overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-5 text-foreground"
-                              >
-                                {{ clarificationDefaultLabel(item) }}
-                              </p>
-                              <p
-                                v-if="clarificationDefaultMeta(item)"
-                                class="text-[11px] leading-5 text-[rgb(92_64_0)]"
-                              >
-                                {{ clarificationDefaultMeta(item) }}
-                              </p>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              class="shrink-0"
-                              @click="adoptClarificationDefault(item)"
-                            >
-                              {{ t('console.importAgent.useClarificationDefault') }}
-                            </Button>
+                  <div class="flex items-center gap-2 text-sm font-semibold text-[rgb(118_85_5)]">
+                    <Sparkles class="size-4" />
+                    <span>{{ t('console.importAgent.clarificationTitle') }}</span>
+                  </div>
+                  <div class="space-y-4">
+                    <section
+                      v-for="group in clarificationGroups"
+                      :key="group.key"
+                      class="rounded-[18px] border border-[rgb(234_197_79_/_0.45)] bg-[rgb(255,249,226)] p-4"
+                    >
+                      <p class="text-sm font-semibold text-[rgb(92_64_0)]">{{ group.title }}</p>
+                      <div class="mt-4 grid gap-4 md:grid-cols-2">
+                        <div v-for="item in group.items" :key="item.id" class="space-y-2">
+                          <div class="flex items-center gap-2">
+                            <FieldLabel
+                              :label="item.label || item.fieldKey"
+                              :optional="!item.required"
+                            />
                           </div>
-                        </div>
-                        <select
-                          v-if="item.inputType === 'SELECT'"
-                          class="h-11 w-full rounded-[14px] border border-[rgb(34_34_34_/_0.14)] bg-white px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                          :value="clarificationValue(item)"
-                          @change="setClarificationDraft(item, ($event.target as HTMLSelectElement).value)"
-                        >
-                          <option value="">
-                            {{ t('console.importAgent.clarificationSelectPlaceholder') }}
-                          </option>
-                          <option
-                            v-for="option in item.options"
-                            :key="`${item.id}:${option.value}`"
-                            :value="option.value"
+                          <p v-if="item.description" class="text-xs leading-5 text-[rgb(92_64_0)]">
+                            {{ item.description }}
+                          </p>
+                          <div
+                            v-if="item.defaultValue"
+                            class="rounded-[14px] border border-[rgb(234_197_79_/_0.55)] bg-white/70 p-3"
                           >
-                            {{ option.label }}
-                          </option>
-                        </select>
-                        <select
-                          v-else-if="item.inputType === 'BOOLEAN'"
-                          class="h-11 w-full rounded-[14px] border border-[rgb(34_34_34_/_0.14)] bg-white px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                          :value="clarificationValue(item)"
-                          @change="setClarificationDraft(item, ($event.target as HTMLSelectElement).value)"
-                        >
-                          <option value="">
-                            {{ t('console.importAgent.clarificationSelectPlaceholder') }}
-                          </option>
-                          <option value="true">{{ t('console.shared.yes') }}</option>
-                          <option value="false">{{ t('console.shared.no') }}</option>
-                        </select>
-                        <textarea
-                          v-else-if="item.inputType === 'MULTILINE'"
-                          rows="3"
-                          class="w-full resize-y rounded-[14px] border border-[rgb(34_34_34_/_0.14)] bg-white p-3 text-sm leading-6 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                          :value="clarificationValue(item)"
-                          :placeholder="t('console.importAgent.clarificationTextPlaceholder')"
-                          @input="setClarificationDraft(item, ($event.target as HTMLTextAreaElement).value)"
-                        />
-                        <Input
-                          v-else
-                          :model-value="clarificationValue(item)"
-                          :placeholder="t('console.importAgent.clarificationTextPlaceholder')"
-                          @update:model-value="setClarificationDraft(item, String($event))"
+                            <div
+                              class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"
+                            >
+                              <div class="min-w-0 space-y-1">
+                                <p class="text-[11px] font-semibold text-[rgb(118_85_5)]">
+                                  {{ t('console.importAgent.clarificationDefaultTitle') }}
+                                </p>
+                                <p
+                                  class="max-h-24 overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-5 text-foreground"
+                                >
+                                  {{ clarificationDefaultLabel(item) }}
+                                </p>
+                                <p
+                                  v-if="clarificationDefaultMeta(item)"
+                                  class="text-[11px] leading-5 text-[rgb(92_64_0)]"
+                                >
+                                  {{ clarificationDefaultMeta(item) }}
+                                </p>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                class="shrink-0"
+                                @click="adoptClarificationDefault(item)"
+                              >
+                                {{ t('console.importAgent.useClarificationDefault') }}
+                              </Button>
+                            </div>
+                          </div>
+                          <select
+                            v-if="item.inputType === 'SELECT'"
+                            class="h-11 w-full rounded-[14px] border border-[rgb(34_34_34_/_0.14)] bg-white px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                            :value="clarificationValue(item)"
+                            @change="
+                              setClarificationDraft(
+                                item,
+                                ($event.target as HTMLSelectElement).value,
+                              )
+                            "
+                          >
+                            <option value="">
+                              {{ t('console.importAgent.clarificationSelectPlaceholder') }}
+                            </option>
+                            <option
+                              v-for="option in item.options"
+                              :key="`${item.id}:${option.value}`"
+                              :value="option.value"
+                            >
+                              {{ option.label }}
+                            </option>
+                          </select>
+                          <select
+                            v-else-if="item.inputType === 'BOOLEAN'"
+                            class="h-11 w-full rounded-[14px] border border-[rgb(34_34_34_/_0.14)] bg-white px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                            :value="clarificationValue(item)"
+                            @change="
+                              setClarificationDraft(
+                                item,
+                                ($event.target as HTMLSelectElement).value,
+                              )
+                            "
+                          >
+                            <option value="">
+                              {{ t('console.importAgent.clarificationSelectPlaceholder') }}
+                            </option>
+                            <option value="true">{{ t('console.shared.yes') }}</option>
+                            <option value="false">{{ t('console.shared.no') }}</option>
+                          </select>
+                          <textarea
+                            v-else-if="item.inputType === 'MULTILINE'"
+                            rows="3"
+                            class="w-full resize-y rounded-[14px] border border-[rgb(34_34_34_/_0.14)] bg-white p-3 text-sm leading-6 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                            :value="clarificationValue(item)"
+                            :placeholder="t('console.importAgent.clarificationTextPlaceholder')"
+                            @input="
+                              setClarificationDraft(
+                                item,
+                                ($event.target as HTMLTextAreaElement).value,
+                              )
+                            "
+                          />
+                          <Input
+                            v-else
+                            :model-value="clarificationValue(item)"
+                            :placeholder="t('console.importAgent.clarificationTextPlaceholder')"
+                            @update:model-value="setClarificationDraft(item, String($event))"
+                          />
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </div>
+
+                <div v-else-if="currentPlan.clarificationQuestions.length" class="mt-5 space-y-3">
+                  <div class="flex items-center gap-2 text-sm font-semibold text-[rgb(118_85_5)]">
+                    <Sparkles class="size-4" />
+                    <span>{{ t('console.importAgent.clarificationTitle') }}</span>
+                  </div>
+                  <div class="grid gap-3 md:grid-cols-2">
+                    <div
+                      v-for="(question, index) in currentPlan.clarificationQuestions"
+                      :key="question"
+                      class="rounded-[18px] border border-[rgb(234_197_79_/_0.5)] bg-[linear-gradient(135deg,rgba(255,248,219,0.98),rgba(255,241,188,0.88))] p-4"
+                    >
+                      <p
+                        class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(141_94_0)]"
+                      >
+                        {{ t('console.importAgent.questionLabel', { index: index + 1 }) }}
+                      </p>
+                      <p class="mt-3 text-sm leading-6 text-[rgb(92_64_0)]">
+                        {{ question }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="currentPlan.categoryPlans.length" class="mt-5 space-y-3">
+                  <p class="text-sm font-semibold text-foreground">
+                    {{ t('console.importAgent.categoryPlansTitle') }}
+                  </p>
+                  <div class="grid gap-3 md:grid-cols-2">
+                    <div
+                      v-for="categoryPlan in currentPlan.categoryPlans"
+                      :key="`${categoryPlan.categoryCode}:${categoryPlan.action}`"
+                      class="rounded-[18px] border border-[rgb(34_34_34_/_0.06)] bg-white/84 p-4"
+                    >
+                      <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-sm font-medium text-foreground">{{
+                          categoryPlan.categoryName
+                        }}</span>
+                        <DisplayTag tone="neutral" :label="categoryPlan.categoryCode" />
+                        <DisplayTag
+                          tone="info"
+                          :label="t(`console.importAgent.categoryAction.${categoryPlan.action}`)"
                         />
                       </div>
                     </div>
-                  </section>
+                  </div>
                 </div>
-              </div>
 
-              <div
-                v-else-if="currentPlan.clarificationQuestions.length"
-                class="mt-5 space-y-3"
-              >
-                <div class="flex items-center gap-2 text-sm font-semibold text-[rgb(118_85_5)]">
-                  <Sparkles class="size-4" />
-                  <span>{{ t('console.importAgent.clarificationTitle') }}</span>
-                </div>
-                <div class="grid gap-3 md:grid-cols-2">
-                  <div
-                    v-for="(question, index) in currentPlan.clarificationQuestions"
-                    :key="question"
-                    class="rounded-[18px] border border-[rgb(234_197_79_/_0.5)] bg-[linear-gradient(135deg,rgba(255,248,219,0.98),rgba(255,241,188,0.88))] p-4"
-                  >
-                    <p
-                      class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(141_94_0)]"
+                <div v-if="currentPlan.assetPlans.length" class="mt-5 space-y-3">
+                  <p class="text-sm font-semibold text-foreground">
+                    {{ t('console.importAgent.assetPlansTitle') }}
+                  </p>
+                  <div class="space-y-3">
+                    <div
+                      v-for="assetPlan in currentPlan.assetPlans"
+                      :key="assetPlan.apiCode"
+                      class="rounded-[20px] border border-[rgb(34_34_34_/_0.06)] bg-white/86 p-4"
                     >
-                      {{ t('console.importAgent.questionLabel', { index: index + 1 }) }}
-                    </p>
-                    <p class="mt-3 text-sm leading-6 text-[rgb(92_64_0)]">
-                      {{ question }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div v-if="currentPlan.categoryPlans.length" class="mt-5 space-y-3">
-                <p class="text-sm font-semibold text-foreground">
-                  {{ t('console.importAgent.categoryPlansTitle') }}
-                </p>
-                <div class="grid gap-3 md:grid-cols-2">
-                  <div
-                    v-for="categoryPlan in currentPlan.categoryPlans"
-                    :key="`${categoryPlan.categoryCode}:${categoryPlan.action}`"
-                    class="rounded-[18px] border border-[rgb(34_34_34_/_0.06)] bg-white/84 p-4"
-                  >
-                    <div class="flex flex-wrap items-center gap-2">
-                      <span class="text-sm font-medium text-foreground">{{
-                        categoryPlan.categoryName
-                      }}</span>
-                      <DisplayTag tone="neutral" :label="categoryPlan.categoryCode" />
-                      <DisplayTag
-                        tone="info"
-                        :label="t(`console.importAgent.categoryAction.${categoryPlan.action}`)"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div v-if="currentPlan.assetPlans.length" class="mt-5 space-y-3">
-                <p class="text-sm font-semibold text-foreground">
-                  {{ t('console.importAgent.assetPlansTitle') }}
-                </p>
-                <div class="space-y-3">
-                  <div
-                    v-for="assetPlan in currentPlan.assetPlans"
-                    :key="assetPlan.apiCode"
-                    class="rounded-[20px] border border-[rgb(34_34_34_/_0.06)] bg-white/86 p-4"
-                  >
-                    <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                      <div class="space-y-2">
-                        <div class="flex flex-wrap items-center gap-2">
-                          <span class="text-sm font-semibold text-foreground">{{
-                            assetPlan.assetName
-                          }}</span>
-                          <DisplayTag tone="neutral" :label="assetPlan.apiCode" />
-                          <DisplayTag tone="info" :label="assetPlan.assetType" />
+                      <div
+                        class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"
+                      >
+                        <div class="space-y-2">
+                          <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-sm font-semibold text-foreground">{{
+                              assetPlan.assetName
+                            }}</span>
+                            <DisplayTag tone="neutral" :label="assetPlan.apiCode" />
+                            <DisplayTag tone="info" :label="assetPlan.assetType" />
+                          </div>
+                          <div class="flex flex-wrap gap-2">
+                            <DisplayTag
+                              :tone="assetPlan.publishAfterImport ? 'success' : 'neutral'"
+                              :label="
+                                assetPlan.publishAfterImport
+                                  ? t('console.importAgent.publishAfterImport')
+                                  : t('console.importAgent.keepAsDraft')
+                              "
+                            />
+                            <DisplayTag
+                              v-if="assetPlan.aiProfile"
+                              tone="info"
+                              :label="`${assetPlan.aiProfile.provider} · ${assetPlan.aiProfile.model}`"
+                            />
+                          </div>
                         </div>
                         <div class="flex flex-wrap gap-2">
                           <DisplayTag
-                            :tone="assetPlan.publishAfterImport ? 'success' : 'neutral'"
-                            :label="
-                              assetPlan.publishAfterImport
-                                ? t('console.importAgent.publishAfterImport')
-                                : t('console.importAgent.keepAsDraft')
-                            "
+                            v-if="assetPlan.requestMethod"
+                            tone="neutral"
+                            :label="assetPlan.requestMethod"
                           />
                           <DisplayTag
-                            v-if="assetPlan.aiProfile"
-                            tone="info"
-                            :label="`${assetPlan.aiProfile.provider} · ${assetPlan.aiProfile.model}`"
+                            v-if="assetPlan.authScheme"
+                            tone="neutral"
+                            :label="assetPlan.authScheme"
                           />
                         </div>
                       </div>
-                      <div class="flex flex-wrap gap-2">
-                        <DisplayTag
-                          v-if="assetPlan.requestMethod"
-                          tone="neutral"
-                          :label="assetPlan.requestMethod"
-                        />
-                        <DisplayTag
-                          v-if="assetPlan.authScheme"
-                          tone="neutral"
-                          :label="assetPlan.authScheme"
-                        />
-                      </div>
-                    </div>
 
-                    <dl class="mt-4 grid gap-3 text-xs text-muted-foreground sm:grid-cols-2">
-                      <div v-if="assetPlan.categoryCode">
-                        <dt>{{ t('console.importAgent.assetMetaCategory') }}</dt>
-                        <dd class="mt-1 text-sm text-foreground">{{ assetPlan.categoryCode }}</dd>
-                      </div>
-                      <div v-if="assetPlan.requestMethod">
-                        <dt>{{ t('console.importAgent.assetMetaMethod') }}</dt>
-                        <dd class="mt-1 text-sm text-foreground">{{ assetPlan.requestMethod }}</dd>
-                      </div>
-                      <div v-if="assetPlan.authScheme">
-                        <dt>{{ t('console.importAgent.assetMetaAuthScheme') }}</dt>
-                        <dd class="mt-1 text-sm text-foreground">{{ assetPlan.authScheme }}</dd>
-                      </div>
-                      <div v-if="assetPlan.aiProfile">
-                        <dt>{{ t('console.importAgent.assetMetaAiModel') }}</dt>
-                        <dd class="mt-1 text-sm text-foreground">
-                          {{ `${assetPlan.aiProfile.provider} · ${assetPlan.aiProfile.model}` }}
-                        </dd>
-                      </div>
-                      <div v-if="assetPlan.upstreamUrl" class="sm:col-span-2">
-                        <dt>{{ t('console.importAgent.assetMetaUpstreamUrl') }}</dt>
-                        <dd class="mt-1 break-all text-sm text-foreground">
-                          {{ assetPlan.upstreamUrl }}
-                        </dd>
-                      </div>
-                    </dl>
-
-                    <div
-                      v-if="shouldShowSecurityConfig(assetPlan)"
-                      class="mt-4 rounded-[16px] border border-[rgb(34_34_34_/_0.06)] bg-[color-mix(in_srgb,var(--primary)_10%,white)] p-4"
-                    >
-                      <div
-                        class="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground"
-                      >
-                        <ShieldCheck class="size-4 text-[rgb(28_100_82)]" />
-                        <span>{{ t('console.importAgent.assetSecurityConfigTitle') }}</span>
-                        <DisplayTag
-                          v-if="assetPlan.authScheme"
-                          tone="neutral"
-                          :label="assetPlan.authScheme"
-                        />
-                      </div>
-                      <dl class="mt-3 grid gap-3 text-xs text-muted-foreground sm:grid-cols-2">
+                      <dl class="mt-4 grid gap-3 text-xs text-muted-foreground sm:grid-cols-2">
+                        <div v-if="assetPlan.categoryCode">
+                          <dt>{{ t('console.importAgent.assetMetaCategory') }}</dt>
+                          <dd class="mt-1 text-sm text-foreground">{{ assetPlan.categoryCode }}</dd>
+                        </div>
+                        <div v-if="assetPlan.requestMethod">
+                          <dt>{{ t('console.importAgent.assetMetaMethod') }}</dt>
+                          <dd class="mt-1 text-sm text-foreground">
+                            {{ assetPlan.requestMethod }}
+                          </dd>
+                        </div>
                         <div v-if="assetPlan.authScheme">
                           <dt>{{ t('console.importAgent.assetMetaAuthScheme') }}</dt>
                           <dd class="mt-1 text-sm text-foreground">{{ assetPlan.authScheme }}</dd>
                         </div>
-                        <div class="sm:col-span-2">
-                          <dt>{{ t('console.workspace.fieldAuthConfig') }}</dt>
-                          <dd
-                            v-if="assetPlan.authConfig"
-                            class="mt-1 break-all font-mono text-xs leading-5 text-foreground"
-                          >
-                            {{ assetPlan.authConfig }}
-                          </dd>
-                          <dd
-                            v-else-if="needsSecurityConfig(assetPlan)"
-                            class="mt-1 flex items-center gap-2 text-sm text-destructive"
-                          >
-                            <CircleAlert class="size-4 shrink-0" />
-                            <span>{{ t('console.importAgent.assetSecurityConfigMissing') }}</span>
-                          </dd>
-                          <dd v-else class="mt-1 text-sm text-muted-foreground">
-                            {{ t('console.importAgent.assetSecurityConfigNone') }}
+                        <div v-if="assetPlan.aiProfile">
+                          <dt>{{ t('console.importAgent.assetMetaAiModel') }}</dt>
+                          <dd class="mt-1 text-sm text-foreground">
+                            {{ `${assetPlan.aiProfile.provider} · ${assetPlan.aiProfile.model}` }}
                           </dd>
                         </div>
-                      </dl>
-                    </div>
-
-                    <div
-                      v-if="assetPlan.asyncTaskConfig?.enabled"
-                      class="mt-4 rounded-[16px] border border-[rgb(34_34_34_/_0.06)] bg-[color-mix(in_srgb,var(--accent)_18%,white)] p-4"
-                    >
-                      <div
-                        class="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground"
-                      >
-                        <Clock3 class="size-4 text-[rgb(62_96_139)]" />
-                        <span>{{ t('console.workspace.asyncTaskConfigGroup') }}</span>
-                        <DisplayTag
-                          v-if="assetPlan.asyncTaskConfig.queryMethod"
-                          tone="neutral"
-                          :label="assetPlan.asyncTaskConfig.queryMethod"
-                        />
-                        <DisplayTag
-                          v-if="assetPlan.asyncTaskConfig.authMode"
-                          tone="info"
-                          :label="assetPlan.asyncTaskConfig.authMode"
-                        />
-                      </div>
-                      <dl class="mt-3 grid gap-3 text-xs text-muted-foreground sm:grid-cols-2">
-                        <div
-                          v-if="assetPlan.asyncTaskConfig.queryUrlTemplate"
-                          class="sm:col-span-2"
-                        >
-                          <dt>{{ t('console.workspace.fieldAsyncTaskQueryUrlTemplate') }}</dt>
+                        <div v-if="assetPlan.upstreamUrl" class="sm:col-span-2">
+                          <dt>{{ t('console.importAgent.assetMetaUpstreamUrl') }}</dt>
                           <dd class="mt-1 break-all text-sm text-foreground">
-                            {{ assetPlan.asyncTaskConfig.queryUrlTemplate }}
-                          </dd>
-                        </div>
-                        <div v-if="assetPlan.asyncTaskConfig.authScheme">
-                          <dt>{{ t('console.workspace.fieldAsyncTaskAuthScheme') }}</dt>
-                          <dd class="mt-1 text-sm text-foreground">
-                            {{ assetPlan.asyncTaskConfig.authScheme }}
-                          </dd>
-                        </div>
-                        <div
-                          v-if="shouldShowAsyncAuthConfig(assetPlan.asyncTaskConfig)"
-                          class="sm:col-span-2"
-                        >
-                          <dt>{{ t('console.workspace.fieldAsyncTaskAuthConfig') }}</dt>
-                          <dd
-                            v-if="assetPlan.asyncTaskConfig.authConfig"
-                            class="mt-1 break-all font-mono text-xs leading-5 text-foreground"
-                          >
-                            {{ assetPlan.asyncTaskConfig.authConfig }}
-                          </dd>
-                          <dd v-else class="mt-1 text-sm text-muted-foreground">
-                            {{ t('console.importAgent.assetAsyncAuthConfigInherited') }}
-                          </dd>
-                        </div>
-                        <div v-if="assetPlan.asyncTaskConfig.statusPath">
-                          <dt>{{ t('console.workspace.fieldAsyncTaskStatusPath') }}</dt>
-                          <dd class="mt-1 text-sm text-foreground">
-                            {{ assetPlan.asyncTaskConfig.statusPath }}
-                          </dd>
-                        </div>
-                        <div v-if="assetPlan.asyncTaskConfig.resultPath">
-                          <dt>{{ t('console.workspace.fieldAsyncTaskResultPath') }}</dt>
-                          <dd class="mt-1 text-sm text-foreground">
-                            {{ assetPlan.asyncTaskConfig.resultPath }}
-                          </dd>
-                        </div>
-                        <div v-if="assetPlan.asyncTaskConfig.errorPath">
-                          <dt>{{ t('console.workspace.fieldAsyncTaskErrorPath') }}</dt>
-                          <dd class="mt-1 text-sm text-foreground">
-                            {{ assetPlan.asyncTaskConfig.errorPath }}
+                            {{ assetPlan.upstreamUrl }}
                           </dd>
                         </div>
                       </dl>
-                    </div>
 
-                    <div
-                      v-if="assetPlan.aiProfile"
-                      class="mt-4 rounded-[16px] border border-[rgb(34_34_34_/_0.06)] bg-[color-mix(in_srgb,var(--secondary)_18%,white)] p-4"
-                    >
                       <div
-                        class="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground"
+                        v-if="shouldShowSecurityConfig(assetPlan)"
+                        class="mt-4 rounded-[16px] border border-[rgb(34_34_34_/_0.06)] bg-[color-mix(in_srgb,var(--primary)_10%,white)] p-4"
                       >
-                        <Bot class="size-4 text-[rgb(48_92_57)]" />
-                        <span>{{ t('console.home.aiCapability') }}</span>
-                      </div>
-                      <dl class="mt-3 grid gap-3 text-xs text-muted-foreground sm:grid-cols-3">
-                        <div>
-                          <dt>{{ t('console.workspace.fieldProvider') }}</dt>
-                          <dd class="mt-1 text-sm text-foreground">
-                            {{ assetPlan.aiProfile.provider }}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>{{ t('console.workspace.fieldModel') }}</dt>
-                          <dd class="mt-1 text-sm text-foreground">
-                            {{ assetPlan.aiProfile.model }}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>{{ t('console.playground.streamingSupported') }}</dt>
-                          <dd class="mt-1 text-sm text-foreground">
-                            {{
-                              assetPlan.aiProfile.streamingSupported
-                                ? t('console.shared.yes')
-                                : t('console.shared.no')
-                            }}
-                          </dd>
-                        </div>
-                      </dl>
-                      <div v-if="assetPlan.aiProfile.capabilityTags.length" class="mt-3 space-y-2">
-                        <p
-                          class="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+                        <div
+                          class="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground"
                         >
-                          {{ t('console.home.docExport.markdown.tags') }}
-                        </p>
-                        <div class="flex flex-wrap gap-2">
+                          <ShieldCheck class="size-4 text-[rgb(28_100_82)]" />
+                          <span>{{ t('console.importAgent.assetSecurityConfigTitle') }}</span>
                           <DisplayTag
-                            v-for="capabilityTag in assetPlan.aiProfile.capabilityTags"
-                            :key="capabilityTag"
-                            tone="ai"
-                            :label="capabilityTag"
+                            v-if="assetPlan.authScheme"
+                            tone="neutral"
+                            :label="assetPlan.authScheme"
                           />
                         </div>
+                        <dl class="mt-3 grid gap-3 text-xs text-muted-foreground sm:grid-cols-2">
+                          <div v-if="assetPlan.authScheme">
+                            <dt>{{ t('console.importAgent.assetMetaAuthScheme') }}</dt>
+                            <dd class="mt-1 text-sm text-foreground">{{ assetPlan.authScheme }}</dd>
+                          </div>
+                          <div class="sm:col-span-2">
+                            <dt>{{ t('console.workspace.fieldAuthConfig') }}</dt>
+                            <dd
+                              v-if="assetPlan.authConfig"
+                              class="mt-1 break-all font-mono text-xs leading-5 text-foreground"
+                            >
+                              {{ assetPlan.authConfig }}
+                            </dd>
+                            <dd
+                              v-else-if="needsSecurityConfig(assetPlan)"
+                              class="mt-1 flex items-center gap-2 text-sm text-destructive"
+                            >
+                              <CircleAlert class="size-4 shrink-0" />
+                              <span>{{ t('console.importAgent.assetSecurityConfigMissing') }}</span>
+                            </dd>
+                            <dd v-else class="mt-1 text-sm text-muted-foreground">
+                              {{ t('console.importAgent.assetSecurityConfigNone') }}
+                            </dd>
+                          </div>
+                        </dl>
                       </div>
-                    </div>
 
-                    <div v-if="assetPlan.requestTemplate" class="mt-4">
-                      <CodeBlock
-                        :label="t('console.workspace.fieldRequestTemplate')"
-                        :value="assetPlan.requestTemplate"
-                        collapsible
-                        default-collapsed
-                        max-height-class="max-h-[260px]"
-                      />
-                    </div>
+                      <div
+                        v-if="assetPlan.asyncTaskConfig?.enabled"
+                        class="mt-4 rounded-[16px] border border-[rgb(34_34_34_/_0.06)] bg-[color-mix(in_srgb,var(--accent)_18%,white)] p-4"
+                      >
+                        <div
+                          class="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground"
+                        >
+                          <Clock3 class="size-4 text-[rgb(62_96_139)]" />
+                          <span>{{ t('console.workspace.asyncTaskConfigGroup') }}</span>
+                          <DisplayTag
+                            v-if="assetPlan.asyncTaskConfig.queryMethod"
+                            tone="neutral"
+                            :label="assetPlan.asyncTaskConfig.queryMethod"
+                          />
+                          <DisplayTag
+                            v-if="assetPlan.asyncTaskConfig.authMode"
+                            tone="info"
+                            :label="assetPlan.asyncTaskConfig.authMode"
+                          />
+                        </div>
+                        <dl class="mt-3 grid gap-3 text-xs text-muted-foreground sm:grid-cols-2">
+                          <div
+                            v-if="assetPlan.asyncTaskConfig.queryUrlTemplate"
+                            class="sm:col-span-2"
+                          >
+                            <dt>{{ t('console.workspace.fieldAsyncTaskQueryUrlTemplate') }}</dt>
+                            <dd class="mt-1 break-all text-sm text-foreground">
+                              {{ assetPlan.asyncTaskConfig.queryUrlTemplate }}
+                            </dd>
+                          </div>
+                          <div v-if="assetPlan.asyncTaskConfig.authScheme">
+                            <dt>{{ t('console.workspace.fieldAsyncTaskAuthScheme') }}</dt>
+                            <dd class="mt-1 text-sm text-foreground">
+                              {{ assetPlan.asyncTaskConfig.authScheme }}
+                            </dd>
+                          </div>
+                          <div
+                            v-if="shouldShowAsyncAuthConfig(assetPlan.asyncTaskConfig)"
+                            class="sm:col-span-2"
+                          >
+                            <dt>{{ t('console.workspace.fieldAsyncTaskAuthConfig') }}</dt>
+                            <dd
+                              v-if="assetPlan.asyncTaskConfig.authConfig"
+                              class="mt-1 break-all font-mono text-xs leading-5 text-foreground"
+                            >
+                              {{ assetPlan.asyncTaskConfig.authConfig }}
+                            </dd>
+                            <dd v-else class="mt-1 text-sm text-muted-foreground">
+                              {{ t('console.importAgent.assetAsyncAuthConfigInherited') }}
+                            </dd>
+                          </div>
+                          <div v-if="assetPlan.asyncTaskConfig.statusPath">
+                            <dt>{{ t('console.workspace.fieldAsyncTaskStatusPath') }}</dt>
+                            <dd class="mt-1 text-sm text-foreground">
+                              {{ assetPlan.asyncTaskConfig.statusPath }}
+                            </dd>
+                          </div>
+                          <div v-if="assetPlan.asyncTaskConfig.resultPath">
+                            <dt>{{ t('console.workspace.fieldAsyncTaskResultPath') }}</dt>
+                            <dd class="mt-1 text-sm text-foreground">
+                              {{ assetPlan.asyncTaskConfig.resultPath }}
+                            </dd>
+                          </div>
+                          <div v-if="assetPlan.asyncTaskConfig.errorPath">
+                            <dt>{{ t('console.workspace.fieldAsyncTaskErrorPath') }}</dt>
+                            <dd class="mt-1 text-sm text-foreground">
+                              {{ assetPlan.asyncTaskConfig.errorPath }}
+                            </dd>
+                          </div>
+                        </dl>
+                      </div>
 
-                    <div v-if="assetPlan.requestExample" class="mt-4">
-                      <CodeBlock
-                        :label="t('console.workspace.fieldRequestExample')"
-                        :value="assetPlan.requestExample"
-                        collapsible
-                        default-collapsed
-                        max-height-class="max-h-[260px]"
-                      />
-                    </div>
+                      <div
+                        v-if="assetPlan.aiProfile"
+                        class="mt-4 rounded-[16px] border border-[rgb(34_34_34_/_0.06)] bg-[color-mix(in_srgb,var(--secondary)_18%,white)] p-4"
+                      >
+                        <div
+                          class="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground"
+                        >
+                          <Bot class="size-4 text-[rgb(48_92_57)]" />
+                          <span>{{ t('console.home.aiCapability') }}</span>
+                        </div>
+                        <dl class="mt-3 grid gap-3 text-xs text-muted-foreground sm:grid-cols-3">
+                          <div>
+                            <dt>{{ t('console.workspace.fieldProvider') }}</dt>
+                            <dd class="mt-1 text-sm text-foreground">
+                              {{ assetPlan.aiProfile.provider }}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>{{ t('console.workspace.fieldModel') }}</dt>
+                            <dd class="mt-1 text-sm text-foreground">
+                              {{ assetPlan.aiProfile.model }}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>{{ t('console.playground.streamingSupported') }}</dt>
+                            <dd class="mt-1 text-sm text-foreground">
+                              {{
+                                assetPlan.aiProfile.streamingSupported
+                                  ? t('console.shared.yes')
+                                  : t('console.shared.no')
+                              }}
+                            </dd>
+                          </div>
+                        </dl>
+                        <div
+                          v-if="assetPlan.aiProfile.capabilityTags.length"
+                          class="mt-3 space-y-2"
+                        >
+                          <p
+                            class="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+                          >
+                            {{ t('console.home.docExport.markdown.tags') }}
+                          </p>
+                          <div class="flex flex-wrap gap-2">
+                            <DisplayTag
+                              v-for="capabilityTag in assetPlan.aiProfile.capabilityTags"
+                              :key="capabilityTag"
+                              tone="ai"
+                              :label="capabilityTag"
+                            />
+                          </div>
+                        </div>
+                      </div>
 
-                    <div v-if="assetPlan.responseExample" class="mt-4">
-                      <CodeBlock
-                        :label="t('console.workspace.fieldResponseExample')"
-                        :value="assetPlan.responseExample"
-                        collapsible
-                        default-collapsed
-                        max-height-class="max-h-[260px]"
-                      />
-                    </div>
+                      <div v-if="assetPlan.requestTemplate" class="mt-4">
+                        <CodeBlock
+                          :label="t('console.workspace.fieldRequestTemplate')"
+                          :value="assetPlan.requestTemplate"
+                          collapsible
+                          default-collapsed
+                          max-height-class="max-h-[260px]"
+                        />
+                      </div>
 
-                    <div
-                      v-if="assetPlan.requestJsonSchema || assetPlan.responseJsonSchema"
-                      class="mt-4 grid gap-3"
-                    >
-                      <JsonSchemaViewer
-                        v-if="assetPlan.requestJsonSchema"
-                        :label="t('console.workspace.fieldRequestJsonSchema')"
-                        :value="assetPlan.requestJsonSchema"
-                        presentation="overlay"
-                      />
-                      <JsonSchemaViewer
-                        v-if="assetPlan.responseJsonSchema"
-                        :label="t('console.workspace.fieldResponseJsonSchema')"
-                        :value="assetPlan.responseJsonSchema"
-                        presentation="overlay"
-                      />
+                      <div v-if="assetPlan.requestExample" class="mt-4">
+                        <CodeBlock
+                          :label="t('console.workspace.fieldRequestExample')"
+                          :value="assetPlan.requestExample"
+                          collapsible
+                          default-collapsed
+                          max-height-class="max-h-[260px]"
+                        />
+                      </div>
+
+                      <div v-if="assetPlan.responseExample" class="mt-4">
+                        <CodeBlock
+                          :label="t('console.workspace.fieldResponseExample')"
+                          :value="assetPlan.responseExample"
+                          collapsible
+                          default-collapsed
+                          max-height-class="max-h-[260px]"
+                        />
+                      </div>
+
+                      <div
+                        v-if="assetPlan.requestJsonSchema || assetPlan.responseJsonSchema"
+                        class="mt-4 grid gap-3"
+                      >
+                        <JsonSchemaViewer
+                          v-if="assetPlan.requestJsonSchema"
+                          :label="t('console.workspace.fieldRequestJsonSchema')"
+                          :value="assetPlan.requestJsonSchema"
+                          presentation="overlay"
+                        />
+                        <JsonSchemaViewer
+                          v-if="assetPlan.responseJsonSchema"
+                          :label="t('console.workspace.fieldResponseJsonSchema')"
+                          :value="assetPlan.responseJsonSchema"
+                          presentation="overlay"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
                 <p v-if="sessionError" class="mt-4 text-sm text-destructive">{{ sessionError }}</p>
 
                 <div class="mt-5 flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  class="rounded-full"
-                  :disabled="!canConfirmPlan"
-                  @click="confirmPlan"
-                >
-                  <Loader2 v-if="confirming" class="mr-2 size-4 animate-spin" />
-                  <CheckCircle2 v-else class="mr-2 size-4" />
-                  {{
-                    confirming
-                      ? t('console.importAgent.confirming')
-                      : t('console.importAgent.confirmPlan')
-                  }}
-                </Button>
-                <Button class="rounded-full" :disabled="!canStartRun" @click="startRun">
-                  <Loader2 v-if="startingRun" class="mr-2 size-4 animate-spin" />
-                  <Play v-else class="mr-2 size-4" />
-                  {{
-                    startingRun
-                      ? t('console.importAgent.startingRun')
-                      : t('console.importAgent.startRun')
-                  }}
-                </Button>
+                  <Button
+                    variant="outline"
+                    class="rounded-full"
+                    :disabled="!canConfirmPlan"
+                    @click="confirmPlan"
+                  >
+                    <Loader2 v-if="confirming" class="mr-2 size-4 animate-spin" />
+                    <CheckCircle2 v-else class="mr-2 size-4" />
+                    {{
+                      confirming
+                        ? t('console.importAgent.confirming')
+                        : t('console.importAgent.confirmPlan')
+                    }}
+                  </Button>
+                  <Button class="rounded-full" :disabled="!canStartRun" @click="startRun">
+                    <Loader2 v-if="startingRun" class="mr-2 size-4 animate-spin" />
+                    <Play v-else class="mr-2 size-4" />
+                    {{
+                      startingRun
+                        ? t('console.importAgent.startingRun')
+                        : t('console.importAgent.startRun')
+                    }}
+                  </Button>
                 </div>
               </div>
             </div>

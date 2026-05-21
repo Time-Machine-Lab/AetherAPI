@@ -336,7 +336,9 @@ async function requestImportAgentSessionStream(
         return
       }
       case 'thinking': {
-        const payload = mapThinkingEvent(JSON.parse(payloadText) as ImportAgentStreamThinkingEventDto)
+        const payload = mapThinkingEvent(
+          JSON.parse(payloadText) as ImportAgentStreamThinkingEventDto,
+        )
         if (payload) {
           callbacks?.onThinking?.(payload)
         }
