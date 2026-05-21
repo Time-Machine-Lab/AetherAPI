@@ -87,10 +87,17 @@ public class SchemaGenerationPlannerSubagent implements ImportAgentPlannerSubage
             return;
         }
         String inferred = ImportAgentSchemaNormalizer.inferFromExample(
-                ImportAgentPlannerSubagentSupport.textValue(assetNode, exampleFieldName));
+                normalizeExampleForSchema(assetNode, exampleFieldName));
         if (inferred != null) {
             assetNode.put(schemaFieldName, inferred);
         }
+    }
+
+    private String normalizeExampleForSchema(ObjectNode assetNode, String exampleFieldName) {
+        String example = ImportAgentPlannerSubagentSupport.textValue(assetNode, exampleFieldName);
+        return "requestExample".equals(exampleFieldName)
+                ? ImportAgentExampleNormalizer.normalizeRequestBodyExample(example)
+                : ImportAgentExampleNormalizer.normalizeJsonObjectExample(example);
     }
 
     private void inferExamplesFromSchemas(ArrayNode assetPlans) {

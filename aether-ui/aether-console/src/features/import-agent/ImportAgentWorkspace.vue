@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import {
   Bot,
@@ -56,6 +56,7 @@ const {
   streamingReply,
   streamingPhase,
   streamingStatusMessage,
+  streamingThoughts,
   currentPlan,
   currentClarificationItems,
   restoring,
@@ -87,7 +88,11 @@ const {
 } = workspace
 
 const fileInputRef = ref<HTMLInputElement | null>(null)
+const conversationBottomRef = ref<HTMLElement | null>(null)
 const showContextPanel = ref(false)
+const planExpanded = ref(true)
+const shouldExpandPlanAfterStream = ref(false)
+const streamStartPlanSnapshotKey = ref('')
 
 const isPlanConfirmed = computed(
   () => activeSession.value?.confirmedPlanVersion === currentPlan.value?.version,
@@ -97,8 +102,17 @@ const composerError = computed(() =>
 )
 const sendButtonBusy = computed(() => (hasActiveSession.value ? appending.value : creating.value))
 const conversationTurns = computed(() => activeSession.value?.turns ?? [])
+const planStreamActive = computed(() => Boolean(pendingTurn.value) || Boolean(streamingPhase.value))
+const planSnapshotKey = computed(() => {
+  const session = activeSession.value
+  const plan = currentPlan.value
+  return [session?.sessionId ?? '', session?.updatedAt ?? '', plan?.version ?? ''].join(':')
+})
 const showStreamingReply = computed(
-  () => Boolean(streamingPhase.value) || streamingReply.value.trim().length > 0,
+  () =>
+    Boolean(streamingPhase.value) ||
+    streamingReply.value.trim().length > 0 ||
+    streamingThoughts.value.length > 0,
 )
 const composerPlaceholder = computed(() => {
   if (hasActiveSession.value) {
@@ -128,6 +142,12 @@ function streamingPhaseLabel(phase: ImportAgentStreamPhase | null) {
     return ''
   }
   return t(`console.importAgent.streamPhase.${phase}`)
+}
+
+function thinkingStageLabel(stage: string) {
+  const key = `console.importAgent.thinkingStage.${stage}`
+  const label = t(key)
+  return label === key ? stage : label
 }
 
 function stepStatusTone(status: 'SUCCEEDED' | 'FAILED') {
@@ -241,6 +261,21 @@ async function handleFileSelection(event: Event) {
 function handleStartFreshSession() {
   resetDraft(true)
   showContextPanel.value = false
+  planExpanded.value = true
+  shouldExpandPlanAfterStream.value = false
+  streamStartPlanSnapshotKey.value = ''
+}
+
+function togglePlanExpanded() {
+  planExpanded.value = !planExpanded.value
+}
+
+async function scrollConversationToBottom() {
+  await nextTick()
+  conversationBottomRef.value?.scrollIntoView({
+    behavior: 'smooth',
+    block: 'end',
+  })
 }
 
 onMounted(() => {
@@ -260,6 +295,46 @@ watch(
       publisherDisplayName.value = currentUser.value.displayName
     }
     void restoreActiveSession()
+  },
+)
+
+watch(planStreamActive, (active) => {
+  if (active && currentPlan.value) {
+    planExpanded.value = false
+    shouldExpandPlanAfterStream.value = true
+    streamStartPlanSnapshotKey.value = planSnapshotKey.value
+  }
+})
+
+watch([planStreamActive, planSnapshotKey], ([active, snapshotKey]) => {
+  if (
+    active ||
+    !shouldExpandPlanAfterStream.value ||
+    !currentPlan.value ||
+    snapshotKey === streamStartPlanSnapshotKey.value
+  ) {
+    return
+  }
+  planExpanded.value = true
+  shouldExpandPlanAfterStream.value = false
+  streamStartPlanSnapshotKey.value = ''
+})
+
+watch(
+  [
+    () => pendingTurn.value?.message,
+    () => streamingPhase.value,
+    () => streamingStatusMessage.value,
+    () => streamingReply.value,
+    () => streamingThoughts.value.length,
+    () => conversationTurns.value.length,
+    () => currentPlan.value?.version,
+  ],
+  () => {
+    if (!pendingTurn.value && !showStreamingReply.value) {
+      return
+    }
+    void scrollConversationToBottom()
   },
 )
 </script>
@@ -384,6 +459,35 @@ watch(
                 <p v-if="streamingStatusMessage" class="text-sm text-muted-foreground">
                   {{ streamingStatusMessage }}
                 </p>
+                <div
+                  v-if="streamingThoughts.length > 0"
+                  class="space-y-2 rounded-[12px] border border-[rgb(216_226_219)] bg-[rgb(250_252_250)] px-3 py-3"
+                >
+                  <div class="flex items-center gap-2 text-xs font-medium text-[rgb(48_92_57)]">
+                    <Sparkles class="size-3.5" />
+                    <span>{{ t('console.importAgent.thinkingTitle') }}</span>
+                  </div>
+                  <div class="space-y-2">
+                    <div
+                      v-for="thought in streamingThoughts"
+                      :key="`${thought.sequence ?? 0}-${thought.stage}-${thought.title}`"
+                      class="border-l border-[rgb(170_199_176)] pl-3"
+                    >
+                      <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-xs font-medium text-foreground">{{ thought.title }}</span>
+                        <span class="text-[11px] text-muted-foreground">
+                          {{ thinkingStageLabel(thought.stage) }}
+                        </span>
+                      </div>
+                      <p class="mt-1 text-xs leading-5 text-muted-foreground">
+                        {{ thought.summary }}
+                      </p>
+                      <p v-if="thought.detail" class="mt-1 text-[11px] leading-5 text-muted-foreground">
+                        {{ thought.detail }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
                 <p
                   v-if="streamingReply"
                   class="whitespace-pre-wrap text-sm leading-7 text-foreground"
@@ -396,16 +500,35 @@ watch(
 
           <div v-if="currentPlan" class="flex justify-start">
             <div
-              class="w-full max-w-[56rem] rounded-[16px] border border-[rgb(34_34_34_/_0.06)] px-6 py-6 shadow-[rgba(0,0,0,0.02)_0px_0px_0px_1px,rgba(0,0,0,0.04)_0px_2px_6px,rgba(0,0,0,0.08)_0px_16px_32px]"
+              class="w-full max-w-[100] rounded-[16px] border border-[rgb(34_34_34_/_0.06)] px-6 pt-6 shadow-[rgba(0,0,0,0.02)_0px_0px_0px_1px,rgba(0,0,0,0.04)_0px_2px_6px,rgba(0,0,0,0.08)_0px_16px_32px]"
+              :class="planExpanded ? 'pb-6' : 'pb-0'"
             >
-              <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div
+                role="button"
+                tabindex="0"
+                class="-mx-6 -mt-6 flex min-h-20 cursor-pointer select-none flex-col gap-4 bg-white/92 px-6 py-6 transition hover:bg-secondary/20 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ring/20 lg:flex-row lg:items-center lg:justify-between"
+                :class="
+                  planExpanded
+                    ? 'rounded-t-[16px] border-b border-[rgb(34_34_34_/_0.08)]'
+                    : 'rounded-[16px]'
+                "
+                :aria-expanded="planExpanded"
+                :aria-label="
+                  planExpanded
+                    ? t('console.importAgent.collapsePlan')
+                    : t('console.importAgent.expandPlan')
+                "
+                @click="togglePlanExpanded"
+                @keydown.enter.prevent="togglePlanExpanded"
+                @keydown.space.prevent="togglePlanExpanded"
+              >
                 <div class="space-y-2">
                   <div class="flex items-center gap-2 text-sm font-semibold text-foreground">
                     <ListChecks class="size-4 text-[rgb(48_92_57)]" />
                     <span>{{ t('console.importAgent.planTitle') }}</span>
                   </div>
                 </div>
-                <div class="flex flex-wrap gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                   <DisplayTag
                     :tone="currentPlan.executable ? 'success' : 'warning'"
                     :label="
@@ -428,23 +551,26 @@ watch(
                       t('console.importAgent.planVersionLabel', { version: currentPlan.version })
                     "
                   />
+                  <ChevronUp v-if="planExpanded" class="size-4 text-muted-foreground" />
+                  <ChevronDown v-else class="size-4 text-muted-foreground" />
                 </div>
               </div>
 
-              <div
-                class="mt-5 rounded-[16px] border border-[rgb(181_213_248_/_0.6)] bg-[rgb(244,248,255)] p-4"
-              >
-                <p
-                  class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(62_96_139)]"
+              <div v-if="planExpanded">
+                <div
+                  class="mt-5 rounded-[16px] border border-[rgb(181_213_248_/_0.6)] bg-[rgb(244,248,255)] p-4"
                 >
-                  {{ t('console.importAgent.planSummaryTitle') }}
-                </p>
-                <p class="mt-3 whitespace-pre-wrap text-sm leading-7 text-[rgb(21_46_83)]">
-                  {{ currentPlan.summary }}
-                </p>
-              </div>
+                  <p
+                    class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(62_96_139)]"
+                  >
+                    {{ t('console.importAgent.planSummaryTitle') }}
+                  </p>
+                  <p class="mt-3 whitespace-pre-wrap text-sm leading-7 text-[rgb(21_46_83)]">
+                    {{ currentPlan.summary }}
+                  </p>
+                </div>
 
-              <div v-if="currentClarificationItems.length" class="mt-5 space-y-4">
+                <div v-if="currentClarificationItems.length" class="mt-5 space-y-4">
                 <div class="flex items-center gap-2 text-sm font-semibold text-[rgb(118_85_5)]">
                   <Sparkles class="size-4" />
                   <span>{{ t('console.importAgent.clarificationTitle') }}</span>
@@ -891,9 +1017,9 @@ watch(
                 </div>
               </div>
 
-              <p v-if="sessionError" class="mt-4 text-sm text-destructive">{{ sessionError }}</p>
+                <p v-if="sessionError" class="mt-4 text-sm text-destructive">{{ sessionError }}</p>
 
-              <div class="mt-5 flex flex-wrap gap-2">
+                <div class="mt-5 flex flex-wrap gap-2">
                 <Button
                   variant="outline"
                   class="rounded-full"
@@ -917,6 +1043,7 @@ watch(
                       : t('console.importAgent.startRun')
                   }}
                 </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -998,6 +1125,8 @@ watch(
               <p v-else-if="runError" class="mt-4 text-sm text-destructive">{{ runError }}</p>
             </div>
           </div>
+
+          <div ref="conversationBottomRef" aria-hidden="true" />
         </div>
       </div>
 

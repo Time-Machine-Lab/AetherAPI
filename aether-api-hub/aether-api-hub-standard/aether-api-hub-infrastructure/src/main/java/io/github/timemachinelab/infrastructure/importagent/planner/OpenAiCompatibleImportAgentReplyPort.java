@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.github.timemachinelab.service.model.ImportAgentPlanModel;
 import io.github.timemachinelab.service.model.ImportAgentPlannerRequest;
+import io.github.timemachinelab.service.model.ImportAgentActorType;
+import io.github.timemachinelab.service.model.ImportAgentStreamEmitter;
 import io.github.timemachinelab.service.port.out.ApiImportAgentReplyPort;
 import org.springframework.stereotype.Component;
 
@@ -17,7 +19,6 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
@@ -50,7 +51,8 @@ public class OpenAiCompatibleImportAgentReplyPort implements ApiImportAgentReply
     public String streamReply(
             ImportAgentPlannerRequest request,
             ImportAgentPlanModel plan,
-            Consumer<String> deltaConsumer) {
+            ImportAgentStreamEmitter streamEmitter) {
+        ImportAgentStreamEmitter stream = streamEmitter == null ? ImportAgentStreamEmitter.noop() : streamEmitter;
         if (!properties.isEnabled()
                 || isBlank(properties.getBaseUrl())
                 || isBlank(properties.getApiKey())
@@ -72,7 +74,7 @@ public class OpenAiCompatibleImportAgentReplyPort implements ApiImportAgentReply
 
             StringBuilder reply = new StringBuilder();
             try (Stream<String> lines = response.body()) {
-                lines.forEach(line -> consumeLine(line, reply, deltaConsumer));
+                lines.forEach(line -> consumeLine(line, reply, stream));
             }
             String finalReply = reply.toString().trim();
             if (finalReply.isBlank()) {
@@ -87,7 +89,7 @@ public class OpenAiCompatibleImportAgentReplyPort implements ApiImportAgentReply
         }
     }
 
-    private void consumeLine(String line, StringBuilder reply, Consumer<String> deltaConsumer) {
+    private void consumeLine(String line, StringBuilder reply, ImportAgentStreamEmitter streamEmitter) {
         if (line == null) {
             return;
         }
@@ -111,7 +113,7 @@ public class OpenAiCompatibleImportAgentReplyPort implements ApiImportAgentReply
                 return;
             }
             reply.append(content);
-            deltaConsumer.accept(content);
+            streamEmitter.message(ImportAgentActorType.AGENT, content);
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to parse import agent reply stream chunk", ex);
         }

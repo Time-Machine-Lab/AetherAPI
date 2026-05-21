@@ -9,6 +9,8 @@ import type {
   ImportAgentClarificationItem,
   ImportAgentPlan,
   ImportAgentSession,
+  ImportAgentStreamPhase,
+  ImportAgentStreamThinkingEvent,
 } from '@/api/import-agent/import-agent.types'
 import ImportAgentWorkspace from './ImportAgentWorkspace.vue'
 
@@ -44,6 +46,8 @@ vi.mock('vue-i18n', () => ({
         'console.importAgent.planUnconfirmed': '未确认',
         'console.importAgent.planSummaryTitle': '计划摘要',
         'console.importAgent.planVersionLabel': `版本 ${values?.version ?? ''}`,
+        'console.importAgent.collapsePlan': '收起计划',
+        'console.importAgent.expandPlan': '展开计划',
         'console.importAgent.refreshSession': '刷新会话',
         'console.importAgent.startFresh': '重新开始',
         'console.importAgent.confirmPlan': '确认计划',
@@ -51,6 +55,10 @@ vi.mock('vue-i18n', () => ({
         'console.importAgent.turnMessagePlaceholder': '补充说明',
         'console.importAgent.actor.USER': '用户',
         'console.importAgent.actor.AGENT': 'Agent',
+        'console.importAgent.streamingReplyTitle': '代理正在回复',
+        'console.importAgent.streamPhase.planning': '正在分析需求',
+        'console.importAgent.thinkingTitle': '代理思考过程',
+        'console.importAgent.thinkingStage.extract_facts': '事实提取',
         'console.shared.yes': '是',
         'console.shared.no': '否',
       }
@@ -62,9 +70,13 @@ vi.mock('vue-i18n', () => ({
 interface MockWorkspace {
   clarificationDrafts: Ref<Record<string, string>>
   messageDraft: Ref<string>
+  activeSession: Ref<ImportAgentSession | null>
   currentPlan: Ref<ImportAgentPlan | null>
   currentClarificationItems: Ref<ImportAgentClarificationItem[]>
   pendingTurn: Ref<{ message: string } | null>
+  streamingReply: Ref<string>
+  streamingPhase: Ref<ImportAgentStreamPhase | null>
+  streamingThoughts: Ref<ImportAgentStreamThinkingEvent[]>
   adoptClarificationDefault: ReturnType<typeof vi.fn>
   sendMessage: ReturnType<typeof vi.fn>
 }
@@ -128,8 +140,9 @@ function createWorkspace(plan = createPlan(), options: Partial<MockWorkspace> = 
     activeRun: ref(null),
     pendingTurn: ref(null),
     streamingReply: ref(''),
-    streamingPhase: ref(null),
+    streamingPhase: ref<ImportAgentStreamPhase | null>(null),
     streamingStatusMessage: ref(''),
+    streamingThoughts: ref<ImportAgentStreamThinkingEvent[]>([]),
     currentPlan,
     currentClarificationItems: computed(() => currentPlan.value?.clarificationItems ?? []),
     restoring: ref(false),
@@ -220,6 +233,10 @@ describe('ImportAgentWorkspace', () => {
     setActivePinia(createPinia())
     useAuthStore().setSession(createConsoleSession())
     mocks.useImportAgentWorkspace.mockReset()
+    Object.defineProperty(window.HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: vi.fn(),
+    })
   })
 
   it('renders grouped guided clarification controls for every input type and submits the turn', async () => {
@@ -312,6 +329,80 @@ describe('ImportAgentWorkspace', () => {
     expect(workspace.sendMessage).toHaveBeenCalledTimes(1)
   })
 
+  it('allows the current plan card to be collapsed and expanded manually', async () => {
+    const workspace = createWorkspace()
+    const wrapper = mountWorkspace(workspace)
+
+    expect(wrapper.text()).toContain('导入计划')
+    expect(wrapper.text()).toContain('计划摘要')
+    expect(wrapper.text()).toContain('需要补充导入信息')
+    expect(wrapper.text()).toContain('HappyHorse 文生视频')
+
+    const planHeader = wrapper.find('[role="button"][aria-expanded]')
+    expect(planHeader.attributes('aria-label')).toBe('收起计划')
+
+    await planHeader.trigger('click')
+
+    expect(wrapper.text()).toContain('导入计划')
+    expect(wrapper.text()).toContain('版本 2')
+    expect(wrapper.text()).not.toContain('展开计划')
+    expect(planHeader.attributes('aria-expanded')).toBe('false')
+    expect(planHeader.attributes('aria-label')).toBe('展开计划')
+    expect(wrapper.text()).not.toContain('计划摘要')
+    expect(wrapper.text()).not.toContain('HappyHorse 文生视频')
+
+    await planHeader.trigger('keydown', { key: 'Enter' })
+
+    expect(planHeader.attributes('aria-expanded')).toBe('true')
+    expect(wrapper.text()).toContain('计划摘要')
+    expect(wrapper.text()).toContain('HappyHorse 文生视频')
+  })
+
+  it('collapses the current plan during streaming and expands after the final session snapshot', async () => {
+    const workspace = createWorkspace()
+    const wrapper = mountWorkspace(workspace)
+
+    workspace.pendingTurn.value = { message: '补充鉴权信息' }
+    await nextTick()
+
+    const planHeader = wrapper.find('[role="button"][aria-expanded]')
+    expect(planHeader.attributes('aria-expanded')).toBe('false')
+    expect(planHeader.attributes('aria-label')).toBe('展开计划')
+    expect(wrapper.text()).not.toContain('展开计划')
+    expect(wrapper.text()).not.toContain('计划摘要')
+
+    const updatedPlan = createPlan({
+      version: 3,
+      executable: true,
+      summary: '可以执行导入',
+    })
+    workspace.currentPlan.value = updatedPlan
+    workspace.activeSession.value = {
+      ...createSession(updatedPlan),
+      updatedAt: '2026-05-20T10:10:00Z',
+    }
+    workspace.pendingTurn.value = null
+    await nextTick()
+    await nextTick()
+
+    expect(planHeader.attributes('aria-expanded')).toBe('true')
+    expect(planHeader.attributes('aria-label')).toBe('收起计划')
+    expect(wrapper.text()).not.toContain('收起计划')
+    expect(wrapper.text()).toContain('计划摘要')
+    expect(wrapper.text()).toContain('可以执行导入')
+  })
+
+  it('does not render the current plan card controls without a current plan', () => {
+    const workspace = createWorkspace(createPlan(), {
+      currentPlan: ref(null),
+      currentClarificationItems: computed(() => []),
+    })
+    const wrapper = mountWorkspace(workspace)
+
+    expect(wrapper.text()).not.toContain('导入计划')
+    expect(wrapper.find('[role="button"][aria-expanded]').exists()).toBe(false)
+  })
+
   it('falls back to legacy clarification question cards', () => {
     const workspace = createWorkspace(
       createPlan({
@@ -337,5 +428,51 @@ describe('ImportAgentWorkspace', () => {
     await nextTick()
 
     expect(wrapper.text()).not.toContain('已提交 2 项澄清信息')
+  })
+
+  it('renders thinking events separately from streamed reply', () => {
+    const workspace = createWorkspace(createPlan(), {
+      streamingPhase: ref<ImportAgentStreamPhase | null>('planning'),
+      streamingReply: ref('最终回复增量'),
+      streamingThoughts: ref<ImportAgentStreamThinkingEvent[]>([
+        {
+          stage: 'extract_facts',
+          title: '提取文档事实',
+          summary: '正在识别资产与鉴权线索。',
+          detail: 'object(assetPlans=1)',
+          sequence: 1,
+        },
+      ]),
+    })
+
+    const wrapper = mountWorkspace(workspace)
+
+    expect(wrapper.text()).toContain('代理思考过程')
+    expect(wrapper.text()).toContain('提取文档事实')
+    expect(wrapper.text()).toContain('事实提取')
+    expect(wrapper.text()).toContain('正在识别资产与鉴权线索。')
+    expect(wrapper.text()).toContain('最终回复增量')
+  })
+
+  it('scrolls the page down while the agent is answering', async () => {
+    const scrollIntoView = vi.fn()
+    Object.defineProperty(window.HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    })
+    const workspace = createWorkspace(createPlan(), {
+      pendingTurn: ref({ message: '补充鉴权信息' }),
+      streamingPhase: ref<ImportAgentStreamPhase | null>('planning'),
+    })
+    mountWorkspace(workspace)
+
+    workspace.streamingReply.value = '正在生成计划'
+    await nextTick()
+    await nextTick()
+
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      behavior: 'smooth',
+      block: 'end',
+    })
   })
 })

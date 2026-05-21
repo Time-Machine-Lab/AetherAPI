@@ -24,7 +24,8 @@ public class YmlEncryptionTool {
         "oss.qiniuyun.access-key-secret",
         "oss.qiniuyun.bucket-name",
         "oss.qiniuyun.domain",
-        "oss.qiniuyun.prefix"
+        "oss.qiniuyun.prefix",
+        "aether.import-agent.llm.api-key"
     );
 
     @Test

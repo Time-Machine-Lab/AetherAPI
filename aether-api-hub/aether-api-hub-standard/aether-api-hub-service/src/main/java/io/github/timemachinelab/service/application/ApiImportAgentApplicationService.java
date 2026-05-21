@@ -18,6 +18,7 @@ import io.github.timemachinelab.service.model.ImportAgentActorType;
 import io.github.timemachinelab.service.model.ImportAgentPlanModel;
 import io.github.timemachinelab.service.model.ImportAgentPlannerRequest;
 import io.github.timemachinelab.service.model.ImportAgentPlannerResult;
+import io.github.timemachinelab.service.model.ImportAgentStreamEmitter;
 import io.github.timemachinelab.service.model.ImportAgentRunStatus;
 import io.github.timemachinelab.service.model.ImportAgentSessionStatus;
 import io.github.timemachinelab.service.model.ImportAgentStepType;
@@ -48,7 +49,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.function.Consumer;
 
 /**
  * Import agent application service.
@@ -85,12 +85,15 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
     }
 
     @Override
-    public ApiImportAgentSessionModel createSession(CreateImportAgentSessionCommand command, Consumer<String> deltaConsumer) {
+    public ApiImportAgentSessionModel createSession(CreateImportAgentSessionCommand command, ImportAgentStreamEmitter streamEmitter) {
+        ImportAgentStreamEmitter stream = ImportAgentStreamEmitter.withSequence(streamEmitter);
         String ownerUserId = normalizeRequired(command.getOwnerUserId(), "当前用户 ID");
         String now = now();
         String sessionId = UUID.randomUUID().toString();
         String publisherDisplayName = normalizePublisherDisplayName(command.getPublisherDisplayName(), ownerUserId);
         String initialMessage = normalizeRequired(command.getImportIntent(), "导入意图");
+        stream.status("planning", "正在规划导入对话。");
+        stream.thinking("planning", "开始规划", "正在读取导入意图和文档信息，准备生成导入计划。");
         ImportAgentTurnModel userTurn = new ImportAgentTurnModel(
                 UUID.randomUUID().toString(),
                 sessionId,
@@ -100,7 +103,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 null,
                 now
         );
-        ImportAgentPlannerResult plannerResult = plannerPort.plan(new ImportAgentPlannerRequest(
+        ImportAgentPlannerRequest plannerRequest = new ImportAgentPlannerRequest(
                 normalizeOptional(command.getDocumentSource()),
                 normalizeOptional(command.getDocumentSummary()),
                 initialMessage,
@@ -108,22 +111,15 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 null,
                 1,
                 List.of(userTurn)
-        ));
+        );
+        ImportAgentPlannerResult plannerResult = plannerPort.plan(plannerRequest, stream);
         ImportAgentPlanModel plan = plannerResult.getPlan();
-            String agentMessage = resolveAgentMessage(
-                new ImportAgentPlannerRequest(
-                    normalizeOptional(command.getDocumentSource()),
-                    normalizeOptional(command.getDocumentSummary()),
-                    initialMessage,
-                    initialMessage,
-                    null,
-                    1,
-                    List.of(userTurn)
-                ),
+        String agentMessage = resolveAgentMessage(
+                plannerRequest,
                 plan,
                 plannerResult.getAgentMessage(),
-                deltaConsumer
-            );
+                stream
+        );
         ApiImportAgentSessionModel session = new ApiImportAgentSessionModel(
                 sessionId,
                 ownerUserId,
@@ -184,7 +180,8 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
     }
 
     @Override
-    public ApiImportAgentSessionModel appendTurn(AppendImportAgentTurnCommand command, Consumer<String> deltaConsumer) {
+    public ApiImportAgentSessionModel appendTurn(AppendImportAgentTurnCommand command, ImportAgentStreamEmitter streamEmitter) {
+        ImportAgentStreamEmitter stream = ImportAgentStreamEmitter.withSequence(streamEmitter);
         ApiImportAgentSessionModel session = loadOwnedSession(command.getOwnerUserId(), command.getSessionId());
         String now = now();
         List<ImportAgentClarificationAnswerModel> clarificationAnswers = normalizeClarificationAnswers(command.getClarificationAnswers());
@@ -203,7 +200,9 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
         List<ImportAgentTurnModel> plannerTurns = new ArrayList<>(sessionRepositoryPort.listTurns(session.getSessionId()));
         plannerTurns.add(userTurn);
         int nextPlanVersion = session.getCurrentPlanVersion() == null ? 1 : session.getCurrentPlanVersion() + 1;
-        ImportAgentPlannerResult plannerResult = plannerPort.plan(new ImportAgentPlannerRequest(
+        stream.status("planning", "正在更新导入计划。");
+        stream.thinking("planning", "更新计划", "正在合并本轮补充信息，并重新检查导入计划。");
+        ImportAgentPlannerRequest plannerRequest = new ImportAgentPlannerRequest(
                 session.getDocumentSource(),
                 session.getDocumentSummary(),
                 session.getImportIntent(),
@@ -211,22 +210,15 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 refinedCurrentPlan,
                 nextPlanVersion,
                 plannerTurns
-        ));
+        );
+        ImportAgentPlannerResult plannerResult = plannerPort.plan(plannerRequest, stream);
         ImportAgentPlanModel newPlan = plannerResult.getPlan();
-            String agentMessage = resolveAgentMessage(
-                new ImportAgentPlannerRequest(
-                    session.getDocumentSource(),
-                    session.getDocumentSummary(),
-                    session.getImportIntent(),
-                    message,
-                    refinedCurrentPlan,
-                    nextPlanVersion,
-                    plannerTurns
-                ),
+        String agentMessage = resolveAgentMessage(
+                plannerRequest,
                 newPlan,
                 plannerResult.getAgentMessage(),
-                deltaConsumer
-            );
+                stream
+        );
         ApiImportAgentSessionModel updatedSession = new ApiImportAgentSessionModel(
                 session.getSessionId(),
                 session.getOwnerUserId(),
@@ -263,12 +255,13 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
             ImportAgentPlannerRequest request,
             ImportAgentPlanModel plan,
             String fallbackMessage,
-            Consumer<String> deltaConsumer) {
-        if (deltaConsumer == null || replyPort == null || plan == null) {
+            ImportAgentStreamEmitter streamEmitter) {
+        if (streamEmitter == null || replyPort == null || plan == null) {
             return fallbackMessage;
         }
         try {
-            String streamedMessage = replyPort.streamReply(request, plan, deltaConsumer);
+            streamEmitter.status("replying", "正在准备助手回复。");
+            String streamedMessage = replyPort.streamReply(request, plan, streamEmitter);
             if (streamedMessage != null && !streamedMessage.isBlank()) {
                 return streamedMessage;
             }
@@ -276,7 +269,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
             // Fall through to the existing deterministic message when streaming reply generation fails.
         }
         if (fallbackMessage != null && !fallbackMessage.isBlank()) {
-            deltaConsumer.accept(fallbackMessage);
+            streamEmitter.message(ImportAgentActorType.AGENT, fallbackMessage);
         }
         return fallbackMessage;
     }

@@ -153,6 +153,7 @@ describe('useImportAgentWorkspace', () => {
     expect(deps.createSession.mock.calls[0]?.[1]).toEqual(
       expect.objectContaining({
         onStatus: expect.any(Function),
+        onThinking: expect.any(Function),
         onMessage: expect.any(Function),
         onSession: expect.any(Function),
         onError: expect.any(Function),
@@ -164,6 +165,47 @@ describe('useImportAgentWorkspace', () => {
       'aether:console:auth:import-agent:active-session:console-user-001',
       'session-001',
     )
+  })
+
+  it('clears the first message immediately while keeping the create payload intact', async () => {
+    const { workspace, deps } = createWorkspace()
+
+    workspace.importIntent.value = 'Import weather API'
+    let resolveSession!: (session: ImportAgentSession) => void
+    deps.createSession.mockImplementationOnce(
+      () =>
+        new Promise<ImportAgentSession>((resolve) => {
+          resolveSession = resolve
+        }),
+    )
+
+    const request = workspace.createSession()
+
+    expect(workspace.importIntent.value).toBe('')
+    expect(workspace.messageDraft.value).toBe('')
+    expect(workspace.pendingTurn.value?.message).toBe('Import weather API')
+    expect(deps.createSession.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        importIntent: 'Import weather API',
+      }),
+    )
+
+    resolveSession(createSession())
+    await request
+  })
+
+  it('does not restore the first message after create failure', async () => {
+    const { workspace, deps } = createWorkspace()
+
+    workspace.importIntent.value = 'Import weather API'
+    deps.createSession.mockRejectedValueOnce(new Error('Network error'))
+
+    await workspace.createSession()
+
+    expect(workspace.importIntent.value).toBe('')
+    expect(workspace.messageDraft.value).toBe('')
+    expect(workspace.pendingTurn.value).toBeNull()
+    expect(workspace.sessionError.value).toBeTruthy()
   })
 
   it('creates the first session message with attached file context', async () => {
@@ -259,6 +301,7 @@ describe('useImportAgentWorkspace', () => {
     expect(deps.appendTurn.mock.calls[0]?.[2]).toEqual(
       expect.objectContaining({
         onStatus: expect.any(Function),
+        onThinking: expect.any(Function),
         onMessage: expect.any(Function),
         onSession: expect.any(Function),
         onError: expect.any(Function),
@@ -267,6 +310,53 @@ describe('useImportAgentWorkspace', () => {
     )
     expect(workspace.turnMessage.value).toBe('')
     expect(workspace.activeSession.value?.turns[0].message).toContain('weather-tools')
+  })
+
+  it('clears follow-up text immediately while keeping the append payload intact', async () => {
+    const { workspace, deps } = createWorkspace()
+
+    deps.createSession.mockResolvedValueOnce(createSession())
+    workspace.importIntent.value = 'Import weather API'
+    await workspace.createSession()
+
+    workspace.turnMessage.value = 'Use category weather-tools instead.'
+    let resolveSession!: (session: ImportAgentSession) => void
+    deps.appendTurn.mockImplementationOnce(
+      () =>
+        new Promise<ImportAgentSession>((resolve) => {
+          resolveSession = resolve
+        }),
+    )
+
+    const request = workspace.appendTurn()
+
+    expect(workspace.turnMessage.value).toBe('')
+    expect(workspace.messageDraft.value).toBe('')
+    expect(workspace.pendingTurn.value?.message).toBe('Use category weather-tools instead.')
+    expect(deps.appendTurn.mock.calls[0]?.[1]).toEqual({
+      message: 'Use category weather-tools instead.',
+    })
+
+    resolveSession(createSession())
+    await request
+  })
+
+  it('does not restore follow-up text after append failure', async () => {
+    const { workspace, deps } = createWorkspace()
+
+    deps.createSession.mockResolvedValueOnce(createSession())
+    workspace.importIntent.value = 'Import weather API'
+    await workspace.createSession()
+
+    workspace.turnMessage.value = 'Use category weather-tools instead.'
+    deps.appendTurn.mockRejectedValueOnce(new Error('Network error'))
+
+    await workspace.appendTurn()
+
+    expect(workspace.turnMessage.value).toBe('')
+    expect(workspace.messageDraft.value).toBe('')
+    expect(workspace.pendingTurn.value).toBeNull()
+    expect(workspace.turnError.value).toBeTruthy()
   })
 
   it('submits structured clarification answers without forcing chat text', async () => {
@@ -435,6 +525,12 @@ describe('useImportAgentWorkspace', () => {
         new Promise<ImportAgentSession>((resolve) => {
           resolveSession = resolve
           callbacks?.onStatus?.({ phase: 'planning', message: 'Planning' })
+          callbacks?.onThinking?.({
+            stage: 'extract_facts',
+            title: '提取文档事实',
+            summary: '正在识别资产线索。',
+            sequence: 1,
+          })
           callbacks?.onMessage?.({ actorType: 'AGENT', delta: 'Let me inspect the source.' })
         }),
     )
@@ -444,14 +540,23 @@ describe('useImportAgentWorkspace', () => {
     expect(workspace.pendingTurn.value?.message).toBe('Import weather API')
     expect(workspace.streamingPhase.value).toBe('replying')
     expect(workspace.streamingReply.value).toBe('Let me inspect the source.')
+    expect(workspace.streamingThoughts.value).toEqual([
+      {
+        stage: 'extract_facts',
+        title: '提取文档事实',
+        summary: '正在识别资产线索。',
+        sequence: 1,
+      },
+    ])
     expect(workspace.streamingStatusMessage.value).toBe('Planning')
 
     resolveSession(createSession())
     await pendingRequest
 
     expect(workspace.pendingTurn.value).toBeNull()
-    expect(workspace.streamingReply.value).toBe('')
+    expect(workspace.streamingReply.value).toBe('Let me inspect the source.')
     expect(workspace.streamingPhase.value).toBeNull()
+    expect(workspace.streamingThoughts.value).toHaveLength(1)
   })
 
   it('confirms the plan and starts a run with polling when the run is still active', async () => {

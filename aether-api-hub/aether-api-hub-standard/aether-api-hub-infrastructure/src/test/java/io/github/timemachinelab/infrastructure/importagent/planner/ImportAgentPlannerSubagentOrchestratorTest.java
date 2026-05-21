@@ -127,6 +127,30 @@ class ImportAgentPlannerSubagentOrchestratorTest {
     }
 
     @Test
+    @DisplayName("orchestrator should apply request body from curl facts")
+    void shouldApplyRequestBodyFromCurlFacts() throws Exception {
+        ImportAgentPlannerSubagentOrchestrator orchestrator = ImportAgentPlannerSubagentOrchestrator.defaultOrchestrator();
+
+        ObjectNode extractedFacts = OBJECT_MAPPER.createObjectNode();
+        extractedFacts.putArray("assetFacts")
+                .addObject()
+                .put("apiCode", "video-submit")
+                .put("requestExample", """
+                        curl -X POST 'https://provider.example.com/video' \\
+                          -H 'Content-Type: application/json' \\
+                          --data-raw '{"model":"happyhorse-1.0-t2v","input":{"prompt":"海边日落"}}'
+                        """);
+        ObjectNode planSource = executableStandardPlan("video-submit");
+
+        ObjectNode candidate = orchestrator.orchestrate(baseRequest(), extractedFacts, null, planSource);
+
+        assertEquals("{\"model\":\"happyhorse-1.0-t2v\",\"input\":{\"prompt\":\"海边日落\"}}",
+                candidate.path("assetPlans").get(0).path("requestExample").asText());
+        assertEquals("{\"type\":\"object\",\"properties\":{\"model\":{\"type\":\"string\"},\"input\":{\"type\":\"object\",\"properties\":{\"prompt\":{\"type\":\"string\"}},\"required\":[\"prompt\"]}},\"required\":[\"model\",\"input\"]}",
+                candidate.path("assetPlans").get(0).path("requestJsonSchema").asText());
+    }
+
+    @Test
     @DisplayName("orchestrator should downgrade conflicting subagent output into clarification")
     void shouldDowngradeConflictingSubagentOutputIntoClarification() throws Exception {
         ImportAgentPlannerSubagentOrchestrator orchestrator = ImportAgentPlannerSubagentOrchestrator.defaultOrchestrator();

@@ -15,6 +15,7 @@ import io.github.timemachinelab.service.model.ImportAgentActorType;
 import io.github.timemachinelab.service.model.ImportAgentClarificationItemModel;
 import io.github.timemachinelab.service.model.ImportAgentClarificationOptionModel;
 import io.github.timemachinelab.service.model.ImportAgentPlanModel;
+import io.github.timemachinelab.service.model.ImportAgentStreamEvent;
 import io.github.timemachinelab.service.model.ImportAgentRunStatus;
 import io.github.timemachinelab.service.model.ImportAgentSessionStatus;
 import io.github.timemachinelab.service.model.ImportAgentStepType;
@@ -31,8 +32,13 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
+import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -130,6 +136,35 @@ class ApiImportAgentWebDelegateTest {
         assertEquals("HEADER_TOKEN", response.getCurrentPlan().getClarificationItems().get(0).getOptions().get(0).getValue());
         assertEquals("HEADER_TOKEN", response.getCurrentPlan().getClarificationItems().get(0).getDefaultValue());
         assertEquals("DOCUMENT", response.getCurrentPlan().getClarificationItems().get(0).getDefaultSource());
+    }
+
+    @Test
+    @DisplayName("stream event serialization should include thinking payload")
+    void shouldSerializeThinkingStreamEvent() throws Exception {
+        ApiImportAgentUseCase useCase = mock(ApiImportAgentUseCase.class);
+        ApiImportAgentWebDelegate delegate = new ApiImportAgentWebDelegate(useCase, STREAM_PROPERTIES);
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        Method method = ApiImportAgentWebDelegate.class.getDeclaredMethod(
+                "writeSseEvent",
+                java.io.OutputStream.class,
+                ImportAgentStreamEvent.class
+        );
+        method.setAccessible(true);
+
+        method.invoke(delegate, outputStream, ImportAgentStreamEvent.thinking(
+                "extract_facts",
+                "提取文档事实",
+                "正在识别资产与鉴权线索。",
+                "Bearer upstream-token",
+                1
+        ));
+
+        String body = outputStream.toString(StandardCharsets.UTF_8);
+        assertTrue(body.startsWith("event: thinking\n"));
+        assertTrue(body.contains("\"stage\":\"extract_facts\""));
+        assertTrue(body.contains("\"sequence\":1"));
+        assertTrue(body.contains("Bearer [hidden]"));
+        assertFalse(body.contains("upstream-token"));
     }
 
     private ApiImportAgentSessionModel sessionModel() {

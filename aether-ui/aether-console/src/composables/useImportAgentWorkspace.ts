@@ -16,6 +16,7 @@ import type {
   ImportAgentClarificationItem,
   ImportAgentStreamCallbacks,
   ImportAgentStreamPhase,
+  ImportAgentStreamThinkingEvent,
   ImportAgentRun,
   ImportAgentSession,
   ImportAgentTurn,
@@ -198,6 +199,7 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
   const streamingReply = ref('')
   const streamingPhase = ref<ImportAgentStreamPhase | null>(null)
   const streamingStatusMessage = ref('')
+  const streamingThoughts = ref<ImportAgentStreamThinkingEvent[]>([])
 
   const restoring = ref(false)
   const creating = ref(false)
@@ -413,11 +415,16 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
     persistSessionId(session.sessionId)
   }
 
-  function resetStreamingState() {
+  function resetStreamingState(clearThoughts = true, clearReply = true) {
     pendingTurn.value = null
-    streamingReply.value = ''
+    if (clearReply) {
+      streamingReply.value = ''
+    }
     streamingPhase.value = null
     streamingStatusMessage.value = ''
+    if (clearThoughts) {
+      streamingThoughts.value = []
+    }
   }
 
   function beginStreamingTurn(message: string) {
@@ -428,6 +435,7 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
       createdAt: new Date().toISOString(),
     }
     streamingReply.value = ''
+    streamingThoughts.value = []
     streamingPhase.value = 'planning'
     streamingStatusMessage.value = ''
   }
@@ -437,6 +445,9 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
       onStatus: (event) => {
         streamingPhase.value = event.phase
         streamingStatusMessage.value = event.message ?? ''
+      },
+      onThinking: (event) => {
+        streamingThoughts.value = [...streamingThoughts.value, event]
       },
       onMessage: (event) => {
         if (event.actorType !== 'AGENT') {
@@ -493,12 +504,13 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
         publisherDisplayName: normalizeOptional(publisherDisplayName.value),
       }
       beginStreamingTurn(payload.importIntent)
+      importIntent.value = ''
       const session = await deps.createSession(payload, buildStreamingCallbacks())
       applySession(session)
       activeRun.value = null
       turnMessage.value = ''
       clearDraftAttachments()
-      resetStreamingState()
+      resetStreamingState(false, false)
       return session
     } catch (error) {
       resetStreamingState()
@@ -576,7 +588,9 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
     turnError.value = ''
     try {
       const input = buildAppendTurnInput()
-      beginStreamingTurn(appendTurnPendingSummary(input))
+      const pendingSummary = appendTurnPendingSummary(input)
+      beginStreamingTurn(pendingSummary)
+      turnMessage.value = ''
       const session = await deps.appendTurn(
         activeSession.value.sessionId,
         input,
@@ -587,7 +601,7 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
       turnMessage.value = ''
       clearClarificationDrafts()
       clearDraftAttachments()
-      resetStreamingState()
+      resetStreamingState(false, false)
       return session
     } catch (error) {
       resetStreamingState()
@@ -808,6 +822,7 @@ export function useImportAgentWorkspace(options: ImportAgentWorkspaceOptions) {
     streamingReply,
     streamingPhase,
     streamingStatusMessage,
+    streamingThoughts,
     currentPlan,
     currentClarificationItems,
     restoring,

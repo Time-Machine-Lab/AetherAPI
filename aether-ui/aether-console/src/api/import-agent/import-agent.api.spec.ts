@@ -153,6 +153,7 @@ describe('import-agent api', () => {
           target: {
             responseText:
               'event: status\ndata: {"phase":"planning","message":"Planning"}\n\n' +
+              'event: thinking\ndata: {"stage":"extract_facts","title":"提取文档事实","summary":"正在识别资产线索。","sequence":1}\n\n' +
               'event: message\ndata: {"actorType":"AGENT","delta":"Hello"}\n\n',
           },
         },
@@ -162,13 +163,16 @@ describe('import-agent api', () => {
         status: 200,
         data:
           'event: status\ndata: {"phase":"planning","message":"Planning"}\n\n' +
+          'event: thinking\ndata: {"stage":"extract_facts","title":"提取文档事实","summary":"正在识别资产线索。","sequence":1}\n\n' +
           'event: message\ndata: {"actorType":"AGENT","delta":"Hello"}\n\n' +
+          'event: thinking\ndata: {"stage":"","title":"","summary":""}\n\n' +
           `event: session\ndata: ${JSON.stringify(createSessionDto())}\n\n` +
           'event: done\ndata: {"phase":"completed"}\n\n',
       }
     })
 
     const onStatus = vi.fn()
+    const onThinking = vi.fn()
     const onMessage = vi.fn()
     const onDone = vi.fn()
 
@@ -181,6 +185,7 @@ describe('import-agent api', () => {
       },
       {
         onStatus,
+        onThinking,
         onMessage,
         onDone,
       },
@@ -201,6 +206,13 @@ describe('import-agent api', () => {
       onDownloadProgress: expect.any(Function),
     })
     expect(onStatus).toHaveBeenCalledWith({ phase: 'planning', message: 'Planning' })
+    expect(onThinking).toHaveBeenCalledTimes(1)
+    expect(onThinking).toHaveBeenCalledWith({
+      stage: 'extract_facts',
+      title: '提取文档事实',
+      summary: '正在识别资产线索。',
+      sequence: 1,
+    })
     expect(onMessage).toHaveBeenCalledWith({ actorType: 'AGENT', delta: 'Hello' })
     expect(onDone).toHaveBeenCalledTimes(1)
     expect(result.currentPlan?.assetPlans[0].asyncTaskConfig?.queryUrlTemplate).toBe(

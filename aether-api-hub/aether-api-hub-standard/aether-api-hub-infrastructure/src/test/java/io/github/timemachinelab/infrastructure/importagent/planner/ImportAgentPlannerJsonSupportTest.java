@@ -177,6 +177,38 @@ class ImportAgentPlannerJsonSupportTest {
     }
 
     @Test
+    @DisplayName("buildPlan should store requestExample as request body instead of curl command")
+    void shouldStoreRequestExampleAsBodyInsteadOfCurlCommand() {
+        ObjectNode source = OBJECT_MAPPER.createObjectNode();
+        ObjectNode assetNode = source.putArray("assetPlans").addObject();
+        assetNode.put("apiCode", "dashscope-video");
+        assetNode.put("assetName", "DashScope Video");
+        assetNode.put("assetType", "AI_API");
+        assetNode.put("categoryCode", "video");
+        assetNode.put("requestMethod", "POST");
+        assetNode.put("upstreamUrl", "https://dashscope.aliyuncs.com/api/v1/services/aigc/video-generation/video-synthesis");
+        assetNode.put("authScheme", "NONE");
+        assetNode.put("publishAfterImport", true);
+        assetNode.put("requestExample", """
+                curl -X POST 'https://dashscope.aliyuncs.com/api/v1/services/aigc/video-generation/video-synthesis' \\
+                  -H 'Content-Type: application/json' \\
+                  -d '{"model":"happyhorse-1.0-t2v","input":{"prompt":"一匹马在草地奔跑"}}'
+                """);
+        assetNode.putObject("aiProfile")
+                .put("provider", "dashscope")
+                .put("model", "happyhorse-1.0-t2v")
+                .put("streamingSupported", false)
+                .putArray("capabilityTags")
+                .add("text-to-video");
+
+        ImportAgentPlanModel result = ImportAgentPlannerJsonSupport.buildPlan(baseRequest(), source);
+
+        assertTrue(result.isExecutable());
+        assertEquals("{\"model\":\"happyhorse-1.0-t2v\",\"input\":{\"prompt\":\"一匹马在草地奔跑\"}}",
+                result.getAssetPlans().get(0).getRequestExample());
+    }
+
+    @Test
     @DisplayName("buildPlan should normalize object schema fields and drop invalid schema text")
     void shouldNormalizeObjectSchemaFieldsAndDropInvalidSchemaText() {
         ObjectNode source = OBJECT_MAPPER.createObjectNode();

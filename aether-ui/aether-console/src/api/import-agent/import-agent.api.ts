@@ -12,6 +12,7 @@ import type {
   ImportAgentStreamErrorEventDto,
   ImportAgentStreamMessageEventDto,
   ImportAgentStreamStatusEventDto,
+  ImportAgentStreamThinkingEventDto,
   ImportAgentTurnDto,
   ImportAiProfileDto,
   ImportAsyncTaskConfigDto,
@@ -29,6 +30,7 @@ import type {
   ImportAgentRun,
   ImportAgentSession,
   ImportAgentStreamCallbacks,
+  ImportAgentStreamThinkingEvent,
   ImportAgentTurn,
   ImportAiProfile,
   ImportAsyncTaskConfig,
@@ -222,6 +224,24 @@ function toStreamError(error: ImportAgentStreamErrorEventDto): NormalizedHttpErr
   }
 }
 
+function mapThinkingEvent(
+  dto: ImportAgentStreamThinkingEventDto,
+): ImportAgentStreamThinkingEvent | null {
+  const stage = typeof dto.stage === 'string' ? dto.stage.trim() : ''
+  const title = typeof dto.title === 'string' ? dto.title.trim() : ''
+  const summary = typeof dto.summary === 'string' ? dto.summary.trim() : ''
+  if (!stage || !title || !summary) {
+    return null
+  }
+  return {
+    stage,
+    title,
+    summary,
+    detail: typeof dto.detail === 'string' && dto.detail.trim() ? dto.detail.trim() : undefined,
+    sequence: typeof dto.sequence === 'number' ? dto.sequence : undefined,
+  }
+}
+
 function parseSseEventBlock(block: string) {
   const lines = block
     .split('\n')
@@ -313,6 +333,13 @@ async function requestImportAgentSessionStream(
       case 'message': {
         const payload = JSON.parse(payloadText) as ImportAgentStreamMessageEventDto
         callbacks?.onMessage?.(payload)
+        return
+      }
+      case 'thinking': {
+        const payload = mapThinkingEvent(JSON.parse(payloadText) as ImportAgentStreamThinkingEventDto)
+        if (payload) {
+          callbacks?.onThinking?.(payload)
+        }
         return
       }
       case 'session': {

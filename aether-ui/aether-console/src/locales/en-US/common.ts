@@ -453,6 +453,8 @@ export default {
       planConfirmed: 'Confirmed',
       planUnconfirmed: 'Unconfirmed',
       planVersionLabel: 'Plan v{version}',
+      collapsePlan: 'Collapse plan',
+      expandPlan: 'Expand plan',
       planSummaryTitle: 'Plan summary',
       clarificationTitle: 'Open clarification questions',
       clarificationAnswerSummary: 'Submitted {count} clarification answer(s)',
@@ -525,6 +527,18 @@ export default {
         completed: 'Reply complete',
       },
       streamingReplyTitle: 'Agent reply in progress',
+      thinkingTitle: 'Agent thinking',
+      thinkingStage: {
+        planner: 'Planner',
+        'planner.direct': 'Direct planning',
+        'planner.complete': 'Planning complete',
+        extract_facts: 'Fact extraction',
+        fill_slots: 'Slot filling',
+        submit_plan: 'Plan submission',
+        subagents: 'Subagent review',
+        clarification: 'Clarification',
+        reply: 'Reply generation',
+      },
       errors: {
         IMPORT_AGENT_INVALID_REQUEST: 'The import request is invalid. Please review the inputs.',
         IMPORT_AGENT_SESSION_NOT_FOUND:

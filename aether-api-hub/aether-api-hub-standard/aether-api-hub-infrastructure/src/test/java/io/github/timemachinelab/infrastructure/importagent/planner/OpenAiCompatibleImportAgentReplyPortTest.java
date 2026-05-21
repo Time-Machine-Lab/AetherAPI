@@ -2,6 +2,8 @@ package io.github.timemachinelab.infrastructure.importagent.planner;
 
 import io.github.timemachinelab.service.model.ImportAgentPlanModel;
 import io.github.timemachinelab.service.model.ImportAgentPlannerRequest;
+import io.github.timemachinelab.service.model.ImportAgentStreamEvent;
+import io.github.timemachinelab.service.model.ImportAgentStreamEventType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -47,11 +49,20 @@ class OpenAiCompatibleImportAgentReplyPortTest {
         String result = replyPort.streamReply(
                 new ImportAgentPlannerRequest("source", "summary", "intent", "message", null, 1, List.of()),
                 new ImportAgentPlanModel(1, true, "ready", List.of(), List.of(), List.of()),
-                deltas::add
+                event -> collectMessageDelta(event, deltas)
         );
 
         assertEquals(List.of("Hello ", "world"), deltas);
         assertEquals("Hello world", result);
+    }
+
+    private void collectMessageDelta(ImportAgentStreamEvent event, List<String> deltas) {
+        if (event.getType() != ImportAgentStreamEventType.MESSAGE) {
+            return;
+        }
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, Object> payload = (java.util.Map<String, Object>) event.getPayload();
+        deltas.add((String) payload.get("delta"));
     }
 
     @Test

@@ -30,6 +30,8 @@ import io.github.timemachinelab.service.model.ImportAgentClarificationAnswerMode
 import io.github.timemachinelab.service.model.ImportAgentClarificationItemModel;
 import io.github.timemachinelab.service.model.ImportAgentClarificationOptionModel;
 import io.github.timemachinelab.service.model.ImportAgentPlanModel;
+import io.github.timemachinelab.service.model.ImportAgentStreamEmitter;
+import io.github.timemachinelab.service.model.ImportAgentStreamEvent;
 import io.github.timemachinelab.service.model.ImportAiProfileModel;
 import io.github.timemachinelab.service.model.ImportAssetPlanModel;
 import io.github.timemachinelab.service.model.ImportCategoryPlanModel;
@@ -44,13 +46,9 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 
 /**
  * Import agent web delegate.
@@ -102,7 +100,7 @@ public class ApiImportAgentWebDelegate {
         streamSessionToResponse(
                 request,
                 response,
-            deltaConsumer -> toSessionResp(apiImportAgentUseCase.createSession(
+            streamEmitter -> toSessionResp(apiImportAgentUseCase.createSession(
                 new CreateImportAgentSessionCommand(
                     currentUserId,
                     publisherDisplayName,
@@ -110,7 +108,7 @@ public class ApiImportAgentWebDelegate {
                     req.getDocumentSummary(),
                     req.getImportIntent()
                 ),
-                deltaConsumer
+                streamEmitter
             ))
         );
     }
@@ -124,14 +122,14 @@ public class ApiImportAgentWebDelegate {
         streamSessionToResponse(
                 request,
                 response,
-            deltaConsumer -> toSessionResp(apiImportAgentUseCase.appendTurn(
+            streamEmitter -> toSessionResp(apiImportAgentUseCase.appendTurn(
                 new AppendImportAgentTurnCommand(
                     currentUserId,
                     sessionId,
                     req.getMessage(),
                     toClarificationAnswers(req)
                 ),
-                deltaConsumer
+                streamEmitter
             ))
         );
     }
@@ -177,34 +175,23 @@ public class ApiImportAgentWebDelegate {
             StreamingSessionOperation responseSupplier) {
         try {
             OutputStream outputStream = response.getOutputStream();
-            AtomicBoolean replyStatusSent = new AtomicBoolean(false);
-            writeSseEvent(outputStream, "status", Map.of(
-                    "phase", "planning",
-                    "message", "正在规划导入对话。"
-            ));
-            ApiImportAgentSessionResp session = responseSupplier.execute(delta -> {
+            ApiImportAgentSessionResp session = responseSupplier.execute(event -> {
                 try {
-                    if (replyStatusSent.compareAndSet(false, true)) {
-                        writeSseEvent(outputStream, "status", Map.of(
-                                "phase", "replying",
-                                "message", "正在准备助手回复。"
-                        ));
-                    }
-                    writeSseEvent(outputStream, "message", Map.of(
-                            "actorType", "AGENT",
-                            "delta", delta
-                    ));
+                    writeSseEvent(outputStream, event);
                 } catch (IOException ex) {
-                    throw new IllegalStateException("Failed to stream import agent reply", ex);
+                    throw new IllegalStateException("Failed to stream import agent event", ex);
                 }
             });
-            writeSseEvent(outputStream, "session", session);
-            writeSseEvent(outputStream, "done", Map.of("phase", "completed"));
+            writeSseEvent(outputStream, ImportAgentStreamEvent.session(session));
+            writeSseEvent(outputStream, ImportAgentStreamEvent.done("completed"));
             outputStream.flush();
         } catch (Exception ex) {
             try {
                 OutputStream outputStream = response.getOutputStream();
-                writeSseEvent(outputStream, "error", buildErrorPayload(ex));
+                writeSseEvent(outputStream, ImportAgentStreamEvent.error(
+                        "IMPORT_AGENT_STREAM_FAILED",
+                        buildErrorMessage(ex)
+                ));
                 outputStream.flush();
             } catch (IOException ignored) {
                 // Response already failed; nothing else to do.
@@ -220,6 +207,10 @@ public class ApiImportAgentWebDelegate {
         outputStream.flush();
     }
 
+    private void writeSseEvent(OutputStream outputStream, ImportAgentStreamEvent event) throws IOException {
+        writeSseEvent(outputStream, event.getEventName(), event.getPayload());
+    }
+
     private long resolveStreamTimeoutMillis() {
         Integer timeoutSeconds = streamProperties.getTimeoutSeconds();
         if (timeoutSeconds == null || timeoutSeconds <= 0) {
@@ -228,21 +219,15 @@ public class ApiImportAgentWebDelegate {
         return timeoutSeconds * 1000L;
     }
 
-    private Map<String, String> buildErrorPayload(Exception ex) {
-        Map<String, String> payload = new LinkedHashMap<>();
-        payload.put("code", "IMPORT_AGENT_STREAM_FAILED");
-        payload.put(
-                "message",
-                ex.getMessage() == null || ex.getMessage().isBlank()
-                        ? "导入代理流式响应失败。"
-                        : ex.getMessage()
-        );
-        return payload;
+    private String buildErrorMessage(Exception ex) {
+        return ex.getMessage() == null || ex.getMessage().isBlank()
+                ? "导入代理流式响应失败。"
+                : ex.getMessage();
     }
 
     @FunctionalInterface
     private interface StreamingSessionOperation {
-        ApiImportAgentSessionResp execute(Consumer<String> deltaConsumer);
+        ApiImportAgentSessionResp execute(ImportAgentStreamEmitter streamEmitter);
     }
 
     private ApiImportAgentSessionResp toSessionResp(ApiImportAgentSessionModel model) {

@@ -77,6 +77,14 @@ export interface ImportAgentStreamMessageEventDto {
   delta: string
 }
 
+export interface ImportAgentStreamThinkingEventDto {
+  stage: string
+  title: string
+  summary: string
+  detail?: string | null
+  sequence?: number | null
+}
+
 export interface ImportAgentStreamErrorEventDto {
   code?: string
   message: string

@@ -33,10 +33,36 @@ public class DocumentFactsPlannerSubagent implements ImportAgentPlannerSubagent 
                     conflictMessage(apiCode, "upstreamUrl"));
             ImportAgentPlannerSubagentSupport.applyStringField(assetNode, "categoryCode", factNode, "categoryCode", context,
                     conflictMessage(apiCode, "categoryCode"));
-            ImportAgentPlannerSubagentSupport.applyStringField(assetNode, "requestExample", factNode, "requestExample", context,
+            applyExampleField(assetNode, "requestExample", factNode, context,
                     conflictMessage(apiCode, "requestExample"));
-            ImportAgentPlannerSubagentSupport.applyStringField(assetNode, "responseExample", factNode, "responseExample", context,
+            applyExampleField(assetNode, "responseExample", factNode, context,
                     conflictMessage(apiCode, "responseExample"));
+        }
+    }
+
+    private void applyExampleField(
+            ObjectNode target,
+            String fieldName,
+            JsonNode source,
+            ImportAgentPlannerSubagentContext context,
+            String conflictMessage) {
+        String incoming = ImportAgentPlannerSubagentSupport.textValue(source, fieldName);
+        if (incoming == null || incoming.isBlank()) {
+            return;
+        }
+        String normalized = "requestExample".equals(fieldName)
+                ? ImportAgentExampleNormalizer.normalizeRequestBodyExample(incoming)
+                : ImportAgentExampleNormalizer.normalizeJsonObjectExample(incoming);
+        if (normalized == null || normalized.isBlank()) {
+            return;
+        }
+        String current = ImportAgentPlannerSubagentSupport.textValue(target, fieldName);
+        if (current == null || current.isBlank()) {
+            target.put(fieldName, normalized);
+            return;
+        }
+        if (!current.equals(normalized)) {
+            context.addClarificationQuestion(conflictMessage);
         }
     }
 

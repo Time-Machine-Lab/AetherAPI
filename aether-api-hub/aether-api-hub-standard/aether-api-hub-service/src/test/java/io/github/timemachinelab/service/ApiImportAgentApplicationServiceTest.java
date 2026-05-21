@@ -22,6 +22,9 @@ import io.github.timemachinelab.service.model.ImportAgentPlanModel;
 import io.github.timemachinelab.service.model.ImportAgentPlannerRequest;
 import io.github.timemachinelab.service.model.ImportAgentPlannerResult;
 import io.github.timemachinelab.service.model.ImportAgentSessionStatus;
+import io.github.timemachinelab.service.model.ImportAgentStreamEmitter;
+import io.github.timemachinelab.service.model.ImportAgentStreamEvent;
+import io.github.timemachinelab.service.model.ImportAgentStreamEventType;
 import io.github.timemachinelab.service.model.ImportAssetPlanModel;
 import io.github.timemachinelab.service.model.ImportStepResultStatus;
 import io.github.timemachinelab.service.model.RegisterApiAssetCommand;
@@ -356,10 +359,12 @@ class ApiImportAgentApplicationServiceTest {
                 apiAssetUseCase
         );
         ImportAgentPlanModel plan = new ImportAgentPlanModel(1, true, "ready", List.of(), List.of(), List.of());
-        when(plannerPort.plan(any())).thenReturn(new io.github.timemachinelab.service.model.ImportAgentPlannerResult(plan, "fallback message"));
+        when(plannerPort.plan(any(ImportAgentPlannerRequest.class), any(ImportAgentStreamEmitter.class)))
+                .thenReturn(new io.github.timemachinelab.service.model.ImportAgentPlannerResult(plan, "fallback message"));
         doAnswer(invocation -> {
-            invocation.getArgument(2, java.util.function.Consumer.class).accept("Hello ");
-            invocation.getArgument(2, java.util.function.Consumer.class).accept("world");
+            ImportAgentStreamEmitter emitter = invocation.getArgument(2, ImportAgentStreamEmitter.class);
+            emitter.message(io.github.timemachinelab.service.model.ImportAgentActorType.AGENT, "Hello ");
+            emitter.message(io.github.timemachinelab.service.model.ImportAgentActorType.AGENT, "world");
             return "Hello world";
         }).when(replyPort).streamReply(any(), any(), any());
         when(sessionRepositoryPort.findOwnedSession(any(), any())).thenAnswer(invocation -> Optional.of(new ApiImportAgentSessionModel(
@@ -388,6 +393,7 @@ class ApiImportAgentApplicationServiceTest {
         ));
 
         List<String> deltas = new java.util.ArrayList<>();
+        List<ImportAgentStreamEvent> events = new java.util.ArrayList<>();
         ApiImportAgentSessionModel result = service.createSession(
                 new io.github.timemachinelab.service.model.CreateImportAgentSessionCommand(
                         "user-1",
@@ -396,7 +402,10 @@ class ApiImportAgentApplicationServiceTest {
                         null,
                         "import weather api"
                 ),
-                deltas::add
+                event -> {
+                    events.add(event);
+                    collectMessageDelta(event, deltas);
+                }
         );
 
         ArgumentCaptor<io.github.timemachinelab.service.model.ImportAgentTurnModel> turnCaptor = ArgumentCaptor.forClass(io.github.timemachinelab.service.model.ImportAgentTurnModel.class);
@@ -412,6 +421,9 @@ class ApiImportAgentApplicationServiceTest {
                         .orElseThrow()
                         .getMessage()
         );
+        assertTrue(events.stream().anyMatch(event -> event.getType() == ImportAgentStreamEventType.STATUS));
+        assertTrue(events.stream().anyMatch(event -> event.getType() == ImportAgentStreamEventType.THINKING));
+        assertTrue(events.stream().noneMatch(event -> String.valueOf(event.getPayload()).contains("Authorization: Bearer")));
     }
 
     @Test
@@ -452,7 +464,7 @@ class ApiImportAgentApplicationServiceTest {
         when(sessionRepositoryPort.findOwnedSession("user-1", "session-1")).thenReturn(Optional.of(session));
         when(sessionRepositoryPort.countTurns("session-1")).thenReturn(2);
         when(sessionRepositoryPort.listTurns("session-1")).thenReturn(List.of());
-        when(plannerPort.plan(any())).thenReturn(new ImportAgentPlannerResult(
+        when(plannerPort.plan(any(ImportAgentPlannerRequest.class), any(ImportAgentStreamEmitter.class))).thenReturn(new ImportAgentPlannerResult(
                 new ImportAgentPlanModel(
                         2,
                         true,
@@ -492,7 +504,7 @@ class ApiImportAgentApplicationServiceTest {
                 ))));
 
         ArgumentCaptor<ImportAgentPlannerRequest> requestCaptor = ArgumentCaptor.forClass(ImportAgentPlannerRequest.class);
-        verify(plannerPort).plan(requestCaptor.capture());
+        verify(plannerPort).plan(requestCaptor.capture(), any(ImportAgentStreamEmitter.class));
         ImportAgentPlannerRequest plannerRequest = requestCaptor.getValue();
         assertEquals(
                 "用户已补充以下澄清信息，请据此更新导入计划：\n"
@@ -503,6 +515,15 @@ class ApiImportAgentApplicationServiceTest {
                 plannerRequest.getCurrentPlan().getAssetPlans().get(0).getAuthConfig()
         );
         assertEquals(AuthScheme.HEADER_TOKEN, plannerRequest.getCurrentPlan().getAssetPlans().get(0).getAuthScheme());
+    }
+
+    private void collectMessageDelta(ImportAgentStreamEvent event, List<String> deltas) {
+        if (event.getType() != ImportAgentStreamEventType.MESSAGE) {
+            return;
+        }
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, Object> payload = (java.util.Map<String, Object>) event.getPayload();
+        deltas.add((String) payload.get("delta"));
     }
 
     private ApiImportAgentSessionModel confirmedSession(ImportAgentPlanModel plan) {

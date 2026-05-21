@@ -36,12 +36,12 @@ aether:
       token-ttl-seconds: ${AETHER_CONSOLE_AUTH_TOKEN_TTL_SECONDS:43200}
   import-agent:
     stream:
-      timeout-seconds: ${AETHER_IMPORT_AGENT_STREAM_TIMEOUT_SECONDS:180}
+      timeout-seconds: ${AETHER_IMPORT_AGENT_STREAM_TIMEOUT_SECONDS:600}
     llm:
       enabled: ${AETHER_IMPORT_AGENT_LLM_ENABLED:true}
       base-url: ${AETHER_IMPORT_AGENT_LLM_BASE_URL:https://api.deepseek.com}
       endpoint-path: ${AETHER_IMPORT_AGENT_LLM_ENDPOINT_PATH:/chat/completions}
-      api-key: ${AETHER_IMPORT_AGENT_LLM_API_KEY:sk-b377a81b84534cda9edb7fbee12f4a4c}
+      api-key: ${AETHER_IMPORT_AGENT_LLM_API_KEY:ENC(L7M78wD14+wTUqZ9hzxdkovisW5271cVhhNRAsROkTho7qc/m/fhhtRsCivUJHKOPbeZ8bhZuFQ=)}
       model: ${AETHER_IMPORT_AGENT_LLM_MODEL:deepseek-v4-flash}
       temperature: ${AETHER_IMPORT_AGENT_LLM_TEMPERATURE:0.2}
       max-completion-tokens: ${AETHER_IMPORT_AGENT_LLM_MAX_COMPLETION_TOKENS:128000}

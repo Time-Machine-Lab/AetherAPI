@@ -37,13 +37,13 @@ aether:
     stream:
       timeout-seconds: ${AETHER_IMPORT_AGENT_STREAM_TIMEOUT_SECONDS:180}
     llm:
-      enabled: ${AETHER_IMPORT_AGENT_LLM_ENABLED:false}
-      base-url: ${AETHER_IMPORT_AGENT_LLM_BASE_URL:https://api.openai.com/v1}
+      enabled: ${AETHER_IMPORT_AGENT_LLM_ENABLED:true}
+      base-url: ${AETHER_IMPORT_AGENT_LLM_BASE_URL:https://api.deepseek.com}
       endpoint-path: ${AETHER_IMPORT_AGENT_LLM_ENDPOINT_PATH:/chat/completions}
-      api-key: ${AETHER_IMPORT_AGENT_LLM_API_KEY:}
-      model: ${AETHER_IMPORT_AGENT_LLM_MODEL:gpt-4.1-mini}
+      api-key: ${AETHER_IMPORT_AGENT_LLM_API_KEY:ENC(L7M78wD14+wTUqZ9hzxdkovisW5271cVhhNRAsROkTho7qc/m/fhhtRsCivUJHKOPbeZ8bhZuFQ=)}
+      model: ${AETHER_IMPORT_AGENT_LLM_MODEL:deepseek-v4-flash}
       temperature: ${AETHER_IMPORT_AGENT_LLM_TEMPERATURE:0.2}
-      max-completion-tokens: ${AETHER_IMPORT_AGENT_LLM_MAX_COMPLETION_TOKENS:2000}
-      request-timeout-seconds: ${AETHER_IMPORT_AGENT_LLM_REQUEST_TIMEOUT_SECONDS:120}
-      tool-calling-enabled: ${AETHER_IMPORT_AGENT_LLM_TOOL_CALLING_ENABLED:true}
+      max-completion-tokens: ${AETHER_IMPORT_AGENT_LLM_MAX_COMPLETION_TOKENS:128000}
+      request-timeout-seconds: ${AETHER_IMPORT_AGENT_LLM_REQUEST_TIMEOUT_SECONDS:600}
+      tool-calling-enabled: ${AETHER_IMPORT_AGENT_LLM_TOOL_CALLING_ENABLED:false}
       system-prompt: ${AETHER_IMPORT_AGENT_LLM_SYSTEM_PROMPT:}

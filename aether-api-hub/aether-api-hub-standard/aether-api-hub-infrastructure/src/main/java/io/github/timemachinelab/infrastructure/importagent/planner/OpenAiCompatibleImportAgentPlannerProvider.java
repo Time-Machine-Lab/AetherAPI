@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.github.timemachinelab.service.model.ImportAgentPlanModel;
 import io.github.timemachinelab.service.model.ImportAgentPlannerRequest;
 import io.github.timemachinelab.service.model.ImportAgentPlannerResult;
+import io.github.timemachinelab.service.model.ImportAgentStreamEmitter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -80,20 +81,28 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
 
     @Override
     public ImportAgentPlannerResult plan(ImportAgentPlannerRequest request) {
+        return plan(request, ImportAgentStreamEmitter.noop());
+    }
+
+    @Override
+    public ImportAgentPlannerResult plan(ImportAgentPlannerRequest request, ImportAgentStreamEmitter streamEmitter) {
+        ImportAgentStreamEmitter stream = streamEmitter == null ? ImportAgentStreamEmitter.noop() : streamEmitter;
         try {
             log.info("Import-agent planner start: nextPlanVersion={}, toolCallingEnabled={}, hasCurrentPlan={}, turns={}",
                     request.getNextPlanVersion(),
                     properties.isToolCallingEnabled(),
                     request.getCurrentPlan() != null,
                     request.getTurns().size());
+            stream.thinking("planner", "规划器启动", "正在分析导入意图、文档摘要和已有计划。");
             JsonNode extractedFacts = null;
             JsonNode slotPatches = null;
             JsonNode planSource;
             if (properties.isToolCallingEnabled()) {
-                extractedFacts = executePlanningStage(request, PlannerStage.EXTRACT_FACTS, null, null);
-                slotPatches = executePlanningStage(request, PlannerStage.FILL_SLOTS, extractedFacts, null);
-                planSource = executePlanningStage(request, PlannerStage.SUBMIT_PLAN, extractedFacts, slotPatches);
+                extractedFacts = executePlanningStage(request, PlannerStage.EXTRACT_FACTS, null, null, stream);
+                slotPatches = executePlanningStage(request, PlannerStage.FILL_SLOTS, extractedFacts, null, stream);
+                planSource = executePlanningStage(request, PlannerStage.SUBMIT_PLAN, extractedFacts, slotPatches, stream);
             } else {
+                stream.thinking("planner.direct", "直接生成计划", "工具调用未启用，正在通过模型直接生成导入计划。");
                 HttpRequest httpRequest = HttpRequest.newBuilder(buildEndpointUri())
                         .header("Authorization", "Bearer " + properties.getApiKey().trim())
                         .header("Content-Type", "application/json")
@@ -107,8 +116,9 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
                 JsonNode payload = OBJECT_MAPPER.readTree(response.body());
                 planSource = extractPlanSource(payload, null, true);
                 log.debug("Import-agent planner direct response parsed: {}", summarizePlanNode(planSource));
+                stream.thinking("planner.direct", "计划草案已生成", "模型已返回导入计划草案，准备进入本地子代理审查。", summarizePlanNode(planSource));
             }
-            planSource = subagentOrchestrator.orchestrate(request, extractedFacts, slotPatches, planSource);
+            planSource = subagentOrchestrator.orchestrate(request, extractedFacts, slotPatches, planSource, stream);
             if (planSource == null) {
                 throw new IllegalStateException("LLM planner returned non-JSON plan content");
             }
@@ -119,6 +129,12 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
                     plan.getCategoryPlans().size(),
                     plan.getAssetPlans().size(),
                     plan.getClarificationQuestions().size());
+            stream.thinking(
+                    "planner.complete",
+                    "规划完成",
+                    "已完成导入计划生成，共识别 " + plan.getAssetPlans().size() + " 个资产、"
+                            + plan.getCategoryPlans().size() + " 个分类。",
+                    plan.isExecutable() ? "计划已可确认执行。" : "仍有信息缺口，需要继续向用户确认。");
             return new ImportAgentPlannerResult(plan, ImportAgentPlannerJsonSupport.buildAgentMessage("LLM 规划器", plan));
         } catch (IOException ex) {
             log.error("Import-agent planner IO failure", ex);
@@ -212,7 +228,7 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
             prompt.append("slotPatchesJson:\n").append(slotPatches.toString()).append("\n");
         }
         prompt.append("信息不足时，请保留已有计划数据，并返回自然对话式的 clarificationQuestions，不要返回空洞的通用占位问题。\n");
-        prompt.append("如果文档中存在请求示例、响应示例、字段说明或 OpenAPI schema，请主动生成 assetPlans[].requestExample、responseExample、requestJsonSchema 和 responseJsonSchema；只有证据不足时才留空或追问。\n");
+        prompt.append("如果文档中存在请求体示例、响应体示例、字段说明或 OpenAPI schema，请主动生成 assetPlans[].requestExample、responseExample、requestJsonSchema 和 responseJsonSchema；requestExample 必须是请求体/请求载荷示例，不要填 curl、HTTP 头、URL 或完整命令；只有证据不足时才留空或追问。\n");
         prompt.append("如果 AI API 缺少 apiCode 但已识别 aiProfile.provider 和 aiProfile.model，请默认按“模型服务商-模型名”生成合法小写 apiCode，非字母数字字符转换为连字符。\n");
         prompt.append("异步任务模式下，查询接口必须并入提交接口的 asyncTaskConfig，不要作为独立资产导入。\n");
         prompt.append("asyncTaskConfig.queryUrlTemplate 内部统一使用 {taskId} 占位符；如果上游文档写的是 {task_id}、{taskID} 或 {task-id}，请转换为 {taskId}。\n");
@@ -257,8 +273,10 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
             ImportAgentPlannerRequest request,
             PlannerStage stage,
             JsonNode extractedFacts,
-            JsonNode slotPatches) throws IOException, InterruptedException {
+            JsonNode slotPatches,
+            ImportAgentStreamEmitter streamEmitter) throws IOException, InterruptedException {
         ImportAgentPlanningToolDescriptor primaryTool = toolRegistry.primaryTool(stage);
+        streamEmitter.thinking(stage.name().toLowerCase(), planningStageStartTitle(stage), planningStageStartSummary(stage));
         log.debug("Import-agent planner stage start: stage={}, tool={}, extractedFacts={}, slotPatches={}",
             stage.name(),
             primaryTool.name(),
@@ -280,7 +298,40 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
         JsonNode payload = OBJECT_MAPPER.readTree(response.body());
         JsonNode stageResult = extractPlanSource(payload, primaryTool.name(), primaryTool.tool().requiresStrictContentFallback());
         log.debug("Import-agent planner stage complete: stage={}, result={}", stage.name(), summarizePlanNode(stageResult));
+        streamEmitter.thinking(stage.name().toLowerCase(), planningStageCompleteTitle(stage), planningStageCompleteSummary(stage), summarizePlanNode(stageResult));
         return stageResult;
+    }
+
+    private String planningStageStartTitle(PlannerStage stage) {
+        return switch (stage) {
+            case EXTRACT_FACTS -> "提取文档事实";
+            case FILL_SLOTS -> "补齐计划字段";
+            case SUBMIT_PLAN -> "提交计划草案";
+        };
+    }
+
+    private String planningStageStartSummary(PlannerStage stage) {
+        return switch (stage) {
+            case EXTRACT_FACTS -> "正在从文档和用户意图中提取资产、鉴权、示例和异步任务线索。";
+            case FILL_SLOTS -> "正在根据已知事实补齐请求、响应、鉴权、AI 能力和异步任务字段。";
+            case SUBMIT_PLAN -> "正在汇总事实和字段补丁，生成完整导入计划草案。";
+        };
+    }
+
+    private String planningStageCompleteTitle(PlannerStage stage) {
+        return switch (stage) {
+            case EXTRACT_FACTS -> "文档事实已提取";
+            case FILL_SLOTS -> "字段补齐已完成";
+            case SUBMIT_PLAN -> "计划草案已提交";
+        };
+    }
+
+    private String planningStageCompleteSummary(PlannerStage stage) {
+        return switch (stage) {
+            case EXTRACT_FACTS -> "已得到文档事实摘要，准备继续补齐计划字段。";
+            case FILL_SLOTS -> "已生成字段补齐结果，准备汇总为完整计划。";
+            case SUBMIT_PLAN -> "已生成候选计划，准备进入本地子代理审查。";
+        };
     }
 
     private JsonNode extractPlanSource(JsonNode payload, String expectedToolName, boolean strict) {

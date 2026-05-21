@@ -5,9 +5,8 @@ import io.github.timemachinelab.service.model.ApiImportAgentSessionModel;
 import io.github.timemachinelab.service.model.AppendImportAgentTurnCommand;
 import io.github.timemachinelab.service.model.ConfirmImportAgentPlanCommand;
 import io.github.timemachinelab.service.model.CreateImportAgentSessionCommand;
+import io.github.timemachinelab.service.model.ImportAgentStreamEmitter;
 import io.github.timemachinelab.service.model.StartImportAgentRunCommand;
-
-import java.util.function.Consumer;
 
 /**
  * Import agent use case.
@@ -16,13 +15,13 @@ public interface ApiImportAgentUseCase {
 
     ApiImportAgentSessionModel createSession(CreateImportAgentSessionCommand command);
 
-    ApiImportAgentSessionModel createSession(CreateImportAgentSessionCommand command, Consumer<String> deltaConsumer);
+    ApiImportAgentSessionModel createSession(CreateImportAgentSessionCommand command, ImportAgentStreamEmitter streamEmitter);
 
     ApiImportAgentSessionModel getSession(String ownerUserId, String sessionId);
 
     ApiImportAgentSessionModel appendTurn(AppendImportAgentTurnCommand command);
 
-    ApiImportAgentSessionModel appendTurn(AppendImportAgentTurnCommand command, Consumer<String> deltaConsumer);
+    ApiImportAgentSessionModel appendTurn(AppendImportAgentTurnCommand command, ImportAgentStreamEmitter streamEmitter);
 
     ApiImportAgentSessionModel confirmPlan(ConfirmImportAgentPlanCommand command);
 

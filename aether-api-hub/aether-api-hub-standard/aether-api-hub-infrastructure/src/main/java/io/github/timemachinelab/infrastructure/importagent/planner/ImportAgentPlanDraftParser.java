@@ -195,10 +195,10 @@ final class ImportAgentPlanDraftParser {
                         ? ImportAgentPlannerJsonSupport.textValue(assetNode, "requestTemplate")
                         : ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getRequestTemplate),
                 ImportAgentPlannerJsonSupport.hasField(assetNode, "requestExample")
-                        ? ImportAgentPlannerJsonSupport.textValue(assetNode, "requestExample")
+                        ? requestExampleValue(assetNode, currentAssetPlan)
                         : ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getRequestExample),
                 ImportAgentPlannerJsonSupport.hasField(assetNode, "responseExample")
-                        ? ImportAgentPlannerJsonSupport.textValue(assetNode, "responseExample")
+                        ? responseExampleValue(assetNode, currentAssetPlan)
                         : ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getResponseExample),
                 ImportAgentPlannerJsonSupport.schemaValue(assetNode, ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getRequestJsonSchema), "requestJsonSchema", "requestSchema", "inputSchema"),
                 ImportAgentPlannerJsonSupport.schemaValue(assetNode, ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getResponseJsonSchema), "responseJsonSchema", "responseSchema", "outputSchema"),
@@ -211,6 +211,22 @@ final class ImportAgentPlanDraftParser {
                 ImportAgentPlannerJsonSupport.hasField(assetNode, "aiProfile")
                         ? parseAiProfile(assetNode.path("aiProfile"), ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getAiProfile))
                         : ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getAiProfile));
+    }
+
+    private static String requestExampleValue(JsonNode assetNode, ImportAssetPlanModel currentAssetPlan) {
+        String normalized = ImportAgentExampleNormalizer.normalizeRequestBodyExample(
+                ImportAgentPlannerJsonSupport.textValue(assetNode, "requestExample"));
+        return normalized == null
+                ? ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getRequestExample)
+                : normalized;
+    }
+
+    private static String responseExampleValue(JsonNode assetNode, ImportAssetPlanModel currentAssetPlan) {
+        String normalized = ImportAgentExampleNormalizer.normalizeJsonObjectExample(
+                ImportAgentPlannerJsonSupport.textValue(assetNode, "responseExample"));
+        return normalized == null
+                ? ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getResponseExample)
+                : normalized;
     }
 
     private static AsyncTaskConfigModel parseAsyncTaskConfig(JsonNode node, AsyncTaskConfigModel current) {

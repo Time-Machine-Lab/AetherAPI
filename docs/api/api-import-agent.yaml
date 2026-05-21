@@ -55,7 +55,7 @@ paths:
               $ref: '#/components/schemas/CreateImportAgentSessionReq'
       responses:
         '200':
-          description: 以 Server-Sent Events 返回导入计划阶段、消息增量和最终会话快照
+          description: 以 Server-Sent Events 返回导入计划阶段、结构化 thinking 摘要、消息增量和最终会话快照；最终 session 事件仍是会话真相源
           content:
             text/event-stream:
               schema:
@@ -66,6 +66,9 @@ paths:
                   value: |
                     event: status
                     data: {"phase":"planning","message":"Planning the import conversation."}
+
+                    event: thinking
+                    data: {"stage":"extract_facts","title":"提取文档事实","summary":"正在从文档和用户意图中提取资产、鉴权、请求响应示例和异步任务线索。","detail":"object(assetPlans=1, authHints=1, asyncHints=0)","sequence":1}
 
                     event: message
                     data: {"actorType":"AGENT","delta":"I need one more detail about the upstream auth."}
@@ -160,7 +163,7 @@ paths:
               $ref: '#/components/schemas/AppendImportAgentTurnReq'
       responses:
         '200':
-          description: 以 Server-Sent Events 返回追加轮次后的消息增量和最终会话快照
+          description: 以 Server-Sent Events 返回追加轮次后的结构化 thinking 摘要、消息增量和最终会话快照；最终 session 事件仍是会话真相源
           content:
             text/event-stream:
               schema:
@@ -171,6 +174,9 @@ paths:
                   value: |
                     event: status
                     data: {"phase":"planning","message":"Planning the import conversation."}
+
+                    event: thinking
+                    data: {"stage":"clarification","title":"更新计划","summary":"正在合并本轮补充信息，并重新检查导入计划。","sequence":1}
 
                     event: status
                     data: {"phase":"replying","message":"Preparing the assistant reply."}
@@ -679,6 +685,28 @@ components:
             - AGENT
         delta:
           type: string
+
+    ImportAgentStreamThinkingEvent:
+      type: object
+      description: 安全的 Import Agent 过程摘要事件；不得包含 raw CoT、完整 prompt、provider 原始 payload、异常堆栈正文、authConfig 明文或用户提交的密钥值。
+      properties:
+        stage:
+          type: string
+          description: 稳定阶段标识，例如 planner、extract_facts、subagents、clarification、reply。
+        title:
+          type: string
+          description: 面向用户展示的简短阶段标题。
+        summary:
+          type: string
+          description: 面向用户展示的安全过程摘要。
+        detail:
+          type: string
+          nullable: true
+          description: 可选的安全补充信息，只允许包含汇总数量或状态，不允许包含内部原文。
+        sequence:
+          type: integer
+          format: int64
+          description: 当前流中的 thinking 事件顺序号。
 
     ImportAgentStreamErrorEvent:
       type: object

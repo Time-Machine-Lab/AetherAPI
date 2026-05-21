@@ -56,6 +56,14 @@ export interface ImportAgentStreamMessageEvent {
   delta: string
 }
 
+export interface ImportAgentStreamThinkingEvent {
+  stage: string
+  title: string
+  summary: string
+  detail?: string
+  sequence?: number
+}
+
 export interface ImportAgentStreamErrorEvent {
   code?: string
   message: string
@@ -63,6 +71,7 @@ export interface ImportAgentStreamErrorEvent {
 
 export interface ImportAgentStreamCallbacks {
   onStatus?: (event: ImportAgentStreamStatusEvent) => void
+  onThinking?: (event: ImportAgentStreamThinkingEvent) => void
   onMessage?: (event: ImportAgentStreamMessageEvent) => void
   onSession?: (session: ImportAgentSession) => void
   onError?: (event: ImportAgentStreamErrorEvent) => void

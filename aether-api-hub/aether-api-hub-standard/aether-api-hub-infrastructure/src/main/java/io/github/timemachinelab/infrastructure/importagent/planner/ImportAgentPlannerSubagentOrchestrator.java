@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.github.timemachinelab.service.model.ImportAgentPlannerRequest;
+import io.github.timemachinelab.service.model.ImportAgentStreamEmitter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -37,10 +38,21 @@ public class ImportAgentPlannerSubagentOrchestrator {
             JsonNode extractedFacts,
             JsonNode slotPatches,
             JsonNode planSource) {
+        return orchestrate(request, extractedFacts, slotPatches, planSource, ImportAgentStreamEmitter.noop());
+    }
+
+    public ObjectNode orchestrate(
+            ImportAgentPlannerRequest request,
+            JsonNode extractedFacts,
+            JsonNode slotPatches,
+            JsonNode planSource,
+            ImportAgentStreamEmitter streamEmitter) {
+        ImportAgentStreamEmitter stream = streamEmitter == null ? ImportAgentStreamEmitter.noop() : streamEmitter;
         log.debug("Import-agent subagent orchestration start: extractedFacts={}, slotPatches={}, planSource={}",
                 summarizeNode(extractedFacts),
                 summarizeNode(slotPatches),
                 summarizeNode(planSource));
+        stream.thinking("subagents", "启动子代理审查", "正在用专门子代理检查事实、鉴权、异步任务、Schema 和计划一致性。");
         ImportAgentPlannerSubagentContext context = new ImportAgentPlannerSubagentContext(request, extractedFacts, slotPatches);
         ObjectNode candidatePlan = planSource != null && planSource.isObject()
                 ? ((ObjectNode) planSource).deepCopy()
@@ -56,6 +68,10 @@ public class ImportAgentPlannerSubagentOrchestrator {
             int beforeAssetPlanCount = sizeOfArray(candidatePlan, "assetPlans");
             log.debug("Import-agent subagent start: name={}, role={}, order={}",
                     descriptor.name(), descriptor.role(), descriptor.order());
+            stream.thinking(
+                    "subagent." + descriptor.role().name().toLowerCase(),
+                    subagentStartTitle(descriptor),
+                    "正在执行 " + descriptor.name() + "，用于补齐或审查导入计划。");
             try {
                 descriptor.subagent().contribute(context, candidatePlan);
             } catch (RuntimeException ex) {
@@ -71,10 +87,46 @@ public class ImportAgentPlannerSubagentOrchestrator {
                     sizeOfArray(candidatePlan, "assetPlans") - beforeAssetPlanCount,
                     context.clarificationCount() - beforeClarificationCount,
                     context.failureCount() - beforeFailureCount);
+            int assetDelta = sizeOfArray(candidatePlan, "assetPlans") - beforeAssetPlanCount;
+            int clarificationDelta = context.clarificationCount() - beforeClarificationCount;
+            int failureDelta = context.failureCount() - beforeFailureCount;
+            stream.thinking(
+                    "subagent." + descriptor.role().name().toLowerCase(),
+                    subagentCompleteTitle(descriptor),
+                    "子代理已完成，资产变化 " + assetDelta + "，新增追问 " + clarificationDelta + "，审查问题 " + failureDelta + "。");
         }
         appendClarificationQuestions(candidatePlan, context);
+        if (context.clarificationCount() > 0 || context.failureCount() > 0) {
+            stream.thinking(
+                    "clarification",
+                    "需要补充信息",
+                    "计划仍存在 " + context.clarificationCount() + " 个待确认问题，已准备向用户追问。");
+        }
         log.debug("Import-agent subagent orchestration complete: candidatePlan={}", summarizeNode(candidatePlan));
+        stream.thinking("subagents", "子代理审查完成", "已完成本地补齐、合并和审查，准备生成最终计划模型。", summarizeNode(candidatePlan));
         return candidatePlan;
+    }
+
+    private String subagentStartTitle(ImportAgentPlannerSubagentDescriptor descriptor) {
+        return switch (descriptor.role()) {
+            case DOCUMENT_FACTS -> "提取文档事实";
+            case AUTH_RECOGNITION -> "识别鉴权方式";
+            case ASYNC_PATTERN -> "检查异步任务";
+            case SCHEMA_GENERATION -> "生成 Schema";
+            case PLAN_REVIEW -> "审查计划";
+            case CLARIFICATION_STRATEGY -> "整理追问策略";
+        };
+    }
+
+    private String subagentCompleteTitle(ImportAgentPlannerSubagentDescriptor descriptor) {
+        return switch (descriptor.role()) {
+            case DOCUMENT_FACTS -> "文档事实提取完成";
+            case AUTH_RECOGNITION -> "鉴权识别完成";
+            case ASYNC_PATTERN -> "异步任务检查完成";
+            case SCHEMA_GENERATION -> "Schema 生成完成";
+            case PLAN_REVIEW -> "计划审查完成";
+            case CLARIFICATION_STRATEGY -> "追问策略整理完成";
+        };
     }
 
     private void appendClarificationQuestions(ObjectNode candidatePlan, ImportAgentPlannerSubagentContext context) {

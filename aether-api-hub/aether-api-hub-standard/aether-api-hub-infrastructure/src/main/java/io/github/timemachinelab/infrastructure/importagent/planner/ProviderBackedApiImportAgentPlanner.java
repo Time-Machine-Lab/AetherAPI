@@ -2,6 +2,7 @@ package io.github.timemachinelab.infrastructure.importagent.planner;
 
 import io.github.timemachinelab.service.model.ImportAgentPlannerRequest;
 import io.github.timemachinelab.service.model.ImportAgentPlannerResult;
+import io.github.timemachinelab.service.model.ImportAgentStreamEmitter;
 import io.github.timemachinelab.service.port.out.ApiImportAgentPlannerPort;
 import org.springframework.stereotype.Component;
 
@@ -21,7 +22,7 @@ public class ProviderBackedApiImportAgentPlanner implements ApiImportAgentPlanne
     }
 
     @Override
-    public ImportAgentPlannerResult plan(ImportAgentPlannerRequest request) {
+    public ImportAgentPlannerResult plan(ImportAgentPlannerRequest request, ImportAgentStreamEmitter streamEmitter) {
         boolean matched = false;
         for (ImportAgentPlannerProvider provider : plannerProviders) {
             if (!provider.supports(request)) {
@@ -29,7 +30,7 @@ public class ProviderBackedApiImportAgentPlanner implements ApiImportAgentPlanne
             }
             matched = true;
             try {
-                return provider.plan(request);
+                return provider.plan(request, streamEmitter);
             } catch (RuntimeException ex) {
                 throw new IllegalStateException("Import agent planner provider failed", ex);
             }
