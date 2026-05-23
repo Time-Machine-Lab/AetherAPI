@@ -113,6 +113,7 @@ public class ImportAgentPlannerSubagentOrchestrator {
             case AUTH_RECOGNITION -> "识别鉴权方式";
             case ASYNC_PATTERN -> "检查异步任务";
             case SCHEMA_GENERATION -> "生成 Schema";
+            case CATEGORY_CLASSIFICATION -> "选择资产分类";
             case PLAN_REVIEW -> "审查计划";
             case CLARIFICATION_STRATEGY -> "整理追问策略";
         };
@@ -124,6 +125,7 @@ public class ImportAgentPlannerSubagentOrchestrator {
             case AUTH_RECOGNITION -> "鉴权识别完成";
             case ASYNC_PATTERN -> "异步任务检查完成";
             case SCHEMA_GENERATION -> "Schema 生成完成";
+            case CATEGORY_CLASSIFICATION -> "资产分类选择完成";
             case PLAN_REVIEW -> "计划审查完成";
             case CLARIFICATION_STRATEGY -> "追问策略整理完成";
         };

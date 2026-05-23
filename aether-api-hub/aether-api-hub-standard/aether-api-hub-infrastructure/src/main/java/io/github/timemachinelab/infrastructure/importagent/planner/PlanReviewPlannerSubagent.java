@@ -3,10 +3,15 @@ package io.github.timemachinelab.infrastructure.importagent.planner;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import io.github.timemachinelab.service.model.ImportAgentCategoryCandidateModel;
 import io.github.timemachinelab.service.model.ImportAgentPlanModel;
 import io.github.timemachinelab.service.model.ImportAssetPlanModel;
 
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 @ImportAgentPlannerSubagentSpec(name = "plan_review", role = ImportAgentPlannerSubagentRole.PLAN_REVIEW, order = 40)
 public class PlanReviewPlannerSubagent implements ImportAgentPlannerSubagent {
@@ -18,13 +23,84 @@ public class PlanReviewPlannerSubagent implements ImportAgentPlannerSubagent {
             return;
         }
         ArrayNode assetArray = (ArrayNode) assetPlans;
+        Map<String, String> enabledCategories = enabledCategoryCodes(context);
+        Set<String> categoryPlanCodes = categoryPlanCodes(candidatePlan.path("categoryPlans"));
         for (JsonNode assetNode : assetArray) {
+            reviewCategoryConsistency(context, assetNode, enabledCategories, categoryPlanCodes);
             reviewSchemaConsistency(context, assetNode);
             reviewAuthConsistency(context, assetNode);
             reviewAsyncConsistency(context, assetNode);
             reviewAiProfileConsistency(context, assetNode);
         }
         reviewAsyncPairs(context, assetArray);
+    }
+
+    private void reviewCategoryConsistency(
+            ImportAgentPlannerSubagentContext context,
+            JsonNode assetNode,
+            Map<String, String> enabledCategories,
+            Set<String> categoryPlanCodes) {
+        if (!assetNode.isObject() || !assetNode.path("publishAfterImport").asBoolean(false) || enabledCategories.isEmpty()) {
+            return;
+        }
+        String apiCode = ImportAgentPlannerSubagentSupport.textValue(assetNode, "apiCode");
+        String categoryCode = ImportAgentPlannerSubagentSupport.textValue(assetNode, "categoryCode");
+        if (categoryCode == null) {
+            context.addClarificationQuestion("资产计划 " + displayApiCode(apiCode)
+                    + " 需要从当前启用分类中选择分类编码；候选：" + categorySuggestions(enabledCategories) + "。");
+            return;
+        }
+        String categoryKey = normalizeKey(categoryCode);
+        if (!enabledCategories.containsKey(categoryKey)) {
+            context.addClarificationQuestion("资产计划 " + displayApiCode(apiCode)
+                    + " 的分类编码 " + categoryCode + " 不在当前启用分类中，请从候选分类中选择；候选："
+                    + categorySuggestions(enabledCategories) + "。");
+            return;
+        }
+        if (!categoryPlanCodes.contains(categoryKey)) {
+            context.addClarificationQuestion("资产计划 " + displayApiCode(apiCode)
+                    + " 已选择分类 " + categoryCode + "，但分类计划中缺少对应的 USE_EXISTING 记录，请确认分类计划。");
+        }
+    }
+
+    private Map<String, String> enabledCategoryCodes(ImportAgentPlannerSubagentContext context) {
+        Map<String, String> values = new LinkedHashMap<>();
+        for (ImportAgentCategoryCandidateModel candidate : context.getRequest().getAvailableCategories()) {
+            if (candidate == null || candidate.getCategoryCode() == null || candidate.getCategoryCode().isBlank()) {
+                continue;
+            }
+            String status = candidate.getStatus();
+            if (status != null && !status.isBlank() && !"ENABLED".equalsIgnoreCase(status.trim())) {
+                continue;
+            }
+            values.put(normalizeKey(candidate.getCategoryCode()),
+                    candidate.getCategoryName() == null || candidate.getCategoryName().isBlank()
+                            ? candidate.getCategoryCode().trim()
+                            : candidate.getCategoryName().trim());
+        }
+        return values;
+    }
+
+    private Set<String> categoryPlanCodes(JsonNode categoryPlans) {
+        Set<String> values = new LinkedHashSet<>();
+        if (!categoryPlans.isArray()) {
+            return values;
+        }
+        for (JsonNode categoryPlan : categoryPlans) {
+            String categoryCode = ImportAgentPlannerSubagentSupport.textValue(categoryPlan, "categoryCode");
+            if (categoryCode != null) {
+                values.add(normalizeKey(categoryCode));
+            }
+        }
+        return values;
+    }
+
+    private String categorySuggestions(Map<String, String> enabledCategories) {
+        return enabledCategories.entrySet().stream()
+                .limit(3)
+                .map(entry -> entry.getKey() + "（" + entry.getValue() + "）")
+                .reduce((left, right) -> left + "、" + right)
+                .orElse("请先创建或启用分类");
     }
 
     private void reviewSchemaConsistency(ImportAgentPlannerSubagentContext context, JsonNode assetNode) {
@@ -276,6 +352,10 @@ public class PlanReviewPlannerSubagent implements ImportAgentPlannerSubagent {
 
     private String lowerText(String value) {
         return value == null ? "" : value.toLowerCase(Locale.ROOT);
+    }
+
+    private String normalizeKey(String value) {
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
     }
 
     private String normalizedToken(String value) {

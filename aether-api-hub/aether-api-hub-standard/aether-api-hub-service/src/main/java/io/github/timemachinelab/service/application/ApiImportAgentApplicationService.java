@@ -2,6 +2,7 @@ package io.github.timemachinelab.service.application;
 
 import io.github.timemachinelab.domain.catalog.model.AssetDomainException;
 import io.github.timemachinelab.domain.catalog.model.AssetType;
+import io.github.timemachinelab.domain.catalog.model.CategoryStatus;
 import io.github.timemachinelab.domain.importagent.model.ImportAgentDomainException;
 import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
@@ -14,7 +15,10 @@ import io.github.timemachinelab.service.model.AttachAiCapabilityProfileCommand;
 import io.github.timemachinelab.service.model.ConfirmImportAgentPlanCommand;
 import io.github.timemachinelab.service.model.CreateCategoryCommand;
 import io.github.timemachinelab.service.model.CreateImportAgentSessionCommand;
+import io.github.timemachinelab.service.model.CategoryModel;
+import io.github.timemachinelab.service.model.CategoryPageResult;
 import io.github.timemachinelab.service.model.ImportAgentActorType;
+import io.github.timemachinelab.service.model.ImportAgentCategoryCandidateModel;
 import io.github.timemachinelab.service.model.ImportAgentPlanModel;
 import io.github.timemachinelab.service.model.ImportAgentPlannerRequest;
 import io.github.timemachinelab.service.model.ImportAgentPlannerResult;
@@ -110,7 +114,8 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 initialMessage,
                 null,
                 1,
-                List.of(userTurn)
+                List.of(userTurn),
+                loadEnabledCategoryCandidates(stream)
         );
         ImportAgentPlannerResult plannerResult = plannerPort.plan(plannerRequest, stream);
         ImportAgentPlanModel plan = plannerResult.getPlan();
@@ -209,7 +214,8 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 message,
                 refinedCurrentPlan,
                 nextPlanVersion,
-                plannerTurns
+                plannerTurns,
+                loadEnabledCategoryCandidates(stream)
         );
         ImportAgentPlannerResult plannerResult = plannerPort.plan(plannerRequest, stream);
         ImportAgentPlanModel newPlan = plannerResult.getPlan();
@@ -249,6 +255,31 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
         sessionRepositoryPort.saveTurn(userTurn);
         sessionRepositoryPort.saveTurn(agentTurn);
         return getSession(command.getOwnerUserId(), command.getSessionId());
+    }
+
+    private List<ImportAgentCategoryCandidateModel> loadEnabledCategoryCandidates(ImportAgentStreamEmitter stream) {
+        try {
+            CategoryPageResult pageResult = categoryUseCase.listCategories(CategoryStatus.ENABLED, 1, 100);
+            if (pageResult == null || pageResult.getItems() == null || pageResult.getItems().isEmpty()) {
+                return List.of();
+            }
+            List<ImportAgentCategoryCandidateModel> candidates = new ArrayList<>();
+            for (CategoryModel category : pageResult.getItems()) {
+                if (category == null || category.getCode() == null || category.getCode().isBlank()) {
+                    continue;
+                }
+                candidates.add(new ImportAgentCategoryCandidateModel(
+                        category.getCode(),
+                        category.getName(),
+                        category.getStatus()));
+            }
+            return List.copyOf(candidates);
+        } catch (RuntimeException ex) {
+            if (stream != null) {
+                stream.thinking("category_candidates", "分类候选读取失败", "暂时无法读取可用分类，导入规划会继续进行，并在需要分类时向用户确认。");
+            }
+            return List.of();
+        }
     }
 
     private String resolveAgentMessage(

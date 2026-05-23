@@ -14,6 +14,7 @@ public class ImportAgentPlannerRequest {
     private final ImportAgentPlanModel currentPlan;
     private final int nextPlanVersion;
     private final List<ImportAgentTurnModel> turns;
+    private final List<ImportAgentCategoryCandidateModel> availableCategories;
 
     public ImportAgentPlannerRequest(
             String documentSource,
@@ -23,6 +24,18 @@ public class ImportAgentPlannerRequest {
             ImportAgentPlanModel currentPlan,
             int nextPlanVersion,
             List<ImportAgentTurnModel> turns) {
+        this(documentSource, documentSummary, importIntent, latestUserMessage, currentPlan, nextPlanVersion, turns, List.of());
+    }
+
+    public ImportAgentPlannerRequest(
+            String documentSource,
+            String documentSummary,
+            String importIntent,
+            String latestUserMessage,
+            ImportAgentPlanModel currentPlan,
+            int nextPlanVersion,
+            List<ImportAgentTurnModel> turns,
+            List<ImportAgentCategoryCandidateModel> availableCategories) {
         this.documentSource = documentSource;
         this.documentSummary = documentSummary;
         this.importIntent = importIntent;
@@ -30,6 +43,7 @@ public class ImportAgentPlannerRequest {
         this.currentPlan = currentPlan;
         this.nextPlanVersion = nextPlanVersion;
         this.turns = turns == null ? List.of() : List.copyOf(turns);
+        this.availableCategories = availableCategories == null ? List.of() : List.copyOf(availableCategories);
     }
 
     public String getDocumentSource() {
@@ -58,5 +72,9 @@ public class ImportAgentPlannerRequest {
 
     public List<ImportAgentTurnModel> getTurns() {
         return turns;
+    }
+
+    public List<ImportAgentCategoryCandidateModel> getAvailableCategories() {
+        return availableCategories;
     }
 }

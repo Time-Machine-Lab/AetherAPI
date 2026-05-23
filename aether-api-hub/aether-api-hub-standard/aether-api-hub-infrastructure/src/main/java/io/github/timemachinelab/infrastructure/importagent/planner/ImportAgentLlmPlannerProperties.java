@@ -12,9 +12,11 @@ public class ImportAgentLlmPlannerProperties {
     private String model;
     private Double temperature;
     private Integer maxCompletionTokens;
+    private String maxTokensParameterName;
     private Integer requestTimeoutSeconds;
     private String systemPrompt;
     private boolean toolCallingEnabled;
+    private Boolean toolChoiceEnabled;
 
     public boolean isEnabled() {
         return enabled;
@@ -72,6 +74,14 @@ public class ImportAgentLlmPlannerProperties {
         this.maxCompletionTokens = maxCompletionTokens;
     }
 
+    public String getMaxTokensParameterName() {
+        return maxTokensParameterName;
+    }
+
+    public void setMaxTokensParameterName(String maxTokensParameterName) {
+        this.maxTokensParameterName = maxTokensParameterName;
+    }
+
     public Integer getRequestTimeoutSeconds() {
         return requestTimeoutSeconds;
     }
@@ -94,5 +104,13 @@ public class ImportAgentLlmPlannerProperties {
 
     public void setToolCallingEnabled(boolean toolCallingEnabled) {
         this.toolCallingEnabled = toolCallingEnabled;
+    }
+
+    public Boolean getToolChoiceEnabled() {
+        return toolChoiceEnabled;
+    }
+
+    public void setToolChoiceEnabled(Boolean toolChoiceEnabled) {
+        this.toolChoiceEnabled = toolChoiceEnabled;
     }
 }

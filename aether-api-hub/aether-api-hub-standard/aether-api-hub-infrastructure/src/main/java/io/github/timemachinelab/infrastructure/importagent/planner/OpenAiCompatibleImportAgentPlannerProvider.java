@@ -34,6 +34,7 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
     private static final Logger log = LoggerFactory.getLogger(OpenAiCompatibleImportAgentPlannerProvider.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String DEFAULT_ENDPOINT_PATH = "/chat/completions";
+    private static final int ERROR_BODY_LOG_LIMIT = 1200;
     private static final String DEFAULT_SYSTEM_PROMPT = """
             你是一个 API 导入规划助手。
             如果提供了 currentPlanJson，请将其视为当前基线，并在应用最新用户消息后返回完整更新后的 JSON 计划，而不是只返回增量字段。
@@ -111,7 +112,9 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
                         .build();
                 HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
                 if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                    throw new IllegalStateException("LLM planner request failed with status " + response.statusCode());
+                    String errorBody = summarizeErrorBody(response.body());
+                    log.warn("Import-agent planner direct request failed: status={}, body={}", response.statusCode(), errorBody);
+                    throw new IllegalStateException("LLM planner request failed with status " + response.statusCode() + ": " + errorBody);
                 }
                 JsonNode payload = OBJECT_MAPPER.readTree(response.body());
                 planSource = extractPlanSource(payload, null, true);
@@ -181,7 +184,7 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
             root.put("temperature", properties.getTemperature());
         }
         if (properties.getMaxCompletionTokens() != null && properties.getMaxCompletionTokens() > 0) {
-            root.put("max_completion_tokens", properties.getMaxCompletionTokens());
+            root.put(resolveMaxTokensParameterName(), properties.getMaxCompletionTokens());
         }
         ArrayNode messages = root.putArray("messages");
         messages.addObject()
@@ -192,10 +195,12 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
                 .put("content", buildUserPrompt(request, stage, primaryTool, extractedFacts, slotPatches));
         if (properties.isToolCallingEnabled()) {
             root.set("tools", toolRegistry.buildTools(stage, OBJECT_MAPPER));
-            root.putObject("tool_choice")
-                .put("type", "function")
-                .putObject("function")
-                .put("name", primaryTool.name());
+            if (isToolChoiceEnabled()) {
+                root.putObject("tool_choice")
+                    .put("type", "function")
+                    .putObject("function")
+                    .put("name", primaryTool.name());
+            }
         }
         return root.toString();
     }
@@ -214,6 +219,9 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
         appendField(prompt, "importIntent", request.getImportIntent());
         appendField(prompt, "latestUserMessage", request.getLatestUserMessage());
         prompt.append("nextPlanVersion: ").append(request.getNextPlanVersion()).append("\n");
+        if (!request.getAvailableCategories().isEmpty()) {
+            prompt.append("availableCategoriesJson:\n").append(serializeAvailableCategories(request)).append("\n");
+        }
         if (!request.getTurns().isEmpty()) {
             prompt.append("recentTurnsJson:\n").append(serializeTurns(request)).append("\n");
         }
@@ -229,6 +237,7 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
         }
         prompt.append("信息不足时，请保留已有计划数据，并返回自然对话式的 clarificationQuestions，不要返回空洞的通用占位问题。\n");
         prompt.append("如果文档中存在请求体示例、响应体示例、字段说明或 OpenAPI schema，请主动生成 assetPlans[].requestExample、responseExample、requestJsonSchema 和 responseJsonSchema；requestExample 必须是请求体/请求载荷示例，不要填 curl、HTTP 头、URL 或完整命令；只有证据不足时才留空或追问。\n");
+        prompt.append("如果提供了 availableCategoriesJson，assetPlans[].categoryCode 必须优先从这些已启用分类候选中选择；不要在用户未明确要求创建新分类时凭空生成分类编码。无法判断时请用中文追问，并尽量列出候选默认值。\n");
         prompt.append("如果 AI API 缺少 apiCode 但已识别 aiProfile.provider 和 aiProfile.model，请默认按“模型服务商-模型名”生成合法小写 apiCode，非字母数字字符转换为连字符。\n");
         prompt.append("异步任务模式下，查询接口必须并入提交接口的 asyncTaskConfig，不要作为独立资产导入。\n");
         prompt.append("asyncTaskConfig.queryUrlTemplate 内部统一使用 {taskId} 占位符；如果上游文档写的是 {task_id}、{taskID} 或 {task-id}，请转换为 {taskId}。\n");
@@ -251,6 +260,14 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
             return OBJECT_MAPPER.writeValueAsString(request.getCurrentPlan());
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to serialize current import plan", ex);
+        }
+    }
+
+    private String serializeAvailableCategories(ImportAgentPlannerRequest request) {
+        try {
+            return OBJECT_MAPPER.writeValueAsString(request.getAvailableCategories());
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to serialize available categories", ex);
         }
     }
 
@@ -292,8 +309,9 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
                 .build();
         HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            log.warn("Import-agent planner stage failed: stage={}, status={}", stage.name(), response.statusCode());
-            throw new IllegalStateException("LLM planner request failed with status " + response.statusCode());
+            String errorBody = summarizeErrorBody(response.body());
+            log.warn("Import-agent planner stage failed: stage={}, status={}, body={}", stage.name(), response.statusCode(), errorBody);
+            throw new IllegalStateException("LLM planner request failed with status " + response.statusCode() + ": " + errorBody);
         }
         JsonNode payload = OBJECT_MAPPER.readTree(response.body());
         JsonNode stageResult = extractPlanSource(payload, primaryTool.name(), primaryTool.tool().requiresStrictContentFallback());
@@ -408,6 +426,45 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private String resolveMaxTokensParameterName() {
+        if (hasText(properties.getMaxTokensParameterName())) {
+            String configured = properties.getMaxTokensParameterName().trim();
+            if ("max_tokens".equals(configured) || "max_completion_tokens".equals(configured)) {
+                return configured;
+            }
+            log.warn("Unsupported import-agent max tokens parameter name: {}, fallback to provider default", configured);
+        }
+        if (isDeepSeekPlanner()) {
+            return "max_tokens";
+        }
+        return "max_completion_tokens";
+    }
+
+    private boolean isDeepSeekPlanner() {
+        String baseUrl = properties.getBaseUrl();
+        String model = properties.getModel();
+        return (baseUrl != null && baseUrl.toLowerCase().contains("deepseek"))
+                || (model != null && model.toLowerCase().startsWith("deepseek-"));
+    }
+
+    private boolean isToolChoiceEnabled() {
+        if (properties.getToolChoiceEnabled() != null) {
+            return properties.getToolChoiceEnabled();
+        }
+        return !isDeepSeekPlanner();
+    }
+
+    private String summarizeErrorBody(String body) {
+        if (body == null || body.isBlank()) {
+            return "<empty>";
+        }
+        String normalized = body.replaceAll("\\s+", " ").trim();
+        if (normalized.length() <= ERROR_BODY_LOG_LIMIT) {
+            return normalized;
+        }
+        return normalized.substring(0, ERROR_BODY_LOG_LIMIT) + "...";
     }
 
     private String summarizePlanNode(JsonNode node) {

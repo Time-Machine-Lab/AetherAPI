@@ -2,6 +2,7 @@ package io.github.timemachinelab.infrastructure.importagent.planner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.github.timemachinelab.service.model.ImportAgentCategoryCandidateModel;
 import io.github.timemachinelab.service.model.ImportAgentPlannerRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -318,6 +320,93 @@ class OpenAiCompatibleImportAgentPlannerProviderTest {
         assertFalse(requestBody.contains("Submit the full import plan"));
     }
 
+    @Test
+    @DisplayName("provider prompt should include enabled category candidates")
+    void shouldIncludeEnabledCategoryCandidatesInPrompt() throws Exception {
+        HttpClient httpClient = mock(HttpClient.class);
+        ImportAgentLlmPlannerProperties properties = new ImportAgentLlmPlannerProperties();
+        properties.setEnabled(true);
+        properties.setBaseUrl("https://api.openai.com/v1");
+        properties.setApiKey("sk-test");
+        properties.setModel("gpt-4.1-mini");
+        OpenAiCompatibleImportAgentPlannerProvider provider = new OpenAiCompatibleImportAgentPlannerProvider(httpClient, properties);
+
+        Method method = OpenAiCompatibleImportAgentPlannerProvider.class.getDeclaredMethod("buildRequestBody", ImportAgentPlannerRequest.class);
+        method.setAccessible(true);
+        String requestBody = (String) method.invoke(provider, requestWithCategories());
+
+        assertTrue(requestBody.contains("availableCategoriesJson"));
+        assertTrue(requestBody.contains("\\\"categoryCode\\\":\\\"video\\\""));
+        assertTrue(requestBody.contains("必须优先从这些已启用分类候选中选择"));
+        assertTrue(requestBody.contains("不要在用户未明确要求创建新分类时凭空生成分类编码"));
+    }
+
+    @Test
+    @DisplayName("provider should use max_tokens for DeepSeek-compatible planner requests")
+    void shouldUseMaxTokensForDeepSeekCompatiblePlannerRequests() throws Exception {
+        HttpClient httpClient = mock(HttpClient.class);
+        ImportAgentLlmPlannerProperties properties = new ImportAgentLlmPlannerProperties();
+        properties.setEnabled(true);
+        properties.setToolCallingEnabled(true);
+        properties.setBaseUrl("https://api.deepseek.com");
+        properties.setApiKey("sk-test");
+        properties.setModel("deepseek-v4-flash");
+        properties.setMaxCompletionTokens(4096);
+        OpenAiCompatibleImportAgentPlannerProvider provider = new OpenAiCompatibleImportAgentPlannerProvider(httpClient, properties);
+
+        Method method = OpenAiCompatibleImportAgentPlannerProvider.class.getDeclaredMethod("buildRequestBody", ImportAgentPlannerRequest.class);
+        method.setAccessible(true);
+        String requestBody = (String) method.invoke(provider, request());
+
+        assertTrue(requestBody.contains("\"max_tokens\":4096"));
+        assertFalse(requestBody.contains("max_completion_tokens"));
+    }
+
+    @Test
+    @DisplayName("provider should not force tool_choice for DeepSeek-compatible planner requests")
+    void shouldNotForceToolChoiceForDeepSeekCompatiblePlannerRequests() throws Exception {
+        HttpClient httpClient = mock(HttpClient.class);
+        ImportAgentLlmPlannerProperties properties = new ImportAgentLlmPlannerProperties();
+        properties.setEnabled(true);
+        properties.setToolCallingEnabled(true);
+        properties.setBaseUrl("https://api.deepseek.com");
+        properties.setApiKey("sk-test");
+        properties.setModel("deepseek-v4-flash");
+        OpenAiCompatibleImportAgentPlannerProvider provider = new OpenAiCompatibleImportAgentPlannerProvider(httpClient, properties);
+
+        Method method = OpenAiCompatibleImportAgentPlannerProvider.class.getDeclaredMethod("buildRequestBody", ImportAgentPlannerRequest.class);
+        method.setAccessible(true);
+        String requestBody = (String) method.invoke(provider, request());
+
+        assertTrue(requestBody.contains("\"tools\""));
+        assertTrue(requestBody.contains("submit_import_plan"));
+        assertFalse(requestBody.contains("tool_choice"));
+    }
+
+    @Test
+    @DisplayName("provider should include response body when tool-calling request is rejected")
+    void shouldIncludeResponseBodyWhenToolCallingRequestIsRejected() throws Exception {
+        HttpClient httpClient = mock(HttpClient.class);
+        @SuppressWarnings("unchecked")
+        HttpResponse<String> response = mock(HttpResponse.class);
+        when(response.statusCode()).thenReturn(400);
+        when(response.body()).thenReturn("{\"error\":{\"message\":\"unsupported parameter max_completion_tokens\"}}");
+        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(response);
+
+        ImportAgentLlmPlannerProperties properties = new ImportAgentLlmPlannerProperties();
+        properties.setEnabled(true);
+        properties.setToolCallingEnabled(true);
+        properties.setBaseUrl("https://api.openai.com/v1");
+        properties.setApiKey("sk-test");
+        properties.setModel("gpt-4.1-mini");
+        OpenAiCompatibleImportAgentPlannerProvider provider = new OpenAiCompatibleImportAgentPlannerProvider(httpClient, properties);
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> provider.plan(request()));
+
+        assertTrue(exception.getMessage().contains("status 400"));
+        assertTrue(exception.getMessage().contains("unsupported parameter max_completion_tokens"));
+    }
+
     private ImportAgentPlannerRequest request() {
         return new ImportAgentPlannerRequest(
                 "https://docs.example.com/weather",
@@ -327,6 +416,19 @@ class OpenAiCompatibleImportAgentPlannerProviderTest {
                 null,
                 2,
                 List.of()
+        );
+    }
+
+    private ImportAgentPlannerRequest requestWithCategories() {
+        return new ImportAgentPlannerRequest(
+                "https://docs.example.com/weather",
+                "summary",
+                "import weather api",
+                "please continue",
+                null,
+                2,
+                List.of(),
+                List.of(new ImportAgentCategoryCandidateModel("video", "Video", "ENABLED"))
         );
     }
 

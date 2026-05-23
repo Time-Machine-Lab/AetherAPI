@@ -10,6 +10,8 @@ import io.github.timemachinelab.service.model.ApiImportAgentRunModel;
 import io.github.timemachinelab.service.model.ApiImportAgentSessionModel;
 import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
 import io.github.timemachinelab.service.model.AppendImportAgentTurnCommand;
+import io.github.timemachinelab.service.model.CategoryModel;
+import io.github.timemachinelab.service.model.CategoryPageResult;
 import io.github.timemachinelab.service.model.ImportAgentRunStatus;
 import io.github.timemachinelab.service.model.ImportAgentStepType;
 import io.github.timemachinelab.service.model.ImportAgentClarificationAnswerModel;
@@ -427,6 +429,60 @@ class ApiImportAgentApplicationServiceTest {
     }
 
     @Test
+    @DisplayName("create session should pass enabled category candidates to planner")
+    void shouldPassEnabledCategoryCandidatesWhenCreatingSession() {
+        ApiImportAgentSessionRepositoryPort sessionRepositoryPort = mock(ApiImportAgentSessionRepositoryPort.class);
+        ApiImportAgentRunRepositoryPort runRepositoryPort = mock(ApiImportAgentRunRepositoryPort.class);
+        ApiImportAgentPlannerPort plannerPort = mock(ApiImportAgentPlannerPort.class);
+        ApiImportAgentReplyPort replyPort = mock(ApiImportAgentReplyPort.class);
+        CategoryUseCase categoryUseCase = mock(CategoryUseCase.class);
+        ApiAssetUseCase apiAssetUseCase = mock(ApiAssetUseCase.class);
+        ApiImportAgentApplicationService service = new ApiImportAgentApplicationService(
+                sessionRepositoryPort,
+                runRepositoryPort,
+                plannerPort,
+                replyPort,
+                categoryUseCase,
+                apiAssetUseCase
+        );
+        ImportAgentPlanModel plan = new ImportAgentPlanModel(1, false, "need category", List.of("need category"), List.of(), List.of());
+        when(categoryUseCase.listCategories(io.github.timemachinelab.domain.catalog.model.CategoryStatus.ENABLED, 1, 100))
+                .thenReturn(new CategoryPageResult(List.of(new CategoryModel(
+                        "cat-1", "video", "Video", "ENABLED", "2026-05-21T00:00:00Z", "2026-05-21T00:00:00Z")), 1, 100, 1));
+        when(plannerPort.plan(any(ImportAgentPlannerRequest.class), any(ImportAgentStreamEmitter.class)))
+                .thenReturn(new ImportAgentPlannerResult(plan, "need category"));
+        when(sessionRepositoryPort.findOwnedSession(any(), any())).thenAnswer(invocation -> Optional.of(new ApiImportAgentSessionModel(
+                invocation.getArgument(1),
+                invocation.getArgument(0),
+                ImportAgentSessionStatus.WAITING_FOR_CLARIFICATION,
+                null,
+                null,
+                "import video api",
+                "Alice",
+                1,
+                null,
+                null,
+                null,
+                plan,
+                List.of(),
+                "2026-05-21T00:00:00Z",
+                "2026-05-21T00:00:00Z"
+        )));
+
+        service.createSession(new io.github.timemachinelab.service.model.CreateImportAgentSessionCommand(
+                "user-1",
+                "Alice",
+                null,
+                null,
+                "import video api"));
+
+        ArgumentCaptor<ImportAgentPlannerRequest> requestCaptor = ArgumentCaptor.forClass(ImportAgentPlannerRequest.class);
+        verify(plannerPort).plan(requestCaptor.capture(), any(ImportAgentStreamEmitter.class));
+        assertEquals(1, requestCaptor.getValue().getAvailableCategories().size());
+        assertEquals("video", requestCaptor.getValue().getAvailableCategories().get(0).getCategoryCode());
+    }
+
+    @Test
     @DisplayName("append turn should apply structured answers before planner")
     void shouldApplyStructuredAnswersBeforePlanner() {
         ApiImportAgentSessionRepositoryPort sessionRepositoryPort = mock(ApiImportAgentSessionRepositoryPort.class);
@@ -464,6 +520,9 @@ class ApiImportAgentApplicationServiceTest {
         when(sessionRepositoryPort.findOwnedSession("user-1", "session-1")).thenReturn(Optional.of(session));
         when(sessionRepositoryPort.countTurns("session-1")).thenReturn(2);
         when(sessionRepositoryPort.listTurns("session-1")).thenReturn(List.of());
+        when(categoryUseCase.listCategories(io.github.timemachinelab.domain.catalog.model.CategoryStatus.ENABLED, 1, 100))
+                .thenReturn(new CategoryPageResult(List.of(new CategoryModel(
+                        "cat-1", "tools", "Tools", "ENABLED", "2026-05-21T00:00:00Z", "2026-05-21T00:00:00Z")), 1, 100, 1));
         when(plannerPort.plan(any(ImportAgentPlannerRequest.class), any(ImportAgentStreamEmitter.class))).thenReturn(new ImportAgentPlannerResult(
                 new ImportAgentPlanModel(
                         2,
@@ -515,6 +574,7 @@ class ApiImportAgentApplicationServiceTest {
                 plannerRequest.getCurrentPlan().getAssetPlans().get(0).getAuthConfig()
         );
         assertEquals(AuthScheme.HEADER_TOKEN, plannerRequest.getCurrentPlan().getAssetPlans().get(0).getAuthScheme());
+        assertEquals("tools", plannerRequest.getAvailableCategories().get(0).getCategoryCode());
     }
 
     private void collectMessageDelta(ImportAgentStreamEvent event, List<String> deltas) {

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.github.timemachinelab.domain.catalog.model.AssetType;
 import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
+import io.github.timemachinelab.service.model.ImportAgentCategoryCandidateModel;
 import io.github.timemachinelab.service.model.ImportAgentPlanModel;
 import io.github.timemachinelab.service.model.ImportAgentPlannerRequest;
 import io.github.timemachinelab.service.model.ImportAssetPlanModel;
@@ -318,6 +319,153 @@ class ImportAgentPlannerSubagentOrchestratorTest {
     }
 
     @Test
+    @DisplayName("orchestrator should infer category code from enabled category candidates")
+    void shouldInferCategoryCodeFromEnabledCandidates() throws Exception {
+        ImportAgentPlannerSubagentOrchestrator orchestrator = ImportAgentPlannerSubagentOrchestrator.defaultOrchestrator();
+
+        ObjectNode planSource = OBJECT_MAPPER.createObjectNode();
+        planSource.put("summary", "draft");
+        ObjectNode assetNode = planSource.putArray("assetPlans").addObject();
+        assetNode.put("apiCode", "dashscope-video-synthesis");
+        assetNode.put("assetName", "DashScope Video Generation");
+        assetNode.put("assetType", "AI_API");
+        assetNode.put("requestMethod", "POST");
+        assetNode.put("upstreamUrl", "https://dashscope.aliyuncs.com/api/v1/services/aigc/video-generation/video-synthesis");
+        assetNode.put("authScheme", "NONE");
+        assetNode.put("publishAfterImport", true);
+        assetNode.putObject("aiProfile")
+                .put("provider", "dashscope")
+                .put("model", "happyhorse-1.0-t2v")
+                .put("streamingSupported", false)
+                .putArray("capabilityTags")
+                .add("text-to-video");
+
+        ObjectNode candidate = orchestrator.orchestrate(requestWithCategories(), null, null, planSource);
+        ImportAgentPlanModel plan = ImportAgentPlannerJsonSupport.buildPlan(requestWithCategories(), candidate);
+
+        assertTrue(plan.isExecutable());
+        assertEquals("video", candidate.path("assetPlans").get(0).path("categoryCode").asText());
+        assertEquals(1, candidate.path("categoryPlans").size());
+        assertEquals("USE_EXISTING", candidate.path("categoryPlans").get(0).path("action").asText());
+    }
+
+    @Test
+    @DisplayName("orchestrator should infer llm category for chat assets")
+    void shouldInferLlmCategoryForChatAssets() throws Exception {
+        ImportAgentPlannerSubagentOrchestrator orchestrator = ImportAgentPlannerSubagentOrchestrator.defaultOrchestrator();
+
+        ObjectNode planSource = OBJECT_MAPPER.createObjectNode();
+        planSource.put("summary", "draft");
+        ObjectNode assetNode = planSource.putArray("assetPlans").addObject();
+        assetNode.put("apiCode", "openai-chat-completions");
+        assetNode.put("assetName", "OpenAI Chat Completions");
+        assetNode.put("assetType", "AI_API");
+        assetNode.put("requestMethod", "POST");
+        assetNode.put("upstreamUrl", "https://api.openai.com/v1/chat/completions");
+        assetNode.put("authScheme", "NONE");
+        assetNode.put("publishAfterImport", true);
+        assetNode.putObject("aiProfile")
+                .put("provider", "openai")
+                .put("model", "gpt-4.1")
+                .put("streamingSupported", true)
+                .putArray("capabilityTags")
+                .add("chat");
+
+        ObjectNode candidate = orchestrator.orchestrate(requestWithCategories(), null, null, planSource);
+
+        assertEquals("llm", candidate.path("assetPlans").get(0).path("categoryCode").asText());
+    }
+
+    @Test
+    @DisplayName("orchestrator should preserve existing valid category code")
+    void shouldPreserveExistingValidCategoryCode() throws Exception {
+        ImportAgentPlannerSubagentOrchestrator orchestrator = ImportAgentPlannerSubagentOrchestrator.defaultOrchestrator();
+        ObjectNode planSource = executableStandardPlan("catalog-search");
+        ((ObjectNode) planSource.path("assetPlans").get(0)).put("categoryCode", "llm");
+
+        ObjectNode candidate = orchestrator.orchestrate(requestWithCategories(), null, null, planSource);
+
+        assertEquals("llm", candidate.path("assetPlans").get(0).path("categoryCode").asText());
+        assertEquals("USE_EXISTING", candidate.path("categoryPlans").get(0).path("action").asText());
+    }
+
+    @Test
+    @DisplayName("orchestrator should not silently accept invalid category code")
+    void shouldNotSilentlyAcceptInvalidCategoryCode() throws Exception {
+        ImportAgentPlannerSubagentOrchestrator orchestrator = ImportAgentPlannerSubagentOrchestrator.defaultOrchestrator();
+        ObjectNode planSource = executableStandardPlan("unknown-service");
+        ObjectNode assetNode = (ObjectNode) planSource.path("assetPlans").get(0);
+        assetNode.put("assetName", "Unknown Service");
+        assetNode.put("categoryCode", "legacy");
+
+        ObjectNode candidate = orchestrator.orchestrate(requestWithCategories(), null, null, planSource);
+        ImportAgentPlanModel plan = ImportAgentPlannerJsonSupport.buildPlan(requestWithCategories(), candidate);
+
+        assertFalse(plan.isExecutable());
+        assertEquals("legacy", candidate.path("assetPlans").get(0).path("categoryCode").asText());
+        assertTrue(plan.getClarificationQuestions().stream().anyMatch(question -> question.contains("不在当前启用分类中")));
+    }
+
+    @Test
+    @DisplayName("orchestrator should ask clarification for low confidence category classification")
+    void shouldAskClarificationForLowConfidenceCategoryClassification() throws Exception {
+        ImportAgentPlannerSubagentOrchestrator orchestrator = ImportAgentPlannerSubagentOrchestrator.defaultOrchestrator();
+        ObjectNode planSource = executableStandardPlan("provider-api");
+        ObjectNode assetNode = (ObjectNode) planSource.path("assetPlans").get(0);
+        assetNode.put("assetName", "Provider API");
+        assetNode.remove("categoryCode");
+
+        ObjectNode candidate = orchestrator.orchestrate(requestWithCategories(), null, null, planSource);
+        ImportAgentPlanModel plan = ImportAgentPlannerJsonSupport.buildPlan(requestWithCategories(), candidate);
+
+        assertFalse(plan.isExecutable());
+        assertTrue(candidate.path("assetPlans").get(0).path("categoryCode").isMissingNode());
+        assertTrue(plan.getClarificationQuestions().stream().anyMatch(question -> question.contains("需要确认分类编码")));
+    }
+
+    @Test
+    @DisplayName("orchestrator should deduplicate use-existing category plans")
+    void shouldDeduplicateUseExistingCategoryPlans() throws Exception {
+        ImportAgentPlannerSubagentOrchestrator orchestrator = ImportAgentPlannerSubagentOrchestrator.defaultOrchestrator();
+        ObjectNode planSource = OBJECT_MAPPER.createObjectNode();
+        planSource.put("summary", "draft");
+        planSource.putArray("categoryPlans")
+                .addObject()
+                .put("categoryCode", "video")
+                .put("categoryName", "Video")
+                .put("action", "CREATE_IF_MISSING");
+        planSource.withArray("categoryPlans")
+                .addObject()
+                .put("categoryCode", "video")
+                .put("categoryName", "Video")
+                .put("action", "CREATE_IF_MISSING");
+        ObjectNode firstAsset = planSource.putArray("assetPlans").addObject();
+        firstAsset.put("apiCode", "video-submit");
+        firstAsset.put("assetName", "Video Submit");
+        firstAsset.put("assetType", "STANDARD_API");
+        firstAsset.put("categoryCode", "video");
+        firstAsset.put("requestMethod", "POST");
+        firstAsset.put("upstreamUrl", "https://upstream.example.com/video/submit");
+        firstAsset.put("authScheme", "NONE");
+        firstAsset.put("publishAfterImport", true);
+        ObjectNode secondAsset = planSource.withArray("assetPlans").addObject();
+        secondAsset.put("apiCode", "video-result");
+        secondAsset.put("assetName", "Video Result");
+        secondAsset.put("assetType", "STANDARD_API");
+        secondAsset.put("categoryCode", "video");
+        secondAsset.put("requestMethod", "GET");
+        secondAsset.put("upstreamUrl", "https://upstream.example.com/video/result");
+        secondAsset.put("authScheme", "NONE");
+        secondAsset.put("publishAfterImport", true);
+
+        ObjectNode candidate = orchestrator.orchestrate(requestWithCategories(), null, null, planSource);
+
+        assertEquals(1, candidate.path("categoryPlans").size());
+        assertEquals("video", candidate.path("categoryPlans").get(0).path("categoryCode").asText());
+        assertEquals("USE_EXISTING", candidate.path("categoryPlans").get(0).path("action").asText());
+    }
+
+    @Test
     @DisplayName("orchestrator should keep current valid schema when new schema is invalid")
     void shouldKeepCurrentValidSchemaWhenNewSchemaIsInvalid() throws Exception {
         ImportAgentPlannerSubagentOrchestrator orchestrator = ImportAgentPlannerSubagentOrchestrator.defaultOrchestrator();
@@ -390,5 +538,21 @@ class ImportAgentPlannerSubagentOrchestratorTest {
                 null,
                 2,
                 List.of());
+    }
+
+    private ImportAgentPlannerRequest requestWithCategories() {
+        return new ImportAgentPlannerRequest(
+                "https://docs.example.com/weather",
+                "summary",
+                "import weather api",
+                "please continue",
+                null,
+                2,
+                List.of(),
+                List.of(
+                        new ImportAgentCategoryCandidateModel("video", "Video", "ENABLED"),
+                        new ImportAgentCategoryCandidateModel("llm", "LLM", "ENABLED"),
+                        new ImportAgentCategoryCandidateModel("disabled-video", "Disabled Video", "DISABLED")
+                ));
     }
 }
