@@ -12,7 +12,7 @@ import io.github.timemachinelab.domain.subscription.repository.ApiSubscriptionRe
 import io.github.timemachinelab.adapter.web.config.ImportAgentStreamProperties;
 import io.github.timemachinelab.infrastructure.external.unifiedaccess.JdkUnifiedAccessHttpClientResolver;
 import io.github.timemachinelab.infrastructure.external.unifiedaccess.JdkUnifiedAccessDownstreamProxyPort;
-import io.github.timemachinelab.infrastructure.importagent.planner.ImportAgentLlmPlannerProperties;
+import io.github.timemachinelab.infrastructure.importagent.planner.llm.ImportAgentLlmPlannerProperties;
 import io.github.timemachinelab.service.adapter.ApiCallLogRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.ApiAssetRepositoryAdapter;
 import io.github.timemachinelab.service.adapter.ApiCredentialRepositoryAdapter;

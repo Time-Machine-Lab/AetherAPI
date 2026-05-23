@@ -86,7 +86,7 @@ class MybatisApiImportAgentSessionRepositoryTest {
         sessionDo.setCurrentPlanVersion(2);
         sessionDo.setConfirmedPlanVersion(1);
         sessionDo.setPlanSnapshotJson("""
-            {"version":2,"executable":true,"summary":"ready","clarificationQuestions":[],"clarificationItems":[{"id":"plan-2:/assetPlans/0/authScheme:authScheme","targetPath":"/assetPlans/0/authScheme","fieldKey":"authScheme","label":"Authentication scheme","description":"Choose the upstream authentication scheme.","inputType":"SELECT","required":true,"options":[{"value":"HEADER_TOKEN","label":"HEADER_TOKEN"}],"currentValue":"HEADER_TOKEN"}],"categoryPlans":[{"categoryCode":"tools","categoryName":"Tools","action":"CREATE_IF_MISSING"}],"assetPlans":[{"apiCode":"weather-forecast","assetName":"Weather Forecast","assetType":"AI_API","categoryCode":"tools","requestMethod":"GET","upstreamUrl":"https://upstream.example.com/weather","authScheme":"BEARER_TOKEN","authConfig":"Authorization: Bearer upstream-token","publishAfterImport":true,"aiProfile":{"provider":"OpenAI","model":"gpt-4.1","streamingSupported":true,"capabilityTags":["chat"]}}]}
+            {"version":2,"executable":true,"summary":"ready","clarificationQuestions":[],"clarificationItems":[{"id":"plan-2:/assetPlans/0/authScheme:authScheme","targetPath":"/assetPlans/0/authScheme","fieldKey":"authScheme","label":"认证方案","description":"请选择上游认证方案。","inputType":"SELECT","required":true,"options":[{"value":"HEADER_TOKEN","label":"HEADER_TOKEN"}],"currentValue":"HEADER_TOKEN"}],"categoryPlans":[{"categoryCode":"tools","categoryName":"Tools","action":"CREATE_IF_MISSING"}],"assetPlans":[{"apiCode":"weather-forecast","assetName":"Weather Forecast","assetType":"AI_API","categoryCode":"tools","requestMethod":"GET","upstreamUrl":"https://upstream.example.com/weather","authScheme":"BEARER_TOKEN","authConfig":"Authorization: Bearer upstream-token","publishAfterImport":true,"aiProfile":{"provider":"OpenAI","model":"gpt-4.1","streamingSupported":true,"capabilityTags":["chat"]}}]}
             """);
         sessionDo.setCreatedAt(LocalDateTime.of(2026, 5, 18, 10, 0));
         sessionDo.setUpdatedAt(LocalDateTime.of(2026, 5, 18, 10, 5));
@@ -140,8 +140,8 @@ class MybatisApiImportAgentSessionRepositoryTest {
                                 "plan-2:/assetPlans/0/authScheme:authScheme",
                                 "/assetPlans/0/authScheme",
                                 "authScheme",
-                                "Authentication scheme",
-                                "Choose the upstream authentication scheme.",
+                                "认证方案",
+                                "请选择上游认证方案。",
                                 "SELECT",
                                 true,
                                 List.of(new ImportAgentClarificationOptionModel("HEADER_TOKEN", "HEADER_TOKEN")),

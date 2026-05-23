@@ -1,4 +1,4 @@
-package io.github.timemachinelab.infrastructure.importagent.planner;
+package io.github.timemachinelab.infrastructure.importagent.planner.contract;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
