@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS api_asset (
     upstream_url            VARCHAR(512) NULL COMMENT '上游请求地址',
     auth_scheme             VARCHAR(32) NULL COMMENT '上游鉴权方案：NONE / HEADER_TOKEN / QUERY_TOKEN',
     auth_config             TEXT NULL COMMENT '上游鉴权配置 JSON',
+    upstream_request_headers TEXT NULL COMMENT '上游固定请求头 JSON 数组，仅 owner-scoped 资产配置使用',
     request_template        TEXT NULL COMMENT '请求模板描述',
     request_example         TEXT NULL COMMENT '请求示例快照',
     response_example        TEXT NULL COMMENT '响应示例快照',
@@ -54,6 +55,7 @@ COMMENT ON COLUMN api_asset.request_method IS '上游请求方法：GET / POST /
 COMMENT ON COLUMN api_asset.upstream_url IS '上游请求地址';
 COMMENT ON COLUMN api_asset.auth_scheme IS '上游鉴权方案：NONE / HEADER_TOKEN / QUERY_TOKEN';
 COMMENT ON COLUMN api_asset.auth_config IS '上游鉴权配置 JSON';
+COMMENT ON COLUMN api_asset.upstream_request_headers IS '上游固定请求头 JSON 数组，仅 owner-scoped 资产配置使用';
 COMMENT ON COLUMN api_asset.request_template IS '请求模板描述';
 COMMENT ON COLUMN api_asset.request_example IS '请求示例快照';
 COMMENT ON COLUMN api_asset.response_example IS '响应示例快照';

@@ -4,6 +4,8 @@ import io.github.timemachinelab.domain.catalog.model.AssetType;
 import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 
+import java.util.List;
+
 /**
  * Revise API asset command.
  */
@@ -26,6 +28,8 @@ public class ReviseApiAssetCommand {
     private final boolean authSchemeSet;
     private final String authConfig;
     private final boolean authConfigSet;
+    private final List<UpstreamRequestHeaderModel> upstreamRequestHeaders;
+    private final boolean upstreamRequestHeadersSet;
     private final String requestTemplate;
     private final boolean requestTemplateSet;
     private final String requestExample;
@@ -87,6 +91,8 @@ public class ReviseApiAssetCommand {
                 authSchemeSet,
                 authConfig,
                 authConfigSet,
+                null,
+                false,
                 requestTemplate,
                 requestTemplateSet,
                 requestExample,
@@ -152,6 +158,8 @@ public class ReviseApiAssetCommand {
                 authSchemeSet,
                 authConfig,
                 authConfigSet,
+                null,
+                false,
                 requestTemplate,
                 requestTemplateSet,
                 requestExample,
@@ -221,6 +229,8 @@ public class ReviseApiAssetCommand {
                 authSchemeSet,
                 authConfig,
                 authConfigSet,
+                null,
+                false,
                 requestTemplate,
                 requestTemplateSet,
                 requestExample,
@@ -270,6 +280,85 @@ public class ReviseApiAssetCommand {
                 boolean requestJsonSchemaSet,
                 String responseJsonSchema,
                 boolean responseJsonSchemaSet,
+                AsyncTaskConfigModel asyncTaskConfig,
+                boolean asyncTaskConfigSet,
+                String capabilityExtensions,
+                boolean capabilityExtensionsSet,
+                String policyExtensions,
+                boolean policyExtensionsSet,
+                String metadataExtensions,
+                boolean metadataExtensionsSet) {
+            this(
+                    ownerUserId,
+                    publisherDisplayName,
+                    apiCode,
+                    assetName,
+                    assetNameSet,
+                    assetType,
+                    assetTypeSet,
+                    categoryCode,
+                    categoryCodeSet,
+                    requestMethod,
+                    requestMethodSet,
+                    upstreamUrl,
+                    upstreamUrlSet,
+                    authScheme,
+                    authSchemeSet,
+                    authConfig,
+                    authConfigSet,
+                    null,
+                    false,
+                    requestTemplate,
+                    requestTemplateSet,
+                    requestExample,
+                    requestExampleSet,
+                    responseExample,
+                    responseExampleSet,
+                    requestJsonSchema,
+                    requestJsonSchemaSet,
+                    responseJsonSchema,
+                    responseJsonSchemaSet,
+                    asyncTaskConfig,
+                    asyncTaskConfigSet,
+                    capabilityExtensions,
+                    capabilityExtensionsSet,
+                    policyExtensions,
+                    policyExtensionsSet,
+                    metadataExtensions,
+                    metadataExtensionsSet
+            );
+            }
+
+            public ReviseApiAssetCommand(
+                String ownerUserId,
+                String publisherDisplayName,
+                String apiCode,
+                String assetName,
+                boolean assetNameSet,
+                AssetType assetType,
+                boolean assetTypeSet,
+                String categoryCode,
+                boolean categoryCodeSet,
+                RequestMethod requestMethod,
+                boolean requestMethodSet,
+                String upstreamUrl,
+                boolean upstreamUrlSet,
+                AuthScheme authScheme,
+                boolean authSchemeSet,
+                String authConfig,
+                boolean authConfigSet,
+                List<UpstreamRequestHeaderModel> upstreamRequestHeaders,
+                boolean upstreamRequestHeadersSet,
+                String requestTemplate,
+                boolean requestTemplateSet,
+                String requestExample,
+                boolean requestExampleSet,
+                String responseExample,
+                boolean responseExampleSet,
+                String requestJsonSchema,
+                boolean requestJsonSchemaSet,
+                String responseJsonSchema,
+                boolean responseJsonSchemaSet,
             AsyncTaskConfigModel asyncTaskConfig,
             boolean asyncTaskConfigSet,
             String capabilityExtensions,
@@ -295,6 +384,8 @@ public class ReviseApiAssetCommand {
         this.authSchemeSet = authSchemeSet;
         this.authConfig = authConfig;
         this.authConfigSet = authConfigSet;
+        this.upstreamRequestHeaders = upstreamRequestHeaders == null ? null : List.copyOf(upstreamRequestHeaders);
+        this.upstreamRequestHeadersSet = upstreamRequestHeadersSet;
         this.requestTemplate = requestTemplate;
         this.requestTemplateSet = requestTemplateSet;
         this.requestExample = requestExample;
@@ -381,6 +472,14 @@ public class ReviseApiAssetCommand {
 
     public boolean isAuthConfigSet() {
         return authConfigSet;
+    }
+
+    public List<UpstreamRequestHeaderModel> getUpstreamRequestHeaders() {
+        return upstreamRequestHeaders;
+    }
+
+    public boolean isUpstreamRequestHeadersSet() {
+        return upstreamRequestHeadersSet;
     }
 
     public String getRequestTemplate() {

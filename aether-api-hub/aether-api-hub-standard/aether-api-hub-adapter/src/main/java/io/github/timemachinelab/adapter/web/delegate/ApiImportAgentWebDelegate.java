@@ -16,6 +16,7 @@ import io.github.timemachinelab.api.resp.ImportAiProfileResp;
 import io.github.timemachinelab.api.resp.ImportAssetPlanResp;
 import io.github.timemachinelab.api.resp.ImportCategoryPlanResp;
 import io.github.timemachinelab.api.resp.ImportStepResultResp;
+import io.github.timemachinelab.api.resp.ImportUpstreamRequestHeaderResp;
 import io.github.timemachinelab.adapter.web.config.ImportAgentStreamProperties;
 import io.github.timemachinelab.domain.catalog.model.AsyncTaskAuthMode;
 import io.github.timemachinelab.domain.catalog.model.AuthScheme;
@@ -37,6 +38,7 @@ import io.github.timemachinelab.service.model.ImportAssetPlanModel;
 import io.github.timemachinelab.service.model.ImportCategoryPlanModel;
 import io.github.timemachinelab.service.model.ImportStepResultModel;
 import io.github.timemachinelab.service.model.StartImportAgentRunCommand;
+import io.github.timemachinelab.service.model.UpstreamRequestHeaderModel;
 import io.github.timemachinelab.service.port.in.ApiImportAgentUseCase;
 import jakarta.servlet.AsyncContext;
 import jakarta.servlet.http.HttpServletRequest;
@@ -318,6 +320,7 @@ public class ApiImportAgentWebDelegate {
                 model.getUpstreamUrl(),
                 model.getAuthScheme() == null ? null : model.getAuthScheme().name(),
                 model.getAuthConfig(),
+                toUpstreamRequestHeaderResp(model.getUpstreamRequestHeaders()),
                 model.getRequestTemplate(),
                 model.getRequestExample(),
                 model.getResponseExample(),
@@ -327,6 +330,15 @@ public class ApiImportAgentWebDelegate {
                 toAsyncTaskConfigResp(model.getAsyncTaskConfig()),
                 toAiProfileResp(model.getAiProfile())
         );
+    }
+
+    private List<ImportUpstreamRequestHeaderResp> toUpstreamRequestHeaderResp(List<UpstreamRequestHeaderModel> models) {
+        if (models == null) {
+            return null;
+        }
+        return models.stream()
+                .map(model -> new ImportUpstreamRequestHeaderResp(model.getName(), model.getValue()))
+                .toList();
     }
 
     private AsyncTaskConfigResp toAsyncTaskConfigResp(AsyncTaskConfigModel model) {

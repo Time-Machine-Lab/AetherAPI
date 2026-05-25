@@ -279,6 +279,14 @@ export default {
       fieldAuthConfigPlaceholder: 'Authorization: Bearer token or access_token=token',
       fieldAuthConfigHint:
         'Required for HEADER_TOKEN and QUERY_TOKEN. Leave empty when auth scheme is NONE.',
+      upstreamHeadersTitle: 'Fixed upstream headers',
+      upstreamHeadersHint:
+        'Sent to the upstream with this asset. Do not use Authorization, Content-Type, or X-Aether-*.',
+      upstreamHeadersEmpty: 'No extra upstream request headers configured.',
+      addUpstreamHeader: 'Add header',
+      removeUpstreamHeader: 'Remove header',
+      upstreamHeaderNamePlaceholder: 'Header name',
+      upstreamHeaderValuePlaceholder: 'Header value',
       fieldRequestTemplate: 'Request template',
       fieldRequestTemplateHint:
         'Template describes the forwarded structure or mapping rule, including placeholders and fixed fields.',
@@ -494,6 +502,7 @@ export default {
       assetSecurityConfigMissing:
         'This auth scheme requires a Header/Query parameter name and value template.',
       assetSecurityConfigNone: 'No upstream auth configuration required',
+      assetUpstreamHeadersTitle: 'Fixed upstream headers',
       assetAsyncAuthConfigInherited: 'Reuses submit endpoint auth configuration',
       confirmPlan: 'Confirm plan',
       confirming: 'Confirming…',

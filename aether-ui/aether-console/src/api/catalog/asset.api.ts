@@ -43,6 +43,16 @@ function mapAsyncTaskConfig(dto?: AsyncTaskConfigDto | null): AsyncTaskConfig | 
   }
 }
 
+function mapUpstreamRequestHeaders(dto?: AssetDto['upstreamRequestHeaders']): ApiAsset['upstreamRequestHeaders'] {
+  if (!dto || dto.length === 0) {
+    return undefined
+  }
+  return dto.map((header) => ({
+    name: header.name,
+    value: header.value,
+  }))
+}
+
 function mapAsset(dto: AssetDto): ApiAsset {
   return {
     id: dto.id,
@@ -58,6 +68,7 @@ function mapAsset(dto: AssetDto): ApiAsset {
     upstreamUrl: dto.upstreamUrl ?? undefined,
     authScheme: dto.authScheme ?? undefined,
     authConfig: dto.authConfig ?? undefined,
+    upstreamRequestHeaders: mapUpstreamRequestHeaders(dto.upstreamRequestHeaders),
     requestTemplate: dto.requestTemplate ?? undefined,
     requestExample: dto.requestExample ?? undefined,
     responseExample: dto.responseExample ?? undefined,
@@ -122,6 +133,7 @@ export async function reviseAsset(apiCode: string, body: ReviseAssetBody): Promi
     upstreamUrl: body.upstreamUrl,
     authScheme: body.authScheme,
     authConfig: body.authConfig,
+    upstreamRequestHeaders: body.upstreamRequestHeaders,
     requestTemplate: body.requestTemplate,
     requestExample: body.requestExample,
     responseExample: body.responseExample,

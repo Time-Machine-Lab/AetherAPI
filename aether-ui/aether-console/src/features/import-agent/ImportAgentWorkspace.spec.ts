@@ -119,6 +119,7 @@ function createPlan(overrides: Partial<ImportAgentPlan> = {}): ImportAgentPlan {
         upstreamUrl: 'https://dashscope.aliyuncs.com/api/v1/video',
         authScheme: undefined,
         authConfig: undefined,
+        upstreamRequestHeaders: [],
         publishAfterImport: true,
         asyncTaskConfig: null,
         aiProfile: null,
@@ -360,6 +361,49 @@ describe('ImportAgentWorkspace', () => {
     expect(planHeader.attributes('aria-expanded')).toBe('true')
     expect(wrapper.text()).toContain('计划摘要')
     expect(wrapper.text()).toContain('HappyHorse 文生视频')
+  })
+
+  it('展示计划中的上游请求头，并沿用现有流程处理请求头澄清', async () => {
+    const basePlan = createPlan()
+    const plan = createPlan({
+      clarificationItems: [
+        {
+          id: 'plan-2:/assetPlans/0/upstreamRequestHeaders/0/value:value',
+          targetPath: '/assetPlans/0/upstreamRequestHeaders/0/value',
+          fieldKey: 'value',
+          label: 'OpenAI-Beta value',
+          description: 'Provide the fixed upstream header value.',
+          inputType: 'TEXT',
+          required: true,
+          options: [],
+        },
+      ],
+      assetPlans: [
+        {
+          ...basePlan.assetPlans[0],
+          upstreamRequestHeaders: [{ name: 'OpenAI-Beta', value: 'assistants=v2' }],
+        },
+      ],
+    })
+    const workspace = createWorkspace(plan)
+    const wrapper = mountWorkspace(workspace)
+
+    expect(wrapper.text()).toContain('console.importAgent.assetUpstreamHeadersTitle')
+    expect(wrapper.text()).toContain('OpenAI-Beta')
+    expect(wrapper.text()).toContain('assistants=v2')
+    expect(wrapper.text()).toContain('OpenAI-Beta value')
+    expect(wrapper.text()).toContain('Provide the fixed upstream header value.')
+
+    await wrapper.find('[data-test-id="stub-input"]').setValue('assistants=v2')
+
+    expect(workspace.clarificationDrafts.value).toEqual({
+      'plan-2:/assetPlans/0/upstreamRequestHeaders/0/value:value': 'assistants=v2',
+    })
+
+    const buttons = wrapper.findAll('button')
+    await buttons[buttons.length - 1].trigger('click')
+
+    expect(workspace.sendMessage).toHaveBeenCalledTimes(1)
   })
 
   it('collapses the current plan during streaming and expands after the final session snapshot', async () => {

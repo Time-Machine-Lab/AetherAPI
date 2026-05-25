@@ -5,11 +5,13 @@ import io.github.timemachinelab.api.req.AsyncTaskConfigReq;
 import io.github.timemachinelab.api.req.ListApiAssetReq;
 import io.github.timemachinelab.api.req.RegisterApiAssetReq;
 import io.github.timemachinelab.api.req.ReviseApiAssetReq;
+import io.github.timemachinelab.api.req.UpstreamRequestHeaderReq;
 import io.github.timemachinelab.api.resp.AiCapabilityProfileResp;
 import io.github.timemachinelab.api.resp.AsyncTaskConfigResp;
 import io.github.timemachinelab.api.resp.ApiAssetPageResp;
 import io.github.timemachinelab.api.resp.ApiAssetResp;
 import io.github.timemachinelab.api.resp.ApiAssetSummaryResp;
+import io.github.timemachinelab.api.resp.UpstreamRequestHeaderResp;
 import io.github.timemachinelab.domain.catalog.model.AsyncTaskAuthMode;
 import io.github.timemachinelab.domain.catalog.model.AssetStatus;
 import io.github.timemachinelab.domain.catalog.model.AssetType;
@@ -23,6 +25,7 @@ import io.github.timemachinelab.service.model.AttachAiCapabilityProfileCommand;
 import io.github.timemachinelab.service.model.ListApiAssetQuery;
 import io.github.timemachinelab.service.model.RegisterApiAssetCommand;
 import io.github.timemachinelab.service.model.ReviseApiAssetCommand;
+import io.github.timemachinelab.service.model.UpstreamRequestHeaderModel;
 import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
 import org.springframework.stereotype.Component;
 
@@ -69,6 +72,7 @@ public class ApiAssetWebDelegate {
                         req.getRequestJsonSchema(),
                         req.getResponseJsonSchema(),
                         toAsyncTaskConfigModel(req.getAsyncTaskConfig()),
+                        toUpstreamRequestHeaderModels(req.getUpstreamRequestHeaders()),
                         serializeExtensionBlock(req.getCapabilityExtensions(), "capabilityExtensions"),
                         serializeExtensionBlock(req.getPolicyExtensions(), "policyExtensions"),
                         serializeExtensionBlock(req.getMetadataExtensions(), "metadataExtensions")));
@@ -98,6 +102,8 @@ public class ApiAssetWebDelegate {
                 req.isAuthSchemeSet(),
                 req.getAuthConfig(),
                 req.isAuthConfigSet(),
+                toUpstreamRequestHeaderModels(req.getUpstreamRequestHeaders()),
+                req.isUpstreamRequestHeadersSet(),
                 req.getRequestTemplate(),
                 req.isRequestTemplateSet(),
                 req.getRequestExample(),
@@ -184,6 +190,7 @@ public class ApiAssetWebDelegate {
                 model.getUpstreamUrl(),
                 model.getAuthScheme() == null ? null : AuthScheme.valueOf(model.getAuthScheme()),
                 model.getAuthConfig(),
+                toUpstreamRequestHeaderResp(model.getUpstreamRequestHeaders()),
                 model.getRequestTemplate(),
                 model.getRequestExample(),
                 model.getResponseExample(),
@@ -239,6 +246,24 @@ public class ApiAssetWebDelegate {
                 model.getResultPath(),
                 model.getErrorPath()
         );
+    }
+
+    private List<UpstreamRequestHeaderModel> toUpstreamRequestHeaderModels(List<UpstreamRequestHeaderReq> reqs) {
+        if (reqs == null) {
+            return null;
+        }
+        return reqs.stream()
+                .map(req -> new UpstreamRequestHeaderModel(req.getName(), req.getValue()))
+                .toList();
+    }
+
+    private List<UpstreamRequestHeaderResp> toUpstreamRequestHeaderResp(List<UpstreamRequestHeaderModel> models) {
+        if (models == null) {
+            return null;
+        }
+        return models.stream()
+                .map(model -> new UpstreamRequestHeaderResp(model.getName(), model.getValue()))
+                .toList();
     }
 
     private String serializeExtensionBlock(Map<String, Object> block, String fieldName) {

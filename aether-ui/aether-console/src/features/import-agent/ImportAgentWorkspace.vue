@@ -867,6 +867,29 @@ watch(
                       </div>
 
                       <div
+                        v-if="assetPlan.upstreamRequestHeaders?.length"
+                        class="mt-4 rounded-[16px] border border-[rgb(34_34_34_/_0.06)] bg-secondary/60 p-4"
+                      >
+                        <div
+                          class="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground"
+                        >
+                          <ListChecks class="size-4 text-primary" />
+                          <span>{{ t('console.importAgent.assetUpstreamHeadersTitle') }}</span>
+                        </div>
+                        <dl class="mt-3 grid gap-3 text-xs text-muted-foreground sm:grid-cols-2">
+                          <div
+                            v-for="header in assetPlan.upstreamRequestHeaders"
+                            :key="`${header.name}:${header.value}`"
+                          >
+                            <dt class="font-mono">{{ header.name }}</dt>
+                            <dd class="mt-1 break-all font-mono text-xs leading-5 text-foreground">
+                              {{ header.value }}
+                            </dd>
+                          </div>
+                        </dl>
+                      </div>
+
+                      <div
                         v-if="assetPlan.asyncTaskConfig?.enabled"
                         class="mt-4 rounded-[16px] border border-[rgb(34_34_34_/_0.06)] bg-[color-mix(in_srgb,var(--accent)_18%,white)] p-4"
                       >

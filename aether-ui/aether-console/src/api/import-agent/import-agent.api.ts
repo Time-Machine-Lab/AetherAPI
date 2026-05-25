@@ -97,6 +97,18 @@ function mapAsyncTaskConfig(dto?: ImportAsyncTaskConfigDto | null): ImportAsyncT
   }
 }
 
+function mapUpstreamRequestHeaders(
+  dto?: ImportAssetPlanDto['upstreamRequestHeaders'],
+): ImportAssetPlan['upstreamRequestHeaders'] {
+  if (!dto || dto.length === 0) {
+    return undefined
+  }
+  return dto.map((header) => ({
+    name: header.name,
+    value: header.value,
+  }))
+}
+
 function mapCategoryPlan(dto: ImportCategoryPlanDto): ImportCategoryPlan {
   return {
     categoryCode: dto.categoryCode,
@@ -115,6 +127,7 @@ function mapAssetPlan(dto: ImportAssetPlanDto): ImportAssetPlan {
     upstreamUrl: dto.upstreamUrl ?? undefined,
     authScheme: dto.authScheme ?? undefined,
     authConfig: dto.authConfig ?? undefined,
+    upstreamRequestHeaders: mapUpstreamRequestHeaders(dto.upstreamRequestHeaders),
     requestTemplate: dto.requestTemplate ?? undefined,
     requestExample: dto.requestExample ?? undefined,
     responseExample: dto.responseExample ?? undefined,

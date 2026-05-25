@@ -35,6 +35,60 @@ class ImportAgentPlanBoundaryValidatorTest {
     }
 
     @Test
+    @DisplayName("边界校验应将上游请求头解析为结构化计划字段")
+    void shouldParseUpstreamRequestHeaders() {
+        ObjectNode source = executablePlan();
+        ObjectNode assetNode = (ObjectNode) source.withArray("assetPlans").get(0);
+        assetNode.putArray("upstreamRequestHeaders")
+                .addObject()
+                .put("name", "OpenAI-Beta")
+                .put("value", "assistants=v2");
+
+        ImportAgentPlanModel result = ImportAgentPlannerJsonSupport.buildPlan(request(), source);
+
+        assertTrue(result.isExecutable());
+        assertEquals("OpenAI-Beta", result.getAssetPlans().get(0).getUpstreamRequestHeaders().get(0).getName());
+        assertEquals("assistants=v2", result.getAssetPlans().get(0).getUpstreamRequestHeaders().get(0).getValue());
+    }
+
+    @Test
+    @DisplayName("边界校验应为缺失的上游请求头值发起澄清")
+    void shouldClarifyMissingUpstreamRequestHeaderValue() {
+        ObjectNode source = executablePlan();
+        ObjectNode assetNode = (ObjectNode) source.withArray("assetPlans").get(0);
+        assetNode.putArray("upstreamRequestHeaders")
+                .addObject()
+                .put("name", "OpenAI-Beta");
+
+        ImportAgentPlanModel result = ImportAgentPlannerJsonSupport.buildPlan(request(), source);
+
+        assertFalse(result.isExecutable());
+        assertTrue(result.getClarificationItems().stream().anyMatch(item ->
+                "/assetPlans/0/upstreamRequestHeaders/0/value".equals(item.getTargetPath())
+                        && "value".equals(item.getFieldKey())
+        ));
+    }
+
+    @Test
+    @DisplayName("边界校验应拒绝受保护的上游请求头名称")
+    void shouldClarifyProtectedUpstreamRequestHeaderName() {
+        ObjectNode source = executablePlan();
+        ObjectNode assetNode = (ObjectNode) source.withArray("assetPlans").get(0);
+        assetNode.putArray("upstreamRequestHeaders")
+                .addObject()
+                .put("name", "Authorization")
+                .put("value", "Bearer token");
+
+        ImportAgentPlanModel result = ImportAgentPlannerJsonSupport.buildPlan(request(), source);
+
+        assertFalse(result.isExecutable());
+        assertTrue(result.getClarificationItems().stream().anyMatch(item ->
+                "/assetPlans/0/upstreamRequestHeaders/0/name".equals(item.getTargetPath())
+                        && "name".equals(item.getFieldKey())
+        ));
+    }
+
+    @Test
     @DisplayName("boundary should parse JSON objects from markdown-wrapped content")
     void shouldParseJsonCandidateFromMarkdown() {
         assertEquals("ready", ImportAgentPlannerJsonSupport.parseJsonCandidate("""
@@ -119,6 +173,39 @@ class ImportAgentPlanBoundaryValidatorTest {
         assertEquals("{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\"}}}",
                 result.getAssetPlans().get(0).getRequestJsonSchema());
         assertNull(result.getAssetPlans().get(0).getResponseJsonSchema());
+    }
+
+    @Test
+    @DisplayName("auth config object should keep value prefix when normalized")
+    void shouldNormalizeAuthConfigObjectWithValuePrefix() {
+        ObjectNode source = executablePlan();
+        ObjectNode assetNode = (ObjectNode) source.withArray("assetPlans").get(0);
+        assetNode.put("authScheme", "HEADER_TOKEN");
+        assetNode.putObject("authConfig")
+                .put("headerName", "Authorization")
+                .put("valuePrefix", "Bearer ")
+                .put("value", "upstream-token");
+
+        ImportAgentPlanModel result = ImportAgentPlannerJsonSupport.buildPlan(request(), source);
+
+        assertTrue(result.isExecutable());
+        assertEquals("Authorization: Bearer upstream-token", result.getAssetPlans().get(0).getAuthConfig());
+    }
+
+    @Test
+    @DisplayName("auth config JSON string should normalize to backend string format")
+    void shouldNormalizeAuthConfigJsonString() {
+        ObjectNode source = executablePlan();
+        ObjectNode assetNode = (ObjectNode) source.withArray("assetPlans").get(0);
+        assetNode.put("authScheme", "HEADER_TOKEN");
+        assetNode.put("authConfig", """
+                {"headerName":"Authorization","valuePrefix":"Bearer ","value":"upstream-token"}
+                """);
+
+        ImportAgentPlanModel result = ImportAgentPlannerJsonSupport.buildPlan(request(), source);
+
+        assertTrue(result.isExecutable());
+        assertEquals("Authorization: Bearer upstream-token", result.getAssetPlans().get(0).getAuthConfig());
     }
 
     private ObjectNode executablePlan() {

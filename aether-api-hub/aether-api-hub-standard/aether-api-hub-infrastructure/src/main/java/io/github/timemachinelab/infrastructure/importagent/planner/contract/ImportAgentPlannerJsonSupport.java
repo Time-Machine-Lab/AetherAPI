@@ -169,21 +169,58 @@ public final class ImportAgentPlannerJsonSupport {
         }
         if (node.isTextual()) {
             String value = node.asText();
-            return value == null || value.isBlank() ? null : value;
+            if (value == null || value.isBlank()) {
+                return null;
+            }
+            JsonNode embeddedObject = parseEmbeddedAuthConfigObject(value);
+            if (embeddedObject != null) {
+                String normalized = authConfigValue(embeddedObject);
+                if (normalized != null) {
+                    return normalized;
+                }
+            }
+            return value;
         }
         if (!node.isObject()) {
             return null;
         }
         String headerName = firstText(textValue(node, "headerName"), textValue(node, "name"));
         String queryParamName = firstText(textValue(node, "queryParamName"), textValue(node, "paramName"));
+        String valuePrefix = firstText(textValue(node, "valuePrefix"), textValue(node, "prefix"));
         String tokenValue = firstText(textValue(node, "value"), textValue(node, "token"), textValue(node, "secret"));
+        String authValue = prefixedValue(valuePrefix, tokenValue);
         if (headerName != null && tokenValue != null) {
-            return headerName + ": " + tokenValue;
+            return headerName + ": " + authValue;
         }
         if (queryParamName != null && tokenValue != null) {
-            return queryParamName + "=" + tokenValue;
+            return queryParamName + "=" + authValue;
         }
         return null;
+    }
+
+    private static JsonNode parseEmbeddedAuthConfigObject(String value) {
+        String trimmed = value.trim();
+        if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) {
+            return null;
+        }
+        try {
+            JsonNode parsed = OBJECT_MAPPER.readTree(trimmed);
+            return parsed.isObject() ? parsed : null;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private static String prefixedValue(String valuePrefix, String tokenValue) {
+        if (tokenValue == null) {
+            return null;
+        }
+        if (valuePrefix == null || valuePrefix.isBlank()) {
+            return tokenValue;
+        }
+        return Character.isWhitespace(valuePrefix.charAt(valuePrefix.length() - 1))
+                ? valuePrefix + tokenValue
+                : valuePrefix + " " + tokenValue;
     }
 
     static AsyncTaskConfigModel normalizeAsyncTaskConfig(AsyncTaskConfigModel config) {

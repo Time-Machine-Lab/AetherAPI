@@ -7,6 +7,8 @@ import io.github.timemachinelab.domain.catalog.model.AssetType;
 import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 
+import java.util.List;
+
 /**
  * API asset response.
  */
@@ -47,6 +49,9 @@ public class ApiAssetResp {
 
     @JsonProperty("authConfig")
     private String authConfig;
+
+    @JsonProperty("upstreamRequestHeaders")
+    private List<UpstreamRequestHeaderResp> upstreamRequestHeaders;
 
     @JsonProperty("requestTemplate")
     private String requestTemplate;
@@ -126,6 +131,7 @@ public class ApiAssetResp {
                 upstreamUrl,
                 authScheme,
                 authConfig,
+                null,
                 requestTemplate,
                 requestExample,
                 responseExample,
@@ -135,6 +141,62 @@ public class ApiAssetResp {
                 null,
                 null,
                 null,
+                aiCapabilityProfile,
+                deleted,
+                createdAt,
+                updatedAt
+        );
+    }
+
+    public ApiAssetResp(
+            String id,
+            String apiCode,
+            String assetName,
+            AssetType assetType,
+            String categoryCode,
+            AssetStatus status,
+            String publisherDisplayName,
+            String publishedAt,
+            RequestMethod requestMethod,
+            String upstreamUrl,
+            AuthScheme authScheme,
+            String authConfig,
+            String requestTemplate,
+            String requestExample,
+            String responseExample,
+            String requestJsonSchema,
+            String responseJsonSchema,
+            AsyncTaskConfigResp asyncTaskConfig,
+            String capabilityExtensions,
+            String policyExtensions,
+            String metadataExtensions,
+            AiCapabilityProfileResp aiCapabilityProfile,
+            boolean deleted,
+            String createdAt,
+            String updatedAt) {
+        this(
+                id,
+                apiCode,
+                assetName,
+                assetType,
+                categoryCode,
+                status,
+                publisherDisplayName,
+                publishedAt,
+                requestMethod,
+                upstreamUrl,
+                authScheme,
+                authConfig,
+                null,
+                requestTemplate,
+                requestExample,
+                responseExample,
+                requestJsonSchema,
+                responseJsonSchema,
+                asyncTaskConfig,
+                capabilityExtensions,
+                policyExtensions,
+                metadataExtensions,
                 aiCapabilityProfile,
                 deleted,
                 createdAt,
@@ -176,6 +238,7 @@ public class ApiAssetResp {
                 upstreamUrl,
                 authScheme,
                 authConfig,
+                null,
                 requestTemplate,
                 requestExample,
                 responseExample,
@@ -205,6 +268,7 @@ public class ApiAssetResp {
             String upstreamUrl,
             AuthScheme authScheme,
             String authConfig,
+            List<UpstreamRequestHeaderResp> upstreamRequestHeaders,
             String requestTemplate,
             String requestExample,
             String responseExample,
@@ -230,6 +294,7 @@ public class ApiAssetResp {
         this.upstreamUrl = upstreamUrl;
         this.authScheme = authScheme;
         this.authConfig = authConfig;
+        this.upstreamRequestHeaders = upstreamRequestHeaders;
         this.requestTemplate = requestTemplate;
         this.requestExample = requestExample;
         this.responseExample = responseExample;
@@ -339,6 +404,14 @@ public class ApiAssetResp {
 
     public void setAuthConfig(String authConfig) {
         this.authConfig = authConfig;
+    }
+
+    public List<UpstreamRequestHeaderResp> getUpstreamRequestHeaders() {
+        return upstreamRequestHeaders;
+    }
+
+    public void setUpstreamRequestHeaders(List<UpstreamRequestHeaderResp> upstreamRequestHeaders) {
+        this.upstreamRequestHeaders = upstreamRequestHeaders;
     }
 
     public String getRequestTemplate() {

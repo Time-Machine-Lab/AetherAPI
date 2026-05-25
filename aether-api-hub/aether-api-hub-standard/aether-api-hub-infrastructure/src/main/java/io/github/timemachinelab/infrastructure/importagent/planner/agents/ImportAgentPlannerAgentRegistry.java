@@ -109,6 +109,7 @@ public class ImportAgentPlannerAgentRegistry {
                         """
                         生成最终导入计划载荷。可用时优先调用 submit_import_plan 工具。
                         最终 JSON 必须包含 summary、clarificationQuestions、categoryPlans 和 assetPlans。
+                        authConfig 必须是纯字符串：HEADER_TOKEN 使用 Authorization: Bearer token，QUERY_TOKEN 使用 access_token=token；不要输出 JSON 对象或 JSON 字符串。
                         缺失的执行字段必须继续保持缺失，并表示为澄清需求。
                         """,
                         List.of("submit_import_plan"), ImportAgentPlannerOutputMode.FINAL_PLAN,

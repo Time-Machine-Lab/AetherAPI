@@ -7,6 +7,7 @@ import io.github.timemachinelab.service.model.TargetApiSnapshotModel;
 import io.github.timemachinelab.service.model.UnifiedAccessExecutionOutcomeType;
 import io.github.timemachinelab.service.model.UnifiedAccessInvocationModel;
 import io.github.timemachinelab.service.model.UnifiedAccessProxyResponseModel;
+import io.github.timemachinelab.service.model.UpstreamRequestHeaderModel;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -125,6 +126,77 @@ class JdkUnifiedAccessDownstreamProxyPortTest {
         assertEquals("application/json", response.getContentType());
         assertArrayEquals("{\"secure\":true}".getBytes(StandardCharsets.UTF_8), response.getResponseBody());
         assertEquals(List.of("https-up-1"), response.getResponseHeaders().get("X-Upstream-Trace"));
+    }
+
+    @Test
+    @DisplayName("forward should not duplicate content type or identical accept headers")
+    void shouldNotDuplicateContentTypeOrIdenticalAcceptHeaders() {
+        FixedHttpClient httpClient = new FixedHttpClient(
+                200,
+                Map.of("Content-Type", List.of("application/json")),
+                "{\"accepted\":true}".getBytes(StandardCharsets.UTF_8)
+        );
+        JdkUnifiedAccessDownstreamProxyPort proxyPort = new JdkUnifiedAccessDownstreamProxyPort(httpClient);
+
+        proxyPort.forward(invocationWithHeaders(
+                "https://secure-upstream.example.com/v1/chat-completions",
+                Map.of(
+                        "Content-Type", List.of("application/json"),
+                        "Accept", List.of("application/json", "application/json"),
+                        "X-Aether-Api-Key", List.of("ak_live_validation_key"),
+                        "Authorization", List.of("Bearer caller-token")
+                ),
+                "application/json"
+        ));
+
+        assertEquals(List.of("application/json"), httpClient.lastRequest.headers().allValues("Content-Type"));
+        assertEquals(List.of("application/json"), httpClient.lastRequest.headers().allValues("Accept"));
+        assertEquals(Optional.empty(), httpClient.lastRequest.headers().firstValue("Authorization"));
+        assertEquals(Optional.empty(), httpClient.lastRequest.headers().firstValue("X-Aether-Api-Key"));
+    }
+
+    @Test
+    @DisplayName("forward 应在过滤调用方请求头后、鉴权前应用已配置的上游请求头")
+    void shouldApplyConfiguredUpstreamHeaders() {
+        FixedHttpClient httpClient = new FixedHttpClient(
+                200,
+                Map.of("Content-Type", List.of("application/json")),
+                "{\"accepted\":true}".getBytes(StandardCharsets.UTF_8)
+        );
+        JdkUnifiedAccessDownstreamProxyPort proxyPort = new JdkUnifiedAccessDownstreamProxyPort(httpClient);
+
+        proxyPort.forward(invocationWithConfiguredHeaders(
+                "https://secure-upstream.example.com/v1/chat-completions",
+                false
+        ));
+
+        assertEquals(Optional.of("assistants=v2"), httpClient.lastRequest.headers().firstValue("OpenAI-Beta"));
+        assertEquals(Optional.of("enable"), httpClient.lastRequest.headers().firstValue("X-DashScope-Async"));
+        assertEquals(Optional.of("Bearer upstream-token"), httpClient.lastRequest.headers().firstValue("Authorization"));
+        assertEquals(Optional.empty(), httpClient.lastRequest.headers().firstValue("X-Aether-Debug"));
+    }
+
+    @Test
+    @DisplayName("forward 应对流式请求应用已配置的上游请求头")
+    void shouldApplyConfiguredUpstreamHeadersToStreamingRequests() throws Exception {
+        FixedStreamingHttpClient httpClient = new FixedStreamingHttpClient(
+                200,
+                Map.of("Content-Type", List.of("text/event-stream")),
+                new ByteArrayInputStream("data: hello\n\n".getBytes(StandardCharsets.UTF_8))
+        );
+        JdkUnifiedAccessDownstreamProxyPort proxyPort = new JdkUnifiedAccessDownstreamProxyPort(httpClient);
+
+        UnifiedAccessProxyResponseModel response = proxyPort.forward(invocationWithConfiguredHeaders(
+                "https://secure-upstream.example.com/v1/chat-completions",
+                true
+        ));
+
+        assertTrue(response.isStreaming());
+        assertEquals(Optional.of("assistants=v2"), httpClient.lastRequest.headers().firstValue("OpenAI-Beta"));
+        assertEquals(Optional.of("Bearer upstream-token"), httpClient.lastRequest.headers().firstValue("Authorization"));
+        try (response; var inputStream = response.getResponseStream()) {
+            assertEquals("data: hello\n\n", new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
+        }
     }
 
     @Test
@@ -554,6 +626,94 @@ class JdkUnifiedAccessDownstreamProxyPortTest {
 
     private UnifiedAccessInvocationModel invocation(String upstreamUrl, boolean streamingSupported) {
         return invocation(upstreamUrl, streamingSupported, null);
+    }
+
+    private UnifiedAccessInvocationModel invocationWithHeaders(
+            String upstreamUrl,
+            Map<String, List<String>> headers,
+            String contentType) {
+        return new UnifiedAccessInvocationModel(
+                new ConsumerContextModel(
+                        "consumer-1",
+                        "consumer_code_1",
+                        "consumer-one",
+                        "USER_ACCOUNT",
+                        "credential-1",
+                        "cred_code_1",
+                        "ENABLED",
+                        "ak_live",
+                        "ak_live_****1234"
+                ),
+                new TargetApiSnapshotModel(
+                        "asset-1",
+                        "chat-completions",
+                        "Chat Completions",
+                        "AI_API",
+                        "POST",
+                        upstreamUrl,
+                        "NONE",
+                        null,
+                        false,
+                        "OpenAI",
+                        "gpt-4.1",
+                        null,
+                        null
+                ),
+                "POST",
+                headers,
+                Map.of(),
+                "{\"message\":\"hello\"}".getBytes(StandardCharsets.UTF_8),
+                contentType,
+                "UNIFIED_ACCESS"
+        );
+    }
+
+    private UnifiedAccessInvocationModel invocationWithConfiguredHeaders(String upstreamUrl, boolean streamingSupported) {
+        return new UnifiedAccessInvocationModel(
+                new ConsumerContextModel(
+                        "consumer-1",
+                        "consumer_code_1",
+                        "consumer-one",
+                        "USER_ACCOUNT",
+                        "credential-1",
+                        "cred_code_1",
+                        "ENABLED",
+                        "ak_live",
+                        "ak_live_****1234"
+                ),
+                new TargetApiSnapshotModel(
+                        "asset-1",
+                        "chat-completions",
+                        "Chat Completions",
+                        "AI_API",
+                        "POST",
+                        upstreamUrl,
+                        "HEADER_TOKEN",
+                        "Authorization: Bearer upstream-token",
+                        List.of(
+                                new UpstreamRequestHeaderModel("OpenAI-Beta", "assistants=v2"),
+                                new UpstreamRequestHeaderModel("X-DashScope-Async", "enable"),
+                                new UpstreamRequestHeaderModel("Authorization", "Bearer should-not-forward"),
+                                new UpstreamRequestHeaderModel("X-Aether-Debug", "internal")
+                        ),
+                        streamingSupported,
+                        "OpenAI",
+                        "gpt-4.1",
+                        null,
+                        null,
+                        null
+                ),
+                "POST",
+                Map.of(
+                        "OpenAI-Beta", List.of("caller-value"),
+                        "X-Aether-Api-Key", List.of("ak_live_validation_key"),
+                        "Authorization", List.of("Bearer caller-token")
+                ),
+                Map.of(),
+                "{\"message\":\"hello\"}".getBytes(StandardCharsets.UTF_8),
+                "application/json",
+                "UNIFIED_ACCESS"
+        );
     }
 
     private UnifiedAccessInvocationModel invocation(

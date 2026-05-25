@@ -74,6 +74,10 @@ function createSessionDto(overrides: Record<string, unknown> = {}) {
           upstreamUrl: 'https://upstream.example.com/weather',
           authScheme: 'HEADER_TOKEN',
           authConfig: 'Authorization: Bearer xxx',
+          upstreamRequestHeaders: [
+            { name: 'OpenAI-Beta', value: 'assistants=v2' },
+            { name: 'X-DashScope-Async', value: 'enable' },
+          ],
           requestTemplate: '{"location":"{{city}}"}',
           requestExample: '{"location":"Shanghai"}',
           responseExample: '{"forecast":"Sunny"}',
@@ -218,6 +222,10 @@ describe('import-agent api', () => {
     expect(result.currentPlan?.assetPlans[0].asyncTaskConfig?.queryUrlTemplate).toBe(
       'https://upstream.example.com/tasks/{taskId}',
     )
+    expect(result.currentPlan?.assetPlans[0].upstreamRequestHeaders).toEqual([
+      { name: 'OpenAI-Beta', value: 'assistants=v2' },
+      { name: 'X-DashScope-Async', value: 'enable' },
+    ])
     expect(result.currentPlan?.clarificationItems[0]).toEqual(
       expect.objectContaining({
         id: 'plan-2:/assetPlans/0/authScheme:authScheme',
@@ -299,10 +307,10 @@ describe('import-agent api', () => {
     await appendImportAgentTurn('session-001', {
       clarificationAnswers: [
         {
-          clarificationId: 'plan-2:/assetPlans/0/authScheme:authScheme',
-          targetPath: '/assetPlans/0/authScheme',
-          fieldKey: 'authScheme',
-          value: 'HEADER_TOKEN',
+          clarificationId: 'plan-2:/assetPlans/0/upstreamRequestHeaders/0/value:value',
+          targetPath: '/assetPlans/0/upstreamRequestHeaders/0/value',
+          fieldKey: 'value',
+          value: 'assistants=v2',
         },
       ],
     })
@@ -313,10 +321,10 @@ describe('import-agent api', () => {
       data: {
         clarificationAnswers: [
           {
-            clarificationId: 'plan-2:/assetPlans/0/authScheme:authScheme',
-            targetPath: '/assetPlans/0/authScheme',
-            fieldKey: 'authScheme',
-            value: 'HEADER_TOKEN',
+            clarificationId: 'plan-2:/assetPlans/0/upstreamRequestHeaders/0/value:value',
+            targetPath: '/assetPlans/0/upstreamRequestHeaders/0/value',
+            fieldKey: 'value',
+            value: 'assistants=v2',
           },
         ],
       },

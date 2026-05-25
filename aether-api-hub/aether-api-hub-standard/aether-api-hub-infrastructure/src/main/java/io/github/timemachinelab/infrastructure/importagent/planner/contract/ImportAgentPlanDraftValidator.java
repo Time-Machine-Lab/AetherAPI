@@ -3,6 +3,7 @@ package io.github.timemachinelab.infrastructure.importagent.planner.contract;
 import io.github.timemachinelab.domain.catalog.model.AssetType;
 import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
+import io.github.timemachinelab.domain.catalog.model.UpstreamRequestHeader;
 import io.github.timemachinelab.infrastructure.importagent.planner.contract.ImportAgentPlannerJsonSupport.PlanDraft;
 import io.github.timemachinelab.infrastructure.importagent.planner.contract.ImportAgentPlannerJsonSupport.PlanValidationResult;
 import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
@@ -11,6 +12,7 @@ import io.github.timemachinelab.service.model.ImportAgentClarificationOptionMode
 import io.github.timemachinelab.service.model.ImportAssetPlanModel;
 import io.github.timemachinelab.service.model.ImportCategoryPlanAction;
 import io.github.timemachinelab.service.model.ImportCategoryPlanModel;
+import io.github.timemachinelab.service.model.UpstreamRequestHeaderModel;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -93,6 +95,8 @@ final class ImportAgentPlanDraftValidator {
                     "请为此 AI API 资产提供 AI 服务商和模型。", "TEXT", List.of(), null, true);
         }
 
+        validateUpstreamRequestHeaders(nextPlanVersion, questions, items, assetIndex, assetPlan.getUpstreamRequestHeaders());
+
         if (!assetPlan.isPublishAfterImport()) {
             return;
         }
@@ -115,6 +119,31 @@ final class ImportAgentPlanDraftValidator {
                     "请提供上游认证配置。", "TEXT", List.of(), assetPlan.getAuthConfig(), true);
         }
         validateAsyncTaskConfig(nextPlanVersion, questions, items, assetIndex, assetPlan.getAsyncTaskConfig());
+    }
+
+    private static void validateUpstreamRequestHeaders(
+            int nextPlanVersion,
+            LinkedHashSet<String> questions,
+            List<ImportAgentClarificationItemModel> items,
+            int assetIndex,
+            List<UpstreamRequestHeaderModel> headers) {
+        if (headers == null || headers.isEmpty()) {
+            return;
+        }
+        for (int headerIndex = 0; headerIndex < headers.size(); headerIndex += 1) {
+            UpstreamRequestHeaderModel header = headers.get(headerIndex);
+            if (header == null) {
+                continue;
+            }
+            if (!hasText(header.getName()) || UpstreamRequestHeader.isProtectedName(header.getName())) {
+                addHeaderClarification(nextPlanVersion, questions, items, assetIndex, headerIndex, "name", "上游请求头名称",
+                        "请提供非保留的固定上游请求头名称。", "TEXT", header.getName());
+            }
+            if (!hasText(header.getValue())) {
+                addHeaderClarification(nextPlanVersion, questions, items, assetIndex, headerIndex, "value", "上游请求头值",
+                        "请提供该固定上游请求头的值。", "TEXT", header.getValue());
+            }
+        }
     }
 
     private static void validateAsyncTaskConfig(
@@ -184,6 +213,22 @@ final class ImportAgentPlanDraftValidator {
             String currentValue) {
         addClarification(nextPlanVersion, questions, items, "/assetPlans/" + assetIndex + "/asyncTaskConfig/" + fieldKey,
                 fieldKey, label, description, inputType, options, currentValue);
+    }
+
+    private static void addHeaderClarification(
+            int nextPlanVersion,
+            LinkedHashSet<String> questions,
+            List<ImportAgentClarificationItemModel> items,
+            int assetIndex,
+            int headerIndex,
+            String fieldKey,
+            String label,
+            String description,
+            String inputType,
+            String currentValue) {
+        addClarification(nextPlanVersion, questions, items,
+                "/assetPlans/" + assetIndex + "/upstreamRequestHeaders/" + headerIndex + "/" + fieldKey,
+                fieldKey, label, description, inputType, List.of(), currentValue);
     }
 
     private static void addClarification(

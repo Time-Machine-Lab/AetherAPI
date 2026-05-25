@@ -358,6 +358,7 @@ describe('useWorkspaceCatalog', () => {
       upstreamUrl: 'https://upstream.example.com/weather/v2',
       authScheme: 'QUERY_TOKEN',
       authConfig: 'access_token=upstream-token',
+      upstreamRequestHeaders: null,
       requestTemplate: null,
       requestExample: null,
       responseExample: null,
@@ -381,6 +382,73 @@ describe('useWorkspaceCatalog', () => {
       'https://upstream.example.com/weather/v2',
     )
     expect(workspace.currentAsset.value?.asyncTaskConfig?.enabled).toBe(true)
+  })
+
+  it('预填、保存、移除并清空上游请求头行', async () => {
+    const reviseAsset = vi
+      .fn()
+      .mockResolvedValueOnce(
+        asset({
+          upstreamRequestHeaders: [
+            { name: 'OpenAI-Beta', value: 'assistants=v2' },
+            { name: 'X-DashScope-Async', value: 'enable' },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(asset({ upstreamRequestHeaders: undefined }))
+    const workspace = useWorkspaceCatalog({
+      t,
+      autoLoad: false,
+      getAsset: vi.fn().mockResolvedValueOnce(
+        asset({
+          upstreamRequestHeaders: [
+            { name: 'OpenAI-Beta', value: 'assistants=v2' },
+            { name: 'X-DashScope-Async', value: 'enable' },
+          ],
+        }),
+      ),
+      reviseAsset,
+      getRecentAssets: vi.fn().mockReturnValue([]),
+    })
+
+    await workspace.handleListSelectAsset('weather-api')
+
+    expect(workspace.assetConfigForm.value.upstreamRequestHeaders).toEqual([
+      { name: 'OpenAI-Beta', value: 'assistants=v2' },
+      { name: 'X-DashScope-Async', value: 'enable' },
+    ])
+
+    workspace.removeUpstreamRequestHeader(0)
+    workspace.addUpstreamRequestHeader()
+    workspace.assetConfigForm.value.upstreamRequestHeaders[1] = {
+      name: ' X-Provider-Version ',
+      value: ' 2026-05-01 ',
+    }
+    workspace.addUpstreamRequestHeader()
+
+    await workspace.handleSaveAssetConfig()
+
+    expect(reviseAsset).toHaveBeenNthCalledWith(
+      1,
+      'weather-api',
+      expect.objectContaining({
+        upstreamRequestHeaders: [
+          { name: 'X-DashScope-Async', value: 'enable' },
+          { name: 'X-Provider-Version', value: '2026-05-01' },
+        ],
+      }),
+    )
+
+    workspace.assetConfigForm.value.upstreamRequestHeaders = []
+    await workspace.handleSaveAssetConfig()
+
+    expect(reviseAsset).toHaveBeenNthCalledWith(
+      2,
+      'weather-api',
+      expect.objectContaining({
+        upstreamRequestHeaders: null,
+      }),
+    )
   })
 
   it('saves empty auth config as null when no upstream token auth is needed', async () => {

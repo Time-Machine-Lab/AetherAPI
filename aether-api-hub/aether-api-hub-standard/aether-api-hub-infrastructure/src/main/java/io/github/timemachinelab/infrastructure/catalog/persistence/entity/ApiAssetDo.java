@@ -28,6 +28,7 @@ public class ApiAssetDo {
     private String upstreamUrl;
     private String authScheme;
     private String authConfig;
+    private String upstreamRequestHeaders;
     private String requestTemplate;
     private String requestExample;
     private String responseExample;
@@ -153,6 +154,14 @@ public class ApiAssetDo {
 
     public void setAuthConfig(String authConfig) {
         this.authConfig = authConfig;
+    }
+
+    public String getUpstreamRequestHeaders() {
+        return upstreamRequestHeaders;
+    }
+
+    public void setUpstreamRequestHeaders(String upstreamRequestHeaders) {
+        this.upstreamRequestHeaders = upstreamRequestHeaders;
     }
 
     public String getRequestTemplate() {

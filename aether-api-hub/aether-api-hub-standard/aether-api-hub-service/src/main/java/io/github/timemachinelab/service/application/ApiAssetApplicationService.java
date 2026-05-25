@@ -15,6 +15,7 @@ import io.github.timemachinelab.domain.catalog.model.CategoryValidityChecker;
 import io.github.timemachinelab.domain.catalog.model.ExampleSnapshot;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 import io.github.timemachinelab.domain.catalog.model.UpstreamEndpointConfig;
+import io.github.timemachinelab.domain.catalog.model.UpstreamRequestHeader;
 import io.github.timemachinelab.service.model.ApiAssetModel;
 import io.github.timemachinelab.service.model.ApiAssetPageResult;
 import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
@@ -22,6 +23,7 @@ import io.github.timemachinelab.service.model.AttachAiCapabilityProfileCommand;
 import io.github.timemachinelab.service.model.ListApiAssetQuery;
 import io.github.timemachinelab.service.model.RegisterApiAssetCommand;
 import io.github.timemachinelab.service.model.ReviseApiAssetCommand;
+import io.github.timemachinelab.service.model.UpstreamRequestHeaderModel;
 import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
 import io.github.timemachinelab.service.port.out.ApiAssetQueryPort;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
@@ -87,14 +89,18 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
         if (command.getRequestJsonSchema() != null
                 || command.getResponseJsonSchema() != null
                 || command.getAsyncTaskConfig() != null
+                || command.getUpstreamRequestHeaders() != null
                 || command.getCapabilityExtensions() != null
                 || command.getPolicyExtensions() != null
                 || command.getMetadataExtensions() != null) {
+            UpstreamEndpointConfig upstreamConfig = command.getUpstreamRequestHeaders() == null
+                    ? aggregate.getUpstreamConfig()
+                    : UpstreamEndpointConfig.of(null, null, null, null, toUpstreamRequestHeaders(command.getUpstreamRequestHeaders()));
             aggregate.revise(
                     aggregate.getName(),
                     aggregate.getType(),
                     aggregate.getCategoryRef(),
-                    aggregate.getUpstreamConfig(),
+                    upstreamConfig,
                     aggregate.getRequestTemplate(),
                     aggregate.getExampleSnapshot(),
                     command.getRequestJsonSchema(),
@@ -261,7 +267,8 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
         boolean shouldMerge = command.isRequestMethodSet()
                 || command.isUpstreamUrlSet()
                 || command.isAuthSchemeSet()
-                || command.isAuthConfigSet();
+                || command.isAuthConfigSet()
+                || command.isUpstreamRequestHeadersSet();
         if (!shouldMerge) {
             return aggregate.getUpstreamConfig();
         }
@@ -278,7 +285,12 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
         String authConfig = command.isAuthConfigSet()
                 ? command.getAuthConfig()
                 : aggregate.getUpstreamConfig() == null ? null : aggregate.getUpstreamConfig().getAuthConfig();
-        return UpstreamEndpointConfig.of(requestMethod, upstreamUrl, authScheme, authConfig);
+        List<UpstreamRequestHeader> upstreamRequestHeaders = command.isUpstreamRequestHeadersSet()
+                ? toUpstreamRequestHeaders(command.getUpstreamRequestHeaders())
+                : aggregate.getUpstreamConfig() == null
+                ? List.of()
+                : aggregate.getUpstreamConfig().getUpstreamRequestHeaders();
+        return UpstreamEndpointConfig.of(requestMethod, upstreamUrl, authScheme, authConfig, upstreamRequestHeaders);
     }
 
     private ExampleSnapshot mergeExamples(ApiAssetAggregate aggregate, ReviseApiAssetCommand command) {
@@ -315,6 +327,7 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
                         ? null
                         : aggregate.getUpstreamConfig().getAuthScheme().name(),
                 aggregate.getUpstreamConfig() == null ? null : aggregate.getUpstreamConfig().getAuthConfig(),
+                toUpstreamRequestHeaderModels(aggregate.getUpstreamConfig()),
                 aggregate.getRequestTemplate(),
                 aggregate.getExampleSnapshot() == null ? null : aggregate.getExampleSnapshot().getRequestExample(),
                 aggregate.getExampleSnapshot() == null ? null : aggregate.getExampleSnapshot().getResponseExample(),
@@ -370,5 +383,23 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
                 config.getResultPath(),
                 config.getErrorPath()
         );
+    }
+
+    private List<UpstreamRequestHeader> toUpstreamRequestHeaders(List<UpstreamRequestHeaderModel> models) {
+        if (models == null || models.isEmpty()) {
+            return List.of();
+        }
+        return models.stream()
+                .map(model -> UpstreamRequestHeader.of(model.getName(), model.getValue()))
+                .toList();
+    }
+
+    private List<UpstreamRequestHeaderModel> toUpstreamRequestHeaderModels(UpstreamEndpointConfig config) {
+        if (config == null || config.getUpstreamRequestHeaders().isEmpty()) {
+            return null;
+        }
+        return config.getUpstreamRequestHeaders().stream()
+                .map(header -> new UpstreamRequestHeaderModel(header.getName(), header.getValue()))
+                .toList();
     }
 }

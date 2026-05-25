@@ -556,6 +556,12 @@ components:
         authConfig:
           type: string
           nullable: true
+        upstreamRequestHeaders:
+          type: array
+          nullable: true
+          description: 保存到 API 资产并发送到上游的固定非鉴权请求头。不要在这里放置 Authorization、Content-Type、平台保留或逐跳请求头。
+          items:
+            $ref: '#/components/schemas/ImportUpstreamRequestHeaderResp'
         requestTemplate:
           type: string
           nullable: true
@@ -577,6 +583,18 @@ components:
           $ref: '#/components/schemas/AsyncTaskConfig'
         aiProfile:
           $ref: '#/components/schemas/ImportAiProfileResp'
+
+    ImportUpstreamRequestHeaderResp:
+      type: object
+      properties:
+        name:
+          type: string
+          description: 上游请求头名称。
+          example: X-DashScope-Async
+        value:
+          type: string
+          description: 上游请求头值。疑似敏感值可能会在 thinking 或诊断摘要中被脱敏。
+          example: enable
 
     AsyncTaskConfig:
       type: object

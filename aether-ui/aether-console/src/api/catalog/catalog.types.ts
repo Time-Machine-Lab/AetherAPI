@@ -21,6 +21,11 @@ export interface AsyncTaskConfig {
   errorPath?: string | null
 }
 
+export interface UpstreamRequestHeader {
+  name: string
+  value: string
+}
+
 export interface ApiAsset {
   id?: string
   apiCode: string
@@ -35,6 +40,7 @@ export interface ApiAsset {
   upstreamUrl?: string
   authScheme?: string
   authConfig?: string
+  upstreamRequestHeaders?: UpstreamRequestHeader[]
   requestTemplate?: string
   requestExample?: string
   responseExample?: string

@@ -333,6 +333,12 @@ components:
           description: 响应体 JSON Schema 快照，可为空
         asyncTaskConfig:
           $ref: '#/components/schemas/AsyncTaskConfig'
+        upstreamRequestHeaders:
+          type: array
+          nullable: true
+          description: 资产所有者配置的固定上游请求头，会在 Unified Access 转发到上游时携带；这里不允许配置鉴权、Content-Type、平台保留或逐跳请求头。
+          items:
+            $ref: '#/components/schemas/UpstreamRequestHeader'
         capabilityExtensions:
           $ref: '#/components/schemas/AssetExtensionBlock'
         policyExtensions:
@@ -400,6 +406,12 @@ components:
           description: 响应体 JSON Schema 快照，可为空；传 null 表示清空
         asyncTaskConfig:
           $ref: '#/components/schemas/AsyncTaskConfig'
+        upstreamRequestHeaders:
+          type: array
+          nullable: true
+          description: 资产所有者配置的固定上游请求头，会在 Unified Access 转发到上游时携带；按后端归一化规则传 null 或空数组表示清空。
+          items:
+            $ref: '#/components/schemas/UpstreamRequestHeader'
         capabilityExtensions:
           $ref: '#/components/schemas/AssetExtensionBlock'
         policyExtensions:
@@ -563,6 +575,12 @@ components:
           description: 响应体 JSON Schema 快照，可为空
         asyncTaskConfig:
           $ref: '#/components/schemas/AsyncTaskConfig'
+        upstreamRequestHeaders:
+          type: array
+          nullable: true
+          description: 资产所有者配置的固定上游请求头，会在 Unified Access 转发到上游时携带；Discovery 和市场响应不暴露该所有者专属配置。
+          items:
+            $ref: '#/components/schemas/UpstreamRequestHeader'
         capabilityExtensions:
           $ref: '#/components/schemas/AssetExtensionBlock'
         policyExtensions:
@@ -599,6 +617,26 @@ components:
         testConfig:
           enabled: true
           timeoutMillis: 5000
+
+    UpstreamRequestHeader:
+      type: object
+      description: 资产所有者配置的固定非鉴权请求头，会在 Unified Access 转发到上游时携带。
+      required:
+        - name
+        - value
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: 请求头名称。Authorization、Content-Type、Host、Content-Length、X-Aether-* 以及逐跳请求头为保留名称。
+          example: X-DashScope-Async
+        value:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          description: 发送到上游的请求头值。
+          example: enable
 
     AsyncTaskConfig:
       type: object

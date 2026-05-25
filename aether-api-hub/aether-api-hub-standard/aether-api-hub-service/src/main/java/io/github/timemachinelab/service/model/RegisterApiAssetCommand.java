@@ -2,6 +2,8 @@ package io.github.timemachinelab.service.model;
 
 import io.github.timemachinelab.domain.catalog.model.AssetType;
 
+import java.util.List;
+
 /**
  * Register API asset command.
  */
@@ -15,6 +17,7 @@ public class RegisterApiAssetCommand {
     private final String requestJsonSchema;
     private final String responseJsonSchema;
     private final AsyncTaskConfigModel asyncTaskConfig;
+    private final List<UpstreamRequestHeaderModel> upstreamRequestHeaders;
     private final String capabilityExtensions;
     private final String policyExtensions;
     private final String metadataExtensions;
@@ -49,7 +52,7 @@ public class RegisterApiAssetCommand {
             AsyncTaskConfigModel asyncTaskConfig) {
         this(ownerUserId, publisherDisplayName, apiCode, assetType, assetName,
                 requestJsonSchema, responseJsonSchema, asyncTaskConfig,
-                null, null, null);
+                null, null, null, null);
     }
 
     public RegisterApiAssetCommand(
@@ -64,6 +67,35 @@ public class RegisterApiAssetCommand {
             String capabilityExtensions,
             String policyExtensions,
             String metadataExtensions) {
+        this(
+                ownerUserId,
+                publisherDisplayName,
+                apiCode,
+                assetType,
+                assetName,
+                requestJsonSchema,
+                responseJsonSchema,
+                asyncTaskConfig,
+                null,
+                capabilityExtensions,
+                policyExtensions,
+                metadataExtensions
+        );
+    }
+
+    public RegisterApiAssetCommand(
+            String ownerUserId,
+            String publisherDisplayName,
+            String apiCode,
+            AssetType assetType,
+            String assetName,
+            String requestJsonSchema,
+            String responseJsonSchema,
+            AsyncTaskConfigModel asyncTaskConfig,
+            List<UpstreamRequestHeaderModel> upstreamRequestHeaders,
+            String capabilityExtensions,
+            String policyExtensions,
+            String metadataExtensions) {
         this.ownerUserId = ownerUserId;
         this.publisherDisplayName = publisherDisplayName;
         this.apiCode = apiCode;
@@ -72,6 +104,7 @@ public class RegisterApiAssetCommand {
         this.requestJsonSchema = requestJsonSchema;
         this.responseJsonSchema = responseJsonSchema;
         this.asyncTaskConfig = asyncTaskConfig;
+        this.upstreamRequestHeaders = upstreamRequestHeaders == null ? null : List.copyOf(upstreamRequestHeaders);
         this.capabilityExtensions = capabilityExtensions;
         this.policyExtensions = policyExtensions;
         this.metadataExtensions = metadataExtensions;
@@ -107,6 +140,10 @@ public class RegisterApiAssetCommand {
 
     public AsyncTaskConfigModel getAsyncTaskConfig() {
         return asyncTaskConfig;
+    }
+
+    public List<UpstreamRequestHeaderModel> getUpstreamRequestHeaders() {
+        return upstreamRequestHeaders;
     }
 
     public String getCapabilityExtensions() {

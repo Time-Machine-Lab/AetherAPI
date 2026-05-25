@@ -130,10 +130,18 @@ classDiagram
 - 错误分类约束：调用失败至少需要区分鉴权失败、目标不存在/不可用、上游失败、超时失败这几类结果，而不是统一折叠成单一失败。
 - 配置依赖约束：`Unified Access` 不拥有 API 配置主数据，只消费 `API Catalog` 提供的已启用资产快照。
 - 身份依赖约束：`Unified Access` 不生成也不修改 Consumer / Credential，只消费 `Consumer & Auth` 返回的调用主体上下文。
+- 上游固定请求头约束：`Unified Access` 可以消费资产快照中的 `upstreamRequestHeaders`，但它们只作为资产所有者配置的非认证固定请求头参与上游转发，不替代 `authConfig`，也不得绕过平台和 HTTP 传输保留头过滤。
 - 流式保留约束：若目标 API 被标记为支持流式，则统一接入层应优先保留流式响应能力，而不是在领域层强制改写为普通响应。
 - 响应边界约束：统一接入层可以做统一错误分类与基础封装，但不应为了统一而抹平所有上游语义；尤其 AI API 的响应结构不宜在一期做重变换。
 - 返回格式约束：`TML-SDK Result` 只适用于平台内部业务管理接口，不适用于统一接入成功场景；统一接入成功时应优先保留上游状态码、响应头和响应体语义。
 - 可观测预留约束：统一接入层必须产出足够的调用事实，使 `Observability` 能在后续记录 API、Consumer、状态码、耗时和错误结果。
+
+上游转发时的请求头来源按以下边界处理：
+
+- 调用方请求头先经过 Unified Access 的透传过滤，平台鉴权头、hop-by-hop 头和内部 `X-Aether-*` 头不进入上游。
+- 资产 `upstreamRequestHeaders` 在透传过滤之后应用；允许的固定头可以覆盖同名调用方透传头，以保证资产所有者配置的上游版本或租户路由稳定生效。
+- 上游认证仍由 `authScheme` / `authConfig` 单独注入；`Authorization`、`Content-Type`、`Host`、`Content-Length` 等保留语义不得通过固定请求头列表配置。
+- 诊断、日志和失败结果不得暴露看起来像 token、key、secret 或 bearer 凭据的固定请求头值。
 
 ## 4. 核心用例与行为流转 (Core Behaviors)
 
@@ -277,3 +285,5 @@ Unified Access 在一期新增一条轻量任务查询分支，用于解决上�
 7. 记录可观测调用事实。
 
 成功的任务查询响应仍属于上游业务响应，必须保持透传优先，不使用 `TML-SDK Result` 包装。Aether 一期不保存 taskId 和 Consumer 的映射，因此无法独立证明 taskId 归属；该阶段依赖上游凭证、上游权限和不可猜测 taskId 保障归属安全。若后续要提供当前用户任务列表、平台 taskId、后台轮询、缓存或回调，应拆为独立任务中心能力。
+
+任务查询默认不继承提交接口的 `upstreamRequestHeaders`。如果某个上游任务查询也需要固定请求头，应在异步任务配置中显式增加查询专用请求头或继承策略，而不是由 Unified Access 隐式复用提交阶段的固定头。

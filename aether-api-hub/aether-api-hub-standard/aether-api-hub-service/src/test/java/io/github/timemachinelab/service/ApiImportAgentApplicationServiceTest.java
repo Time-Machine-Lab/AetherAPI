@@ -32,6 +32,7 @@ import io.github.timemachinelab.service.model.ImportStepResultStatus;
 import io.github.timemachinelab.service.model.RegisterApiAssetCommand;
 import io.github.timemachinelab.service.model.ReviseApiAssetCommand;
 import io.github.timemachinelab.service.model.StartImportAgentRunCommand;
+import io.github.timemachinelab.service.model.UpstreamRequestHeaderModel;
 import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
 import io.github.timemachinelab.service.port.in.CategoryUseCase;
 import io.github.timemachinelab.service.port.out.ApiImportAgentPlannerPort;
@@ -231,6 +232,9 @@ class ApiImportAgentApplicationServiceTest {
         assertEquals(AuthScheme.HEADER_TOKEN, reviseCommand.getAuthScheme());
         assertTrue(reviseCommand.isAuthConfigSet());
         assertEquals("Authorization: Bearer upstream-token", reviseCommand.getAuthConfig());
+        assertTrue(reviseCommand.isUpstreamRequestHeadersSet());
+        assertEquals("OpenAI-Beta", reviseCommand.getUpstreamRequestHeaders().get(0).getName());
+        assertEquals("assistants=v2", reviseCommand.getUpstreamRequestHeaders().get(0).getValue());
         assertEquals("template", reviseCommand.getRequestTemplate());
         assertEquals("{\"city\":\"Shanghai\"}", reviseCommand.getRequestExample());
         assertEquals("{\"temperature\":26}", reviseCommand.getResponseExample());
@@ -661,6 +665,7 @@ class ApiImportAgentApplicationServiceTest {
                         "https://upstream.example.com/weather",
                         AuthScheme.HEADER_TOKEN,
                         "Authorization: Bearer upstream-token",
+                        List.of(new UpstreamRequestHeaderModel("OpenAI-Beta", "assistants=v2")),
                         "template",
                         "{\"city\":\"Shanghai\"}",
                         "{\"temperature\":26}",
@@ -737,6 +742,7 @@ class ApiImportAgentApplicationServiceTest {
                         "https://upstream.example.com/weather",
                         AuthScheme.HEADER_TOKEN,
                         "Authorization: Bearer upstream-token",
+                        List.of(new UpstreamRequestHeaderModel("OpenAI-Beta", "assistants=v2")),
                         "template",
                         "{\"city\":\"Shanghai\"}",
                         "{\"temperature\":26}",

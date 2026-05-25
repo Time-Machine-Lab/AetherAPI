@@ -185,6 +185,68 @@ class ApiAssetAggregateTest {
     }
 
     @Nested
+    @DisplayName("上游请求头")
+    class UpstreamRequestHeaderTests {
+
+        @Test
+        @DisplayName("应规范化并保留已配置的上游请求头")
+        void shouldNormalizeAndPreserveConfiguredUpstreamRequestHeaders() {
+            UpstreamEndpointConfig config = UpstreamEndpointConfig.of(
+                    RequestMethod.POST,
+                    " https://example.com/api ",
+                    AuthScheme.NONE,
+                    null,
+                    List.of(UpstreamRequestHeader.of(" OpenAI-Beta ", " assistants=v2 "))
+            );
+
+            assertEquals("OpenAI-Beta", config.getUpstreamRequestHeaders().get(0).getName());
+            assertEquals("assistants=v2", config.getUpstreamRequestHeaders().get(0).getValue());
+        }
+
+        @Test
+        @DisplayName("应拒绝受保护的上游请求头名称")
+        void shouldRejectProtectedUpstreamRequestHeaderNames() {
+            AssetDomainException authorization = assertThrows(
+                    AssetDomainException.class,
+                    () -> UpstreamRequestHeader.of("Authorization", "Bearer token")
+            );
+            AssetDomainException platform = assertThrows(
+                    AssetDomainException.class,
+                    () -> UpstreamRequestHeader.of("X-Aether-Api-Key", "ak_live")
+            );
+
+            assertTrue(authorization.getMessage().contains("reserved"));
+            assertTrue(platform.getMessage().contains("reserved"));
+        }
+
+        @Test
+        @DisplayName("上游请求头变更后应将已发布资产转为未发布")
+        void shouldMovePublishedAssetToUnpublishedAfterUpstreamRequestHeaderChange() {
+            ApiAssetAggregate aggregate = configuredAggregate(AssetType.STANDARD_API, AssetStatus.PUBLISHED);
+
+            aggregate.revise(
+                    aggregate.getName(),
+                    aggregate.getType(),
+                    aggregate.getCategoryRef(),
+                    UpstreamEndpointConfig.of(
+                            RequestMethod.POST,
+                            "https://example.com/api",
+                            AuthScheme.NONE,
+                            null,
+                            List.of(UpstreamRequestHeader.of("OpenAI-Beta", "assistants=v2"))
+                    ),
+                    aggregate.getRequestTemplate(),
+                    aggregate.getExampleSnapshot(),
+                    aggregate.getPublisherDisplayName()
+            );
+
+            assertEquals(AssetStatus.UNPUBLISHED, aggregate.getStatus());
+            assertEquals("OpenAI-Beta", aggregate.getUpstreamConfig().getUpstreamRequestHeaders().get(0).getName());
+            assertNull(aggregate.getPublishedAt());
+        }
+    }
+
+    @Nested
     @DisplayName("ai profile")
     class AiCapabilityTests {
 

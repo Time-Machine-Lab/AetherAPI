@@ -163,6 +163,7 @@ public class OpenAiCompatibleImportAgentReplyPort implements ApiImportAgentReply
         appendField(prompt, "importIntent", request.getImportIntent());
         appendField(prompt, "latestUserMessage", request.getLatestUserMessage());
         prompt.append("finalPlanJson:\n").append(OBJECT_MAPPER.writeValueAsString(plan)).append("\n");
+        prompt.append("Do not echo upstreamRequestHeaders values in the assistant reply; mention header names only and ask for missing values through clarification.\n");
         prompt.append("如果 finalPlanJson 中 clarificationQuestions 为空，请直接总结计划并邀请用户确认；否则请优先提出需要用户补充的信息。\n");
         return prompt.toString();
     }

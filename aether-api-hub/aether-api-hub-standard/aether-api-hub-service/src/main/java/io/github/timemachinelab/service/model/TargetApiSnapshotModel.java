@@ -1,7 +1,9 @@
 package io.github.timemachinelab.service.model;
 
+import java.util.List;
+
 /**
- * Resolved target API snapshot for a unified access invocation.
+ * Unified Access 调用解析后的目标 API 快照。
  */
 public class TargetApiSnapshotModel {
 
@@ -13,6 +15,7 @@ public class TargetApiSnapshotModel {
     private final String upstreamUrl;
     private final String authScheme;
     private final String authConfig;
+    private final List<UpstreamRequestHeaderModel> upstreamRequestHeaders;
     private final boolean streamingSupported;
     private final String aiProvider;
     private final String aiModel;
@@ -97,6 +100,41 @@ public class TargetApiSnapshotModel {
             String proxyProfileId,
             ProxyProfileSnapshotModel proxyProfile,
             AsyncTaskConfigModel asyncTaskConfig) {
+        this(
+                assetId,
+                apiCode,
+                assetName,
+                assetType,
+                requestMethod,
+                upstreamUrl,
+                authScheme,
+                authConfig,
+                null,
+                streamingSupported,
+                aiProvider,
+                aiModel,
+                proxyProfileId,
+                proxyProfile,
+                asyncTaskConfig
+        );
+    }
+
+    public TargetApiSnapshotModel(
+            String assetId,
+            String apiCode,
+            String assetName,
+            String assetType,
+            String requestMethod,
+            String upstreamUrl,
+            String authScheme,
+            String authConfig,
+            List<UpstreamRequestHeaderModel> upstreamRequestHeaders,
+            boolean streamingSupported,
+            String aiProvider,
+            String aiModel,
+            String proxyProfileId,
+            ProxyProfileSnapshotModel proxyProfile,
+            AsyncTaskConfigModel asyncTaskConfig) {
         this.assetId = assetId;
         this.apiCode = apiCode;
         this.assetName = assetName;
@@ -105,6 +143,7 @@ public class TargetApiSnapshotModel {
         this.upstreamUrl = upstreamUrl;
         this.authScheme = authScheme;
         this.authConfig = authConfig;
+        this.upstreamRequestHeaders = upstreamRequestHeaders == null ? null : List.copyOf(upstreamRequestHeaders);
         this.streamingSupported = streamingSupported;
         this.aiProvider = aiProvider;
         this.aiModel = aiModel;
@@ -143,6 +182,10 @@ public class TargetApiSnapshotModel {
 
     public String getAuthConfig() {
         return authConfig;
+    }
+
+    public List<UpstreamRequestHeaderModel> getUpstreamRequestHeaders() {
+        return upstreamRequestHeaders;
     }
 
     public boolean isStreamingSupported() {

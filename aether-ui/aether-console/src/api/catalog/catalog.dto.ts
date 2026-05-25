@@ -35,6 +35,11 @@ export interface AsyncTaskConfigDto {
   errorPath?: string | null
 }
 
+export interface UpstreamRequestHeaderDto {
+  name: string
+  value: string
+}
+
 export interface DiscoveryExampleSnapshotDto {
   requestExample?: string | null
   responseExample?: string | null
@@ -83,6 +88,7 @@ export interface AssetDto {
   upstreamUrl?: string | null
   authScheme?: string
   authConfig?: string | null
+  upstreamRequestHeaders?: UpstreamRequestHeaderDto[] | null
   requestTemplate?: string | null
   requestExample?: string | null
   responseExample?: string | null
@@ -139,6 +145,7 @@ export interface ReviseAssetBody {
   requestJsonSchema?: string | null
   responseJsonSchema?: string | null
   asyncTaskConfig?: AsyncTaskConfigDto | null
+  upstreamRequestHeaders?: UpstreamRequestHeaderDto[] | null
 }
 
 export interface BindAiProfileBody {

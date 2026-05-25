@@ -14,6 +14,7 @@ import io.github.timemachinelab.domain.catalog.model.CategoryRef;
 import io.github.timemachinelab.domain.catalog.model.ExampleSnapshot;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 import io.github.timemachinelab.domain.catalog.model.UpstreamEndpointConfig;
+import io.github.timemachinelab.domain.catalog.model.UpstreamRequestHeader;
 import io.github.timemachinelab.infrastructure.catalog.persistence.entity.ApiAssetDo;
 import io.github.timemachinelab.infrastructure.catalog.persistence.mapper.ApiAssetMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -114,6 +115,39 @@ class MybatisApiAssetRepositoryTest {
                 "{\"enabled\":true,\"queryMethod\":\"GET\",\"queryUrlTemplate\":\"https://upstream.example.com/weather/tasks/{taskId}\",\"authMode\":\"SAME_AS_SUBMIT\",\"statusPath\":\"$.status\",\"resultPath\":\"$.result\",\"errorPath\":\"$.error\"}",
                 savedConfig
         );
+    }
+
+    @Test
+    @DisplayName("update 应将上游请求头持久化为可空 JSON 字段")
+    void shouldPersistUpstreamRequestHeadersAsJsonField() {
+        ApiAssetDo existing = existingDo();
+        when(mapper.selectByCodeIncludingDeleted("weather-forecast")).thenReturn(existing);
+        when(mapper.updateById(existing)).thenReturn(1);
+
+        repository.save(upstreamHeaderAggregate(1L));
+
+        ArgumentCaptor<ApiAssetDo> captor = ArgumentCaptor.forClass(ApiAssetDo.class);
+        verify(mapper).updateById(captor.capture());
+        assertEquals(
+                "[{\"name\":\"OpenAI-Beta\",\"value\":\"assistants=v2\"},{\"name\":\"X-DashScope-Async\",\"value\":\"enable\"}]",
+                captor.getValue().getUpstreamRequestHeaders()
+        );
+    }
+
+    @Test
+    @DisplayName("find 应从 JSON 字段还原上游请求头")
+    void shouldReconstituteUpstreamRequestHeadersFromJsonField() {
+        ApiAssetDo existing = existingDo();
+        existing.setRequestMethod("POST");
+        existing.setUpstreamUrl("https://upstream.example.com/chat");
+        existing.setAuthScheme("NONE");
+        existing.setUpstreamRequestHeaders("[{\"name\":\"OpenAI-Beta\",\"value\":\"assistants=v2\"}]");
+        when(mapper.selectByCode("weather-forecast")).thenReturn(existing);
+
+        ApiAssetAggregate aggregate = repository.findByCode(ApiCode.of("weather-forecast")).orElseThrow();
+
+        assertEquals("OpenAI-Beta", aggregate.getUpstreamConfig().getUpstreamRequestHeaders().get(0).getName());
+        assertEquals("assistants=v2", aggregate.getUpstreamConfig().getUpstreamRequestHeaders().get(0).getValue());
     }
 
     @Test
@@ -277,6 +311,42 @@ class MybatisApiAssetRepositoryTest {
                         "$.result",
                         "$.error"
                 ),
+                null,
+                null,
+                now,
+                now,
+                false,
+                version
+        );
+    }
+
+    private ApiAssetAggregate upstreamHeaderAggregate(long version) {
+        Instant now = Instant.now();
+        return ApiAssetAggregate.reconstitute(
+                AssetId.of("550e8400-e29b-41d4-a716-446655440000"),
+                ApiCode.of("weather-forecast"),
+                "user-1",
+                "Alice",
+                "Weather Forecast",
+                AssetType.STANDARD_API,
+                CategoryRef.of("tools"),
+                AssetStatus.DRAFT,
+                null,
+                UpstreamEndpointConfig.of(
+                        RequestMethod.POST,
+                        "https://upstream.example.com/chat",
+                        AuthScheme.NONE,
+                        null,
+                        List.of(
+                                UpstreamRequestHeader.of("OpenAI-Beta", "assistants=v2"),
+                                UpstreamRequestHeader.of("X-DashScope-Async", "enable")
+                        )
+                ),
+                "template",
+                ExampleSnapshot.of("{\"city\":\"Shanghai\"}", "{\"temperature\":26}"),
+                null,
+                null,
+                null,
                 null,
                 null,
                 now,

@@ -18,6 +18,7 @@ import io.github.timemachinelab.service.model.ImportCategoryPlanAction;
 import io.github.timemachinelab.service.model.ImportCategoryPlanModel;
 import io.github.timemachinelab.service.model.ImportStepResultModel;
 import io.github.timemachinelab.service.model.ImportStepResultStatus;
+import io.github.timemachinelab.service.model.UpstreamRequestHeaderModel;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -91,6 +92,7 @@ public final class ImportAgentJsonConverter {
                 assetNode.put("authScheme", assetPlan.getAuthScheme().name());
             }
             assetNode.put("authConfig", assetPlan.getAuthConfig());
+            serializeUpstreamRequestHeaders(assetNode, assetPlan.getUpstreamRequestHeaders());
             assetNode.put("requestTemplate", assetPlan.getRequestTemplate());
             assetNode.put("requestExample", assetPlan.getRequestExample());
             assetNode.put("responseExample", assetPlan.getResponseExample());
@@ -168,6 +170,7 @@ public final class ImportAgentJsonConverter {
                         textValue(assetNode, "upstreamUrl"),
                         enumValue(AuthScheme.class, textValue(assetNode, "authScheme"), null),
                         textValue(assetNode, "authConfig"),
+                        deserializeUpstreamRequestHeaders(assetNode.path("upstreamRequestHeaders")),
                         textValue(assetNode, "requestTemplate"),
                         textValue(assetNode, "requestExample"),
                         textValue(assetNode, "responseExample"),
@@ -202,6 +205,38 @@ public final class ImportAgentJsonConverter {
         target.put("statusPath", config.getStatusPath());
         target.put("resultPath", config.getResultPath());
         target.put("errorPath", config.getErrorPath());
+    }
+
+    private static void serializeUpstreamRequestHeaders(ObjectNode target, List<UpstreamRequestHeaderModel> headers) {
+        if (headers == null || headers.isEmpty()) {
+            return;
+        }
+        ArrayNode headersNode = target.putArray("upstreamRequestHeaders");
+        for (UpstreamRequestHeaderModel header : headers) {
+            if (header == null) {
+                continue;
+            }
+            ObjectNode headerNode = headersNode.addObject();
+            headerNode.put("name", header.getName());
+            headerNode.put("value", header.getValue());
+        }
+    }
+
+    private static List<UpstreamRequestHeaderModel> deserializeUpstreamRequestHeaders(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull() || !node.isArray()) {
+            return null;
+        }
+        List<UpstreamRequestHeaderModel> headers = new ArrayList<>();
+        for (JsonNode headerNode : node) {
+            if (!headerNode.isObject()) {
+                continue;
+            }
+            headers.add(new UpstreamRequestHeaderModel(
+                    textValue(headerNode, "name"),
+                    textValue(headerNode, "value")
+            ));
+        }
+        return headers.isEmpty() ? null : headers;
     }
 
     private static AsyncTaskConfigModel deserializeAsyncTaskConfig(JsonNode node) {

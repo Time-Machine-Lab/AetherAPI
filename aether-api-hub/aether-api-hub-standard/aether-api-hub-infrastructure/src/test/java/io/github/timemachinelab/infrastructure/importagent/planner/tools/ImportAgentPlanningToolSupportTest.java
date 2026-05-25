@@ -24,6 +24,10 @@ class ImportAgentPlanningToolSupportTest {
         assertTrue(schema.path("required").toString().contains("assetPlans"));
         JsonNode assetSchema = schema.path("properties").path("assetPlans").path("items");
         assertEquals(3, assetSchema.path("properties").path("authScheme").path("enum").size());
+        JsonNode upstreamHeadersSchema = assetSchema.path("properties").path("upstreamRequestHeaders");
+        assertEquals("array", upstreamHeadersSchema.path("type").asText());
+        assertTrue(upstreamHeadersSchema.path("description").asText().contains("authConfig"));
+        assertEquals(2, upstreamHeadersSchema.path("items").path("required").size());
         assertEquals(2, assetSchema.path("properties").path("aiProfile").path("required").size());
         assertEquals(".*\\{taskId\\}.*", assetSchema.path("properties").path("asyncTaskConfig")
                 .path("properties").path("queryUrlTemplate").path("pattern").asText());

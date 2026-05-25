@@ -26,6 +26,7 @@ import io.github.timemachinelab.service.model.UnifiedAccessExecutionOutcomeType;
 import io.github.timemachinelab.service.model.UnifiedAccessPlatformFailureException;
 import io.github.timemachinelab.service.model.UnifiedAccessPlatformFailureModel;
 import io.github.timemachinelab.service.model.UnifiedAccessProxyResponseModel;
+import io.github.timemachinelab.service.model.UpstreamRequestHeaderModel;
 import io.github.timemachinelab.service.model.ValidateApiCredentialCommand;
 import io.github.timemachinelab.service.port.in.CredentialValidationUseCase;
 import io.github.timemachinelab.service.port.in.ObservabilityUseCase;
@@ -40,6 +41,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -262,6 +264,7 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
                 upstreamConfig.getUpstreamUrl(),
                 upstreamConfig.getAuthScheme().name(),
                 upstreamConfig.getAuthConfig(),
+                toUpstreamRequestHeaderModels(upstreamConfig),
                 streamingSupported,
                 targetApi.getAiCapabilityProfile() == null ? null : targetApi.getAiCapabilityProfile().getProvider(),
                 targetApi.getAiCapabilityProfile() == null ? null : targetApi.getAiCapabilityProfile().getModel(),
@@ -327,6 +330,7 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
                 renderTaskQueryUrl(config.getQueryUrlTemplate(), taskId),
                 authScheme,
                 authConfig,
+                null,
                 false,
                 baseTarget.getAiProvider(),
                 baseTarget.getAiModel(),
@@ -338,6 +342,15 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
 
     private String renderTaskQueryUrl(String template, String taskId) {
         return template.replace("{taskId}", URLEncoder.encode(taskId, StandardCharsets.UTF_8));
+    }
+
+    private List<UpstreamRequestHeaderModel> toUpstreamRequestHeaderModels(UpstreamEndpointConfig config) {
+        if (config == null || config.getUpstreamRequestHeaders().isEmpty()) {
+            return null;
+        }
+        return config.getUpstreamRequestHeaders().stream()
+                .map(header -> new UpstreamRequestHeaderModel(header.getName(), header.getValue()))
+                .toList();
     }
 
     private String normalizeTaskId(String taskId, String apiCode, ConsumerContextModel consumerContext) {

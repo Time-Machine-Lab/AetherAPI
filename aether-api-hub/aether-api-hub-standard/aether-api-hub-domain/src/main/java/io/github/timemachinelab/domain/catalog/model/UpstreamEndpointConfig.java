@@ -1,6 +1,7 @@
 package io.github.timemachinelab.domain.catalog.model;
 
 import java.util.Objects;
+import java.util.List;
 
 /**
  * 上游接入配置值对象。
@@ -11,22 +12,45 @@ public final class UpstreamEndpointConfig {
     private final String upstreamUrl;
     private final AuthScheme authScheme;
     private final String authConfig;
+    private final List<UpstreamRequestHeader> upstreamRequestHeaders;
 
-    private UpstreamEndpointConfig(RequestMethod requestMethod, String upstreamUrl, AuthScheme authScheme, String authConfig) {
+    private UpstreamEndpointConfig(
+            RequestMethod requestMethod,
+            String upstreamUrl,
+            AuthScheme authScheme,
+            String authConfig,
+            List<UpstreamRequestHeader> upstreamRequestHeaders) {
         this.requestMethod = requestMethod;
         this.upstreamUrl = upstreamUrl;
         this.authScheme = authScheme;
         this.authConfig = authConfig;
+        this.upstreamRequestHeaders = upstreamRequestHeaders == null ? List.of() : List.copyOf(upstreamRequestHeaders);
     }
 
     public static UpstreamEndpointConfig of(
             RequestMethod requestMethod, String upstreamUrl, AuthScheme authScheme, String authConfig) {
+        return of(requestMethod, upstreamUrl, authScheme, authConfig, null);
+    }
+
+    public static UpstreamEndpointConfig of(
+            RequestMethod requestMethod,
+            String upstreamUrl,
+            AuthScheme authScheme,
+            String authConfig,
+            List<UpstreamRequestHeader> upstreamRequestHeaders) {
         String normalizedUrl = normalize(upstreamUrl);
         String normalizedAuthConfig = normalize(authConfig);
-        if (requestMethod == null && normalizedUrl == null && authScheme == null && normalizedAuthConfig == null) {
+        List<UpstreamRequestHeader> normalizedHeaders = upstreamRequestHeaders == null
+                ? List.of()
+                : upstreamRequestHeaders.stream().filter(Objects::nonNull).toList();
+        if (requestMethod == null
+                && normalizedUrl == null
+                && authScheme == null
+                && normalizedAuthConfig == null
+                && normalizedHeaders.isEmpty()) {
             return null;
         }
-        return new UpstreamEndpointConfig(requestMethod, normalizedUrl, authScheme, normalizedAuthConfig);
+        return new UpstreamEndpointConfig(requestMethod, normalizedUrl, authScheme, normalizedAuthConfig, normalizedHeaders);
     }
 
     public RequestMethod getRequestMethod() {
@@ -45,6 +69,10 @@ public final class UpstreamEndpointConfig {
         return authConfig;
     }
 
+    public List<UpstreamRequestHeader> getUpstreamRequestHeaders() {
+        return upstreamRequestHeaders;
+    }
+
     public boolean isComplete() {
         if (requestMethod == null || upstreamUrl == null || authScheme == null) {
             return false;
@@ -57,12 +85,17 @@ public final class UpstreamEndpointConfig {
 
     public boolean hasCriticalDifference(UpstreamEndpointConfig other) {
         if (other == null) {
-            return requestMethod != null || upstreamUrl != null || authScheme != null || authConfig != null;
+            return requestMethod != null
+                    || upstreamUrl != null
+                    || authScheme != null
+                    || authConfig != null
+                    || !upstreamRequestHeaders.isEmpty();
         }
         return requestMethod != other.requestMethod
                 || !Objects.equals(upstreamUrl, other.upstreamUrl)
                 || authScheme != other.authScheme
-                || !Objects.equals(authConfig, other.authConfig);
+                || !Objects.equals(authConfig, other.authConfig)
+                || !Objects.equals(upstreamRequestHeaders, other.upstreamRequestHeaders);
     }
 
     private static String normalize(String value) {
@@ -85,12 +118,13 @@ public final class UpstreamEndpointConfig {
         return requestMethod == that.requestMethod
                 && Objects.equals(upstreamUrl, that.upstreamUrl)
                 && authScheme == that.authScheme
-                && Objects.equals(authConfig, that.authConfig);
+                && Objects.equals(authConfig, that.authConfig)
+                && Objects.equals(upstreamRequestHeaders, that.upstreamRequestHeaders);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(requestMethod, upstreamUrl, authScheme, authConfig);
+        return Objects.hash(requestMethod, upstreamUrl, authScheme, authConfig, upstreamRequestHeaders);
     }
 }
 

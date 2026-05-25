@@ -1,5 +1,7 @@
 package io.github.timemachinelab.api.resp;
 
+import java.util.List;
+
 /**
  * Import asset plan response.
  */
@@ -13,6 +15,7 @@ public class ImportAssetPlanResp {
     private final String upstreamUrl;
     private final String authScheme;
     private final String authConfig;
+    private final List<ImportUpstreamRequestHeaderResp> upstreamRequestHeaders;
     private final String requestTemplate;
     private final String requestExample;
     private final String responseExample;
@@ -39,6 +42,45 @@ public class ImportAssetPlanResp {
             boolean publishAfterImport,
             AsyncTaskConfigResp asyncTaskConfig,
             ImportAiProfileResp aiProfile) {
+        this(
+                apiCode,
+                assetName,
+                assetType,
+                categoryCode,
+                requestMethod,
+                upstreamUrl,
+                authScheme,
+                authConfig,
+                null,
+                requestTemplate,
+                requestExample,
+                responseExample,
+                requestJsonSchema,
+                responseJsonSchema,
+                publishAfterImport,
+                asyncTaskConfig,
+                aiProfile
+        );
+    }
+
+    public ImportAssetPlanResp(
+            String apiCode,
+            String assetName,
+            String assetType,
+            String categoryCode,
+            String requestMethod,
+            String upstreamUrl,
+            String authScheme,
+            String authConfig,
+            List<ImportUpstreamRequestHeaderResp> upstreamRequestHeaders,
+            String requestTemplate,
+            String requestExample,
+            String responseExample,
+            String requestJsonSchema,
+            String responseJsonSchema,
+            boolean publishAfterImport,
+            AsyncTaskConfigResp asyncTaskConfig,
+            ImportAiProfileResp aiProfile) {
         this.apiCode = apiCode;
         this.assetName = assetName;
         this.assetType = assetType;
@@ -47,6 +89,7 @@ public class ImportAssetPlanResp {
         this.upstreamUrl = upstreamUrl;
         this.authScheme = authScheme;
         this.authConfig = authConfig;
+        this.upstreamRequestHeaders = upstreamRequestHeaders;
         this.requestTemplate = requestTemplate;
         this.requestExample = requestExample;
         this.responseExample = responseExample;
@@ -87,6 +130,10 @@ public class ImportAssetPlanResp {
 
     public String getAuthConfig() {
         return authConfig;
+    }
+
+    public List<ImportUpstreamRequestHeaderResp> getUpstreamRequestHeaders() {
+        return upstreamRequestHeaders;
     }
 
     public String getRequestTemplate() {

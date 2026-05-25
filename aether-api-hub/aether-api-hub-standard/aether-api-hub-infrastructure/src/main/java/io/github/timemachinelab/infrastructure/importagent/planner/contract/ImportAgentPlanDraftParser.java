@@ -9,6 +9,7 @@ import io.github.timemachinelab.service.model.ImportAiProfileModel;
 import io.github.timemachinelab.service.model.ImportAssetPlanModel;
 import io.github.timemachinelab.service.model.ImportCategoryPlanAction;
 import io.github.timemachinelab.service.model.ImportCategoryPlanModel;
+import io.github.timemachinelab.service.model.UpstreamRequestHeaderModel;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -191,6 +192,9 @@ final class ImportAgentPlanDraftParser {
                 ImportAgentPlannerJsonSupport.hasField(assetNode, "authConfig")
                         ? ImportAgentPlannerJsonSupport.authConfigValue(assetNode.path("authConfig"))
                         : ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getAuthConfig),
+                ImportAgentPlannerJsonSupport.hasField(assetNode, "upstreamRequestHeaders")
+                        ? parseUpstreamRequestHeaders(assetNode.path("upstreamRequestHeaders"))
+                        : ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getUpstreamRequestHeaders),
                 ImportAgentPlannerJsonSupport.hasField(assetNode, "requestTemplate")
                         ? ImportAgentPlannerJsonSupport.textValue(assetNode, "requestTemplate")
                         : ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getRequestTemplate),
@@ -211,6 +215,26 @@ final class ImportAgentPlanDraftParser {
                 ImportAgentPlannerJsonSupport.hasField(assetNode, "aiProfile")
                         ? parseAiProfile(assetNode.path("aiProfile"), ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getAiProfile))
                         : ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getAiProfile));
+    }
+
+    private static List<UpstreamRequestHeaderModel> parseUpstreamRequestHeaders(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            return null;
+        }
+        if (!node.isArray()) {
+            return List.of();
+        }
+        List<UpstreamRequestHeaderModel> headers = new ArrayList<>();
+        for (JsonNode headerNode : node) {
+            if (!headerNode.isObject()) {
+                continue;
+            }
+            headers.add(new UpstreamRequestHeaderModel(
+                    ImportAgentPlannerJsonSupport.textValue(headerNode, "name"),
+                    ImportAgentPlannerJsonSupport.textValue(headerNode, "value")
+            ));
+        }
+        return headers;
     }
 
     private static String requestExampleValue(JsonNode assetNode, ImportAssetPlanModel currentAssetPlan) {

@@ -105,6 +105,7 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     upstreamUrl: string
     authScheme: string
     authConfig: string
+    upstreamRequestHeaders: { name: string; value: string }[]
     requestTemplate: string
     requestExample: string
     responseExample: string
@@ -126,6 +127,7 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     upstreamUrl: '',
     authScheme: '',
     authConfig: '',
+    upstreamRequestHeaders: [],
     requestTemplate: '',
     requestExample: '',
     responseExample: '',
@@ -163,6 +165,11 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
       upstreamUrl: asset?.upstreamUrl ?? '',
       authScheme: asset?.authScheme ?? '',
       authConfig: asset?.authConfig ?? '',
+      upstreamRequestHeaders:
+        asset?.upstreamRequestHeaders?.map((header) => ({
+          name: header.name,
+          value: header.value,
+        })) ?? [],
       requestTemplate: asset?.requestTemplate ?? '',
       requestExample: asset?.requestExample ?? '',
       responseExample: asset?.responseExample ?? '',
@@ -208,6 +215,7 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
       upstreamUrl: updated.upstreamUrl ?? previous.upstreamUrl,
       authScheme: updated.authScheme ?? previous.authScheme,
       authConfig: updated.authConfig ?? previous.authConfig,
+      upstreamRequestHeaders: updated.upstreamRequestHeaders ?? previous.upstreamRequestHeaders,
       requestTemplate: updated.requestTemplate ?? previous.requestTemplate,
       requestExample: updated.requestExample ?? previous.requestExample,
       responseExample: updated.responseExample ?? previous.responseExample,
@@ -452,6 +460,24 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     }
   }
 
+  function buildUpstreamRequestHeaders(): ReviseAssetBody['upstreamRequestHeaders'] {
+    const headers = assetConfigForm.value.upstreamRequestHeaders
+      .map((header) => ({
+        name: header.name.trim(),
+        value: header.value.trim(),
+      }))
+      .filter((header) => header.name || header.value)
+    return headers.length > 0 ? headers : null
+  }
+
+  function addUpstreamRequestHeader() {
+    assetConfigForm.value.upstreamRequestHeaders.push({ name: '', value: '' })
+  }
+
+  function removeUpstreamRequestHeader(index: number) {
+    assetConfigForm.value.upstreamRequestHeaders.splice(index, 1)
+  }
+
   async function handleSaveAssetConfig() {
     if (!currentAsset.value) return
     if (
@@ -472,6 +498,7 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
           upstreamUrl: normalizeOptionalText(assetConfigForm.value.upstreamUrl),
           authScheme: assetConfigForm.value.authScheme || null,
           authConfig: normalizeOptionalText(assetConfigForm.value.authConfig),
+          upstreamRequestHeaders: buildUpstreamRequestHeaders(),
           requestTemplate: normalizeOptionalText(assetConfigForm.value.requestTemplate),
           requestExample: normalizeOptionalText(assetConfigForm.value.requestExample),
           responseExample: normalizeOptionalText(assetConfigForm.value.responseExample),
@@ -538,6 +565,8 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     handleDeleteAsset,
     handleBindAiProfile,
     addAiTag,
+    addUpstreamRequestHeader,
+    removeUpstreamRequestHeader,
     recentAssets,
     assetListItems,
     assetListTotal,

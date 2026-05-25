@@ -4,6 +4,8 @@ import io.github.timemachinelab.domain.catalog.model.AssetType;
 import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 
+import java.util.List;
+
 /**
  * Import asset plan model.
  */
@@ -17,6 +19,7 @@ public class ImportAssetPlanModel {
     private final String upstreamUrl;
     private final AuthScheme authScheme;
     private final String authConfig;
+    private final List<UpstreamRequestHeaderModel> upstreamRequestHeaders;
     private final String requestTemplate;
     private final String requestExample;
     private final String responseExample;
@@ -43,6 +46,45 @@ public class ImportAssetPlanModel {
             boolean publishAfterImport,
             AsyncTaskConfigModel asyncTaskConfig,
             ImportAiProfileModel aiProfile) {
+        this(
+                apiCode,
+                assetName,
+                assetType,
+                categoryCode,
+                requestMethod,
+                upstreamUrl,
+                authScheme,
+                authConfig,
+                null,
+                requestTemplate,
+                requestExample,
+                responseExample,
+                requestJsonSchema,
+                responseJsonSchema,
+                publishAfterImport,
+                asyncTaskConfig,
+                aiProfile
+        );
+    }
+
+    public ImportAssetPlanModel(
+            String apiCode,
+            String assetName,
+            AssetType assetType,
+            String categoryCode,
+            RequestMethod requestMethod,
+            String upstreamUrl,
+            AuthScheme authScheme,
+            String authConfig,
+            List<UpstreamRequestHeaderModel> upstreamRequestHeaders,
+            String requestTemplate,
+            String requestExample,
+            String responseExample,
+            String requestJsonSchema,
+            String responseJsonSchema,
+            boolean publishAfterImport,
+            AsyncTaskConfigModel asyncTaskConfig,
+            ImportAiProfileModel aiProfile) {
         this.apiCode = apiCode;
         this.assetName = assetName;
         this.assetType = assetType;
@@ -51,6 +93,7 @@ public class ImportAssetPlanModel {
         this.upstreamUrl = upstreamUrl;
         this.authScheme = authScheme;
         this.authConfig = authConfig;
+        this.upstreamRequestHeaders = upstreamRequestHeaders == null ? null : List.copyOf(upstreamRequestHeaders);
         this.requestTemplate = requestTemplate;
         this.requestExample = requestExample;
         this.responseExample = responseExample;
@@ -91,6 +134,10 @@ public class ImportAssetPlanModel {
 
     public String getAuthConfig() {
         return authConfig;
+    }
+
+    public List<UpstreamRequestHeaderModel> getUpstreamRequestHeaders() {
+        return upstreamRequestHeaders;
     }
 
     public String getRequestTemplate() {

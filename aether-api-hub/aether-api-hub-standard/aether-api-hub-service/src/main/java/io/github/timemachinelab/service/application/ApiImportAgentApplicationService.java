@@ -37,6 +37,7 @@ import io.github.timemachinelab.service.model.ImportStepResultStatus;
 import io.github.timemachinelab.service.model.RegisterApiAssetCommand;
 import io.github.timemachinelab.service.model.ReviseApiAssetCommand;
 import io.github.timemachinelab.service.model.StartImportAgentRunCommand;
+import io.github.timemachinelab.service.model.UpstreamRequestHeaderModel;
 import io.github.timemachinelab.service.port.in.ApiAssetUseCase;
 import io.github.timemachinelab.service.port.in.ApiImportAgentUseCase;
 import io.github.timemachinelab.service.port.in.CategoryUseCase;
@@ -561,9 +562,17 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                     label = firstText(answer.getFieldKey(), answer.getTargetPath(), "澄清信息");
                 }
             }
-            lines.add("- " + label + "：" + answer.getValue());
+            String answerValue = isUpstreamRequestHeaderValueAnswer(answer) ? "[REDACTED]" : answer.getValue();
+            lines.add("- " + label + "：" + answerValue);
         }
         return String.join("\n", lines);
+    }
+
+    private boolean isUpstreamRequestHeaderValueAnswer(ImportAgentClarificationAnswerModel answer) {
+        return answer != null
+                && "value".equals(answer.getFieldKey())
+                && answer.getTargetPath() != null
+                && answer.getTargetPath().contains("/upstreamRequestHeaders/");
     }
 
     private ImportAgentPlanModel applyClarificationAnswers(
@@ -649,6 +658,10 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                     applyAsyncTaskClarificationAnswer(current.getAsyncTaskConfig(), fieldKey, value)));
             return;
         }
+        if (targetPath.startsWith("/assetPlans/" + assetIndex + "/upstreamRequestHeaders")) {
+            assetPlans.set(assetIndex, copyAssetPlanWithHeaderField(current, targetPath, fieldKey, value));
+            return;
+        }
         assetPlans.set(assetIndex, copyAssetPlanWithField(current, fieldKey, value));
     }
 
@@ -697,6 +710,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 "upstreamUrl".equals(fieldKey) ? value : current.getUpstreamUrl(),
                 "authScheme".equals(fieldKey) ? resolveAuthScheme(value) : current.getAuthScheme(),
                 "authConfig".equals(fieldKey) ? value : current.getAuthConfig(),
+                current.getUpstreamRequestHeaders(),
                 "requestTemplate".equals(fieldKey) ? value : current.getRequestTemplate(),
                 "requestExample".equals(fieldKey) ? value : current.getRequestExample(),
                 "responseExample".equals(fieldKey) ? value : current.getResponseExample(),
@@ -720,6 +734,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 current.getUpstreamUrl(),
                 current.getAuthScheme(),
                 current.getAuthConfig(),
+                current.getUpstreamRequestHeaders(),
                 current.getRequestTemplate(),
                 current.getRequestExample(),
                 current.getResponseExample(),
@@ -729,6 +744,62 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 asyncTaskConfig,
                 current.getAiProfile()
         );
+    }
+
+    private ImportAssetPlanModel copyAssetPlanWithHeaderField(
+            ImportAssetPlanModel current,
+            String targetPath,
+            String fieldKey,
+            String value) {
+        int headerIndex = parseHeaderIndex(targetPath);
+        if (headerIndex < 0) {
+            throw new IllegalArgumentException("Clarification target header does not exist: " + targetPath);
+        }
+        List<UpstreamRequestHeaderModel> headers = new ArrayList<>(
+                current.getUpstreamRequestHeaders() == null ? List.of() : current.getUpstreamRequestHeaders());
+        while (headers.size() <= headerIndex) {
+            headers.add(new UpstreamRequestHeaderModel(null, null));
+        }
+        UpstreamRequestHeaderModel currentHeader = headers.get(headerIndex);
+        headers.set(headerIndex, new UpstreamRequestHeaderModel(
+                "name".equals(fieldKey) ? value : currentHeader.getName(),
+                "value".equals(fieldKey) ? value : currentHeader.getValue()
+        ));
+        return new ImportAssetPlanModel(
+                current.getApiCode(),
+                current.getAssetName(),
+                current.getAssetType(),
+                current.getCategoryCode(),
+                current.getRequestMethod(),
+                current.getUpstreamUrl(),
+                current.getAuthScheme(),
+                current.getAuthConfig(),
+                headers,
+                current.getRequestTemplate(),
+                current.getRequestExample(),
+                current.getResponseExample(),
+                current.getRequestJsonSchema(),
+                current.getResponseJsonSchema(),
+                current.isPublishAfterImport(),
+                current.getAsyncTaskConfig(),
+                current.getAiProfile()
+        );
+    }
+
+    private int parseHeaderIndex(String targetPath) {
+        String marker = "/upstreamRequestHeaders/";
+        int markerIndex = targetPath == null ? -1 : targetPath.indexOf(marker);
+        if (markerIndex < 0) {
+            return -1;
+        }
+        String remainder = targetPath.substring(markerIndex + marker.length());
+        int slashIndex = remainder.indexOf('/');
+        String indexText = slashIndex < 0 ? remainder : remainder.substring(0, slashIndex);
+        try {
+            return Integer.parseInt(indexText);
+        } catch (NumberFormatException ex) {
+            return -1;
+        }
     }
 
     private AsyncTaskConfigModel applyAsyncTaskClarificationAnswer(
@@ -775,6 +846,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 assetPlan.getUpstreamUrl(),
                 assetPlan.getAuthScheme(),
                 assetPlan.getAuthConfig(),
+                assetPlan.getUpstreamRequestHeaders(),
                 assetPlan.getRequestTemplate(),
                 assetPlan.getRequestExample(),
                 assetPlan.getResponseExample(),
@@ -903,6 +975,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                         assetPlan.getRequestJsonSchema(),
                         assetPlan.getResponseJsonSchema(),
                         assetPlan.getAsyncTaskConfig(),
+                        assetPlan.getUpstreamRequestHeaders(),
                         null,
                         null,
                         null
@@ -960,6 +1033,8 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 assetPlan.getAuthScheme() != null,
                 assetPlan.getAuthConfig(),
                 assetPlan.getAuthConfig() != null,
+                assetPlan.getUpstreamRequestHeaders(),
+                assetPlan.getUpstreamRequestHeaders() != null,
                 assetPlan.getRequestTemplate(),
                 assetPlan.getRequestTemplate() != null,
                 assetPlan.getRequestExample(),

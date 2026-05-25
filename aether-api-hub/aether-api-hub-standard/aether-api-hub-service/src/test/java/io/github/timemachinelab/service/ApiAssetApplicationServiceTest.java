@@ -16,6 +16,7 @@ import io.github.timemachinelab.service.model.AttachAiCapabilityProfileCommand;
 import io.github.timemachinelab.service.model.ListApiAssetQuery;
 import io.github.timemachinelab.service.model.RegisterApiAssetCommand;
 import io.github.timemachinelab.service.model.ReviseApiAssetCommand;
+import io.github.timemachinelab.service.model.UpstreamRequestHeaderModel;
 import io.github.timemachinelab.service.port.out.ApiAssetQueryPort;
 import io.github.timemachinelab.service.port.out.ApiAssetRepositoryPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -288,6 +289,161 @@ class ApiAssetApplicationServiceTest {
             assertEquals("$.status", detail.getAsyncTaskConfig().getStatusPath());
             assertEquals("$.result", detail.getAsyncTaskConfig().getResultPath());
             assertEquals("$.error", detail.getAsyncTaskConfig().getErrorPath());
+        }
+
+        @Test
+        @DisplayName("应修订详情并清空上游请求头")
+        void shouldReviseDetailAndClearUpstreamRequestHeaders() {
+            ApiAssetApplicationService lifecycleService = lifecycleService(categoryRef -> true);
+            lifecycleService.registerAsset(new RegisterApiAssetCommand(
+                    CURRENT_USER_ID,
+                    PUBLISHER_DISPLAY_NAME,
+                    "chat-completion",
+                    AssetType.STANDARD_API,
+                    "Chat Completion"));
+
+            ApiAssetModel revised = lifecycleService.reviseAsset(new ReviseApiAssetCommand(
+                    CURRENT_USER_ID,
+                    PUBLISHER_DISPLAY_NAME,
+                    "chat-completion",
+                    "Chat Completion",
+                    true,
+                    AssetType.STANDARD_API,
+                    true,
+                    "tools",
+                    true,
+                    RequestMethod.POST,
+                    true,
+                    "https://upstream.example.com/chat",
+                    true,
+                    AuthScheme.HEADER_TOKEN,
+                    true,
+                    "Authorization: Bearer upstream-token",
+                    true,
+                    List.of(new UpstreamRequestHeaderModel("OpenAI-Beta", "assistants=v2")),
+                    true,
+                    "template",
+                    true,
+                    "{\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}]}",
+                    true,
+                    "{\"choices\":[{\"message\":{\"content\":\"hello\"}}]}",
+                    true,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false
+            ));
+            ApiAssetModel detail = lifecycleService.getAssetByCode(CURRENT_USER_ID, "chat-completion");
+
+            assertEquals("OpenAI-Beta", revised.getUpstreamRequestHeaders().get(0).getName());
+            assertEquals("assistants=v2", detail.getUpstreamRequestHeaders().get(0).getValue());
+
+            ApiAssetModel cleared = lifecycleService.reviseAsset(new ReviseApiAssetCommand(
+                    CURRENT_USER_ID,
+                    PUBLISHER_DISPLAY_NAME,
+                    "chat-completion",
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    true,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    false
+            ));
+
+            assertEquals(null, cleared.getUpstreamRequestHeaders());
+        }
+
+        @Test
+        @DisplayName("修订时应拒绝不安全的上游请求头名称")
+        void shouldRejectUnsafeUpstreamRequestHeaderNamesDuringRevise() {
+            ApiAssetApplicationService lifecycleService = lifecycleService(categoryRef -> true);
+            lifecycleService.registerAsset(new RegisterApiAssetCommand(
+                    CURRENT_USER_ID,
+                    PUBLISHER_DISPLAY_NAME,
+                    "chat-completion",
+                    AssetType.STANDARD_API,
+                    "Chat Completion"));
+
+            AssetDomainException exception = assertThrows(
+                    AssetDomainException.class,
+                    () -> lifecycleService.reviseAsset(new ReviseApiAssetCommand(
+                            CURRENT_USER_ID,
+                            PUBLISHER_DISPLAY_NAME,
+                            "chat-completion",
+                            null,
+                            false,
+                            null,
+                            false,
+                            null,
+                            false,
+                            null,
+                            false,
+                            null,
+                            false,
+                            null,
+                            false,
+                            null,
+                            false,
+                            List.of(new UpstreamRequestHeaderModel("Authorization", "Bearer token")),
+                            true,
+                            null,
+                            false,
+                            null,
+                            false,
+                            null,
+                            false,
+                            null,
+                            false,
+                            null,
+                            false,
+                            null,
+                            false,
+                            null,
+                            false,
+                            null,
+                            false,
+                            null,
+                            false
+                    ))
+            );
+
+            assertTrue(exception.getMessage().contains("reserved"));
         }
 
         @Test

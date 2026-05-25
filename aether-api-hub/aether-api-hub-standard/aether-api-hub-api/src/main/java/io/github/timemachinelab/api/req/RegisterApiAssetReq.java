@@ -2,10 +2,12 @@ package io.github.timemachinelab.api.req;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.timemachinelab.domain.catalog.model.AssetType;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -34,6 +36,10 @@ public class RegisterApiAssetReq {
 
     @JsonProperty("asyncTaskConfig")
     private AsyncTaskConfigReq asyncTaskConfig;
+
+    @Valid
+    @JsonProperty("upstreamRequestHeaders")
+    private List<UpstreamRequestHeaderReq> upstreamRequestHeaders;
 
     @JsonProperty("capabilityExtensions")
     private Map<String, Object> capabilityExtensions;
@@ -99,6 +105,14 @@ public class RegisterApiAssetReq {
 
     public void setAsyncTaskConfig(AsyncTaskConfigReq asyncTaskConfig) {
         this.asyncTaskConfig = asyncTaskConfig;
+    }
+
+    public List<UpstreamRequestHeaderReq> getUpstreamRequestHeaders() {
+        return upstreamRequestHeaders;
+    }
+
+    public void setUpstreamRequestHeaders(List<UpstreamRequestHeaderReq> upstreamRequestHeaders) {
+        this.upstreamRequestHeaders = upstreamRequestHeaders;
     }
 
     public Map<String, Object> getCapabilityExtensions() {

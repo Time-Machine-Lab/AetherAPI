@@ -23,6 +23,8 @@ public class ExtractImportFactsPlanningTool implements ImportAgentPlanningTool {
                             "requestExample", "responseExample"));
                     propertiesNode.set("authHints", ImportAgentPlanningToolSupport.buildNamedObjectArraySchema(objectMapper,
                             "apiCode", "authScheme", "authConfig"));
+                    propertiesNode.set("upstreamHeaderHints", ImportAgentPlanningToolSupport.buildNamedObjectArraySchema(objectMapper,
+                            "apiCode", "name", "value"));
                     propertiesNode.set("asyncHints", ImportAgentPlanningToolSupport.buildNamedObjectArraySchema(objectMapper,
                             "apiCode", "queryMethod", "queryUrlTemplate", "authMode", "authScheme", "authConfig",
                             "statusPath", "resultPath", "errorPath"));

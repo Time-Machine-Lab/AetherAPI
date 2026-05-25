@@ -97,6 +97,11 @@ export interface ImportAsyncTaskConfig {
   errorPath?: string | null
 }
 
+export interface ImportUpstreamRequestHeader {
+  name: string
+  value: string
+}
+
 export interface ImportAgentClarificationOption {
   value: string
   label: string
@@ -133,6 +138,7 @@ export interface ImportAssetPlan {
   upstreamUrl?: string
   authScheme?: string
   authConfig?: string
+  upstreamRequestHeaders?: ImportUpstreamRequestHeader[]
   requestTemplate?: string
   requestExample?: string
   responseExample?: string

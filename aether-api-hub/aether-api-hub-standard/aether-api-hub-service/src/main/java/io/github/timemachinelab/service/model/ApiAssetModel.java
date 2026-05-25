@@ -19,6 +19,7 @@ public class ApiAssetModel {
     private final String upstreamUrl;
     private final String authScheme;
     private final String authConfig;
+    private final List<UpstreamRequestHeaderModel> upstreamRequestHeaders;
     private final String requestTemplate;
     private final String requestExample;
     private final String responseExample;
@@ -246,6 +247,68 @@ public class ApiAssetModel {
         this.upstreamUrl = upstreamUrl;
         this.authScheme = authScheme;
         this.authConfig = authConfig;
+        this.upstreamRequestHeaders = null;
+        this.requestTemplate = requestTemplate;
+        this.requestExample = requestExample;
+        this.responseExample = responseExample;
+        this.requestJsonSchema = requestJsonSchema;
+        this.responseJsonSchema = responseJsonSchema;
+        this.asyncTaskConfig = asyncTaskConfig;
+        this.capabilityExtensions = capabilityExtensions;
+        this.policyExtensions = policyExtensions;
+        this.metadataExtensions = metadataExtensions;
+        this.aiProvider = aiProvider;
+        this.aiModel = aiModel;
+        this.aiStreamingSupported = aiStreamingSupported;
+        this.aiCapabilityTags = aiCapabilityTags;
+        this.deleted = deleted;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    public ApiAssetModel(
+            String id,
+            String apiCode,
+            String assetName,
+            String assetType,
+            String categoryCode,
+            String status,
+            String publisherDisplayName,
+            String publishedAt,
+            String requestMethod,
+            String upstreamUrl,
+            String authScheme,
+            String authConfig,
+            List<UpstreamRequestHeaderModel> upstreamRequestHeaders,
+            String requestTemplate,
+            String requestExample,
+            String responseExample,
+            String requestJsonSchema,
+            String responseJsonSchema,
+            AsyncTaskConfigModel asyncTaskConfig,
+            String capabilityExtensions,
+            String policyExtensions,
+            String metadataExtensions,
+            String aiProvider,
+            String aiModel,
+            Boolean aiStreamingSupported,
+            List<String> aiCapabilityTags,
+            boolean deleted,
+            String createdAt,
+            String updatedAt) {
+        this.id = id;
+        this.apiCode = apiCode;
+        this.assetName = assetName;
+        this.assetType = assetType;
+        this.categoryCode = categoryCode;
+        this.status = status;
+        this.publisherDisplayName = publisherDisplayName;
+        this.publishedAt = publishedAt;
+        this.requestMethod = requestMethod;
+        this.upstreamUrl = upstreamUrl;
+        this.authScheme = authScheme;
+        this.authConfig = authConfig;
+        this.upstreamRequestHeaders = upstreamRequestHeaders == null ? null : List.copyOf(upstreamRequestHeaders);
         this.requestTemplate = requestTemplate;
         this.requestExample = requestExample;
         this.responseExample = responseExample;
@@ -310,6 +373,10 @@ public class ApiAssetModel {
 
     public String getAuthConfig() {
         return authConfig;
+    }
+
+    public List<UpstreamRequestHeaderModel> getUpstreamRequestHeaders() {
+        return upstreamRequestHeaders;
     }
 
     public String getRequestTemplate() {

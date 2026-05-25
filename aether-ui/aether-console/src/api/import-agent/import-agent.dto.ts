@@ -117,6 +117,11 @@ export interface ImportAsyncTaskConfigDto {
   errorPath?: string | null
 }
 
+export interface ImportUpstreamRequestHeaderDto {
+  name: string
+  value: string
+}
+
 export interface ImportCategoryPlanDto {
   categoryCode: string
   categoryName: string
@@ -132,6 +137,7 @@ export interface ImportAssetPlanDto {
   upstreamUrl?: string | null
   authScheme?: string | null
   authConfig?: string | null
+  upstreamRequestHeaders?: ImportUpstreamRequestHeaderDto[] | null
   requestTemplate?: string | null
   requestExample?: string | null
   responseExample?: string | null

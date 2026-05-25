@@ -2,7 +2,7 @@
 import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import { CalendarClock, Folder, Pencil, Plus, Settings, Trash2 } from 'lucide-vue-next'
+import { CalendarClock, Folder, ListChecks, Pencil, Plus, Settings, Trash2 } from 'lucide-vue-next'
 import { useWorkspaceCatalog } from '@/composables/useWorkspaceCatalog'
 import CredentialWorkspace from '@/features/credential/CredentialWorkspace.vue'
 import ApiCallLogWorkspace from '@/features/api-call-log/ApiCallLogWorkspace.vue'
@@ -70,6 +70,8 @@ const {
   handleDeleteAsset,
   handleBindAiProfile,
   addAiTag,
+  addUpstreamRequestHeader,
+  removeUpstreamRequestHeader,
   recentAssets,
   assetListItems,
   assetListTotal,
@@ -259,6 +261,26 @@ function confirmDeleteAsset() {
                 :hint="t('console.shared.platformCallAddressHint')"
                 :value="buildUnifiedAccessAddress(currentAsset.apiCode)"
               />
+              <div
+                v-if="currentAsset.upstreamRequestHeaders?.length"
+                class="rounded-[14px] border border-[rgb(34_34_34_/_0.06)] bg-white px-4 py-3"
+              >
+                <div class="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <ListChecks class="size-4 text-primary" />
+                  <span>{{ t('console.workspace.upstreamHeadersTitle') }}</span>
+                </div>
+                <dl class="mt-3 grid gap-3 text-xs text-muted-foreground sm:grid-cols-2">
+                  <div
+                    v-for="header in currentAsset.upstreamRequestHeaders"
+                    :key="`${header.name}:${header.value}`"
+                  >
+                    <dt class="font-mono">{{ header.name }}</dt>
+                    <dd class="mt-1 break-all font-mono text-xs leading-5 text-foreground">
+                      {{ header.value }}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
               <div class="grid gap-3 lg:grid-cols-2">
                 <JsonSchemaViewer
                   :label="t('console.workspace.requestJsonSchema')"
@@ -615,6 +637,48 @@ function confirmDeleteAsset() {
                   v-model="assetConfigForm.authConfig"
                   :placeholder="t('console.workspace.fieldAuthConfigPlaceholder')"
                 />
+              </div>
+              <div class="space-y-3 md:col-span-2">
+                <div class="flex items-center justify-between gap-3">
+                  <FieldLabel
+                    :label="t('console.workspace.upstreamHeadersTitle')"
+                    :hint="t('console.workspace.upstreamHeadersHint')"
+                    optional
+                  />
+                  <Button type="button" variant="outline" size="sm" @click="addUpstreamRequestHeader">
+                    <Plus class="mr-2 h-4 w-4" />
+                    {{ t('console.workspace.addUpstreamHeader') }}
+                  </Button>
+                </div>
+                <div
+                  v-if="assetConfigForm.upstreamRequestHeaders.length === 0"
+                  class="rounded-[8px] border border-dashed border-[rgb(34_34_34_/_0.12)] px-4 py-3 text-sm text-muted-foreground"
+                >
+                  {{ t('console.workspace.upstreamHeadersEmpty') }}
+                </div>
+                <div
+                  v-for="(header, index) in assetConfigForm.upstreamRequestHeaders"
+                  :key="index"
+                  class="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto]"
+                >
+                  <Input
+                    v-model="header.name"
+                    :placeholder="t('console.workspace.upstreamHeaderNamePlaceholder')"
+                  />
+                  <Input
+                    v-model="header.value"
+                    :placeholder="t('console.workspace.upstreamHeaderValuePlaceholder')"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    :aria-label="t('console.workspace.removeUpstreamHeader')"
+                    @click="removeUpstreamRequestHeader(index)"
+                  >
+                    <Trash2 class="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </FieldGroup>

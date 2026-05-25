@@ -50,6 +50,10 @@ describe('asset api', () => {
         upstreamUrl: 'https://upstream.example.com/weather',
         authScheme: 'HEADER_TOKEN',
         authConfig: 'Authorization: Bearer upstream-token',
+        upstreamRequestHeaders: [
+          { name: 'OpenAI-Beta', value: 'assistants=v2' },
+          { name: 'X-DashScope-Async', value: 'enable' },
+        ],
         requestJsonSchema: '{"type":"object","required":["city"]}',
         responseJsonSchema: '{"type":"object","properties":{"temp":{"type":"number"}}}',
         asyncTaskConfig: {
@@ -85,6 +89,10 @@ describe('asset api', () => {
         upstreamUrl: 'https://upstream.example.com/weather',
         authScheme: 'HEADER_TOKEN',
         authConfig: 'Authorization: Bearer upstream-token',
+        upstreamRequestHeaders: [
+          { name: 'OpenAI-Beta', value: 'assistants=v2' },
+          { name: 'X-DashScope-Async', value: 'enable' },
+        ],
         requestJsonSchema: '{"type":"object","required":["city"]}',
         responseJsonSchema: '{"type":"object","properties":{"temp":{"type":"number"}}}',
         asyncTaskConfig: {
@@ -214,6 +222,7 @@ describe('asset api', () => {
       upstreamUrl: 'https://upstream.example.com/weather',
       authScheme: 'HEADER_TOKEN',
       authConfig: 'Authorization: Bearer upstream-token',
+      upstreamRequestHeaders: [{ name: 'OpenAI-Beta', value: 'assistants=v2' }],
       requestJsonSchema: '{"type":"object","required":["city"]}',
       responseJsonSchema: null,
       asyncTaskConfig: {
@@ -238,6 +247,7 @@ describe('asset api', () => {
       upstreamUrl: 'https://upstream.example.com/weather',
       authScheme: 'HEADER_TOKEN',
       authConfig: 'Authorization: Bearer upstream-token',
+      upstreamRequestHeaders: [{ name: 'OpenAI-Beta', value: 'assistants=v2' }],
       requestTemplate: undefined,
       requestExample: undefined,
       responseExample: undefined,

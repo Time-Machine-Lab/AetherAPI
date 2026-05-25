@@ -5,8 +5,10 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 import io.github.timemachinelab.domain.catalog.model.AssetType;
 import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -44,6 +46,11 @@ public class ReviseApiAssetReq {
     @JsonProperty("authConfig")
     private String authConfig;
     private boolean authConfigSet;
+
+    @Valid
+    @JsonProperty("upstreamRequestHeaders")
+    private List<UpstreamRequestHeaderReq> upstreamRequestHeaders;
+    private boolean upstreamRequestHeadersSet;
 
     @JsonProperty("requestTemplate")
     private String requestTemplate;
@@ -121,6 +128,12 @@ public class ReviseApiAssetReq {
     public void setAuthConfig(String authConfig) {
         this.authConfig = authConfig;
         this.authConfigSet = true;
+    }
+
+    @JsonSetter("upstreamRequestHeaders")
+    public void setUpstreamRequestHeaders(List<UpstreamRequestHeaderReq> upstreamRequestHeaders) {
+        this.upstreamRequestHeaders = upstreamRequestHeaders;
+        this.upstreamRequestHeadersSet = true;
     }
 
     @JsonSetter("requestTemplate")
@@ -231,6 +244,14 @@ public class ReviseApiAssetReq {
 
     public boolean isAuthConfigSet() {
         return authConfigSet;
+    }
+
+    public List<UpstreamRequestHeaderReq> getUpstreamRequestHeaders() {
+        return upstreamRequestHeaders;
+    }
+
+    public boolean isUpstreamRequestHeadersSet() {
+        return upstreamRequestHeadersSet;
     }
 
     public String getRequestTemplate() {

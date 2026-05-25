@@ -5,6 +5,7 @@ import io.github.timemachinelab.service.model.ProxyProfileSnapshotModel;
 import io.github.timemachinelab.service.model.TargetApiSnapshotModel;
 import io.github.timemachinelab.service.model.UnifiedAccessInvocationModel;
 import io.github.timemachinelab.service.model.UnifiedAccessProxyResponseModel;
+import io.github.timemachinelab.service.model.UpstreamRequestHeaderModel;
 import io.github.timemachinelab.service.port.out.UnifiedAccessDownstreamProxyPort;
 import org.apache.hc.client5.http.auth.AuthScope;
 import org.apache.hc.client5.http.auth.StandardAuthScheme;
@@ -283,6 +284,7 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
         );
         request.setConfig(requestConfig);
         applyForwardedHeaders(request, invocation);
+        applyConfiguredHeaders(request, targetApi);
         applyHeaderAuth(request, targetApi);
         byte[] requestBody = invocation.getRequestBody();
         if (requestBody != null && requestBody.length > 0) {
@@ -326,6 +328,7 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
         URI uri = buildUri(targetApi, invocation.getQueryParameters());
         HttpRequest.Builder builder = HttpRequest.newBuilder(uri).timeout(resolveRequestTimeout(targetApi));
         applyForwardedHeaders(builder, invocation);
+        applyConfiguredHeaders(builder, targetApi);
         applyHeaderAuth(builder, targetApi);
         return builder.method(resolveOutgoingMethod(invocation), bodyPublisher(invocation.getRequestBody())).build();
     }
@@ -372,12 +375,12 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
             if (!shouldForwardRequestHeader(entry.getKey())) {
                 continue;
             }
-            for (String value : entry.getValue()) {
+            for (String value : uniqueHeaderValues(entry.getValue())) {
                 builder.header(entry.getKey(), value);
             }
         }
         if (invocation.getContentType() != null && !invocation.getContentType().isBlank()) {
-            builder.header("Content-Type", invocation.getContentType());
+            builder.setHeader("Content-Type", invocation.getContentType());
         }
     }
 
@@ -386,12 +389,36 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
             if (!shouldForwardRequestHeader(entry.getKey())) {
                 continue;
             }
-            for (String value : entry.getValue()) {
+            for (String value : uniqueHeaderValues(entry.getValue())) {
                 request.addHeader(entry.getKey(), value);
             }
         }
         if (invocation.getContentType() != null && !invocation.getContentType().isBlank()) {
             request.setHeader("Content-Type", invocation.getContentType());
+        }
+    }
+
+    private void applyConfiguredHeaders(HttpRequest.Builder builder, TargetApiSnapshotModel targetApi) {
+        if (targetApi.getUpstreamRequestHeaders() == null) {
+            return;
+        }
+        for (UpstreamRequestHeaderModel header : targetApi.getUpstreamRequestHeaders()) {
+            if (header == null || !shouldForwardRequestHeader(header.getName()) || !isForwardableRequestHeaderValue(header.getValue())) {
+                continue;
+            }
+            builder.setHeader(header.getName(), header.getValue());
+        }
+    }
+
+    private void applyConfiguredHeaders(HttpUriRequestBase request, TargetApiSnapshotModel targetApi) {
+        if (targetApi.getUpstreamRequestHeaders() == null) {
+            return;
+        }
+        for (UpstreamRequestHeaderModel header : targetApi.getUpstreamRequestHeaders()) {
+            if (header == null || !shouldForwardRequestHeader(header.getName()) || !isForwardableRequestHeaderValue(header.getValue())) {
+                continue;
+            }
+            request.setHeader(header.getName(), header.getValue());
         }
     }
 
@@ -501,7 +528,22 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
         String normalized = headerName.toLowerCase(Locale.ROOT);
         return !HOP_BY_HOP_HEADERS.contains(normalized)
                 && !normalized.startsWith("x-aether-")
-                && !"authorization".equals(normalized);
+                && !"authorization".equals(normalized)
+                && !"content-type".equals(normalized);
+    }
+
+    private List<String> uniqueHeaderValues(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return List.of();
+        }
+        List<String> unique = new ArrayList<>();
+        for (String value : values) {
+            if (value == null || unique.contains(value)) {
+                continue;
+            }
+            unique.add(value);
+        }
+        return unique;
     }
 
     private Map<String, List<String>> toHeaderMap(ClassicHttpResponse response) {
@@ -576,6 +618,10 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
         return true;
     }
 
+    private boolean isForwardableRequestHeaderValue(String headerValue) {
+        return isForwardableResponseHeaderValue(headerValue);
+    }
+
     private void logDroppedResponseHeader(String headerName) {
         log.log(
                 System.Logger.Level.WARNING,
@@ -635,6 +681,13 @@ public class JdkUnifiedAccessDownstreamProxyPort implements UnifiedAccessDownstr
             if (isSensitiveHeader(entry.getKey())) {
                 for (String value : entry.getValue()) {
                     sanitized = redactValue(sanitized, value);
+                }
+            }
+        }
+        if (invocation.getTargetApi().getUpstreamRequestHeaders() != null) {
+            for (UpstreamRequestHeaderModel header : invocation.getTargetApi().getUpstreamRequestHeaders()) {
+                if (header != null) {
+                    sanitized = redactValue(sanitized, header.getValue());
                 }
             }
         }

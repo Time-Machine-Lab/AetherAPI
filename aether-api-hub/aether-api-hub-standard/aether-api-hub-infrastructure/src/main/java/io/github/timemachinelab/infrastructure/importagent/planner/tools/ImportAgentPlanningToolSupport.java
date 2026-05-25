@@ -98,7 +98,10 @@ final class ImportAgentPlanningToolSupport {
             assetProperties.set("requestMethod", enumStringSchema(objectMapper, null, "GET", "POST", "PUT", "PATCH", "DELETE"));
             assetProperties.set("upstreamUrl", stringSchema(objectMapper));
             assetProperties.set("authScheme", enumStringSchema(objectMapper, "上游认证方案。", "NONE", "HEADER_TOKEN", "QUERY_TOKEN"));
-            assetProperties.set("authConfig", stringSchema(objectMapper, "当 authScheme 不是 NONE 时填写上游认证配置。", null));
+            assetProperties.set("authConfig", stringSchema(objectMapper,
+                    "当 authScheme 不是 NONE 时填写上游认证配置，必须是后端可直接消费的纯字符串；HEADER_TOKEN 示例：Authorization: Bearer token；QUERY_TOKEN 示例：access_token=token；不要填写 JSON 对象或 JSON 字符串。",
+                    null));
+            assetProperties.set("upstreamRequestHeaders", buildUpstreamRequestHeaderArraySchema(objectMapper));
             assetProperties.set("requestTemplate", stringSchema(objectMapper));
             assetProperties.set("requestExample", stringSchema(objectMapper));
             assetProperties.set("responseExample", stringSchema(objectMapper));
@@ -122,13 +125,29 @@ final class ImportAgentPlanningToolSupport {
                     ".*\\{taskId\\}.*"));
             asyncTaskProperties.set("authMode", enumStringSchema(objectMapper, null, "SAME_AS_SUBMIT", "OVERRIDE"));
             asyncTaskProperties.set("authScheme", enumStringSchema(objectMapper, "异步查询认证方案。", "NONE", "HEADER_TOKEN", "QUERY_TOKEN"));
-            asyncTaskProperties.set("authConfig", stringSchema(objectMapper, "当 authMode 为 OVERRIDE 时填写异步查询认证配置。", null));
+            asyncTaskProperties.set("authConfig", stringSchema(objectMapper,
+                    "当 authMode 为 OVERRIDE 时填写异步查询认证配置，必须是后端可直接消费的纯字符串；HEADER_TOKEN 示例：Authorization: Bearer token；QUERY_TOKEN 示例：access_token=token；不要填写 JSON 对象或 JSON 字符串。",
+                    null));
             asyncTaskProperties.set("statusPath", stringSchema(objectMapper));
             asyncTaskProperties.set("resultPath", stringSchema(objectMapper));
             asyncTaskProperties.set("errorPath", stringSchema(objectMapper));
         });
         asyncTaskConfig.put("description", "提交后查询类 API 的异步任务查询配置。");
         return asyncTaskConfig;
+    }
+
+    static ObjectNode buildUpstreamRequestHeaderArraySchema(ObjectMapper objectMapper) {
+        ObjectNode headerSchema = strictObjectSchema(objectMapper, headerProperties -> {
+            headerProperties.set("name", stringSchema(objectMapper,
+                    "固定发送给上游的非认证请求头名称。不要填写 Authorization、Content-Type、Host、Content-Length、X-Aether-* 或 hop-by-hop 头。",
+                    null));
+            headerProperties.set("value", stringSchema(objectMapper,
+                    "固定发送给上游的请求头值。缺失或不确定时保持计划不可执行并请求澄清。",
+                    null));
+        }, "name", "value");
+        ObjectNode arraySchema = arraySchema(objectMapper, headerSchema);
+        arraySchema.put("description", "固定发送给上游的非认证请求头列表。不要把这些头写入 authConfig。");
+        return arraySchema;
     }
 
     static ObjectNode buildAiProfileSchema(ObjectMapper objectMapper) {

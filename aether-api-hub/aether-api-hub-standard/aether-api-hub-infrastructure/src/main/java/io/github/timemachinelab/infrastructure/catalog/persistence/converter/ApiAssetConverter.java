@@ -13,6 +13,7 @@ import io.github.timemachinelab.domain.catalog.model.CategoryRef;
 import io.github.timemachinelab.domain.catalog.model.ExampleSnapshot;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 import io.github.timemachinelab.domain.catalog.model.UpstreamEndpointConfig;
+import io.github.timemachinelab.domain.catalog.model.UpstreamRequestHeader;
 import io.github.timemachinelab.infrastructure.catalog.persistence.entity.ApiAssetDo;
 
 import java.time.LocalDateTime;
@@ -50,7 +51,8 @@ public final class ApiAssetConverter {
                         source.getRequestMethod() == null ? null : RequestMethod.valueOf(source.getRequestMethod()),
                         source.getUpstreamUrl(),
                         source.getAuthScheme() == null ? null : AuthScheme.valueOf(source.getAuthScheme()),
-                        source.getAuthConfig()
+                        source.getAuthConfig(),
+                        toUpstreamRequestHeaders(source.getUpstreamRequestHeaders())
                 ),
                 source.getRequestTemplate(),
                 ExampleSnapshot.of(source.getRequestExample(), source.getResponseExample()),
@@ -103,6 +105,9 @@ public final class ApiAssetConverter {
                 ? null
                 : source.getUpstreamConfig().getAuthScheme().name());
         target.setAuthConfig(source.getUpstreamConfig() == null ? null : source.getUpstreamConfig().getAuthConfig());
+        target.setUpstreamRequestHeaders(source.getUpstreamConfig() == null
+                ? null
+                : serializeUpstreamRequestHeaders(source.getUpstreamConfig().getUpstreamRequestHeaders()));
         target.setRequestTemplate(source.getRequestTemplate());
         target.setRequestExample(source.getExampleSnapshot() == null ? null : source.getExampleSnapshot().getRequestExample());
         target.setResponseExample(source.getExampleSnapshot() == null ? null : source.getExampleSnapshot().getResponseExample());
@@ -176,6 +181,45 @@ public final class ApiAssetConverter {
         appendJsonString(builder, "errorPath", config.getErrorPath());
         builder.append('}');
         return builder.toString();
+    }
+
+    private static List<UpstreamRequestHeader> toUpstreamRequestHeaders(String json) {
+        List<UpstreamRequestHeader> result = new ArrayList<>();
+        if (json == null || json.isBlank()) {
+            return result;
+        }
+        Matcher objectMatcher = Pattern.compile("\\{([^{}]*)}").matcher(json);
+        while (objectMatcher.find()) {
+            String objectJson = objectMatcher.group();
+            String name = extractJsonString(objectJson, "name");
+            String value = extractJsonString(objectJson, "value");
+            if (name != null || value != null) {
+                result.add(UpstreamRequestHeader.of(name, value));
+            }
+        }
+        return result;
+    }
+
+    private static String serializeUpstreamRequestHeaders(List<UpstreamRequestHeader> headers) {
+        if (headers == null || headers.isEmpty()) {
+            return null;
+        }
+        StringBuilder builder = new StringBuilder("[");
+        for (UpstreamRequestHeader header : headers) {
+            if (header == null) {
+                continue;
+            }
+            if (builder.length() > 1) {
+                builder.append(',');
+            }
+            StringBuilder objectBuilder = new StringBuilder("{");
+            appendJsonString(objectBuilder, "name", header.getName());
+            appendJsonString(objectBuilder, "value", header.getValue());
+            objectBuilder.append('}');
+            builder.append(objectBuilder);
+        }
+        builder.append(']');
+        return builder.length() == 2 ? null : builder.toString();
     }
 
     private static void appendJsonBoolean(StringBuilder builder, String fieldName, boolean value) {

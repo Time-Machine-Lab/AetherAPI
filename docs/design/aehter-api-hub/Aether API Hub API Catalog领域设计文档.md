@@ -191,6 +191,18 @@ API Catalog 仍然只拥有 API 资产主数据，不拥有平台任务生命周
 
 当 `async_task_config` 为空时，该资产保持同步/普通 Unified Access 行为。配置不完整时，Unified Access 不应向上游发起任务查询。API Catalog 不记录提交过的任务、不维护 taskId 归属、不提供当前用户任务列表；这些能力如果后续需要，应进入独立的平台任务中心设计。
 
+## 11.1 上游固定请求头配置补充
+
+API Catalog 可以在 API 资产主数据中维护一组可空的 `upstream_request_headers`，用于表达调用上游时必须稳定携带、但不属于认证语义的固定请求头，例如上游版本选择、Beta 能力开关或租户路由提示。
+
+该配置必须与三类头信息保持边界清晰：
+
+- `auth_config` 继续只表达上游认证配置，例如 `HEADER_TOKEN` 或 `QUERY_TOKEN`，不承载非认证固定请求头。
+- `upstream_request_headers` 只表达资产所有者配置的固定上游请求头，并且不允许覆盖 `Authorization`、`Content-Type`、`Host`、`Content-Length`、`X-Aether-*` 或 hop-by-hop 头。
+- 调用方请求头由 Unified Access 在运行时按透传规则过滤后处理，不写回 API Catalog 主数据。
+
+`upstream_request_headers` 属于 owner-scoped 执行配置，只在资产所有者管理接口中可读写；Discovery 与市场浏览接口不得暴露该配置。异步任务查询默认不继承提交接口的固定请求头，除非后续在异步任务配置中显式建模查询专用请求头或继承策略。
+
 ## 12. 资产扩展块补充
 
 API Catalog 当前仍以现有一等字段维护 API 资产的主数据与生命周期。为了降低未来新增平台一等能力时对顶层字段、接口 DTO 和持久化模型的扩散式修改成本，`api_asset` 额外预留三类可空扩展块：
@@ -215,6 +227,8 @@ API Catalog 仍然是 API 资产主数据与生命周期的唯一权威领域，
 - Planner 只负责把用户输入、文档来源和补充约束整理成结构化导入计划快照，不能直接创建分类、资产、AI 档案或发布动作。
 - Executor 只接受已显式确认的计划版本，并且必须复用现有 `CategoryUseCase`、`ApiAssetUseCase` 等确定性应用服务执行真实写操作。
 - Discovery 与 Unified Access 继续只消费 API Catalog 的既有发布结果，不暴露 Import Agent 的会话、计划版本或执行批次元数据。
+
+当导入计划识别到上游固定请求头时，Planner 必须将其放入 `assetPlans[].upstreamRequestHeaders` 的结构化 `name` / `value` 条目中，而不是写入 `authConfig`、示例请求或扩展块。缺失或不确定的请求头值应进入结构化澄清项；受保护请求头名称不得进入可执行计划。Executor 在确认执行时仍通过 API Catalog 的资产创建或修订用例写入这些请求头。
 
 因此，Import Agent 自身不是新的资产主模型，而是一层受控的编排投影：
 
