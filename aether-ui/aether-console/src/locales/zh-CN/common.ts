@@ -269,7 +269,8 @@ export default {
       fieldAuthConfigPlaceholder: 'Authorization: Bearer token 或 access_token=token',
       fieldAuthConfigHint: 'HEADER_TOKEN 和 QUERY_TOKEN 必填；NONE 可留空。',
       upstreamHeadersTitle: '上游固定请求头',
-      upstreamHeadersHint: '随资产固定发送到上游，不用于 Authorization、Content-Type 或 X-Aether-*。',
+      upstreamHeadersHint:
+        '随资产固定发送到上游，不用于 Authorization、Content-Type 或 X-Aether-*。',
       upstreamHeadersEmpty: '尚未配置额外上游请求头。',
       addUpstreamHeader: '添加请求头',
       removeUpstreamHeader: '移除请求头',

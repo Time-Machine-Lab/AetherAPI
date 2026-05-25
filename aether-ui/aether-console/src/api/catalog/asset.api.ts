@@ -43,7 +43,9 @@ function mapAsyncTaskConfig(dto?: AsyncTaskConfigDto | null): AsyncTaskConfig | 
   }
 }
 
-function mapUpstreamRequestHeaders(dto?: AssetDto['upstreamRequestHeaders']): ApiAsset['upstreamRequestHeaders'] {
+function mapUpstreamRequestHeaders(
+  dto?: AssetDto['upstreamRequestHeaders'],
+): ApiAsset['upstreamRequestHeaders'] {
   if (!dto || dto.length === 0) {
     return undefined
   }

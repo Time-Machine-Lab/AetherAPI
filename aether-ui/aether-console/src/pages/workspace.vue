@@ -645,7 +645,12 @@ function confirmDeleteAsset() {
                     :hint="t('console.workspace.upstreamHeadersHint')"
                     optional
                   />
-                  <Button type="button" variant="outline" size="sm" @click="addUpstreamRequestHeader">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    @click="addUpstreamRequestHeader"
+                  >
                     <Plus class="mr-2 h-4 w-4" />
                     {{ t('console.workspace.addUpstreamHeader') }}
                   </Button>
