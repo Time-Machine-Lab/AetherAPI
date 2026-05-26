@@ -389,7 +389,9 @@ describe('ImportAgentWorkspace', () => {
     )
     const schemaWrapper = mountWorkspace(schemaWorkspace)
 
-    expect(schemaWrapper.text()).toContain('console.workspace.fieldAsyncTaskQueryResponseJsonSchema')
+    expect(schemaWrapper.text()).toContain(
+      'console.workspace.fieldAsyncTaskQueryResponseJsonSchema',
+    )
     expect(schemaWrapper.text()).toContain('{"type":"object"}')
     expect(schemaWrapper.text()).not.toContain('statusPath')
     expect(schemaWrapper.text()).not.toContain('resultPath')
