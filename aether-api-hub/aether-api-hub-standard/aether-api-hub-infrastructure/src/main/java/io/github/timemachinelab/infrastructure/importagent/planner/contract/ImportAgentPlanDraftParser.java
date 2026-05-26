@@ -6,9 +6,11 @@ import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
 import io.github.timemachinelab.service.model.ImportAiProfileModel;
+import io.github.timemachinelab.service.model.ImportAssetPlanAction;
 import io.github.timemachinelab.service.model.ImportAssetPlanModel;
 import io.github.timemachinelab.service.model.ImportCategoryPlanAction;
 import io.github.timemachinelab.service.model.ImportCategoryPlanModel;
+import io.github.timemachinelab.service.model.ImportExistingAssetSummaryModel;
 import io.github.timemachinelab.service.model.UpstreamRequestHeaderModel;
 
 import java.util.ArrayList;
@@ -168,9 +170,15 @@ final class ImportAgentPlanDraftParser {
 
     private static ImportAssetPlanModel mergeAssetPlan(JsonNode assetNode, ImportAssetPlanModel currentAssetPlan) {
         return new ImportAssetPlanModel(
+                ImportAgentPlannerJsonSupport.hasField(assetNode, "action")
+                        ? ImportAgentPlannerJsonSupport.enumValue(ImportAssetPlanAction.class, ImportAgentPlannerJsonSupport.textValue(assetNode, "action"), null)
+                        : ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getAction),
                 ImportAgentPlannerJsonSupport.hasField(assetNode, "apiCode")
                         ? ImportAgentPlannerJsonSupport.textValue(assetNode, "apiCode")
                         : ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getApiCode),
+                ImportAgentPlannerJsonSupport.hasField(assetNode, "matchedExistingAsset")
+                        ? parseExistingAssetSummary(assetNode.path("matchedExistingAsset"))
+                        : ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getMatchedExistingAsset),
                 ImportAgentPlannerJsonSupport.hasField(assetNode, "assetName")
                         ? ImportAgentPlannerJsonSupport.textValue(assetNode, "assetName")
                         : ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getAssetName),
@@ -209,12 +217,35 @@ final class ImportAgentPlanDraftParser {
                 ImportAgentPlannerJsonSupport.hasField(assetNode, "publishAfterImport")
                         ? assetNode.path("publishAfterImport").asBoolean(false)
                         : ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::isPublishAfterImport, false),
+                ImportAgentPlannerJsonSupport.hasField(assetNode, "changedFields")
+                        ? parseStringArray(assetNode, "changedFields")
+                        : ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getChangedFields),
                 ImportAgentPlannerJsonSupport.hasField(assetNode, "asyncTaskConfig")
                         ? parseAsyncTaskConfig(assetNode.path("asyncTaskConfig"), ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getAsyncTaskConfig))
                         : ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getAsyncTaskConfig),
                 ImportAgentPlannerJsonSupport.hasField(assetNode, "aiProfile")
                         ? parseAiProfile(assetNode.path("aiProfile"), ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getAiProfile))
                         : ImportAgentPlannerJsonSupport.currentValue(currentAssetPlan, ImportAssetPlanModel::getAiProfile));
+    }
+
+    private static ImportExistingAssetSummaryModel parseExistingAssetSummary(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull() || !node.isObject()) {
+            return null;
+        }
+        return new ImportExistingAssetSummaryModel(
+                ImportAgentPlannerJsonSupport.textValue(node, "apiCode"),
+                ImportAgentPlannerJsonSupport.textValue(node, "assetName"),
+                ImportAgentPlannerJsonSupport.textValue(node, "assetType"),
+                ImportAgentPlannerJsonSupport.textValue(node, "categoryCode"),
+                ImportAgentPlannerJsonSupport.textValue(node, "status"),
+                ImportAgentPlannerJsonSupport.textValue(node, "requestMethod"),
+                ImportAgentPlannerJsonSupport.textValue(node, "upstreamUrl"),
+                ImportAgentPlannerJsonSupport.textValue(node, "authScheme"),
+                node.path("authConfigured").asBoolean(false),
+                node.path("asyncTaskConfigured").asBoolean(false),
+                node.path("aiProfileConfigured").asBoolean(false),
+                ImportAgentPlannerJsonSupport.textValue(node, "updatedAt")
+        );
     }
 
     private static List<UpstreamRequestHeaderModel> parseUpstreamRequestHeaders(JsonNode node) {
@@ -267,9 +298,7 @@ final class ImportAgentPlanDraftParser {
                 ImportAgentPlannerJsonSupport.hasField(node, "authMode") ? ImportAgentPlannerJsonSupport.textValue(node, "authMode") : ImportAgentPlannerJsonSupport.currentValue(current, AsyncTaskConfigModel::getAuthMode),
                 ImportAgentPlannerJsonSupport.hasField(node, "authScheme") ? ImportAgentPlannerJsonSupport.textValue(node, "authScheme") : ImportAgentPlannerJsonSupport.currentValue(current, AsyncTaskConfigModel::getAuthScheme),
                 ImportAgentPlannerJsonSupport.hasField(node, "authConfig") ? ImportAgentPlannerJsonSupport.authConfigValue(node.path("authConfig")) : ImportAgentPlannerJsonSupport.currentValue(current, AsyncTaskConfigModel::getAuthConfig),
-                ImportAgentPlannerJsonSupport.hasField(node, "statusPath") ? ImportAgentPlannerJsonSupport.textValue(node, "statusPath") : ImportAgentPlannerJsonSupport.currentValue(current, AsyncTaskConfigModel::getStatusPath),
-                ImportAgentPlannerJsonSupport.hasField(node, "resultPath") ? ImportAgentPlannerJsonSupport.textValue(node, "resultPath") : ImportAgentPlannerJsonSupport.currentValue(current, AsyncTaskConfigModel::getResultPath),
-                ImportAgentPlannerJsonSupport.hasField(node, "errorPath") ? ImportAgentPlannerJsonSupport.textValue(node, "errorPath") : ImportAgentPlannerJsonSupport.currentValue(current, AsyncTaskConfigModel::getErrorPath)));
+                ImportAgentPlannerJsonSupport.schemaValue(node, ImportAgentPlannerJsonSupport.currentValue(current, AsyncTaskConfigModel::getQueryResponseJsonSchema), "queryResponseJsonSchema", "taskResponseJsonSchema", "taskQueryResponseSchema")));
     }
 
     private static ImportAiProfileModel parseAiProfile(JsonNode node, ImportAiProfileModel currentAiProfile) {

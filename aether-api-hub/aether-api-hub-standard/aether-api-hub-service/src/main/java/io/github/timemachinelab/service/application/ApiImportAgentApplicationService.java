@@ -8,7 +8,9 @@ import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 import io.github.timemachinelab.service.model.ApiImportAgentRunModel;
 import io.github.timemachinelab.service.model.ApiImportAgentSessionModel;
+import io.github.timemachinelab.service.model.ApiAssetPageResult;
 import io.github.timemachinelab.service.model.ApiAssetModel;
+import io.github.timemachinelab.service.model.ApiAssetSummaryModel;
 import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
 import io.github.timemachinelab.service.model.AppendImportAgentTurnCommand;
 import io.github.timemachinelab.service.model.AttachAiCapabilityProfileCommand;
@@ -29,11 +31,14 @@ import io.github.timemachinelab.service.model.ImportAgentStepType;
 import io.github.timemachinelab.service.model.ImportAgentTurnModel;
 import io.github.timemachinelab.service.model.ImportAgentClarificationAnswerModel;
 import io.github.timemachinelab.service.model.ImportAgentClarificationItemModel;
+import io.github.timemachinelab.service.model.ImportAssetPlanAction;
 import io.github.timemachinelab.service.model.ImportAssetPlanModel;
 import io.github.timemachinelab.service.model.ImportCategoryPlanAction;
 import io.github.timemachinelab.service.model.ImportCategoryPlanModel;
+import io.github.timemachinelab.service.model.ImportExistingAssetSummaryModel;
 import io.github.timemachinelab.service.model.ImportStepResultModel;
 import io.github.timemachinelab.service.model.ImportStepResultStatus;
+import io.github.timemachinelab.service.model.ListApiAssetQuery;
 import io.github.timemachinelab.service.model.RegisterApiAssetCommand;
 import io.github.timemachinelab.service.model.ReviseApiAssetCommand;
 import io.github.timemachinelab.service.model.StartImportAgentRunCommand;
@@ -116,10 +121,12 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 null,
                 1,
                 List.of(userTurn),
-                loadEnabledCategoryCandidates(stream)
+                loadEnabledCategoryCandidates(stream),
+                loadExistingAssetCandidates(ownerUserId, stream),
+                loadTargetExistingAssets(ownerUserId, initialMessage, null, stream)
         );
         ImportAgentPlannerResult plannerResult = plannerPort.plan(plannerRequest, stream);
-        ImportAgentPlanModel plan = plannerResult.getPlan();
+        ImportAgentPlanModel plan = enrichPlanWithExistingAssets(plannerResult.getPlan(), plannerRequest.getTargetExistingAssets());
         String agentMessage = resolveAgentMessage(
                 plannerRequest,
                 plan,
@@ -216,10 +223,12 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 refinedCurrentPlan,
                 nextPlanVersion,
                 plannerTurns,
-                loadEnabledCategoryCandidates(stream)
+                loadEnabledCategoryCandidates(stream),
+                loadExistingAssetCandidates(session.getOwnerUserId(), stream),
+                loadTargetExistingAssets(session.getOwnerUserId(), message, refinedCurrentPlan, stream)
         );
         ImportAgentPlannerResult plannerResult = plannerPort.plan(plannerRequest, stream);
-        ImportAgentPlanModel newPlan = plannerResult.getPlan();
+        ImportAgentPlanModel newPlan = enrichPlanWithExistingAssets(plannerResult.getPlan(), plannerRequest.getTargetExistingAssets());
         String agentMessage = resolveAgentMessage(
                 plannerRequest,
                 newPlan,
@@ -281,6 +290,170 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
             }
             return List.of();
         }
+    }
+
+    private List<ImportExistingAssetSummaryModel> loadExistingAssetCandidates(String ownerUserId, ImportAgentStreamEmitter stream) {
+        try {
+            ApiAssetPageResult pageResult = apiAssetUseCase.listAssets(new ListApiAssetQuery(ownerUserId, null, null, null, 1, 100));
+            if (pageResult == null || pageResult.getItems() == null || pageResult.getItems().isEmpty()) {
+                return List.of();
+            }
+            List<ImportExistingAssetSummaryModel> candidates = new ArrayList<>();
+            for (ApiAssetSummaryModel asset : pageResult.getItems()) {
+                if (asset == null || asset.getApiCode() == null || asset.getApiCode().isBlank()) {
+                    continue;
+                }
+                candidates.add(new ImportExistingAssetSummaryModel(
+                        asset.getApiCode(),
+                        asset.getAssetName(),
+                        asset.getAssetType(),
+                        asset.getCategoryCode(),
+                        asset.getStatus(),
+                        null,
+                        null,
+                        null,
+                        false,
+                        asset.isAsyncTaskQueryEnabled(),
+                        false,
+                        asset.getUpdatedAt()
+                ));
+            }
+            return List.copyOf(candidates);
+        } catch (RuntimeException ex) {
+            if (stream != null) {
+                stream.thinking("asset_candidates", "Asset candidates unavailable",
+                        "Unable to load current-user asset candidates; planning will continue and ask for clarification if needed.");
+            }
+            return List.of();
+        }
+    }
+
+    private List<ImportExistingAssetSummaryModel> loadTargetExistingAssets(
+            String ownerUserId,
+            String latestMessage,
+            ImportAgentPlanModel currentPlan,
+            ImportAgentStreamEmitter stream) {
+        LinkedHashSet<String> candidateCodes = new LinkedHashSet<>();
+        if (currentPlan != null) {
+            for (ImportAssetPlanModel assetPlan : currentPlan.getAssetPlans()) {
+                if (assetPlan != null && hasText(assetPlan.getApiCode())) {
+                    candidateCodes.add(assetPlan.getApiCode().trim());
+                }
+            }
+        }
+        for (ImportExistingAssetSummaryModel candidate : loadExistingAssetCandidates(ownerUserId, null)) {
+            if (candidate != null
+                    && hasText(candidate.getApiCode())
+                    && latestMessage != null
+                    && latestMessage.contains(candidate.getApiCode())) {
+                candidateCodes.add(candidate.getApiCode());
+            }
+        }
+        if (candidateCodes.isEmpty()) {
+            return List.of();
+        }
+        List<ImportExistingAssetSummaryModel> targets = new ArrayList<>();
+        for (String apiCode : candidateCodes) {
+            try {
+                ImportExistingAssetSummaryModel target = toSafeExistingAssetSummary(apiAssetUseCase.getAssetByCode(ownerUserId, apiCode));
+                if (target != null) {
+                    targets.add(target);
+                }
+            } catch (RuntimeException ex) {
+                if (stream != null) {
+                    stream.thinking("asset_detail", "Target asset detail skipped",
+                            "A target API code could not be loaded for the current user; its asset context was skipped.");
+                }
+            }
+        }
+        return List.copyOf(targets);
+    }
+
+    private ImportExistingAssetSummaryModel toSafeExistingAssetSummary(ApiAssetModel asset) {
+        if (asset == null) {
+            return null;
+        }
+        return new ImportExistingAssetSummaryModel(
+                asset.getApiCode(),
+                asset.getAssetName(),
+                asset.getAssetType(),
+                asset.getCategoryCode(),
+                asset.getStatus(),
+                asset.getRequestMethod(),
+                asset.getUpstreamUrl(),
+                asset.getAuthScheme(),
+                hasText(asset.getAuthConfig()),
+                asset.getAsyncTaskConfig() != null && Boolean.TRUE.equals(asset.getAsyncTaskConfig().getEnabled()),
+                hasText(asset.getAiProvider()) || hasText(asset.getAiModel()),
+                asset.getUpdatedAt()
+        );
+    }
+
+    private ImportAgentPlanModel enrichPlanWithExistingAssets(
+            ImportAgentPlanModel plan,
+            List<ImportExistingAssetSummaryModel> targetExistingAssets) {
+        if (plan == null || targetExistingAssets == null || targetExistingAssets.isEmpty()) {
+            return plan;
+        }
+        List<ImportAssetPlanModel> enrichedAssets = new ArrayList<>();
+        for (ImportAssetPlanModel assetPlan : plan.getAssetPlans()) {
+            enrichedAssets.add(copyAssetPlanWithMatchedExistingAsset(
+                    assetPlan,
+                    findExistingAssetSummary(targetExistingAssets, assetPlan.getApiCode())));
+        }
+        return new ImportAgentPlanModel(
+                plan.getVersion(),
+                plan.isExecutable(),
+                plan.getSummary(),
+                plan.getClarificationQuestions(),
+                plan.getClarificationItems(),
+                plan.getCategoryPlans(),
+                enrichedAssets
+        );
+    }
+
+    private ImportExistingAssetSummaryModel findExistingAssetSummary(
+            List<ImportExistingAssetSummaryModel> targetExistingAssets,
+            String apiCode) {
+        if (!hasText(apiCode)) {
+            return null;
+        }
+        for (ImportExistingAssetSummaryModel target : targetExistingAssets) {
+            if (target != null && apiCode.equals(target.getApiCode())) {
+                return target;
+            }
+        }
+        return null;
+    }
+
+    private ImportAssetPlanModel copyAssetPlanWithMatchedExistingAsset(
+            ImportAssetPlanModel current,
+            ImportExistingAssetSummaryModel matchedExistingAsset) {
+        if (current == null || matchedExistingAsset == null) {
+            return current;
+        }
+        return new ImportAssetPlanModel(
+                current.getAction(),
+                current.getApiCode(),
+                matchedExistingAsset,
+                current.getAssetName(),
+                current.getAssetType(),
+                current.getCategoryCode(),
+                current.getRequestMethod(),
+                current.getUpstreamUrl(),
+                current.getAuthScheme(),
+                current.getAuthConfig(),
+                current.getUpstreamRequestHeaders(),
+                current.getRequestTemplate(),
+                current.getRequestExample(),
+                current.getResponseExample(),
+                current.getRequestJsonSchema(),
+                current.getResponseJsonSchema(),
+                current.isPublishAfterImport(),
+                current.getChangedFields(),
+                current.getAsyncTaskConfig(),
+                current.getAiProfile()
+        );
     }
 
     private String resolveAgentMessage(
@@ -702,7 +875,9 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
             String fieldKey,
             String value) {
         return new ImportAssetPlanModel(
+                "action".equals(fieldKey) ? enumValue(ImportAssetPlanAction.class, value, current.getAction()) : current.getAction(),
                 "apiCode".equals(fieldKey) ? value : current.getApiCode(),
+                current.getMatchedExistingAsset(),
                 "assetName".equals(fieldKey) ? value : current.getAssetName(),
                 "assetType".equals(fieldKey) ? enumValue(AssetType.class, value, current.getAssetType()) : current.getAssetType(),
                 "categoryCode".equals(fieldKey) ? value : current.getCategoryCode(),
@@ -717,6 +892,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 "requestJsonSchema".equals(fieldKey) ? value : current.getRequestJsonSchema(),
                 "responseJsonSchema".equals(fieldKey) ? value : current.getResponseJsonSchema(),
                 "publishAfterImport".equals(fieldKey) ? Boolean.parseBoolean(value) : current.isPublishAfterImport(),
+                mergeChangedFields(current.getChangedFields(), fieldKey),
                 current.getAsyncTaskConfig(),
                 current.getAiProfile()
         );
@@ -726,7 +902,9 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
             ImportAssetPlanModel current,
             AsyncTaskConfigModel asyncTaskConfig) {
         return new ImportAssetPlanModel(
+                current.getAction(),
                 current.getApiCode(),
+                current.getMatchedExistingAsset(),
                 current.getAssetName(),
                 current.getAssetType(),
                 current.getCategoryCode(),
@@ -741,6 +919,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 current.getRequestJsonSchema(),
                 current.getResponseJsonSchema(),
                 current.isPublishAfterImport(),
+                mergeChangedFields(current.getChangedFields(), "asyncTaskConfig"),
                 asyncTaskConfig,
                 current.getAiProfile()
         );
@@ -766,7 +945,9 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 "value".equals(fieldKey) ? value : currentHeader.getValue()
         ));
         return new ImportAssetPlanModel(
+                current.getAction(),
                 current.getApiCode(),
+                current.getMatchedExistingAsset(),
                 current.getAssetName(),
                 current.getAssetType(),
                 current.getCategoryCode(),
@@ -781,9 +962,22 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 current.getRequestJsonSchema(),
                 current.getResponseJsonSchema(),
                 current.isPublishAfterImport(),
+                mergeChangedFields(current.getChangedFields(), "upstreamRequestHeaders"),
                 current.getAsyncTaskConfig(),
                 current.getAiProfile()
         );
+    }
+
+    private List<String> mergeChangedFields(List<String> changedFields, String fieldKey) {
+        if (!hasText(fieldKey)) {
+            return changedFields;
+        }
+        if ("action".equals(fieldKey) || "apiCode".equals(fieldKey)) {
+            return changedFields;
+        }
+        LinkedHashSet<String> fields = new LinkedHashSet<>(changedFields == null ? List.of() : changedFields);
+        fields.add(fieldKey);
+        return List.copyOf(fields);
     }
 
     private int parseHeaderIndex(String targetPath) {
@@ -807,7 +1001,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
             String fieldKey,
             String value) {
         AsyncTaskConfigModel safeCurrent = current == null
-                ? new AsyncTaskConfigModel(null, null, null, null, null, null, null, null, null)
+                ? new AsyncTaskConfigModel(null, null, null, null, null, null, null)
                 : current;
         return new AsyncTaskConfigModel(
                 "enabled".equals(fieldKey) ? Boolean.parseBoolean(value) : safeCurrent.getEnabled(),
@@ -816,9 +1010,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 "authMode".equals(fieldKey) ? value : safeCurrent.getAuthMode(),
                 "authScheme".equals(fieldKey) ? value : safeCurrent.getAuthScheme(),
                 "authConfig".equals(fieldKey) ? value : safeCurrent.getAuthConfig(),
-                "statusPath".equals(fieldKey) ? value : safeCurrent.getStatusPath(),
-                "resultPath".equals(fieldKey) ? value : safeCurrent.getResultPath(),
-                "errorPath".equals(fieldKey) ? value : safeCurrent.getErrorPath()
+                "queryResponseJsonSchema".equals(fieldKey) ? value : safeCurrent.getQueryResponseJsonSchema()
         );
     }
 
@@ -838,7 +1030,9 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
             return null;
         }
         return new ImportAssetPlanModel(
+                assetPlan.getAction(),
                 assetPlan.getApiCode(),
+                assetPlan.getMatchedExistingAsset(),
                 assetPlan.getAssetName(),
                 assetPlan.getAssetType(),
                 assetPlan.getCategoryCode(),
@@ -853,6 +1047,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 normalizeJsonObjectSnapshot(assetPlan.getRequestJsonSchema()),
                 normalizeJsonObjectSnapshot(assetPlan.getResponseJsonSchema()),
                 assetPlan.isPublishAfterImport(),
+                assetPlan.getChangedFields(),
                 normalizeAsyncTaskConfig(assetPlan.getAsyncTaskConfig()),
                 assetPlan.getAiProfile()
         );
@@ -871,9 +1066,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 authMode,
                 authScheme,
                 config.getAuthConfig(),
-                config.getStatusPath(),
-                config.getResultPath(),
-                config.getErrorPath()
+                normalizeJsonObjectSnapshot(config.getQueryResponseJsonSchema())
         );
     }
 
@@ -959,35 +1152,32 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
     private List<ImportStepResultModel> applyAssetPlan(StartImportAgentRunCommand command, ImportAssetPlanModel assetPlan) {
         List<ImportStepResultModel> steps = new ArrayList<>();
         try {
-            ApiAssetModel existing = null;
-            try {
-                existing = apiAssetUseCase.getAssetByCode(command.getOwnerUserId(), assetPlan.getApiCode());
-            } catch (AssetDomainException ignored) {
-                existing = null;
-            }
-            if (existing == null) {
-                apiAssetUseCase.registerAsset(new RegisterApiAssetCommand(
-                        command.getOwnerUserId(),
-                        normalizePublisherDisplayName(command.getPublisherDisplayName(), command.getOwnerUserId()),
-                        assetPlan.getApiCode(),
-                        assetPlan.getAssetType(),
-                        assetPlan.getAssetName(),
-                        assetPlan.getRequestJsonSchema(),
-                        assetPlan.getResponseJsonSchema(),
-                        assetPlan.getAsyncTaskConfig(),
-                        assetPlan.getUpstreamRequestHeaders(),
-                        null,
-                        null,
-                        null
-                ));
+            ImportAssetPlanAction action = assetPlan.getAction() == null ? ImportAssetPlanAction.UPSERT : assetPlan.getAction();
+            ApiAssetModel existing = findOwnedAsset(command.getOwnerUserId(), assetPlan.getApiCode());
+            if (action == ImportAssetPlanAction.CREATE) {
+                if (existing != null) {
+                    steps.add(failedStep(ImportAgentStepType.CREATE_ASSET, assetPlan.getApiCode(), "资产已存在"));
+                    return steps;
+                }
+                registerAsset(command, assetPlan);
                 apiAssetUseCase.reviseAsset(buildAssetRevisionCommand(command, assetPlan));
-                steps.add(successStep(ImportAgentStepType.REGISTER_ASSET, assetPlan.getApiCode(), "资产草稿已创建"));
+                steps.add(successStep(ImportAgentStepType.CREATE_ASSET, assetPlan.getApiCode(), "资产草稿已创建"));
+            } else if (action == ImportAssetPlanAction.UPDATE_EXISTING) {
+                if (existing == null) {
+                    steps.add(failedStep(ImportAgentStepType.UPDATE_EXISTING_ASSET, assetPlan.getApiCode(), "当前用户资产不存在"));
+                    return steps;
+                }
+                apiAssetUseCase.reviseAsset(buildAssetRevisionCommand(command, assetPlan));
+                steps.add(successStep(ImportAgentStepType.UPDATE_EXISTING_ASSET, assetPlan.getApiCode(), "资产配置已更新"));
             } else {
+                if (existing == null) {
+                    registerAsset(command, assetPlan);
+                }
                 apiAssetUseCase.reviseAsset(buildAssetRevisionCommand(command, assetPlan));
-                steps.add(successStep(ImportAgentStepType.REVISE_ASSET, assetPlan.getApiCode(), "资产配置已更新"));
+                steps.add(successStep(ImportAgentStepType.UPSERT_ASSET, assetPlan.getApiCode(),
+                        existing == null ? "资产草稿已创建" : "资产配置已更新"));
             }
-
-            if (assetPlan.getAiProfile() != null) {
+            if (assetPlan.getAiProfile() != null && shouldApplyField(assetPlan, "aiProfile", assetPlan.getAiProfile())) {
                 apiAssetUseCase.attachAiCapabilityProfile(new AttachAiCapabilityProfileCommand(
                         command.getOwnerUserId(),
                         normalizePublisherDisplayName(command.getPublisherDisplayName(), command.getOwnerUserId()),
@@ -1009,9 +1199,34 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
             }
             return steps;
         } catch (RuntimeException ex) {
-            steps.add(failedStep(ImportAgentStepType.REVISE_ASSET, assetPlan.getApiCode(), ex.getMessage()));
+            steps.add(failedStep(resolveAssetStepType(assetPlan), assetPlan.getApiCode(), ex.getMessage()));
             return steps;
         }
+    }
+
+    private ApiAssetModel findOwnedAsset(String ownerUserId, String apiCode) {
+        try {
+            return apiAssetUseCase.getAssetByCode(ownerUserId, apiCode);
+        } catch (AssetDomainException ex) {
+            return null;
+        }
+    }
+
+    private void registerAsset(StartImportAgentRunCommand command, ImportAssetPlanModel assetPlan) {
+        apiAssetUseCase.registerAsset(new RegisterApiAssetCommand(
+                command.getOwnerUserId(),
+                normalizePublisherDisplayName(command.getPublisherDisplayName(), command.getOwnerUserId()),
+                assetPlan.getApiCode(),
+                assetPlan.getAssetType(),
+                assetPlan.getAssetName(),
+                assetPlan.getRequestJsonSchema(),
+                assetPlan.getResponseJsonSchema(),
+                assetPlan.getAsyncTaskConfig(),
+                assetPlan.getUpstreamRequestHeaders(),
+                null,
+                null,
+                null
+        ));
     }
 
     private ReviseApiAssetCommand buildAssetRevisionCommand(StartImportAgentRunCommand command, ImportAssetPlanModel assetPlan) {
@@ -1020,33 +1235,33 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 normalizePublisherDisplayName(command.getPublisherDisplayName(), command.getOwnerUserId()),
                 assetPlan.getApiCode(),
                 assetPlan.getAssetName(),
-                assetPlan.getAssetName() != null,
+                shouldApplyField(assetPlan, "assetName", assetPlan.getAssetName()),
                 assetPlan.getAssetType(),
-                assetPlan.getAssetType() != null,
+                shouldApplyField(assetPlan, "assetType", assetPlan.getAssetType()),
                 assetPlan.getCategoryCode(),
-                assetPlan.getCategoryCode() != null,
+                shouldApplyField(assetPlan, "categoryCode", assetPlan.getCategoryCode()),
                 assetPlan.getRequestMethod(),
-                assetPlan.getRequestMethod() != null,
+                shouldApplyField(assetPlan, "requestMethod", assetPlan.getRequestMethod()),
                 assetPlan.getUpstreamUrl(),
-                assetPlan.getUpstreamUrl() != null,
+                shouldApplyField(assetPlan, "upstreamUrl", assetPlan.getUpstreamUrl()),
                 assetPlan.getAuthScheme(),
-                assetPlan.getAuthScheme() != null,
+                shouldApplyField(assetPlan, "authScheme", assetPlan.getAuthScheme()),
                 assetPlan.getAuthConfig(),
-                assetPlan.getAuthConfig() != null,
+                shouldApplyField(assetPlan, "authConfig", assetPlan.getAuthConfig()),
                 assetPlan.getUpstreamRequestHeaders(),
-                assetPlan.getUpstreamRequestHeaders() != null,
+                shouldApplyField(assetPlan, "upstreamRequestHeaders", assetPlan.getUpstreamRequestHeaders()),
                 assetPlan.getRequestTemplate(),
-                assetPlan.getRequestTemplate() != null,
+                shouldApplyField(assetPlan, "requestTemplate", assetPlan.getRequestTemplate()),
                 assetPlan.getRequestExample(),
-                assetPlan.getRequestExample() != null,
+                shouldApplyField(assetPlan, "requestExample", assetPlan.getRequestExample()),
                 assetPlan.getResponseExample(),
-                assetPlan.getResponseExample() != null,
+                shouldApplyField(assetPlan, "responseExample", assetPlan.getResponseExample()),
                 assetPlan.getRequestJsonSchema(),
-                assetPlan.getRequestJsonSchema() != null,
+                shouldApplyField(assetPlan, "requestJsonSchema", assetPlan.getRequestJsonSchema()),
                 assetPlan.getResponseJsonSchema(),
-                assetPlan.getResponseJsonSchema() != null,
+                shouldApplyField(assetPlan, "responseJsonSchema", assetPlan.getResponseJsonSchema()),
                 assetPlan.getAsyncTaskConfig(),
-                assetPlan.getAsyncTaskConfig() != null,
+                shouldApplyField(assetPlan, "asyncTaskConfig", assetPlan.getAsyncTaskConfig()),
                 null,
                 false,
                 null,
@@ -1054,6 +1269,35 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 null,
                 false
         );
+    }
+
+    private boolean shouldApplyField(ImportAssetPlanModel assetPlan, String fieldName, Object fieldValue) {
+        List<String> changedFields = assetPlan.getChangedFields();
+        if (changedFields != null && !changedFields.isEmpty()) {
+            return changedFields.stream().anyMatch(changedField -> matchesChangedField(changedField, fieldName));
+        }
+        return fieldValue != null;
+    }
+
+    private boolean matchesChangedField(String changedField, String fieldName) {
+        if (!hasText(changedField) || !hasText(fieldName)) {
+            return false;
+        }
+        String normalized = changedField.trim();
+        return normalized.equals(fieldName)
+                || normalized.startsWith(fieldName + ".")
+                || normalized.startsWith(fieldName + "/");
+    }
+
+    private ImportAgentStepType resolveAssetStepType(ImportAssetPlanModel assetPlan) {
+        ImportAssetPlanAction action = assetPlan.getAction() == null ? ImportAssetPlanAction.UPSERT : assetPlan.getAction();
+        if (action == ImportAssetPlanAction.CREATE) {
+            return ImportAgentStepType.CREATE_ASSET;
+        }
+        if (action == ImportAssetPlanAction.UPDATE_EXISTING) {
+            return ImportAgentStepType.UPDATE_EXISTING_ASSET;
+        }
+        return ImportAgentStepType.UPSERT_ASSET;
     }
 
     private ImportStepResultModel ensureCategory(ImportCategoryPlanModel categoryPlan) {
@@ -1121,6 +1365,10 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
             }
         }
         return null;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private String normalizePublisherDisplayName(String value, String ownerUserId) {

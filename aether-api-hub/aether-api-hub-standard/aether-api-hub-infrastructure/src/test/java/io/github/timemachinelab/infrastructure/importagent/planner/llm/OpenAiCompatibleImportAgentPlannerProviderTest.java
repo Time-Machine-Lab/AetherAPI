@@ -54,7 +54,7 @@ class OpenAiCompatibleImportAgentPlannerProviderTest {
         HttpResponse<String> finalPlan = response(tool("submit_import_plan",
                 "{\"summary\":\"ready\",\"categoryPlans\":[{\"categoryCode\":\"tools\",\"action\":\"USE_EXISTING\"}],"
                         + "\"assetPlans\":[{\"apiCode\":\"weather-tool\",\"assetName\":\"Weather Tool\","
-                        + "\"assetType\":\"STANDARD_API\",\"categoryCode\":\"tools\",\"requestMethod\":\"GET\","
+                        + "\"action\":\"CREATE\",\"assetType\":\"STANDARD_API\",\"categoryCode\":\"tools\",\"requestMethod\":\"GET\","
                         + "\"upstreamUrl\":\"https://upstream.example.com/weather\","
                         + "\"authScheme\":\"NONE\",\"publishAfterImport\":true}]}"));
         when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))

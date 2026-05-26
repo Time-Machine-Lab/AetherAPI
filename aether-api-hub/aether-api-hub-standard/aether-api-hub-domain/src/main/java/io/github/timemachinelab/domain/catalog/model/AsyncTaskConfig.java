@@ -15,9 +15,7 @@ public final class AsyncTaskConfig {
     private final AsyncTaskAuthMode authMode;
     private final AuthScheme authScheme;
     private final String authConfig;
-    private final String statusPath;
-    private final String resultPath;
-    private final String errorPath;
+    private final String queryResponseJsonSchema;
 
     private AsyncTaskConfig(
             boolean enabled,
@@ -26,18 +24,14 @@ public final class AsyncTaskConfig {
             AsyncTaskAuthMode authMode,
             AuthScheme authScheme,
             String authConfig,
-            String statusPath,
-            String resultPath,
-            String errorPath) {
+            String queryResponseJsonSchema) {
         this.enabled = enabled;
         this.queryMethod = queryMethod;
         this.queryUrlTemplate = normalize(queryUrlTemplate);
         this.authMode = authMode == null ? AsyncTaskAuthMode.SAME_AS_SUBMIT : authMode;
         this.authScheme = authScheme;
         this.authConfig = normalize(authConfig);
-        this.statusPath = normalize(statusPath);
-        this.resultPath = normalize(resultPath);
-        this.errorPath = normalize(errorPath);
+        this.queryResponseJsonSchema = normalize(queryResponseJsonSchema);
         validate();
     }
 
@@ -48,18 +42,14 @@ public final class AsyncTaskConfig {
             AsyncTaskAuthMode authMode,
             AuthScheme authScheme,
             String authConfig,
-            String statusPath,
-            String resultPath,
-            String errorPath) {
+            String queryResponseJsonSchema) {
         if (enabled == null
                 && queryMethod == null
                 && normalize(queryUrlTemplate) == null
                 && authMode == null
                 && authScheme == null
                 && normalize(authConfig) == null
-                && normalize(statusPath) == null
-                && normalize(resultPath) == null
-                && normalize(errorPath) == null) {
+                && normalize(queryResponseJsonSchema) == null) {
             return null;
         }
         return new AsyncTaskConfig(
@@ -69,9 +59,7 @@ public final class AsyncTaskConfig {
                 authMode,
                 authScheme,
                 authConfig,
-                statusPath,
-                resultPath,
-                errorPath
+                queryResponseJsonSchema
         );
     }
 
@@ -147,16 +135,8 @@ public final class AsyncTaskConfig {
         return authConfig;
     }
 
-    public String getStatusPath() {
-        return statusPath;
-    }
-
-    public String getResultPath() {
-        return resultPath;
-    }
-
-    public String getErrorPath() {
-        return errorPath;
+    public String getQueryResponseJsonSchema() {
+        return queryResponseJsonSchema;
     }
 
     @Override
@@ -174,13 +154,11 @@ public final class AsyncTaskConfig {
                 && authMode == that.authMode
                 && authScheme == that.authScheme
                 && Objects.equals(authConfig, that.authConfig)
-                && Objects.equals(statusPath, that.statusPath)
-                && Objects.equals(resultPath, that.resultPath)
-                && Objects.equals(errorPath, that.errorPath);
+                && Objects.equals(queryResponseJsonSchema, that.queryResponseJsonSchema);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(enabled, queryMethod, queryUrlTemplate, authMode, authScheme, authConfig, statusPath, resultPath, errorPath);
+        return Objects.hash(enabled, queryMethod, queryUrlTemplate, authMode, authScheme, authConfig, queryResponseJsonSchema);
     }
 }

@@ -15,6 +15,7 @@ import io.github.timemachinelab.api.resp.ImportAgentTurnResp;
 import io.github.timemachinelab.api.resp.ImportAiProfileResp;
 import io.github.timemachinelab.api.resp.ImportAssetPlanResp;
 import io.github.timemachinelab.api.resp.ImportCategoryPlanResp;
+import io.github.timemachinelab.api.resp.ImportExistingAssetSummaryResp;
 import io.github.timemachinelab.api.resp.ImportStepResultResp;
 import io.github.timemachinelab.api.resp.ImportUpstreamRequestHeaderResp;
 import io.github.timemachinelab.adapter.web.config.ImportAgentStreamProperties;
@@ -36,6 +37,7 @@ import io.github.timemachinelab.service.model.ImportAgentStreamEvent;
 import io.github.timemachinelab.service.model.ImportAiProfileModel;
 import io.github.timemachinelab.service.model.ImportAssetPlanModel;
 import io.github.timemachinelab.service.model.ImportCategoryPlanModel;
+import io.github.timemachinelab.service.model.ImportExistingAssetSummaryModel;
 import io.github.timemachinelab.service.model.ImportStepResultModel;
 import io.github.timemachinelab.service.model.StartImportAgentRunCommand;
 import io.github.timemachinelab.service.model.UpstreamRequestHeaderModel;
@@ -312,7 +314,9 @@ public class ApiImportAgentWebDelegate {
 
     private ImportAssetPlanResp toAssetPlanResp(ImportAssetPlanModel model) {
         return new ImportAssetPlanResp(
+                model.getAction() == null ? null : model.getAction().name(),
                 model.getApiCode(),
+                toExistingAssetSummaryResp(model.getMatchedExistingAsset()),
                 model.getAssetName(),
                 model.getAssetType() == null ? null : model.getAssetType().name(),
                 model.getCategoryCode(),
@@ -327,8 +331,29 @@ public class ApiImportAgentWebDelegate {
                 model.getRequestJsonSchema(),
                 model.getResponseJsonSchema(),
                 model.isPublishAfterImport(),
+                model.getChangedFields(),
                 toAsyncTaskConfigResp(model.getAsyncTaskConfig()),
                 toAiProfileResp(model.getAiProfile())
+        );
+    }
+
+    private ImportExistingAssetSummaryResp toExistingAssetSummaryResp(ImportExistingAssetSummaryModel model) {
+        if (model == null) {
+            return null;
+        }
+        return new ImportExistingAssetSummaryResp(
+                model.getApiCode(),
+                model.getAssetName(),
+                model.getAssetType(),
+                model.getCategoryCode(),
+                model.getStatus(),
+                model.getRequestMethod(),
+                model.getUpstreamUrl(),
+                model.getAuthScheme(),
+                model.isAuthConfigured(),
+                model.isAsyncTaskConfigured(),
+                model.isAiProfileConfigured(),
+                model.getUpdatedAt()
         );
     }
 
@@ -354,9 +379,7 @@ public class ApiImportAgentWebDelegate {
                 authMode,
                 authScheme,
                 model.getAuthConfig(),
-                model.getStatusPath(),
-                model.getResultPath(),
-                model.getErrorPath()
+                model.getQueryResponseJsonSchema()
         );
     }
 

@@ -91,7 +91,11 @@ final class ImportAgentPlanningToolSupport {
 
     static ObjectNode buildAssetPlanSchema(ObjectMapper objectMapper, boolean strictRequired) {
         return strictObjectSchema(objectMapper, assetProperties -> {
+            assetProperties.set("action", enumStringSchema(objectMapper,
+                    "Asset plan action: CREATE only creates, UPDATE_EXISTING only edits an owned asset, UPSERT updates or creates.",
+                    "CREATE", "UPDATE_EXISTING", "UPSERT"));
             assetProperties.set("apiCode", stringSchema(objectMapper));
+            assetProperties.set("changedFields", stringArraySchema(objectMapper));
             assetProperties.set("assetName", stringSchema(objectMapper));
             assetProperties.set("assetType", enumStringSchema(objectMapper, null, "STANDARD_API", "AI_API"));
             assetProperties.set("categoryCode", stringSchema(objectMapper));
@@ -111,7 +115,7 @@ final class ImportAgentPlanningToolSupport {
             assetProperties.set("asyncTaskConfig", buildAsyncTaskSchema(objectMapper));
             assetProperties.set("aiProfile", buildAiProfileSchema(objectMapper));
         }, strictRequired
-                ? new String[]{"apiCode", "assetName", "assetType"}
+                ? new String[]{"action", "apiCode", "assetName", "assetType"}
                 : new String[]{"apiCode"});
     }
 
@@ -128,9 +132,9 @@ final class ImportAgentPlanningToolSupport {
             asyncTaskProperties.set("authConfig", stringSchema(objectMapper,
                     "当 authMode 为 OVERRIDE 时填写异步查询认证配置，必须是后端可直接消费的纯字符串；HEADER_TOKEN 示例：Authorization: Bearer token；QUERY_TOKEN 示例：access_token=token；不要填写 JSON 对象或 JSON 字符串。",
                     null));
-            asyncTaskProperties.set("statusPath", stringSchema(objectMapper));
-            asyncTaskProperties.set("resultPath", stringSchema(objectMapper));
-            asyncTaskProperties.set("errorPath", stringSchema(objectMapper));
+            asyncTaskProperties.set("queryResponseJsonSchema", stringSchema(objectMapper,
+                    "Task query response body JSON Schema snapshot. Generate from provider task-query response examples or field documentation. Leave blank and ask for a task-query response example when evidence is insufficient; do not output statusPath/resultPath/errorPath.",
+                    null));
         });
         asyncTaskConfig.put("description", "提交后查询类 API 的异步任务查询配置。");
         return asyncTaskConfig;

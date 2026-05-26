@@ -778,40 +778,17 @@ function confirmDeleteAsset() {
                   />
                 </div>
               </template>
-              <div class="space-y-2">
-                <FieldLabel
-                  :label="t('console.workspace.fieldAsyncTaskStatusPath')"
-                  :hint="t('console.workspace.fieldAsyncTaskStatusPathHint')"
-                  optional
-                />
-                <Input
-                  v-model="assetConfigForm.asyncTaskStatusPath"
-                  :disabled="!assetConfigForm.asyncTaskEnabled"
-                  placeholder="$.data.status"
-                />
-              </div>
-              <div class="space-y-2">
-                <FieldLabel
-                  :label="t('console.workspace.fieldAsyncTaskResultPath')"
-                  :hint="t('console.workspace.fieldAsyncTaskResultPathHint')"
-                  optional
-                />
-                <Input
-                  v-model="assetConfigForm.asyncTaskResultPath"
-                  :disabled="!assetConfigForm.asyncTaskEnabled"
-                  placeholder="$.data.result"
-                />
-              </div>
               <div class="space-y-2 md:col-span-2">
                 <FieldLabel
-                  :label="t('console.workspace.fieldAsyncTaskErrorPath')"
-                  :hint="t('console.workspace.fieldAsyncTaskErrorPathHint')"
+                  :label="t('console.workspace.fieldAsyncTaskQueryResponseJsonSchema')"
+                  :hint="t('console.workspace.fieldAsyncTaskQueryResponseJsonSchemaHint')"
                   optional
                 />
-                <Input
-                  v-model="assetConfigForm.asyncTaskErrorPath"
+                <textarea
+                  v-model="assetConfigForm.asyncTaskQueryResponseJsonSchema"
                   :disabled="!assetConfigForm.asyncTaskEnabled"
-                  placeholder="$.data.error"
+                  :placeholder="jsonSchemaPlaceholder"
+                  class="min-h-[150px] w-full rounded-[12px] border border-[rgb(34_34_34_/_0.08)] bg-white px-4 py-3 font-mono text-xs leading-5 text-foreground outline-none transition-[background-color,box-shadow,border-color] disabled:bg-muted disabled:opacity-60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
                 />
               </div>
             </div>

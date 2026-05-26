@@ -234,6 +234,12 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
         if (!request.getAvailableCategories().isEmpty()) {
             prompt.append("availableCategoriesJson:\n").append(serializeAvailableCategories(request)).append("\n");
         }
+        if (!request.getExistingAssetCandidates().isEmpty()) {
+            prompt.append("existingAssetCandidatesJson:\n").append(serializeExistingAssetCandidates(request)).append("\n");
+        }
+        if (!request.getTargetExistingAssets().isEmpty()) {
+            prompt.append("targetExistingAssetsJson:\n").append(serializeTargetExistingAssets(request)).append("\n");
+        }
         if (!request.getTurns().isEmpty()) {
             prompt.append("recentTurnsJson:\n").append(serializeTurns(request)).append("\n");
         }
@@ -269,6 +275,22 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
             return OBJECT_MAPPER.writeValueAsString(request.getAvailableCategories());
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to serialize available categories", ex);
+        }
+    }
+
+    private String serializeExistingAssetCandidates(ImportAgentPlannerRequest request) {
+        try {
+            return OBJECT_MAPPER.writeValueAsString(request.getExistingAssetCandidates());
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to serialize existing asset candidates", ex);
+        }
+    }
+
+    private String serializeTargetExistingAssets(ImportAgentPlannerRequest request) {
+        try {
+            return OBJECT_MAPPER.writeValueAsString(request.getTargetExistingAssets());
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to serialize target existing assets", ex);
         }
     }
 

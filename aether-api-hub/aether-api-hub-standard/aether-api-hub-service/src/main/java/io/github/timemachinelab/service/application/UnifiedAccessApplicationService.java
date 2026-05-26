@@ -285,9 +285,7 @@ public class UnifiedAccessApplicationService implements UnifiedAccessUseCase {
                 config.getAuthMode() == null ? null : config.getAuthMode().name(),
                 config.getAuthScheme() == null ? null : config.getAuthScheme().name(),
                 config.getAuthConfig(),
-                config.getStatusPath(),
-                config.getResultPath(),
-                config.getErrorPath()
+                config.getQueryResponseJsonSchema()
         );
     }
 

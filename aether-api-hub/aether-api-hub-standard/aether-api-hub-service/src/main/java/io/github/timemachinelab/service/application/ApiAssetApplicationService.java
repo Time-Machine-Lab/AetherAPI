@@ -362,9 +362,7 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
                 model.getAuthMode() == null ? null : AsyncTaskAuthMode.valueOf(model.getAuthMode().trim().toUpperCase(Locale.ROOT)),
                 model.getAuthScheme() == null ? null : AuthScheme.valueOf(model.getAuthScheme().trim().toUpperCase(Locale.ROOT)),
                 model.getAuthConfig(),
-                model.getStatusPath(),
-                model.getResultPath(),
-                model.getErrorPath()
+                model.getQueryResponseJsonSchema()
         );
     }
 
@@ -379,9 +377,7 @@ public class ApiAssetApplicationService implements ApiAssetUseCase {
                 config.getAuthMode() == null ? null : config.getAuthMode().name(),
                 config.getAuthScheme() == null ? null : config.getAuthScheme().name(),
                 config.getAuthConfig(),
-                config.getStatusPath(),
-                config.getResultPath(),
-                config.getErrorPath()
+                config.getQueryResponseJsonSchema()
         );
     }
 

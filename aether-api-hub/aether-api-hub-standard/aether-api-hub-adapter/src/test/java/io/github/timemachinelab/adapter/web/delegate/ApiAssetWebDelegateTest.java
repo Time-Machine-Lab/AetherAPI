@@ -49,9 +49,7 @@ class ApiAssetWebDelegateTest {
         asyncTaskConfig.setQueryMethod(RequestMethod.GET);
         asyncTaskConfig.setQueryUrlTemplate("https://provider.example.com/tasks/{taskId}");
         asyncTaskConfig.setAuthMode(AsyncTaskAuthMode.SAME_AS_SUBMIT);
-        asyncTaskConfig.setStatusPath("$.status");
-        asyncTaskConfig.setResultPath("$.result");
-        asyncTaskConfig.setErrorPath("$.error");
+        asyncTaskConfig.setQueryResponseJsonSchema("{\"type\":\"object\"}");
         req.setAsyncTaskConfig(asyncTaskConfig);
         req.setCapabilityExtensions(extensionBlock("streaming", true));
         req.setPolicyExtensions(extensionBlock("rateLimitQps", 10));
@@ -69,9 +67,7 @@ class ApiAssetWebDelegateTest {
         assertEquals("GET", commandConfig.getQueryMethod());
         assertEquals("https://provider.example.com/tasks/{taskId}", commandConfig.getQueryUrlTemplate());
         assertEquals("SAME_AS_SUBMIT", commandConfig.getAuthMode());
-        assertEquals("$.status", commandConfig.getStatusPath());
-        assertEquals("$.result", commandConfig.getResultPath());
-        assertEquals("$.error", commandConfig.getErrorPath());
+        assertEquals("{\"type\":\"object\"}", commandConfig.getQueryResponseJsonSchema());
                 assertEquals("{\"streaming\":true}", commandCaptor.getValue().getCapabilityExtensions());
                 assertEquals("{\"rateLimitQps\":10}", commandCaptor.getValue().getPolicyExtensions());
                 assertEquals("{\"source\":\"import\"}", commandCaptor.getValue().getMetadataExtensions());
@@ -82,6 +78,7 @@ class ApiAssetWebDelegateTest {
         assertEquals(RequestMethod.GET, response.getAsyncTaskConfig().getQueryMethod());
         assertEquals("https://provider.example.com/tasks/{taskId}", response.getAsyncTaskConfig().getQueryUrlTemplate());
         assertEquals(AsyncTaskAuthMode.SAME_AS_SUBMIT, response.getAsyncTaskConfig().getAuthMode());
+        assertEquals("{\"type\":\"object\"}", response.getAsyncTaskConfig().getQueryResponseJsonSchema());
                 assertEquals("{\"streaming\":true}", response.getCapabilityExtensions());
                 assertEquals("{\"rateLimitQps\":10}", response.getPolicyExtensions());
                 assertEquals("{\"source\":\"import\"}", response.getMetadataExtensions());
@@ -208,9 +205,7 @@ class ApiAssetWebDelegateTest {
                         "SAME_AS_SUBMIT",
                         null,
                         null,
-                        "$.status",
-                        "$.result",
-                        "$.error"
+                        "{\"type\":\"object\"}"
                 ),
                 "{\"streaming\":true}",
                 "{\"rateLimitQps\":10}",

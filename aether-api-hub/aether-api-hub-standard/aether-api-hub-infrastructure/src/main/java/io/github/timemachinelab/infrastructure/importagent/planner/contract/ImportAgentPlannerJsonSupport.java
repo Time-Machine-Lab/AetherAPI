@@ -25,8 +25,9 @@ public final class ImportAgentPlannerJsonSupport {
     }
 
     public static ImportAgentPlanModel buildPlan(ImportAgentPlannerRequest request, JsonNode sourceNode) {
-        ParsedPlannerPayload parsedPayload = ImportAgentPlanDraftParser.parsePlannerPayload(sourceNode, null);
-        PlanDraft draft = ImportAgentPlanDraftMerger.fromPayload(sourceNode, parsedPayload);
+        CurrentPlanState current = currentPlanState(request);
+        ParsedPlannerPayload parsedPayload = ImportAgentPlanDraftParser.parsePlannerPayload(sourceNode, current.summary());
+        PlanDraft draft = ImportAgentPlanDraftMerger.fromPayload(sourceNode, parsedPayload, current);
         PlanDraft normalizedDraft = ImportAgentPlanDraftMerger.normalizeDraft(draft);
         PlanValidationResult validationResult = ImportAgentPlanDraftValidator.validateDraft(
                 request.getNextPlanVersion(),
@@ -236,9 +237,7 @@ public final class ImportAgentPlannerJsonSupport {
                 authMode,
                 authScheme,
                 config.getAuthConfig(),
-                config.getStatusPath(),
-                config.getResultPath(),
-                config.getErrorPath());
+                ImportAgentSchemaNormalizer.normalize(config.getQueryResponseJsonSchema()));
     }
 
     static String normalizeAsyncTaskQueryUrlTemplate(String queryUrlTemplate) {

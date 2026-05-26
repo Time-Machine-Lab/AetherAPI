@@ -3,6 +3,7 @@ package io.github.timemachinelab.infrastructure.importagent.planner.contract;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.github.timemachinelab.infrastructure.importagent.planner.contract.ImportAgentPlannerJsonSupport.ParsedPlannerPayload;
 import io.github.timemachinelab.infrastructure.importagent.planner.contract.ImportAgentPlannerJsonSupport.PlanDraft;
+import io.github.timemachinelab.infrastructure.importagent.planner.contract.ImportAgentPlannerJsonSupport.CurrentPlanState;
 import io.github.timemachinelab.service.model.ImportAssetPlanModel;
 import io.github.timemachinelab.service.model.ImportCategoryPlanModel;
 
@@ -15,13 +16,14 @@ final class ImportAgentPlanDraftMerger {
 
     static PlanDraft fromPayload(
             JsonNode sourceNode,
-            ParsedPlannerPayload parsedPayload) {
+            ParsedPlannerPayload parsedPayload,
+            CurrentPlanState currentPlanState) {
         List<ImportCategoryPlanModel> categoryPlans = parsedPayload.hasCategoryPlanPatch()
-                ? ImportAgentPlanDraftParser.parseCategoryPlans(sourceNode, List.of())
-                : List.of();
+                ? ImportAgentPlanDraftParser.parseCategoryPlans(sourceNode, currentPlanState.categoryPlans())
+                : currentPlanState.categoryPlans();
         List<ImportAssetPlanModel> assetPlans = parsedPayload.hasAssetPlanPatch()
-                ? ImportAgentPlanDraftParser.parseAssetPlans(sourceNode, List.of())
-                : List.of();
+                ? ImportAgentPlanDraftParser.parseAssetPlans(sourceNode, currentPlanState.assetPlans())
+                : currentPlanState.assetPlans();
         return new PlanDraft(categoryPlans, assetPlans, parsedPayload.clarificationQuestions(), parsedPayload.summary());
     }
 

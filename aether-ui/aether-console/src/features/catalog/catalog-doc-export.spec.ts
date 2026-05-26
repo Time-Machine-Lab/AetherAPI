@@ -106,7 +106,7 @@ describe('catalog doc export helpers', () => {
     expect(markdown).toContain('| Tags | chat, reasoning |')
   })
 
-  it('includes async task query docs and derives response structure from paths', () => {
+  it('includes async task query docs and response schema', () => {
     const markdown = buildSingleApiMarkdown(
       detail({
         apiCode: 'image-generate',
@@ -118,9 +118,7 @@ describe('catalog doc export helpers', () => {
           authMode: 'SAME_AS_SUBMIT',
           authScheme: 'HEADER_TOKEN',
           authConfig: '{"headerName":"Authorization","token":"secret"}',
-          statusPath: '$.data.status',
-          resultPath: '$.data.result',
-          errorPath: '$.data.error',
+          queryResponseJsonSchema: '{"type":"object","properties":{"data":{"type":"object"}}}',
         },
       }),
     )
@@ -130,29 +128,28 @@ describe('catalog doc export helpers', () => {
       '| Task Query Endpoint | /api/v1/access/image-generate/tasks/{taskId} |',
     )
     expect(markdown).toContain('| Task Query Auth Mode | SAME_AS_SUBMIT |')
-    expect(markdown).toContain('| Task Status Path | $.data.status |')
-    expect(markdown).toContain('## Task Query Response Structure')
-    expect(markdown).toContain('"status": "<Task Status Path>"')
-    expect(markdown).toContain('"result": "<Task Result Path>"')
-    expect(markdown).toContain('"error": "<Task Error Path>"')
+    expect(markdown).toContain('## Task Query Response Schema')
+    expect(markdown).toContain(
+      '```json\n{"type":"object","properties":{"data":{"type":"object"}}}\n```',
+    )
     expect(markdown).not.toContain('secret')
     expect(markdown).not.toContain('authConfig')
+    expect(markdown).not.toContain('statusPath')
   })
 
-  it('keeps raw async task paths when response structure cannot be derived', () => {
+  it('omits async task response schema when it is unavailable', () => {
     const markdown = buildSingleApiMarkdown(
       detail({
         asyncTaskConfig: {
           enabled: true,
           queryMethod: 'GET',
           authMode: 'SAME_AS_SUBMIT',
-          statusPath: '$.items[*].status',
         },
       }),
     )
 
-    expect(markdown).toContain('| Task Status Path | $.items[*].status |')
-    expect(markdown).not.toContain('## Task Query Response Structure')
+    expect(markdown).toContain('## Async Task Query')
+    expect(markdown).not.toContain('## Task Query Response Schema')
   })
 
   it('builds a merged markdown document that preserves success order and lists failures first', () => {

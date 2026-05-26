@@ -319,9 +319,7 @@ describe('useWorkspaceCatalog', () => {
         authMode: 'OVERRIDE',
         authScheme: 'HEADER_TOKEN',
         authConfig: 'Authorization: Bearer task-token',
-        statusPath: '$.data.status',
-        resultPath: '$.data.result',
-        errorPath: '$.data.error',
+        queryResponseJsonSchema: '{"type":"object"}',
       },
     })
     const reviseAsset = vi.fn().mockResolvedValueOnce(revisedAsset)
@@ -345,9 +343,7 @@ describe('useWorkspaceCatalog', () => {
     workspace.assetConfigForm.value.asyncTaskAuthMode = 'OVERRIDE'
     workspace.assetConfigForm.value.asyncTaskAuthScheme = 'HEADER_TOKEN'
     workspace.assetConfigForm.value.asyncTaskAuthConfig = ' Authorization: Bearer task-token '
-    workspace.assetConfigForm.value.asyncTaskStatusPath = ' $.data.status '
-    workspace.assetConfigForm.value.asyncTaskResultPath = ' $.data.result '
-    workspace.assetConfigForm.value.asyncTaskErrorPath = ' $.data.error '
+    workspace.assetConfigForm.value.asyncTaskQueryResponseJsonSchema = ' {"type":"object"} '
 
     await workspace.handleSaveAssetConfig()
 
@@ -371,9 +367,7 @@ describe('useWorkspaceCatalog', () => {
         authMode: 'OVERRIDE',
         authScheme: 'HEADER_TOKEN',
         authConfig: 'Authorization: Bearer task-token',
-        statusPath: '$.data.status',
-        resultPath: '$.data.result',
-        errorPath: '$.data.error',
+        queryResponseJsonSchema: '{"type":"object"}',
       },
     })
     expect(workspace.currentAsset.value?.status).toBe('UNPUBLISHED')
@@ -534,9 +528,7 @@ describe('useWorkspaceCatalog', () => {
             queryMethod: 'POST',
             queryUrlTemplate: 'http://provider.example.com/v1/tasks/{taskId}',
             authMode: 'SAME_AS_SUBMIT',
-            statusPath: '$.data.status',
-            resultPath: '$.data.result',
-            errorPath: '$.data.error',
+            queryResponseJsonSchema: '{"type":"object"}',
           },
         }),
       ),
@@ -550,6 +542,9 @@ describe('useWorkspaceCatalog', () => {
     expect(workspace.assetConfigForm.value.asyncTaskQueryMethod).toBe('POST')
     expect(workspace.assetConfigForm.value.asyncTaskQueryUrlTemplate).toBe(
       'http://provider.example.com/v1/tasks/{taskId}',
+    )
+    expect(workspace.assetConfigForm.value.asyncTaskQueryResponseJsonSchema).toBe(
+      '{"type":"object"}',
     )
 
     workspace.assetConfigForm.value.asyncTaskQueryUrlTemplate = '   '

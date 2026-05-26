@@ -8,36 +8,22 @@ const labels = {
 }
 
 describe('async task response structure', () => {
-  it('builds a JSON response structure from configured simple paths', () => {
+  it('returns the configured task query response schema', () => {
     const structure = buildAsyncTaskResponseStructure(
       {
-        statusPath: '$.data.status',
-        resultPath: '$.data.result',
-        errorPath: "$['data']['error']",
+        queryResponseJsonSchema: '{"type":"object"}',
       },
       labels,
     )
 
-    expect(structure).toBe(
-      JSON.stringify(
-        {
-          data: {
-            status: '<task status>',
-            result: '<task result>',
-            error: '<task error>',
-          },
-        },
-        null,
-        2,
-      ),
-    )
+    expect(structure).toBe('{"type":"object"}')
   })
 
-  it('returns undefined when paths cannot be represented as a simple object', () => {
+  it('returns undefined when no response schema is configured', () => {
     expect(
       buildAsyncTaskResponseStructure(
         {
-          statusPath: '$.items[*].status',
+          enabled: true,
         },
         labels,
       ),

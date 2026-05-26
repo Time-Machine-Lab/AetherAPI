@@ -21,9 +21,11 @@ import io.github.timemachinelab.service.model.ImportAgentSessionStatus;
 import io.github.timemachinelab.service.model.ImportAgentStepType;
 import io.github.timemachinelab.service.model.ImportAgentTurnModel;
 import io.github.timemachinelab.service.model.ImportAiProfileModel;
+import io.github.timemachinelab.service.model.ImportAssetPlanAction;
 import io.github.timemachinelab.service.model.ImportAssetPlanModel;
 import io.github.timemachinelab.service.model.ImportCategoryPlanAction;
 import io.github.timemachinelab.service.model.ImportCategoryPlanModel;
+import io.github.timemachinelab.service.model.ImportExistingAssetSummaryModel;
 import io.github.timemachinelab.service.model.ImportStepResultModel;
 import io.github.timemachinelab.service.model.ImportStepResultStatus;
 import io.github.timemachinelab.service.port.in.ApiImportAgentUseCase;
@@ -70,6 +72,10 @@ class ApiImportAgentWebDelegateTest {
         assertEquals("session-1", response.getSessionId());
         assertEquals("WAITING_FOR_CONFIRMATION", response.getStatus());
         assertEquals("tools", response.getCurrentPlan().getCategoryPlans().get(0).getCategoryCode());
+        assertEquals("UPDATE_EXISTING", response.getCurrentPlan().getAssetPlans().get(0).getAction());
+        assertEquals(List.of("assetName", "aiProfile"), response.getCurrentPlan().getAssetPlans().get(0).getChangedFields());
+        assertEquals("weather-forecast", response.getCurrentPlan().getAssetPlans().get(0).getMatchedExistingAsset().getApiCode());
+        assertTrue(response.getCurrentPlan().getAssetPlans().get(0).getMatchedExistingAsset().isAuthConfigured());
         assertEquals("HEADER_TOKEN", response.getCurrentPlan().getAssetPlans().get(0).getAuthScheme());
         assertEquals("Authorization: Bearer upstream-token", response.getCurrentPlan().getAssetPlans().get(0).getAuthConfig());
         assertEquals("OpenAI", response.getCurrentPlan().getAssetPlans().get(0).getAiProfile().getProvider());
@@ -187,7 +193,21 @@ class ApiImportAgentWebDelegateTest {
                         List.of(),
                         List.of(new ImportCategoryPlanModel("tools", "Tools", ImportCategoryPlanAction.CREATE_IF_MISSING)),
                         List.of(new ImportAssetPlanModel(
+                                ImportAssetPlanAction.UPDATE_EXISTING,
                                 "weather-forecast",
+                                new ImportExistingAssetSummaryModel(
+                                        "weather-forecast",
+                                        "Weather Forecast",
+                                        "AI_API",
+                                        "tools",
+                                        "UNPUBLISHED",
+                                        "GET",
+                                        "https://upstream.example.com/weather",
+                                        "HEADER_TOKEN",
+                                        true,
+                                        false,
+                                        true,
+                                        "2026-05-18T10:00:00Z"),
                                 "Weather Forecast",
                                 AssetType.AI_API,
                                 "tools",
@@ -195,12 +215,14 @@ class ApiImportAgentWebDelegateTest {
                                 "https://upstream.example.com/weather",
                                 AuthScheme.HEADER_TOKEN,
                                 "Authorization: Bearer upstream-token",
+                                null,
                                 "template",
                                 "{\"city\":\"Shanghai\"}",
                                 "{\"temperature\":26}",
                                  "{\"type\":\"object\"}",
                                  "{\"type\":\"object\"}",
                                  true,
+                                 List.of("assetName", "aiProfile"),
                                  null,
                                  new ImportAiProfileModel("OpenAI", "gpt-4.1", true, List.of("chat", "reasoning"))
                         ))
@@ -330,8 +352,6 @@ class ApiImportAgentWebDelegateTest {
                             "HEADER_TOKEN",
                             null,
                             "Authorization: Bearer upstream-token",
-                            null,
-                            null,
                             null),
                         null
                     ))

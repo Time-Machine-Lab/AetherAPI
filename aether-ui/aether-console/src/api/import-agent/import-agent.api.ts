@@ -91,9 +91,7 @@ function mapAsyncTaskConfig(dto?: ImportAsyncTaskConfigDto | null): ImportAsyncT
     authMode: dto.authMode,
     authScheme: dto.authScheme ?? null,
     authConfig: dto.authConfig ?? null,
-    statusPath: dto.statusPath ?? null,
-    resultPath: dto.resultPath ?? null,
-    errorPath: dto.errorPath ?? null,
+    queryResponseJsonSchema: dto.queryResponseJsonSchema ?? null,
   }
 }
 

@@ -18,7 +18,6 @@ import { useCatalogDiscovery } from '@/composables/useCatalogDiscovery'
 import { useCatalogDocExport } from '@/composables/useCatalogDocExport'
 import { useApiSubscriptionStatus } from '@/composables/useApiSubscriptionStatus'
 import type { CatalogDocLabels } from '@/features/catalog/catalog-doc-export'
-import { buildAsyncTaskResponseStructure } from '@/features/catalog/async-task-response-structure'
 import type { ApiSubscriptionAccessStatus } from '@/api/subscription/subscription.types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -88,10 +87,9 @@ const catalogDocLabels = computed<CatalogDocLabels>(() => ({
   asyncTaskQuery: t('console.home.docExport.markdown.asyncTaskQuery'),
   asyncTaskQueryEndpoint: t('console.home.docExport.markdown.asyncTaskQueryEndpoint'),
   asyncTaskAuthMode: t('console.home.docExport.markdown.asyncTaskAuthMode'),
-  asyncTaskStatusPath: t('console.home.docExport.markdown.asyncTaskStatusPath'),
-  asyncTaskResultPath: t('console.home.docExport.markdown.asyncTaskResultPath'),
-  asyncTaskErrorPath: t('console.home.docExport.markdown.asyncTaskErrorPath'),
-  asyncTaskResponseStructure: t('console.home.docExport.markdown.asyncTaskResponseStructure'),
+  asyncTaskQueryResponseJsonSchema: t(
+    'console.home.docExport.markdown.asyncTaskQueryResponseJsonSchema',
+  ),
   aiCapability: t('console.home.docExport.markdown.aiCapability'),
   provider: t('console.home.docExport.markdown.provider'),
   model: t('console.home.docExport.markdown.model'),
@@ -130,18 +128,6 @@ const exportFeedbackClass = computed(() =>
     ? 'text-primary'
     : 'text-destructive',
 )
-const asyncTaskResponseStructure = computed(() => {
-  if (!detail.value?.asyncTaskConfig?.enabled) {
-    return undefined
-  }
-
-  return buildAsyncTaskResponseStructure(detail.value.asyncTaskConfig, {
-    status: t('console.home.asyncTaskStatusValue'),
-    result: t('console.home.asyncTaskResultValue'),
-    error: t('console.home.asyncTaskErrorValue'),
-  })
-})
-
 loadList()
 
 function openPlayground(apiCode: string) {
@@ -488,23 +474,11 @@ watch(
                       :label="t('console.home.authScheme')"
                       :value="detail.asyncTaskConfig.authScheme"
                     />
-                    <MetaItem
-                      :label="t('console.home.asyncTaskStatusPath')"
-                      :value="detail.asyncTaskConfig.statusPath"
-                    />
-                    <MetaItem
-                      :label="t('console.home.asyncTaskResultPath')"
-                      :value="detail.asyncTaskConfig.resultPath"
-                    />
-                    <MetaItem
-                      :label="t('console.home.asyncTaskErrorPath')"
-                      :value="detail.asyncTaskConfig.errorPath"
-                    />
                   </div>
                   <CodeBlock
-                    v-if="asyncTaskResponseStructure"
-                    :label="t('console.home.asyncTaskResponseStructure')"
-                    :value="asyncTaskResponseStructure"
+                    v-if="detail.asyncTaskConfig.queryResponseJsonSchema"
+                    :label="t('console.home.asyncTaskQueryResponseJsonSchema')"
+                    :value="detail.asyncTaskConfig.queryResponseJsonSchema"
                   />
                 </FieldGroup>
                 <div v-if="detail.assetType === 'AI_API' && detail.aiProfile" class="space-y-2">

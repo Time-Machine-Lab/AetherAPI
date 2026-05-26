@@ -112,7 +112,7 @@ class MybatisApiAssetRepositoryTest {
         assertEquals("{\"type\":\"object\",\"required\":[\"city\"]}", captor.getValue().getRequestJsonSchema());
         assertEquals("{\"type\":\"object\",\"properties\":{\"temperature\":{\"type\":\"number\"}}}", captor.getValue().getResponseJsonSchema());
         assertEquals(
-                "{\"enabled\":true,\"queryMethod\":\"GET\",\"queryUrlTemplate\":\"https://upstream.example.com/weather/tasks/{taskId}\",\"authMode\":\"SAME_AS_SUBMIT\",\"statusPath\":\"$.status\",\"resultPath\":\"$.result\",\"errorPath\":\"$.error\"}",
+                "{\"enabled\":true,\"queryMethod\":\"GET\",\"queryUrlTemplate\":\"https://upstream.example.com/weather/tasks/{taskId}\",\"authMode\":\"SAME_AS_SUBMIT\",\"queryResponseJsonSchema\":\"{\\\"type\\\":\\\"object\\\"}\"}",
                 savedConfig
         );
     }
@@ -307,9 +307,7 @@ class MybatisApiAssetRepositoryTest {
                         AsyncTaskAuthMode.SAME_AS_SUBMIT,
                         null,
                         null,
-                        "$.status",
-                        "$.result",
-                        "$.error"
+                        "{\"type\":\"object\"}"
                 ),
                 null,
                 null,

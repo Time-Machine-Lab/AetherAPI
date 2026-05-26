@@ -63,9 +63,7 @@ describe('asset api', () => {
           authMode: 'SAME_AS_SUBMIT',
           authScheme: null,
           authConfig: null,
-          statusPath: '$.data.status',
-          resultPath: '$.data.result',
-          errorPath: '$.data.error',
+          queryResponseJsonSchema: '{"type":"object"}',
         },
         aiCapabilityProfile: {
           provider: 'OpenAI',
@@ -102,9 +100,7 @@ describe('asset api', () => {
           authMode: 'SAME_AS_SUBMIT',
           authScheme: null,
           authConfig: null,
-          statusPath: '$.data.status',
-          resultPath: '$.data.result',
-          errorPath: '$.data.error',
+          queryResponseJsonSchema: '{"type":"object"}',
         },
         aiProfile: {
           provider: 'OpenAI',
@@ -232,9 +228,7 @@ describe('asset api', () => {
         authMode: 'SAME_AS_SUBMIT',
         authScheme: null,
         authConfig: null,
-        statusPath: '$.data.status',
-        resultPath: '$.data.result',
-        errorPath: '$.data.error',
+        queryResponseJsonSchema: '{"type":"object"}',
       },
     })
 
@@ -260,9 +254,7 @@ describe('asset api', () => {
         authMode: 'SAME_AS_SUBMIT',
         authScheme: null,
         authConfig: null,
-        statusPath: '$.data.status',
-        resultPath: '$.data.result',
-        errorPath: '$.data.error',
+        queryResponseJsonSchema: '{"type":"object"}',
       },
     })
   })

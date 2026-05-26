@@ -27,7 +27,7 @@ public class ExtractImportFactsPlanningTool implements ImportAgentPlanningTool {
                             "apiCode", "name", "value"));
                     propertiesNode.set("asyncHints", ImportAgentPlanningToolSupport.buildNamedObjectArraySchema(objectMapper,
                             "apiCode", "queryMethod", "queryUrlTemplate", "authMode", "authScheme", "authConfig",
-                            "statusPath", "resultPath", "errorPath"));
+                            "queryResponseJsonSchema"));
                     propertiesNode.set("aiProfileHints", ImportAgentPlanningToolSupport.buildNamedObjectArraySchema(objectMapper,
                             "apiCode", "provider", "model"));
                     propertiesNode.set("schemaHints", ImportAgentPlanningToolSupport.buildNamedObjectArraySchema(objectMapper,

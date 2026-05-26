@@ -133,9 +133,7 @@ class ApiAssetAggregateTest {
                             AsyncTaskAuthMode.SAME_AS_SUBMIT,
                             null,
                             null,
-                            "$.status",
-                            "$.result",
-                            "$.error"
+                            "{\"type\":\"object\"}"
                     )
             );
 
@@ -215,8 +213,8 @@ class ApiAssetAggregateTest {
                     () -> UpstreamRequestHeader.of("X-Aether-Api-Key", "ak_live")
             );
 
-            assertTrue(authorization.getMessage().contains("reserved"));
-            assertTrue(platform.getMessage().contains("reserved"));
+            assertTrue(authorization.getMessage().contains("Authorization"));
+            assertTrue(platform.getMessage().contains("X-Aether-Api-Key"));
         }
 
         @Test
@@ -391,9 +389,7 @@ class ApiAssetAggregateTest {
                 AsyncTaskAuthMode.SAME_AS_SUBMIT,
                 null,
                 null,
-                "$.status",
-                "$.result",
-                "$.error"
+                "{\"type\":\"object\"}"
         );
     }
 }

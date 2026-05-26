@@ -37,9 +37,7 @@ function mapAsyncTaskConfig(dto?: AsyncTaskConfigDto | null): AsyncTaskConfig | 
     authMode: dto.authMode,
     authScheme: dto.authScheme,
     authConfig: dto.authConfig,
-    statusPath: dto.statusPath,
-    resultPath: dto.resultPath,
-    errorPath: dto.errorPath,
+    queryResponseJsonSchema: dto.queryResponseJsonSchema,
   }
 }
 

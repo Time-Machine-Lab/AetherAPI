@@ -4,6 +4,7 @@ import io.github.timemachinelab.domain.catalog.model.AssetType;
 import io.github.timemachinelab.domain.catalog.model.AuthScheme;
 import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 import io.github.timemachinelab.service.model.ImportAgentPlanModel;
+import io.github.timemachinelab.service.model.ImportAssetPlanAction;
 import io.github.timemachinelab.service.model.ImportAssetPlanModel;
 import io.github.timemachinelab.service.model.UpstreamRequestHeaderModel;
 import org.junit.jupiter.api.DisplayName;
@@ -51,7 +52,33 @@ class ImportAgentJsonConverterTest {
         ImportAgentPlanModel restored = ImportAgentJsonConverter.deserializePlan(json);
 
         assertTrue(json.contains("\"upstreamRequestHeaders\""));
+        assertTrue(json.contains("\"action\":\"UPSERT\""));
         assertEquals("OpenAI-Beta", restored.getAssetPlans().get(0).getUpstreamRequestHeaders().get(0).getName());
         assertEquals("assistants=v2", restored.getAssetPlans().get(0).getUpstreamRequestHeaders().get(0).getValue());
+    }
+
+    @Test
+    @DisplayName("旧计划 JSON 缺失 action 时应按 UPSERT 兼容解析")
+    void shouldDefaultMissingAssetActionToUpsertForStoredPlanJson() {
+        ImportAgentPlanModel restored = ImportAgentJsonConverter.deserializePlan("""
+                {
+                  "version": 1,
+                  "executable": true,
+                  "summary": "ready",
+                  "clarificationQuestions": [],
+                  "clarificationItems": [],
+                  "categoryPlans": [],
+                  "assetPlans": [
+                    {
+                      "apiCode": "weather-tool",
+                      "assetName": "Weather Tool",
+                      "assetType": "STANDARD_API",
+                      "publishAfterImport": false
+                    }
+                  ]
+                }
+                """);
+
+        assertEquals(ImportAssetPlanAction.UPSERT, restored.getAssetPlans().get(0).getAction());
     }
 }

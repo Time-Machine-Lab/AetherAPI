@@ -117,9 +117,7 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     asyncTaskAuthMode: 'SAME_AS_SUBMIT' | 'OVERRIDE'
     asyncTaskAuthScheme: '' | 'NONE' | 'HEADER_TOKEN' | 'QUERY_TOKEN'
     asyncTaskAuthConfig: string
-    asyncTaskStatusPath: string
-    asyncTaskResultPath: string
-    asyncTaskErrorPath: string
+    asyncTaskQueryResponseJsonSchema: string
   }>({
     displayName: '',
     categoryCode: '',
@@ -139,9 +137,7 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
     asyncTaskAuthMode: 'SAME_AS_SUBMIT',
     asyncTaskAuthScheme: '',
     asyncTaskAuthConfig: '',
-    asyncTaskStatusPath: '',
-    asyncTaskResultPath: '',
-    asyncTaskErrorPath: '',
+    asyncTaskQueryResponseJsonSchema: '',
   })
   const aiTagInput = ref('')
   const recentAssets = ref(deps.getRecentAssets())
@@ -181,9 +177,7 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
       asyncTaskAuthMode: asset?.asyncTaskConfig?.authMode ?? 'SAME_AS_SUBMIT',
       asyncTaskAuthScheme: asset?.asyncTaskConfig?.authScheme ?? '',
       asyncTaskAuthConfig: asset?.asyncTaskConfig?.authConfig ?? '',
-      asyncTaskStatusPath: asset?.asyncTaskConfig?.statusPath ?? '',
-      asyncTaskResultPath: asset?.asyncTaskConfig?.resultPath ?? '',
-      asyncTaskErrorPath: asset?.asyncTaskConfig?.errorPath ?? '',
+      asyncTaskQueryResponseJsonSchema: asset?.asyncTaskConfig?.queryResponseJsonSchema ?? '',
     }
   }
 
@@ -454,9 +448,9 @@ export function useWorkspaceCatalog(options: WorkspaceCatalogOptions) {
         assetConfigForm.value.asyncTaskAuthMode === 'OVERRIDE'
           ? normalizeOptionalText(assetConfigForm.value.asyncTaskAuthConfig)
           : null,
-      statusPath: normalizeOptionalText(assetConfigForm.value.asyncTaskStatusPath),
-      resultPath: normalizeOptionalText(assetConfigForm.value.asyncTaskResultPath),
-      errorPath: normalizeOptionalText(assetConfigForm.value.asyncTaskErrorPath),
+      queryResponseJsonSchema: normalizeOptionalText(
+        assetConfigForm.value.asyncTaskQueryResponseJsonSchema,
+      ),
     }
   }
 

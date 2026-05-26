@@ -7,7 +7,9 @@ import java.util.List;
  */
 public class ImportAssetPlanResp {
 
+    private final String action;
     private final String apiCode;
+    private final ImportExistingAssetSummaryResp matchedExistingAsset;
     private final String assetName;
     private final String assetType;
     private final String categoryCode;
@@ -22,6 +24,7 @@ public class ImportAssetPlanResp {
     private final String requestJsonSchema;
     private final String responseJsonSchema;
     private final boolean publishAfterImport;
+    private final List<String> changedFields;
     private final AsyncTaskConfigResp asyncTaskConfig;
     private final ImportAiProfileResp aiProfile;
 
@@ -81,7 +84,54 @@ public class ImportAssetPlanResp {
             boolean publishAfterImport,
             AsyncTaskConfigResp asyncTaskConfig,
             ImportAiProfileResp aiProfile) {
+        this(
+                null,
+                apiCode,
+                null,
+                assetName,
+                assetType,
+                categoryCode,
+                requestMethod,
+                upstreamUrl,
+                authScheme,
+                authConfig,
+                upstreamRequestHeaders,
+                requestTemplate,
+                requestExample,
+                responseExample,
+                requestJsonSchema,
+                responseJsonSchema,
+                publishAfterImport,
+                null,
+                asyncTaskConfig,
+                aiProfile
+        );
+    }
+
+    public ImportAssetPlanResp(
+            String action,
+            String apiCode,
+            ImportExistingAssetSummaryResp matchedExistingAsset,
+            String assetName,
+            String assetType,
+            String categoryCode,
+            String requestMethod,
+            String upstreamUrl,
+            String authScheme,
+            String authConfig,
+            List<ImportUpstreamRequestHeaderResp> upstreamRequestHeaders,
+            String requestTemplate,
+            String requestExample,
+            String responseExample,
+            String requestJsonSchema,
+            String responseJsonSchema,
+            boolean publishAfterImport,
+            List<String> changedFields,
+            AsyncTaskConfigResp asyncTaskConfig,
+            ImportAiProfileResp aiProfile) {
+        this.action = action;
         this.apiCode = apiCode;
+        this.matchedExistingAsset = matchedExistingAsset;
         this.assetName = assetName;
         this.assetType = assetType;
         this.categoryCode = categoryCode;
@@ -96,12 +146,21 @@ public class ImportAssetPlanResp {
         this.requestJsonSchema = requestJsonSchema;
         this.responseJsonSchema = responseJsonSchema;
         this.publishAfterImport = publishAfterImport;
+        this.changedFields = changedFields == null ? null : List.copyOf(changedFields);
         this.asyncTaskConfig = asyncTaskConfig;
         this.aiProfile = aiProfile;
     }
 
+    public String getAction() {
+        return action;
+    }
+
     public String getApiCode() {
         return apiCode;
+    }
+
+    public ImportExistingAssetSummaryResp getMatchedExistingAsset() {
+        return matchedExistingAsset;
     }
 
     public String getAssetName() {
@@ -158,6 +217,10 @@ public class ImportAssetPlanResp {
 
     public boolean isPublishAfterImport() {
         return publishAfterImport;
+    }
+
+    public List<String> getChangedFields() {
+        return changedFields;
     }
 
     public AsyncTaskConfigResp getAsyncTaskConfig() {

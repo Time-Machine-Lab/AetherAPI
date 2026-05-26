@@ -1,6 +1,5 @@
 import type { DiscoveryAssetDetail } from '@/api/catalog/catalog.types'
 import { buildUnifiedAccessPath, buildUnifiedAccessTaskPath } from '@/utils/platform-url'
-import { buildAsyncTaskResponseStructure } from './async-task-response-structure'
 
 export interface CatalogDocLabels {
   exportTitle: string
@@ -29,10 +28,7 @@ export interface CatalogDocLabels {
   asyncTaskQuery: string
   asyncTaskQueryEndpoint: string
   asyncTaskAuthMode: string
-  asyncTaskStatusPath: string
-  asyncTaskResultPath: string
-  asyncTaskErrorPath: string
-  asyncTaskResponseStructure: string
+  asyncTaskQueryResponseJsonSchema: string
   aiCapability: string
   provider: string
   model: string
@@ -103,10 +99,7 @@ export const defaultCatalogDocLabels: CatalogDocLabels = {
   asyncTaskQuery: 'Async Task Query',
   asyncTaskQueryEndpoint: 'Task Query Endpoint',
   asyncTaskAuthMode: 'Task Query Auth Mode',
-  asyncTaskStatusPath: 'Task Status Path',
-  asyncTaskResultPath: 'Task Result Path',
-  asyncTaskErrorPath: 'Task Error Path',
-  asyncTaskResponseStructure: 'Task Query Response Structure',
+  asyncTaskQueryResponseJsonSchema: 'Task Query Response Schema',
   aiCapability: 'AI Capability',
   provider: 'Provider',
   model: 'Model',
@@ -249,22 +242,14 @@ function buildApiMarkdownSection(
       tableRow(labels.requestMethod, detail.asyncTaskConfig.queryMethod, labels),
       tableRow(labels.asyncTaskAuthMode, detail.asyncTaskConfig.authMode, labels),
       tableRow(labels.authScheme, detail.asyncTaskConfig.authScheme, labels),
-      tableRow(labels.asyncTaskStatusPath, detail.asyncTaskConfig.statusPath, labels),
-      tableRow(labels.asyncTaskResultPath, detail.asyncTaskConfig.resultPath, labels),
-      tableRow(labels.asyncTaskErrorPath, detail.asyncTaskConfig.errorPath, labels),
       '',
     )
 
-    const responseStructure = buildAsyncTaskResponseStructure(detail.asyncTaskConfig, {
-      status: labels.asyncTaskStatusPath,
-      result: labels.asyncTaskResultPath,
-      error: labels.asyncTaskErrorPath,
-    })
-    if (responseStructure) {
+    if (detail.asyncTaskConfig.queryResponseJsonSchema) {
       lines.push(
-        subsection(headingLevel, labels.asyncTaskResponseStructure),
+        subsection(headingLevel, labels.asyncTaskQueryResponseJsonSchema),
         '',
-        formatCodeFence(responseStructure),
+        formatCodeFence(detail.asyncTaskConfig.queryResponseJsonSchema),
         '',
       )
     }

@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS api_asset (
     response_example        TEXT NULL COMMENT '响应示例快照',
     request_json_schema     TEXT NULL COMMENT '请求体 JSON Schema 快照，可为空',
     response_json_schema    TEXT NULL COMMENT '响应体 JSON Schema 快照，可为空',
-    async_task_config       TEXT NULL COMMENT '异步任务查询配置 JSON。为空表示该资产不声明 Unified Access 任务查询通道',
+    async_task_config       TEXT NULL COMMENT 'Async task query config JSON. May include nullable queryResponseJsonSchema; empty means no Unified Access task query channel',
     capability_extensions   TEXT NULL COMMENT '能力扩展块 JSON。用于未来一等能力的 owner-scoped 扩展配置',
     policy_extensions       TEXT NULL COMMENT '策略扩展块 JSON。用于未来策略类配置的 owner-scoped 扩展配置',
     metadata_extensions     TEXT NULL COMMENT '元数据扩展块 JSON。用于未来附加元数据的 owner-scoped 扩展配置',
@@ -61,7 +61,7 @@ COMMENT ON COLUMN api_asset.request_example IS '请求示例快照';
 COMMENT ON COLUMN api_asset.response_example IS '响应示例快照';
 COMMENT ON COLUMN api_asset.request_json_schema IS '请求体 JSON Schema 快照，可为空';
 COMMENT ON COLUMN api_asset.response_json_schema IS '响应体 JSON Schema 快照，可为空';
-COMMENT ON COLUMN api_asset.async_task_config IS '异步任务查询配置 JSON。为空表示该资产不声明 Unified Access 任务查询通道';
+COMMENT ON COLUMN api_asset.async_task_config IS 'Async task query config JSON. May include nullable queryResponseJsonSchema; empty means no Unified Access task query channel';
 COMMENT ON COLUMN api_asset.capability_extensions IS '能力扩展块 JSON。用于未来一等能力的 owner-scoped 扩展配置';
 COMMENT ON COLUMN api_asset.policy_extensions IS '策略扩展块 JSON。用于未来策略类配置的 owner-scoped 扩展配置';
 COMMENT ON COLUMN api_asset.metadata_extensions IS '元数据扩展块 JSON。用于未来附加元数据的 owner-scoped 扩展配置';

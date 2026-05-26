@@ -87,7 +87,7 @@ class MybatisCatalogDiscoveryQueryPortTest {
         record.setRequestJsonSchema("{\"type\":\"object\",\"required\":[\"prompt\"]}");
         record.setResponseJsonSchema("{\"type\":\"object\",\"properties\":{\"taskId\":{\"type\":\"string\"}}}");
         record.setAsyncTaskConfig(
-                "{\"enabled\":true,\"queryMethod\":\"GET\",\"queryUrlTemplate\":\"http://provider.example.com/v1/tasks/{taskId}\",\"authMode\":\"SAME_AS_SUBMIT\",\"statusPath\":\"$.data.status\",\"resultPath\":\"$.data.result\",\"errorPath\":\"$.data.error\"}"
+                "{\"enabled\":true,\"queryMethod\":\"GET\",\"queryUrlTemplate\":\"http://provider.example.com/v1/tasks/{taskId}\",\"authMode\":\"SAME_AS_SUBMIT\",\"queryResponseJsonSchema\":\"{\\\"type\\\":\\\"object\\\"}\"}"
         );
         when(mapper.selectAssetDetail("image-generate")).thenReturn(record);
 
@@ -101,9 +101,27 @@ class MybatisCatalogDiscoveryQueryPortTest {
         assertEquals("GET", result.get().getAsyncTaskConfig().getQueryMethod());
         assertEquals("http://provider.example.com/v1/tasks/{taskId}", result.get().getAsyncTaskConfig().getQueryUrlTemplate());
         assertEquals("SAME_AS_SUBMIT", result.get().getAsyncTaskConfig().getAuthMode());
-        assertEquals("$.data.status", result.get().getAsyncTaskConfig().getStatusPath());
-        assertEquals("$.data.result", result.get().getAsyncTaskConfig().getResultPath());
-        assertEquals("$.data.error", result.get().getAsyncTaskConfig().getErrorPath());
+        assertEquals("{\"type\":\"object\"}", result.get().getAsyncTaskConfig().getQueryResponseJsonSchema());
+    }
+
+    @Test
+    @DisplayName("detail should ignore legacy async task path fields")
+    void shouldIgnoreLegacyAsyncTaskPathFieldsInDetail() {
+        CatalogDiscoveryAssetRecord record = assetRecord("image-generate", "PUBLISHED", "AI_API", "Alice");
+        record.setAsyncTaskConfig(
+                "{\"enabled\":true,\"queryMethod\":\"GET\",\"queryUrlTemplate\":\"http://provider.example.com/v1/tasks/{taskId}\",\"authMode\":\"SAME_AS_SUBMIT\",\"statusPath\":\"$.data.status\",\"resultPath\":\"$.data.result\",\"errorPath\":\"$.data.error\"}"
+        );
+        when(mapper.selectAssetDetail("image-generate")).thenReturn(record);
+
+        Optional<CatalogDiscoveryAssetDetailModel> result = queryPort.findDiscoverableAssetDetail("image-generate");
+
+        assertTrue(result.isPresent());
+        assertNotNull(result.get().getAsyncTaskConfig());
+        assertEquals(Boolean.TRUE, result.get().getAsyncTaskConfig().getEnabled());
+        assertEquals("GET", result.get().getAsyncTaskConfig().getQueryMethod());
+        assertEquals("http://provider.example.com/v1/tasks/{taskId}", result.get().getAsyncTaskConfig().getQueryUrlTemplate());
+        assertEquals("SAME_AS_SUBMIT", result.get().getAsyncTaskConfig().getAuthMode());
+        assertNull(result.get().getAsyncTaskConfig().getQueryResponseJsonSchema());
     }
 
     @Test

@@ -16,9 +16,7 @@ export interface AsyncTaskConfig {
   authMode?: 'SAME_AS_SUBMIT' | 'OVERRIDE'
   authScheme?: 'NONE' | 'HEADER_TOKEN' | 'QUERY_TOKEN' | null
   authConfig?: string | null
-  statusPath?: string | null
-  resultPath?: string | null
-  errorPath?: string | null
+  queryResponseJsonSchema?: string | null
 }
 
 export interface UpstreamRequestHeader {

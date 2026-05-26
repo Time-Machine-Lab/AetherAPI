@@ -71,6 +71,7 @@ public class ImportAgentPlannerAgentRegistry {
                 spec("state_estimation", ImportAgentPlannerAgentRole.STATE_ESTIMATION, 30,
                         """
                         估计当前导入状态：候选资产、认证依据、示例、Schema、异步任务依据、AI 配置依据和置信度。
+                        异步任务只使用 asyncTaskConfig.queryResponseJsonSchema 描述任务查询响应体；不要生成 statusPath、resultPath 或 errorPath。
                         只返回 JSON。不要推断缺少上下文支撑的值。
                         """,
                         List.of("fill_import_slots"), ImportAgentPlannerOutputMode.STRUCTURED_NOTES,
@@ -93,6 +94,7 @@ public class ImportAgentPlannerAgentRegistry {
                 spec("plan_synthesis", ImportAgentPlannerAgentRole.PLAN_SYNTHESIS, 60,
                         """
                         基于上下文和前序阶段输出生成完整的导入计划草稿 JSON。
+                        如果识别到异步任务查询响应示例或字段文档，请生成 asyncTaskConfig.queryResponseJsonSchema；证据不足时保持为空并通过 clarificationQuestions 询问任务查询响应示例或字段说明，不要要求用户提供 JSONPath。
                         如果必需执行字段缺失，请通过 clarificationQuestions 让计划保持不可执行。
                         不要依赖平台侧修复。
                         """,
@@ -109,7 +111,10 @@ public class ImportAgentPlannerAgentRegistry {
                         """
                         生成最终导入计划载荷。可用时优先调用 submit_import_plan 工具。
                         最终 JSON 必须包含 summary、clarificationQuestions、categoryPlans 和 assetPlans。
+                        每个 assetPlans[] 必须包含 action，取值 CREATE、UPDATE_EXISTING 或 UPSERT。用户意图不明确时不要默认 UPSERT，应保持计划不可执行并提出澄清。
+                        UPDATE_EXISTING 必须使用 changedFields 表达本次明确修改的字段；未列入 changedFields 的字段视为保持已有资产原值。
                         authConfig 必须是纯字符串：HEADER_TOKEN 使用 Authorization: Bearer token，QUERY_TOKEN 使用 access_token=token；不要输出 JSON 对象或 JSON 字符串。
+                        asyncTaskConfig 只允许用 queryResponseJsonSchema 描述任务查询响应体；不要输出 statusPath、resultPath 或 errorPath。
                         缺失的执行字段必须继续保持缺失，并表示为澄清需求。
                         """,
                         List.of("submit_import_plan"), ImportAgentPlannerOutputMode.FINAL_PLAN,

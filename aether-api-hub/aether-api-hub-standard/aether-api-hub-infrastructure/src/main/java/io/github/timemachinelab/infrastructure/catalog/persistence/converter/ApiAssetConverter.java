@@ -156,9 +156,7 @@ public final class ApiAssetConverter {
                     toAsyncTaskAuthMode(extractJsonString(json, "authMode")),
                     toAuthScheme(extractJsonString(json, "authScheme")),
                     extractJsonString(json, "authConfig"),
-                    extractJsonString(json, "statusPath"),
-                    extractJsonString(json, "resultPath"),
-                    extractJsonString(json, "errorPath")
+                    extractJsonString(json, "queryResponseJsonSchema")
             );
         } catch (IllegalArgumentException ex) {
             throw new IllegalStateException("Stored async task config is invalid", ex);
@@ -176,9 +174,7 @@ public final class ApiAssetConverter {
         appendJsonString(builder, "authMode", config.getAuthMode() == null ? null : config.getAuthMode().name());
         appendJsonString(builder, "authScheme", config.getAuthScheme() == null ? null : config.getAuthScheme().name());
         appendJsonString(builder, "authConfig", config.getAuthConfig());
-        appendJsonString(builder, "statusPath", config.getStatusPath());
-        appendJsonString(builder, "resultPath", config.getResultPath());
-        appendJsonString(builder, "errorPath", config.getErrorPath());
+        appendJsonString(builder, "queryResponseJsonSchema", config.getQueryResponseJsonSchema());
         builder.append('}');
         return builder.toString();
     }

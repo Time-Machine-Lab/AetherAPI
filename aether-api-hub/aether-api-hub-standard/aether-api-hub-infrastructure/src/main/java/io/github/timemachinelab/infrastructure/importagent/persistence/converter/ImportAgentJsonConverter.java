@@ -13,9 +13,11 @@ import io.github.timemachinelab.service.model.ImportAgentStepType;
 import io.github.timemachinelab.service.model.ImportAgentClarificationItemModel;
 import io.github.timemachinelab.service.model.ImportAgentClarificationOptionModel;
 import io.github.timemachinelab.service.model.ImportAiProfileModel;
+import io.github.timemachinelab.service.model.ImportAssetPlanAction;
 import io.github.timemachinelab.service.model.ImportAssetPlanModel;
 import io.github.timemachinelab.service.model.ImportCategoryPlanAction;
 import io.github.timemachinelab.service.model.ImportCategoryPlanModel;
+import io.github.timemachinelab.service.model.ImportExistingAssetSummaryModel;
 import io.github.timemachinelab.service.model.ImportStepResultModel;
 import io.github.timemachinelab.service.model.ImportStepResultStatus;
 import io.github.timemachinelab.service.model.UpstreamRequestHeaderModel;
@@ -78,7 +80,11 @@ public final class ImportAgentJsonConverter {
         ArrayNode assetPlans = root.putArray("assetPlans");
         for (ImportAssetPlanModel assetPlan : plan.getAssetPlans()) {
             ObjectNode assetNode = assetPlans.addObject();
+            if (assetPlan.getAction() != null) {
+                assetNode.put("action", assetPlan.getAction().name());
+            }
             assetNode.put("apiCode", assetPlan.getApiCode());
+            serializeExistingAssetSummary(assetNode, assetPlan.getMatchedExistingAsset());
             assetNode.put("assetName", assetPlan.getAssetName());
             if (assetPlan.getAssetType() != null) {
                 assetNode.put("assetType", assetPlan.getAssetType().name());
@@ -99,6 +105,7 @@ public final class ImportAgentJsonConverter {
             assetNode.put("requestJsonSchema", assetPlan.getRequestJsonSchema());
             assetNode.put("responseJsonSchema", assetPlan.getResponseJsonSchema());
             assetNode.put("publishAfterImport", assetPlan.isPublishAfterImport());
+            serializeChangedFields(assetNode, assetPlan.getChangedFields());
             if (assetPlan.getAsyncTaskConfig() != null) {
                 serializeAsyncTaskConfig(assetNode.putObject("asyncTaskConfig"), assetPlan.getAsyncTaskConfig());
             }
@@ -162,7 +169,9 @@ public final class ImportAgentJsonConverter {
             List<ImportAssetPlanModel> assetPlans = new ArrayList<>();
             for (JsonNode assetNode : root.path("assetPlans")) {
                 assetPlans.add(new ImportAssetPlanModel(
+                        enumValue(ImportAssetPlanAction.class, textValue(assetNode, "action"), ImportAssetPlanAction.UPSERT),
                         textValue(assetNode, "apiCode"),
+                        deserializeExistingAssetSummary(assetNode.path("matchedExistingAsset")),
                         textValue(assetNode, "assetName"),
                         enumValue(AssetType.class, textValue(assetNode, "assetType"), null),
                         textValue(assetNode, "categoryCode"),
@@ -177,6 +186,7 @@ public final class ImportAgentJsonConverter {
                         textValue(assetNode, "requestJsonSchema"),
                         textValue(assetNode, "responseJsonSchema"),
                         assetNode.path("publishAfterImport").asBoolean(false),
+                        deserializeStringArray(assetNode.path("changedFields")),
                         deserializeAsyncTaskConfig(assetNode.path("asyncTaskConfig")),
                         deserializeAiProfile(assetNode.path("aiProfile"))
                 ));
@@ -202,9 +212,7 @@ public final class ImportAgentJsonConverter {
         target.put("authMode", config.getAuthMode());
         target.put("authScheme", config.getAuthScheme());
         target.put("authConfig", config.getAuthConfig());
-        target.put("statusPath", config.getStatusPath());
-        target.put("resultPath", config.getResultPath());
-        target.put("errorPath", config.getErrorPath());
+        target.put("queryResponseJsonSchema", config.getQueryResponseJsonSchema());
     }
 
     private static void serializeUpstreamRequestHeaders(ObjectNode target, List<UpstreamRequestHeaderModel> headers) {
@@ -220,6 +228,35 @@ public final class ImportAgentJsonConverter {
             headerNode.put("name", header.getName());
             headerNode.put("value", header.getValue());
         }
+    }
+
+    private static void serializeChangedFields(ObjectNode target, List<String> changedFields) {
+        if (changedFields == null) {
+            return;
+        }
+        ArrayNode fieldsNode = target.putArray("changedFields");
+        for (String field : changedFields) {
+            fieldsNode.add(field);
+        }
+    }
+
+    private static void serializeExistingAssetSummary(ObjectNode target, ImportExistingAssetSummaryModel summary) {
+        if (summary == null) {
+            return;
+        }
+        ObjectNode summaryNode = target.putObject("matchedExistingAsset");
+        summaryNode.put("apiCode", summary.getApiCode());
+        summaryNode.put("assetName", summary.getAssetName());
+        summaryNode.put("assetType", summary.getAssetType());
+        summaryNode.put("categoryCode", summary.getCategoryCode());
+        summaryNode.put("status", summary.getStatus());
+        summaryNode.put("requestMethod", summary.getRequestMethod());
+        summaryNode.put("upstreamUrl", summary.getUpstreamUrl());
+        summaryNode.put("authScheme", summary.getAuthScheme());
+        summaryNode.put("authConfigured", summary.isAuthConfigured());
+        summaryNode.put("asyncTaskConfigured", summary.isAsyncTaskConfigured());
+        summaryNode.put("aiProfileConfigured", summary.isAiProfileConfigured());
+        summaryNode.put("updatedAt", summary.getUpdatedAt());
     }
 
     private static List<UpstreamRequestHeaderModel> deserializeUpstreamRequestHeaders(JsonNode node) {
@@ -239,6 +276,40 @@ public final class ImportAgentJsonConverter {
         return headers.isEmpty() ? null : headers;
     }
 
+    private static List<String> deserializeStringArray(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull() || !node.isArray()) {
+            return null;
+        }
+        List<String> values = new ArrayList<>();
+        for (JsonNode valueNode : node) {
+            String value = valueNode.asText(null);
+            if (value != null && !value.isBlank()) {
+                values.add(value);
+            }
+        }
+        return values.isEmpty() ? List.of() : List.copyOf(values);
+    }
+
+    private static ImportExistingAssetSummaryModel deserializeExistingAssetSummary(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull() || !node.isObject()) {
+            return null;
+        }
+        return new ImportExistingAssetSummaryModel(
+                textValue(node, "apiCode"),
+                textValue(node, "assetName"),
+                textValue(node, "assetType"),
+                textValue(node, "categoryCode"),
+                textValue(node, "status"),
+                textValue(node, "requestMethod"),
+                textValue(node, "upstreamUrl"),
+                textValue(node, "authScheme"),
+                node.path("authConfigured").asBoolean(false),
+                node.path("asyncTaskConfigured").asBoolean(false),
+                node.path("aiProfileConfigured").asBoolean(false),
+                textValue(node, "updatedAt")
+        );
+    }
+
     private static AsyncTaskConfigModel deserializeAsyncTaskConfig(JsonNode node) {
         if (node == null || node.isMissingNode() || node.isNull() || !node.isObject()) {
             return null;
@@ -250,9 +321,7 @@ public final class ImportAgentJsonConverter {
                 textValue(node, "authMode"),
                 textValue(node, "authScheme"),
                 textValue(node, "authConfig"),
-                textValue(node, "statusPath"),
-                textValue(node, "resultPath"),
-                textValue(node, "errorPath")
+                textValue(node, "queryResponseJsonSchema")
         );
     }
 

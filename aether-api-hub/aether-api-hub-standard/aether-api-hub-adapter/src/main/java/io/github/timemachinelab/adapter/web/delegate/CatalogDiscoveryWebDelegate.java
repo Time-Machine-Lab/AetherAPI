@@ -111,9 +111,7 @@ public class CatalogDiscoveryWebDelegate {
                 model.getAuthMode() == null ? null : AsyncTaskAuthMode.valueOf(model.getAuthMode()),
                 model.getAuthScheme() == null ? null : AuthScheme.valueOf(model.getAuthScheme()),
                 null,
-                model.getStatusPath(),
-                model.getResultPath(),
-                model.getErrorPath()
+                model.getQueryResponseJsonSchema()
         );
     }
 

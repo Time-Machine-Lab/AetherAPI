@@ -286,9 +286,7 @@ class ApiAssetApplicationServiceTest {
             assertEquals("GET", revised.getAsyncTaskConfig().getQueryMethod());
             assertEquals("https://upstream.example.com/images/tasks/{taskId}", revised.getAsyncTaskConfig().getQueryUrlTemplate());
             assertEquals("SAME_AS_SUBMIT", revised.getAsyncTaskConfig().getAuthMode());
-            assertEquals("$.status", detail.getAsyncTaskConfig().getStatusPath());
-            assertEquals("$.result", detail.getAsyncTaskConfig().getResultPath());
-            assertEquals("$.error", detail.getAsyncTaskConfig().getErrorPath());
+            assertEquals("{\"type\":\"object\"}", detail.getAsyncTaskConfig().getQueryResponseJsonSchema());
         }
 
         @Test
@@ -443,7 +441,7 @@ class ApiAssetApplicationServiceTest {
                     ))
             );
 
-            assertTrue(exception.getMessage().contains("reserved"));
+            assertTrue(exception.getMessage().contains("Authorization"));
         }
 
         @Test
@@ -757,9 +755,7 @@ class ApiAssetApplicationServiceTest {
                 "SAME_AS_SUBMIT",
                 null,
                 null,
-                "$.status",
-                "$.result",
-                "$.error"
+                "{\"type\":\"object\"}"
         );
     }
 

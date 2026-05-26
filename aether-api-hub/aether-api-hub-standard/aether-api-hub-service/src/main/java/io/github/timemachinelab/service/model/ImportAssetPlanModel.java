@@ -11,7 +11,9 @@ import java.util.List;
  */
 public class ImportAssetPlanModel {
 
+    private final ImportAssetPlanAction action;
     private final String apiCode;
+    private final ImportExistingAssetSummaryModel matchedExistingAsset;
     private final String assetName;
     private final AssetType assetType;
     private final String categoryCode;
@@ -26,6 +28,7 @@ public class ImportAssetPlanModel {
     private final String requestJsonSchema;
     private final String responseJsonSchema;
     private final boolean publishAfterImport;
+    private final List<String> changedFields;
     private final AsyncTaskConfigModel asyncTaskConfig;
     private final ImportAiProfileModel aiProfile;
 
@@ -85,7 +88,54 @@ public class ImportAssetPlanModel {
             boolean publishAfterImport,
             AsyncTaskConfigModel asyncTaskConfig,
             ImportAiProfileModel aiProfile) {
+        this(
+                ImportAssetPlanAction.UPSERT,
+                apiCode,
+                null,
+                assetName,
+                assetType,
+                categoryCode,
+                requestMethod,
+                upstreamUrl,
+                authScheme,
+                authConfig,
+                upstreamRequestHeaders,
+                requestTemplate,
+                requestExample,
+                responseExample,
+                requestJsonSchema,
+                responseJsonSchema,
+                publishAfterImport,
+                null,
+                asyncTaskConfig,
+                aiProfile
+        );
+    }
+
+    public ImportAssetPlanModel(
+            ImportAssetPlanAction action,
+            String apiCode,
+            ImportExistingAssetSummaryModel matchedExistingAsset,
+            String assetName,
+            AssetType assetType,
+            String categoryCode,
+            RequestMethod requestMethod,
+            String upstreamUrl,
+            AuthScheme authScheme,
+            String authConfig,
+            List<UpstreamRequestHeaderModel> upstreamRequestHeaders,
+            String requestTemplate,
+            String requestExample,
+            String responseExample,
+            String requestJsonSchema,
+            String responseJsonSchema,
+            boolean publishAfterImport,
+            List<String> changedFields,
+            AsyncTaskConfigModel asyncTaskConfig,
+            ImportAiProfileModel aiProfile) {
+        this.action = action;
         this.apiCode = apiCode;
+        this.matchedExistingAsset = matchedExistingAsset;
         this.assetName = assetName;
         this.assetType = assetType;
         this.categoryCode = categoryCode;
@@ -100,12 +150,21 @@ public class ImportAssetPlanModel {
         this.requestJsonSchema = requestJsonSchema;
         this.responseJsonSchema = responseJsonSchema;
         this.publishAfterImport = publishAfterImport;
+        this.changedFields = changedFields == null ? null : List.copyOf(changedFields);
         this.asyncTaskConfig = asyncTaskConfig;
         this.aiProfile = aiProfile;
     }
 
+    public ImportAssetPlanAction getAction() {
+        return action;
+    }
+
     public String getApiCode() {
         return apiCode;
+    }
+
+    public ImportExistingAssetSummaryModel getMatchedExistingAsset() {
+        return matchedExistingAsset;
     }
 
     public String getAssetName() {
@@ -162,6 +221,10 @@ public class ImportAssetPlanModel {
 
     public boolean isPublishAfterImport() {
         return publishAfterImport;
+    }
+
+    public List<String> getChangedFields() {
+        return changedFields;
     }
 
     public AsyncTaskConfigModel getAsyncTaskConfig() {

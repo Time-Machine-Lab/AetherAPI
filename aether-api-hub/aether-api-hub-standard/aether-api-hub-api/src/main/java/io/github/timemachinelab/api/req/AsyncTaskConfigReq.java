@@ -30,14 +30,8 @@ public class AsyncTaskConfigReq {
     @JsonProperty("authConfig")
     private String authConfig;
 
-    @JsonProperty("statusPath")
-    private String statusPath;
-
-    @JsonProperty("resultPath")
-    private String resultPath;
-
-    @JsonProperty("errorPath")
-    private String errorPath;
+    @JsonProperty("queryResponseJsonSchema")
+    private String queryResponseJsonSchema;
 
     public Boolean getEnabled() {
         return enabled;
@@ -87,27 +81,11 @@ public class AsyncTaskConfigReq {
         this.authConfig = authConfig;
     }
 
-    public String getStatusPath() {
-        return statusPath;
+    public String getQueryResponseJsonSchema() {
+        return queryResponseJsonSchema;
     }
 
-    public void setStatusPath(String statusPath) {
-        this.statusPath = statusPath;
-    }
-
-    public String getResultPath() {
-        return resultPath;
-    }
-
-    public void setResultPath(String resultPath) {
-        this.resultPath = resultPath;
-    }
-
-    public String getErrorPath() {
-        return errorPath;
-    }
-
-    public void setErrorPath(String errorPath) {
-        this.errorPath = errorPath;
+    public void setQueryResponseJsonSchema(String queryResponseJsonSchema) {
+        this.queryResponseJsonSchema = queryResponseJsonSchema;
     }
 }

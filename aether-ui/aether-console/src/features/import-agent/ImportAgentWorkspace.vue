@@ -940,25 +940,14 @@ watch(
                               {{ t('console.importAgent.assetAsyncAuthConfigInherited') }}
                             </dd>
                           </div>
-                          <div v-if="assetPlan.asyncTaskConfig.statusPath">
-                            <dt>{{ t('console.workspace.fieldAsyncTaskStatusPath') }}</dt>
-                            <dd class="mt-1 text-sm text-foreground">
-                              {{ assetPlan.asyncTaskConfig.statusPath }}
-                            </dd>
-                          </div>
-                          <div v-if="assetPlan.asyncTaskConfig.resultPath">
-                            <dt>{{ t('console.workspace.fieldAsyncTaskResultPath') }}</dt>
-                            <dd class="mt-1 text-sm text-foreground">
-                              {{ assetPlan.asyncTaskConfig.resultPath }}
-                            </dd>
-                          </div>
-                          <div v-if="assetPlan.asyncTaskConfig.errorPath">
-                            <dt>{{ t('console.workspace.fieldAsyncTaskErrorPath') }}</dt>
-                            <dd class="mt-1 text-sm text-foreground">
-                              {{ assetPlan.asyncTaskConfig.errorPath }}
-                            </dd>
-                          </div>
                         </dl>
+                        <CodeBlock
+                          v-if="assetPlan.asyncTaskConfig.queryResponseJsonSchema"
+                          class="mt-3"
+                          :label="t('console.workspace.fieldAsyncTaskQueryResponseJsonSchema')"
+                          :value="assetPlan.asyncTaskConfig.queryResponseJsonSchema"
+                          max-height-class="max-h-[220px]"
+                        />
                       </div>
 
                       <div

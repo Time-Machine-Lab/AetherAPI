@@ -91,9 +91,7 @@ function createSessionDto(overrides: Record<string, unknown> = {}) {
             authMode: 'SAME_AS_SUBMIT',
             authScheme: null,
             authConfig: null,
-            statusPath: '$.status',
-            resultPath: '$.result',
-            errorPath: '$.error',
+            queryResponseJsonSchema: '{"type":"object"}',
           },
           aiProfile: {
             provider: 'OpenAI',
@@ -221,6 +219,9 @@ describe('import-agent api', () => {
     expect(onDone).toHaveBeenCalledTimes(1)
     expect(result.currentPlan?.assetPlans[0].asyncTaskConfig?.queryUrlTemplate).toBe(
       'https://upstream.example.com/tasks/{taskId}',
+    )
+    expect(result.currentPlan?.assetPlans[0].asyncTaskConfig?.queryResponseJsonSchema).toBe(
+      '{"type":"object"}',
     )
     expect(result.currentPlan?.assetPlans[0].upstreamRequestHeaders).toEqual([
       { name: 'OpenAI-Beta', value: 'assistants=v2' },

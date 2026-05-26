@@ -225,9 +225,7 @@ public class ApiAssetWebDelegate {
                 req.getAuthMode() == null ? null : req.getAuthMode().name(),
                 req.getAuthScheme() == null ? null : req.getAuthScheme().name(),
                 req.getAuthConfig(),
-                req.getStatusPath(),
-                req.getResultPath(),
-                req.getErrorPath()
+                req.getQueryResponseJsonSchema()
         );
     }
 
@@ -242,9 +240,7 @@ public class ApiAssetWebDelegate {
                 model.getAuthMode() == null ? null : AsyncTaskAuthMode.valueOf(model.getAuthMode()),
                 model.getAuthScheme() == null ? null : AuthScheme.valueOf(model.getAuthScheme()),
                 model.getAuthConfig(),
-                model.getStatusPath(),
-                model.getResultPath(),
-                model.getErrorPath()
+                model.getQueryResponseJsonSchema()
         );
     }
 

@@ -8,6 +8,9 @@ import io.github.timemachinelab.domain.importagent.model.ImportAgentDomainExcept
 import io.github.timemachinelab.service.application.ApiImportAgentApplicationService;
 import io.github.timemachinelab.service.model.ApiImportAgentRunModel;
 import io.github.timemachinelab.service.model.ApiImportAgentSessionModel;
+import io.github.timemachinelab.service.model.ApiAssetModel;
+import io.github.timemachinelab.service.model.ApiAssetPageResult;
+import io.github.timemachinelab.service.model.ApiAssetSummaryModel;
 import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
 import io.github.timemachinelab.service.model.AppendImportAgentTurnCommand;
 import io.github.timemachinelab.service.model.CategoryModel;
@@ -27,8 +30,10 @@ import io.github.timemachinelab.service.model.ImportAgentSessionStatus;
 import io.github.timemachinelab.service.model.ImportAgentStreamEmitter;
 import io.github.timemachinelab.service.model.ImportAgentStreamEvent;
 import io.github.timemachinelab.service.model.ImportAgentStreamEventType;
+import io.github.timemachinelab.service.model.ImportAssetPlanAction;
 import io.github.timemachinelab.service.model.ImportAssetPlanModel;
 import io.github.timemachinelab.service.model.ImportStepResultStatus;
+import io.github.timemachinelab.service.model.ListApiAssetQuery;
 import io.github.timemachinelab.service.model.RegisterApiAssetCommand;
 import io.github.timemachinelab.service.model.ReviseApiAssetCommand;
 import io.github.timemachinelab.service.model.StartImportAgentRunCommand;
@@ -48,6 +53,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -343,7 +349,7 @@ class ApiImportAgentApplicationServiceTest {
         assertEquals("register failed", finalRun.getFailureReason());
         assertNotNull(finalRun.getStepResults());
         assertEquals(2, finalRun.getStepResults().size());
-        assertEquals(ImportAgentStepType.REVISE_ASSET, finalRun.getStepResults().get(1).getStepType());
+        assertEquals(ImportAgentStepType.UPSERT_ASSET, finalRun.getStepResults().get(1).getStepType());
         assertEquals(ImportStepResultStatus.FAILED, finalRun.getStepResults().get(1).getStatus());
     }
 
@@ -581,6 +587,252 @@ class ApiImportAgentApplicationServiceTest {
         assertEquals("tools", plannerRequest.getAvailableCategories().get(0).getCategoryCode());
     }
 
+    @Test
+    @DisplayName("create session should pass owner asset candidates and redacted target details to planner")
+    void shouldPassSafeExistingAssetContextToPlanner() {
+        ApiImportAgentSessionRepositoryPort sessionRepositoryPort = mock(ApiImportAgentSessionRepositoryPort.class);
+        ApiImportAgentRunRepositoryPort runRepositoryPort = mock(ApiImportAgentRunRepositoryPort.class);
+        ApiImportAgentPlannerPort plannerPort = mock(ApiImportAgentPlannerPort.class);
+        ApiImportAgentReplyPort replyPort = mock(ApiImportAgentReplyPort.class);
+        CategoryUseCase categoryUseCase = mock(CategoryUseCase.class);
+        ApiAssetUseCase apiAssetUseCase = mock(ApiAssetUseCase.class);
+        ApiImportAgentApplicationService service = new ApiImportAgentApplicationService(
+                sessionRepositoryPort,
+                runRepositoryPort,
+                plannerPort,
+                replyPort,
+                categoryUseCase,
+                apiAssetUseCase
+        );
+        ImportAgentPlanModel plan = new ImportAgentPlanModel(
+                1,
+                true,
+                "ready",
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(new ImportAssetPlanModel(
+                        ImportAssetPlanAction.UPDATE_EXISTING,
+                        "weather-forecast",
+                        null,
+                        "Weather Forecast Plus",
+                        AssetType.STANDARD_API,
+                        "tools",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        false,
+                        List.of("assetName"),
+                        null,
+                        null
+                )));
+        when(apiAssetUseCase.listAssets(any(ListApiAssetQuery.class))).thenReturn(new ApiAssetPageResult(List.of(
+                new ApiAssetSummaryModel(
+                        "weather-forecast",
+                        "Weather Forecast",
+                        "STANDARD_API",
+                        "tools",
+                        "Tools",
+                        "UNPUBLISHED",
+                        "Alice",
+                        null,
+                        "2026-05-20T00:00:00Z",
+                        true)
+        ), 1, 100, 1));
+        when(apiAssetUseCase.getAssetByCode("user-1", "weather-forecast"))
+                .thenReturn(existingAsset("weather-forecast", "Weather Forecast", "Authorization: Bearer secret"));
+        when(plannerPort.plan(any(ImportAgentPlannerRequest.class), any(ImportAgentStreamEmitter.class)))
+                .thenReturn(new ImportAgentPlannerResult(plan, "ready"));
+        when(sessionRepositoryPort.findOwnedSession(any(), any())).thenAnswer(invocation -> Optional.of(new ApiImportAgentSessionModel(
+                invocation.getArgument(1),
+                invocation.getArgument(0),
+                ImportAgentSessionStatus.WAITING_FOR_CONFIRMATION,
+                null,
+                null,
+                "请修改 weather-forecast 的名称",
+                "Alice",
+                1,
+                null,
+                null,
+                null,
+                plan,
+                List.of(),
+                "2026-05-20T00:00:00Z",
+                "2026-05-20T00:00:00Z"
+        )));
+        when(sessionRepositoryPort.listTurns(any())).thenReturn(List.of());
+
+        service.createSession(new io.github.timemachinelab.service.model.CreateImportAgentSessionCommand(
+                "user-1",
+                "Alice",
+                null,
+                null,
+                "请修改 weather-forecast 的名称"));
+
+        ArgumentCaptor<ImportAgentPlannerRequest> requestCaptor = ArgumentCaptor.forClass(ImportAgentPlannerRequest.class);
+        ArgumentCaptor<ListApiAssetQuery> queryCaptor = ArgumentCaptor.forClass(ListApiAssetQuery.class);
+        verify(plannerPort).plan(requestCaptor.capture(), any(ImportAgentStreamEmitter.class));
+        verify(apiAssetUseCase, atLeastOnce()).listAssets(queryCaptor.capture());
+        assertTrue(queryCaptor.getAllValues().stream().allMatch(query -> "user-1".equals(query.getCurrentUserId())));
+        ImportAgentPlannerRequest request = requestCaptor.getValue();
+        assertEquals(1, request.getExistingAssetCandidates().size());
+        assertEquals("weather-forecast", request.getExistingAssetCandidates().get(0).getApiCode());
+        assertEquals(1, request.getTargetExistingAssets().size());
+        assertTrue(request.getTargetExistingAssets().get(0).isAuthConfigured());
+        assertFalse(String.valueOf(request.getTargetExistingAssets().get(0)).contains("Bearer secret"));
+    }
+
+    @Test
+    @DisplayName("run should fail CREATE when current user already owns target asset")
+    void shouldFailCreateWhenAssetAlreadyExists() {
+        ApiImportAgentSessionRepositoryPort sessionRepositoryPort = mock(ApiImportAgentSessionRepositoryPort.class);
+        ApiImportAgentRunRepositoryPort runRepositoryPort = mock(ApiImportAgentRunRepositoryPort.class);
+        ApiImportAgentApplicationService service = new ApiImportAgentApplicationService(
+                sessionRepositoryPort,
+                runRepositoryPort,
+                mock(ApiImportAgentPlannerPort.class),
+                mock(ApiImportAgentReplyPort.class),
+                mock(CategoryUseCase.class),
+                existingAssetUseCase(existingAsset("weather-forecast", "Weather Forecast", null))
+        );
+        when(sessionRepositoryPort.findOwnedSession("user-1", "session-1"))
+                .thenReturn(Optional.of(confirmedSession(explicitAssetActionPlan(ImportAssetPlanAction.CREATE, List.of()))));
+
+        ApiImportAgentRunModel result = service.startRun(new StartImportAgentRunCommand("user-1", "Alice", "session-1", 1));
+
+        assertEquals(ImportAgentRunStatus.FAILED, result.getStatus());
+        assertEquals(ImportAgentStepType.CREATE_ASSET, result.getStepResults().get(0).getStepType());
+        assertEquals(ImportStepResultStatus.FAILED, result.getStepResults().get(0).getStatus());
+    }
+
+    @Test
+    @DisplayName("run should fail UPDATE_EXISTING when current user does not own target asset")
+    void shouldFailUpdateExistingWhenAssetMissing() {
+        ApiImportAgentSessionRepositoryPort sessionRepositoryPort = mock(ApiImportAgentSessionRepositoryPort.class);
+        ApiImportAgentRunRepositoryPort runRepositoryPort = mock(ApiImportAgentRunRepositoryPort.class);
+        ApiAssetUseCase apiAssetUseCase = mock(ApiAssetUseCase.class);
+        ApiImportAgentApplicationService service = new ApiImportAgentApplicationService(
+                sessionRepositoryPort,
+                runRepositoryPort,
+                mock(ApiImportAgentPlannerPort.class),
+                mock(ApiImportAgentReplyPort.class),
+                mock(CategoryUseCase.class),
+                apiAssetUseCase
+        );
+        when(sessionRepositoryPort.findOwnedSession("user-1", "session-1"))
+                .thenReturn(Optional.of(confirmedSession(explicitAssetActionPlan(ImportAssetPlanAction.UPDATE_EXISTING, List.of("assetName")))));
+        when(apiAssetUseCase.getAssetByCode("user-1", "weather-forecast"))
+                .thenThrow(new AssetDomainException("Asset not found"));
+
+        ApiImportAgentRunModel result = service.startRun(new StartImportAgentRunCommand("user-1", "Alice", "session-1", 1));
+
+        assertEquals(ImportAgentRunStatus.FAILED, result.getStatus());
+        assertEquals(ImportAgentStepType.UPDATE_EXISTING_ASSET, result.getStepResults().get(0).getStepType());
+        verify(apiAssetUseCase, never()).registerAsset(any());
+        verify(apiAssetUseCase, never()).reviseAsset(any());
+    }
+
+    @Test
+    @DisplayName("run should use changedFields patch mask for UPDATE_EXISTING")
+    void shouldUseChangedFieldsForExistingAssetPatch() {
+        ApiImportAgentSessionRepositoryPort sessionRepositoryPort = mock(ApiImportAgentSessionRepositoryPort.class);
+        ApiImportAgentRunRepositoryPort runRepositoryPort = mock(ApiImportAgentRunRepositoryPort.class);
+        ApiAssetUseCase apiAssetUseCase = mock(ApiAssetUseCase.class);
+        ApiImportAgentApplicationService service = new ApiImportAgentApplicationService(
+                sessionRepositoryPort,
+                runRepositoryPort,
+                mock(ApiImportAgentPlannerPort.class),
+                mock(ApiImportAgentReplyPort.class),
+                mock(CategoryUseCase.class),
+                apiAssetUseCase
+        );
+        when(sessionRepositoryPort.findOwnedSession("user-1", "session-1"))
+                .thenReturn(Optional.of(confirmedSession(existingPatchPlan())));
+        when(apiAssetUseCase.getAssetByCode("user-1", "weather-forecast"))
+                .thenReturn(existingAsset("weather-forecast", "Weather Forecast", "Authorization: Bearer secret"));
+
+        service.startRun(new StartImportAgentRunCommand("user-1", "Alice", "session-1", 1));
+
+        ArgumentCaptor<ReviseApiAssetCommand> reviseCaptor = ArgumentCaptor.forClass(ReviseApiAssetCommand.class);
+        verify(apiAssetUseCase, never()).registerAsset(any());
+        verify(apiAssetUseCase).reviseAsset(reviseCaptor.capture());
+        ReviseApiAssetCommand command = reviseCaptor.getValue();
+        assertTrue(command.isAssetNameSet());
+        assertEquals("Weather Forecast Plus", command.getAssetName());
+        assertTrue(command.isAuthConfigSet());
+        assertNull(command.getAuthConfig());
+        assertFalse(command.isUpstreamUrlSet());
+        assertFalse(command.isRequestMethodSet());
+        assertFalse(command.isUpstreamRequestHeadersSet());
+    }
+
+    @Test
+    @DisplayName("run should apply nested async task changed field as async task config patch")
+    void shouldApplyNestedAsyncTaskChangedFieldForExistingAssetPatch() {
+        ApiImportAgentSessionRepositoryPort sessionRepositoryPort = mock(ApiImportAgentSessionRepositoryPort.class);
+        ApiImportAgentRunRepositoryPort runRepositoryPort = mock(ApiImportAgentRunRepositoryPort.class);
+        ApiAssetUseCase apiAssetUseCase = mock(ApiAssetUseCase.class);
+        ApiImportAgentApplicationService service = new ApiImportAgentApplicationService(
+                sessionRepositoryPort,
+                runRepositoryPort,
+                mock(ApiImportAgentPlannerPort.class),
+                mock(ApiImportAgentReplyPort.class),
+                mock(CategoryUseCase.class),
+                apiAssetUseCase
+        );
+        when(sessionRepositoryPort.findOwnedSession("user-1", "session-1"))
+                .thenReturn(Optional.of(confirmedSession(existingAsyncTaskSchemaPatchPlan())));
+        when(apiAssetUseCase.getAssetByCode("user-1", "weather-forecast"))
+                .thenReturn(existingAsset("weather-forecast", "Weather Forecast", "Authorization: Bearer secret"));
+
+        service.startRun(new StartImportAgentRunCommand("user-1", "Alice", "session-1", 1));
+
+        ArgumentCaptor<ReviseApiAssetCommand> reviseCaptor = ArgumentCaptor.forClass(ReviseApiAssetCommand.class);
+        verify(apiAssetUseCase, never()).registerAsset(any());
+        verify(apiAssetUseCase).reviseAsset(reviseCaptor.capture());
+        ReviseApiAssetCommand command = reviseCaptor.getValue();
+        assertTrue(command.isAsyncTaskConfigSet());
+        assertEquals(
+                "{\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"object\"}}}",
+                command.getAsyncTaskConfig().getQueryResponseJsonSchema());
+        assertFalse(command.isAssetNameSet());
+        assertFalse(command.isResponseJsonSchemaSet());
+    }
+
+    @Test
+    @DisplayName("run should keep UPSERT compatible with create when target asset is missing")
+    void shouldKeepUpsertCreateCompatibility() {
+        ApiImportAgentSessionRepositoryPort sessionRepositoryPort = mock(ApiImportAgentSessionRepositoryPort.class);
+        ApiImportAgentRunRepositoryPort runRepositoryPort = mock(ApiImportAgentRunRepositoryPort.class);
+        ApiAssetUseCase apiAssetUseCase = mock(ApiAssetUseCase.class);
+        ApiImportAgentApplicationService service = new ApiImportAgentApplicationService(
+                sessionRepositoryPort,
+                runRepositoryPort,
+                mock(ApiImportAgentPlannerPort.class),
+                mock(ApiImportAgentReplyPort.class),
+                mock(CategoryUseCase.class),
+                apiAssetUseCase
+        );
+        when(sessionRepositoryPort.findOwnedSession("user-1", "session-1"))
+                .thenReturn(Optional.of(confirmedSession(explicitAssetActionPlan(ImportAssetPlanAction.UPSERT, List.of()))));
+        when(apiAssetUseCase.getAssetByCode("user-1", "weather-forecast"))
+                .thenThrow(new AssetDomainException("Asset not found"));
+
+        ApiImportAgentRunModel result = service.startRun(new StartImportAgentRunCommand("user-1", "Alice", "session-1", 1));
+
+        verify(apiAssetUseCase).registerAsset(any());
+        verify(apiAssetUseCase).reviseAsset(any());
+        assertEquals(ImportAgentRunStatus.SUCCEEDED, result.getStatus());
+        assertEquals(ImportAgentStepType.UPSERT_ASSET, result.getStepResults().get(0).getStepType());
+    }
+
     private void collectMessageDelta(ImportAgentStreamEvent event, List<String> deltas) {
         if (event.getType() != ImportAgentStreamEventType.MESSAGE) {
             return;
@@ -679,9 +931,7 @@ class ApiImportAgentApplicationServiceTest {
                                 "SAME_AS_SUBMIT",
                                 null,
                                 null,
-                                "$.data.status",
-                                "$.data.result",
-                                "$.data.error"
+                                "{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"object\"}}}"
                         ),
                         new ImportAiProfileModel("OpenAI", "gpt-4.1", true, List.of("chat"))
                 ))
@@ -717,9 +967,7 @@ class ApiImportAgentApplicationServiceTest {
                                 "HEADER_TOKEN",
                                 null,
                                 "Authorization: Bearer upstream-token",
-                                "$.data.status",
-                                "$.data.result",
-                                "$.data.error"
+                                "{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"object\"}}}"
                         ),
                         new ImportAiProfileModel("OpenAI", "gpt-4.1", true, List.of("chat"))
                 ))
@@ -756,12 +1004,154 @@ class ApiImportAgentApplicationServiceTest {
                                 "SAME_AS_SUBMIT",
                                 null,
                                 null,
-                                "$.data.status",
-                                "$.data.result",
-                                "$.data.error"
+                                "{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"object\"}}}"
                         ),
                         new ImportAiProfileModel("OpenAI", "gpt-4.1", true, List.of("chat"))
                 ))
         );
+    }
+
+    private ImportAgentPlanModel explicitAssetActionPlan(ImportAssetPlanAction action, List<String> changedFields) {
+        return new ImportAgentPlanModel(
+                1,
+                true,
+                "ready",
+                List.of(),
+                List.of(),
+                List.of(new ImportAssetPlanModel(
+                        action,
+                        "weather-forecast",
+                        null,
+                        "Weather Forecast",
+                        AssetType.STANDARD_API,
+                        "tools",
+                        RequestMethod.GET,
+                        "https://upstream.example.com/weather",
+                        AuthScheme.NONE,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        "{\"type\":\"object\"}",
+                        "{\"type\":\"object\"}",
+                        false,
+                        changedFields,
+                        null,
+                        null
+                ))
+        );
+    }
+
+    private ImportAgentPlanModel existingPatchPlan() {
+        return new ImportAgentPlanModel(
+                1,
+                true,
+                "ready",
+                List.of(),
+                List.of(),
+                List.of(new ImportAssetPlanModel(
+                        ImportAssetPlanAction.UPDATE_EXISTING,
+                        "weather-forecast",
+                        null,
+                        "Weather Forecast Plus",
+                        AssetType.STANDARD_API,
+                        "tools",
+                        RequestMethod.POST,
+                        "https://should-not-apply.example.com",
+                        AuthScheme.HEADER_TOKEN,
+                        null,
+                        List.of(new UpstreamRequestHeaderModel("X-Test", "ignored")),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        false,
+                        List.of("assetName", "authConfig"),
+                        null,
+                        null
+                ))
+        );
+    }
+
+    private ImportAgentPlanModel existingAsyncTaskSchemaPatchPlan() {
+        return new ImportAgentPlanModel(
+                1,
+                true,
+                "ready",
+                List.of(),
+                List.of(),
+                List.of(new ImportAssetPlanModel(
+                        ImportAssetPlanAction.UPDATE_EXISTING,
+                        "weather-forecast",
+                        null,
+                        "Weather Forecast",
+                        AssetType.STANDARD_API,
+                        "tools",
+                        RequestMethod.GET,
+                        "https://upstream.example.com/weather",
+                        AuthScheme.HEADER_TOKEN,
+                        "Authorization: Bearer secret",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        false,
+                        List.of("asyncTaskConfig.queryResponseJsonSchema"),
+                        new AsyncTaskConfigModel(
+                                true,
+                                "GET",
+                                "https://upstream.example.com/weather/tasks/{taskId}",
+                                "SAME_AS_SUBMIT",
+                                null,
+                                null,
+                                "{\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"object\"}}}"
+                        ),
+                        null
+                ))
+        );
+    }
+
+    private ApiAssetModel existingAsset(String apiCode, String assetName, String authConfig) {
+        return new ApiAssetModel(
+                "asset-1",
+                apiCode,
+                assetName,
+                "STANDARD_API",
+                "tools",
+                "UNPUBLISHED",
+                "Alice",
+                null,
+                "GET",
+                "https://upstream.example.com/weather",
+                authConfig == null ? "NONE" : "HEADER_TOKEN",
+                authConfig,
+                null,
+                "template",
+                "{\"city\":\"Shanghai\"}",
+                "{\"temperature\":26}",
+                "{\"type\":\"object\"}",
+                "{\"type\":\"object\"}",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                List.of(),
+                false,
+                "2026-05-20T00:00:00Z",
+                "2026-05-20T00:00:00Z"
+        );
+    }
+
+    private ApiAssetUseCase existingAssetUseCase(ApiAssetModel existingAsset) {
+        ApiAssetUseCase apiAssetUseCase = mock(ApiAssetUseCase.class);
+        when(apiAssetUseCase.getAssetByCode("user-1", existingAsset.getApiCode())).thenReturn(existingAsset);
+        return apiAssetUseCase;
     }
 }

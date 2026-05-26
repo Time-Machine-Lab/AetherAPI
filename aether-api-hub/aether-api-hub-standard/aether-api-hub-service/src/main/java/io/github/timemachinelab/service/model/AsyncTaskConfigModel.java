@@ -11,9 +11,7 @@ public class AsyncTaskConfigModel {
     private final String authMode;
     private final String authScheme;
     private final String authConfig;
-    private final String statusPath;
-    private final String resultPath;
-    private final String errorPath;
+    private final String queryResponseJsonSchema;
 
     public AsyncTaskConfigModel(
             Boolean enabled,
@@ -22,18 +20,14 @@ public class AsyncTaskConfigModel {
             String authMode,
             String authScheme,
             String authConfig,
-            String statusPath,
-            String resultPath,
-            String errorPath) {
+            String queryResponseJsonSchema) {
         this.enabled = enabled;
         this.queryMethod = queryMethod;
         this.queryUrlTemplate = queryUrlTemplate;
         this.authMode = authMode;
         this.authScheme = authScheme;
         this.authConfig = authConfig;
-        this.statusPath = statusPath;
-        this.resultPath = resultPath;
-        this.errorPath = errorPath;
+        this.queryResponseJsonSchema = queryResponseJsonSchema;
     }
 
     public Boolean getEnabled() {
@@ -60,15 +54,7 @@ public class AsyncTaskConfigModel {
         return authConfig;
     }
 
-    public String getStatusPath() {
-        return statusPath;
-    }
-
-    public String getResultPath() {
-        return resultPath;
-    }
-
-    public String getErrorPath() {
-        return errorPath;
+    public String getQueryResponseJsonSchema() {
+        return queryResponseJsonSchema;
     }
 }

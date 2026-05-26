@@ -128,18 +128,14 @@ public class MybatisCatalogDiscoveryQueryPort implements CatalogDiscoveryQueryPo
         String authMode = extractJsonString(json, "authMode");
         String authScheme = extractJsonString(json, "authScheme");
         String authConfig = extractJsonString(json, "authConfig");
-        String statusPath = extractJsonString(json, "statusPath");
-        String resultPath = extractJsonString(json, "resultPath");
-        String errorPath = extractJsonString(json, "errorPath");
+        String queryResponseJsonSchema = extractJsonString(json, "queryResponseJsonSchema");
         if (enabled == null
                 && queryMethod == null
                 && queryUrlTemplate == null
                 && authMode == null
                 && authScheme == null
                 && authConfig == null
-                && statusPath == null
-                && resultPath == null
-                && errorPath == null) {
+                && queryResponseJsonSchema == null) {
             return null;
         }
         return new AsyncTaskConfigModel(
@@ -149,9 +145,7 @@ public class MybatisCatalogDiscoveryQueryPort implements CatalogDiscoveryQueryPo
                 authMode,
                 authScheme,
                 authConfig,
-                statusPath,
-                resultPath,
-                errorPath
+                queryResponseJsonSchema
         );
     }
 

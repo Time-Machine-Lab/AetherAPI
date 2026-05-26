@@ -9,6 +9,7 @@ import io.github.timemachinelab.infrastructure.importagent.planner.contract.Impo
 import io.github.timemachinelab.service.model.AsyncTaskConfigModel;
 import io.github.timemachinelab.service.model.ImportAgentClarificationItemModel;
 import io.github.timemachinelab.service.model.ImportAgentClarificationOptionModel;
+import io.github.timemachinelab.service.model.ImportAssetPlanAction;
 import io.github.timemachinelab.service.model.ImportAssetPlanModel;
 import io.github.timemachinelab.service.model.ImportCategoryPlanAction;
 import io.github.timemachinelab.service.model.ImportCategoryPlanModel;
@@ -17,8 +18,28 @@ import io.github.timemachinelab.service.model.UpstreamRequestHeaderModel;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 final class ImportAgentPlanDraftValidator {
+
+    private static final Set<String> EDITABLE_ASSET_FIELDS = Set.of(
+            "assetName",
+            "assetType",
+            "categoryCode",
+            "requestMethod",
+            "upstreamUrl",
+            "authScheme",
+            "authConfig",
+            "upstreamRequestHeaders",
+            "requestTemplate",
+            "requestExample",
+            "responseExample",
+            "requestJsonSchema",
+            "responseJsonSchema",
+            "asyncTaskConfig",
+            "aiProfile",
+            "publishAfterImport"
+    );
 
     private ImportAgentPlanDraftValidator() {
     }
@@ -86,6 +107,10 @@ final class ImportAgentPlanDraftValidator {
                 "请提供此资产的展示名称。", "TEXT", List.of(), assetPlan.getAssetName(), !hasText(assetPlan.getAssetName()));
         addAssetRequired(nextPlanVersion, questions, items, assetIndex, "assetType", "资产类型",
                 "请选择 STANDARD_API 或 AI_API。", "SELECT", enumOptions(AssetType.class), null, assetPlan.getAssetType() == null);
+        addAssetRequired(nextPlanVersion, questions, items, assetIndex, "action", "资产动作",
+                "请选择 CREATE、UPDATE_EXISTING 或 UPSERT。", "SELECT", enumOptions(ImportAssetPlanAction.class), null,
+                assetPlan.getAction() == null);
+        validateChangedFields(nextPlanVersion, questions, items, assetIndex, assetPlan);
 
         if (assetPlan.getAssetType() == AssetType.AI_API
                 && (assetPlan.getAiProfile() == null
@@ -119,6 +144,33 @@ final class ImportAgentPlanDraftValidator {
                     "请提供上游认证配置。", "TEXT", List.of(), assetPlan.getAuthConfig(), true);
         }
         validateAsyncTaskConfig(nextPlanVersion, questions, items, assetIndex, assetPlan.getAsyncTaskConfig());
+    }
+
+    private static void validateChangedFields(
+            int nextPlanVersion,
+            LinkedHashSet<String> questions,
+            List<ImportAgentClarificationItemModel> items,
+            int assetIndex,
+            ImportAssetPlanModel assetPlan) {
+        List<String> changedFields = assetPlan.getChangedFields();
+        if (assetPlan.getAction() != null
+                && "UPDATE_EXISTING".equals(assetPlan.getAction().name())
+                && (changedFields == null || changedFields.isEmpty())) {
+            addAssetRequired(nextPlanVersion, questions, items, assetIndex, "changedFields", "Changed fields",
+                    "Please provide the fields to update for this existing asset.", "TEXT", List.of(), null, true);
+            return;
+        }
+        if (changedFields == null) {
+            return;
+        }
+        for (String field : changedFields) {
+            String topLevelField = topLevelChangedField(field);
+            if (!EDITABLE_ASSET_FIELDS.contains(topLevelField)) {
+                addAssetRequired(nextPlanVersion, questions, items, assetIndex, "changedFields", "Changed fields",
+                        "changedFields contains an unsupported asset field.", "TEXT", List.of(), field, true);
+                return;
+            }
+        }
     }
 
     private static void validateUpstreamRequestHeaders(
@@ -282,5 +334,23 @@ final class ImportAgentPlanDraftValidator {
 
     private static boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private static String topLevelChangedField(String field) {
+        if (field == null) {
+            return null;
+        }
+        String normalized = field.trim();
+        int dotIndex = normalized.indexOf('.');
+        int slashIndex = normalized.indexOf('/');
+        int endIndex = -1;
+        if (dotIndex >= 0 && slashIndex >= 0) {
+            endIndex = Math.min(dotIndex, slashIndex);
+        } else if (dotIndex >= 0) {
+            endIndex = dotIndex;
+        } else if (slashIndex >= 0) {
+            endIndex = slashIndex;
+        }
+        return endIndex >= 0 ? normalized.substring(0, endIndex) : normalized;
     }
 }

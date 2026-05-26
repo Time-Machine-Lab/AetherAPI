@@ -1028,9 +1028,7 @@ class UnifiedAccessApplicationServiceTest {
                         AsyncTaskAuthMode.SAME_AS_SUBMIT,
                         null,
                         null,
-                        "$.status",
-                        "$.result",
-                        "$.error"
+                        "{\"type\":\"object\"}"
                 ),
                 null,
                 null,

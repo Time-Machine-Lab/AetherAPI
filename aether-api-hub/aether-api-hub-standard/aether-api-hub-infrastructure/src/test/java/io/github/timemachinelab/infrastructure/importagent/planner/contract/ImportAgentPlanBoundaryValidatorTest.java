@@ -4,8 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.github.timemachinelab.domain.catalog.model.AssetType;
 import io.github.timemachinelab.domain.catalog.model.AuthScheme;
+import io.github.timemachinelab.domain.catalog.model.RequestMethod;
 import io.github.timemachinelab.service.model.ImportAgentPlanModel;
 import io.github.timemachinelab.service.model.ImportAgentPlannerRequest;
+import io.github.timemachinelab.service.model.ImportAssetPlanAction;
+import io.github.timemachinelab.service.model.ImportAssetPlanModel;
 import io.github.timemachinelab.service.model.ImportCategoryPlanAction;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -135,11 +138,110 @@ class ImportAgentPlanBoundaryValidatorTest {
     }
 
     @Test
+    @DisplayName("missing asset action should keep a new planner draft non-executable")
+    void shouldClarifyMissingAssetAction() {
+        ObjectNode source = executablePlan();
+        ((ObjectNode) source.withArray("assetPlans").get(0)).remove("action");
+
+        ImportAgentPlanModel result = ImportAgentPlannerJsonSupport.buildPlan(request(), source);
+
+        assertFalse(result.isExecutable());
+        assertNull(result.getAssetPlans().get(0).getAction());
+        assertTrue(result.getClarificationQuestions().stream().anyMatch(question -> question.contains("资产动作")));
+    }
+
+    @Test
+    @DisplayName("invalid changedFields should keep plan non-executable")
+    void shouldClarifyInvalidChangedFields() {
+        ObjectNode source = executablePlan();
+        ObjectNode assetNode = (ObjectNode) source.withArray("assetPlans").get(0);
+        assetNode.put("action", "UPDATE_EXISTING");
+        assetNode.putArray("changedFields").add("apiCode");
+
+        ImportAgentPlanModel result = ImportAgentPlannerJsonSupport.buildPlan(request(), source);
+
+        assertFalse(result.isExecutable());
+        assertEquals(ImportAssetPlanAction.UPDATE_EXISTING, result.getAssetPlans().get(0).getAction());
+        assertTrue(result.getClarificationItems().stream().anyMatch(item ->
+                "/assetPlans/0/changedFields".equals(item.getTargetPath())
+                        && "changedFields".equals(item.getFieldKey())));
+    }
+
+    @Test
+    @DisplayName("nested async task changedFields should be accepted as editable asset patch")
+    void shouldAcceptNestedAsyncTaskChangedFields() {
+        ObjectNode source = executablePlan();
+        ObjectNode assetNode = (ObjectNode) source.withArray("assetPlans").get(0);
+        assetNode.put("action", "UPDATE_EXISTING");
+        assetNode.putArray("changedFields").add("asyncTaskConfig.queryResponseJsonSchema");
+        ObjectNode asyncTaskConfig = assetNode.putObject("asyncTaskConfig");
+        asyncTaskConfig.put("enabled", true);
+        asyncTaskConfig.put("queryMethod", "GET");
+        asyncTaskConfig.put("queryUrlTemplate", "https://upstream.example.com/tasks/{taskId}");
+        asyncTaskConfig.put("authMode", "SAME_AS_SUBMIT");
+        asyncTaskConfig.put("queryResponseJsonSchema", "{\"type\":\"object\"}");
+
+        ImportAgentPlanModel result = ImportAgentPlannerJsonSupport.buildPlan(request(), source);
+
+        assertTrue(result.isExecutable());
+        assertEquals(List.of("asyncTaskConfig.queryResponseJsonSchema"),
+                result.getAssetPlans().get(0).getChangedFields());
+    }
+
+    @Test
+    @DisplayName("multi-turn patch should preserve existing action and changedFields")
+    void shouldPreservePatchSemanticsAcrossTurns() {
+        ImportAgentPlanModel currentPlan = new ImportAgentPlanModel(
+                1,
+                false,
+                "draft",
+                List.of(),
+                List.of(),
+                List.of(new ImportAssetPlanModel(
+                        ImportAssetPlanAction.UPDATE_EXISTING,
+                        "weather-tool",
+                        null,
+                        "Weather Tool",
+                        AssetType.STANDARD_API,
+                        "tools",
+                        RequestMethod.GET,
+                        "https://upstream.example.com/weather",
+                        AuthScheme.NONE,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        false,
+                        List.of("assetName"),
+                        null,
+                        null
+                )));
+        ObjectNode source = OBJECT_MAPPER.createObjectNode();
+        source.put("summary", "draft");
+        ObjectNode assetNode = source.putArray("assetPlans").addObject();
+        assetNode.put("apiCode", "weather-tool");
+        assetNode.put("assetName", "Weather Tool Plus");
+
+        ImportAgentPlanModel result = ImportAgentPlannerJsonSupport.buildPlan(
+                new ImportAgentPlannerRequest("source", "summary", "intent", "message", currentPlan, 2, List.of()),
+                source);
+
+        assertTrue(result.isExecutable());
+        assertEquals(ImportAssetPlanAction.UPDATE_EXISTING, result.getAssetPlans().get(0).getAction());
+        assertEquals(List.of("assetName"), result.getAssetPlans().get(0).getChangedFields());
+        assertEquals("https://upstream.example.com/weather", result.getAssetPlans().get(0).getUpstreamUrl());
+    }
+
+    @Test
     @DisplayName("async query assets should stay separate unless the LLM final plan models asyncTaskConfig explicitly")
     void shouldNotFoldAsyncQueryAssets() {
         ObjectNode source = executablePlan();
         ObjectNode queryAsset = source.withArray("assetPlans").addObject();
         queryAsset.put("apiCode", "weather-status");
+        queryAsset.put("action", "CREATE");
         queryAsset.put("assetName", "Weather Status");
         queryAsset.put("assetType", "STANDARD_API");
         queryAsset.put("categoryCode", "tools");
@@ -173,6 +275,37 @@ class ImportAgentPlanBoundaryValidatorTest {
         assertEquals("{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\"}}}",
                 result.getAssetPlans().get(0).getRequestJsonSchema());
         assertNull(result.getAssetPlans().get(0).getResponseJsonSchema());
+    }
+
+    @Test
+    @DisplayName("async task response schema should normalize object values and reject invalid schemas")
+    void shouldNormalizeAsyncTaskQueryResponseSchema() {
+        ObjectNode source = executablePlan();
+        ObjectNode asyncTaskConfig = ((ObjectNode) source.withArray("assetPlans").get(0)).putObject("asyncTaskConfig");
+        asyncTaskConfig.put("enabled", true);
+        asyncTaskConfig.put("queryMethod", "GET");
+        asyncTaskConfig.put("queryUrlTemplate", "https://upstream.example.com/tasks/{task_id}");
+        asyncTaskConfig.put("authMode", "SAME_AS_SUBMIT");
+        asyncTaskConfig.putObject("queryResponseJsonSchema")
+                .put("type", "object")
+                .putObject("properties")
+                .putObject("data")
+                .put("type", "object");
+
+        ImportAgentPlanModel result = ImportAgentPlannerJsonSupport.buildPlan(request(), source);
+
+        assertTrue(result.isExecutable());
+        assertEquals("https://upstream.example.com/tasks/{taskId}",
+                result.getAssetPlans().get(0).getAsyncTaskConfig().getQueryUrlTemplate());
+        assertEquals("{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"object\"}}}",
+                result.getAssetPlans().get(0).getAsyncTaskConfig().getQueryResponseJsonSchema());
+
+        asyncTaskConfig.put("queryResponseJsonSchema", "[{\"type\":\"object\"}]");
+
+        ImportAgentPlanModel invalidSchemaResult = ImportAgentPlannerJsonSupport.buildPlan(request(), source);
+
+        assertTrue(invalidSchemaResult.isExecutable());
+        assertNull(invalidSchemaResult.getAssetPlans().get(0).getAsyncTaskConfig().getQueryResponseJsonSchema());
     }
 
     @Test
@@ -218,6 +351,7 @@ class ImportAgentPlanBoundaryValidatorTest {
                 .put("action", "USE_EXISTING");
         ObjectNode assetNode = source.putArray("assetPlans").addObject();
         assetNode.put("apiCode", "weather-tool");
+        assetNode.put("action", "CREATE");
         assetNode.put("assetName", "Weather Tool");
         assetNode.put("assetType", "STANDARD_API");
         assetNode.put("categoryCode", "tools");

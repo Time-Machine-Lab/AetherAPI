@@ -114,9 +114,7 @@ describe('discovery api', () => {
           authMode: 'SAME_AS_SUBMIT',
           authScheme: null,
           authConfig: null,
-          statusPath: '$.data.status',
-          resultPath: '$.data.result',
-          errorPath: '$.data.error',
+          queryResponseJsonSchema: '{"type":"object"}',
         },
         aiCapabilityProfile: {
           provider: 'OpenAI',
@@ -145,9 +143,7 @@ describe('discovery api', () => {
       authMode: 'SAME_AS_SUBMIT',
       authScheme: undefined,
       authConfig: undefined,
-      statusPath: '$.data.status',
-      resultPath: '$.data.result',
-      errorPath: '$.data.error',
+      queryResponseJsonSchema: '{"type":"object"}',
     })
   })
 })

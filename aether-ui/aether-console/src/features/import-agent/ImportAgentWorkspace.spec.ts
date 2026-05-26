@@ -223,7 +223,14 @@ function mountWorkspace(workspace: MockWorkspace & Record<string, unknown>) {
           },
           template: '<span>{{ label }}</span>',
         }),
-        CodeBlock: true,
+        CodeBlock: defineComponent({
+          props: {
+            label: { type: String, default: '' },
+            value: { type: String, default: '' },
+          },
+          template:
+            '<section data-test-id="code-block"><strong>{{ label }}</strong><pre>{{ value }}</pre></section>',
+        }),
         JsonSchemaViewer: true,
         StateBlock: true,
       },
@@ -364,6 +371,30 @@ describe('ImportAgentWorkspace', () => {
   })
 
   it('展示计划中的上游请求头，并沿用现有流程处理请求头澄清', async () => {
+    const schemaWorkspace = createWorkspace(
+      createPlan({
+        assetPlans: [
+          {
+            ...createPlan().assetPlans[0],
+            asyncTaskConfig: {
+              enabled: true,
+              queryMethod: 'GET',
+              queryUrlTemplate: 'https://dashscope.aliyuncs.com/api/v1/tasks/{taskId}',
+              authMode: 'SAME_AS_SUBMIT',
+              queryResponseJsonSchema: '{"type":"object"}',
+            },
+          },
+        ],
+      }),
+    )
+    const schemaWrapper = mountWorkspace(schemaWorkspace)
+
+    expect(schemaWrapper.text()).toContain('console.workspace.fieldAsyncTaskQueryResponseJsonSchema')
+    expect(schemaWrapper.text()).toContain('{"type":"object"}')
+    expect(schemaWrapper.text()).not.toContain('statusPath')
+    expect(schemaWrapper.text()).not.toContain('resultPath')
+    expect(schemaWrapper.text()).not.toContain('errorPath')
+
     const basePlan = createPlan()
     const plan = createPlan({
       clarificationItems: [
