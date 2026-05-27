@@ -25,7 +25,11 @@ export type ImportStepTypeDto =
   | 'REVISE_ASSET'
   | 'ATTACH_AI_PROFILE'
   | 'PUBLISH_ASSET'
+  | 'CREATE_ASSET'
+  | 'UPDATE_EXISTING_ASSET'
+  | 'UPSERT_ASSET'
 export type ImportStepResultStatusDto = 'SUCCEEDED' | 'FAILED'
+export type ImportAssetPlanActionDto = 'CREATE' | 'UPDATE_EXISTING' | 'UPSERT'
 
 export interface CreateImportAgentSessionReqDto {
   documentSource?: string
@@ -126,10 +130,27 @@ export interface ImportCategoryPlanDto {
   action: ImportCategoryPlanActionDto
 }
 
-export interface ImportAssetPlanDto {
+export interface ImportExistingAssetSummaryDto {
   apiCode: string
-  assetName: string
-  assetType: ImportAssetTypeDto
+  assetName?: string | null
+  assetType?: ImportAssetTypeDto | string | null
+  categoryCode?: string | null
+  status?: string | null
+  requestMethod?: string | null
+  upstreamUrl?: string | null
+  authScheme?: string | null
+  authConfigured: boolean
+  asyncTaskConfigured: boolean
+  aiProfileConfigured: boolean
+  updatedAt?: string | null
+}
+
+export interface ImportAssetPlanDto {
+  action?: ImportAssetPlanActionDto | null
+  apiCode: string
+  matchedExistingAsset?: ImportExistingAssetSummaryDto | null
+  assetName?: string | null
+  assetType?: ImportAssetTypeDto | null
   categoryCode?: string | null
   requestMethod?: string | null
   upstreamUrl?: string | null
@@ -142,6 +163,7 @@ export interface ImportAssetPlanDto {
   requestJsonSchema?: string | null
   responseJsonSchema?: string | null
   publishAfterImport: boolean
+  changedFields?: string[] | null
   asyncTaskConfig?: ImportAsyncTaskConfigDto | null
   aiProfile?: ImportAiProfileDto | null
 }

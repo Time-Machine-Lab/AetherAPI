@@ -123,6 +123,48 @@ const composerPlaceholder = computed(() => {
 const attachedFileAccept =
   '.txt,.md,.markdown,.json,.yaml,.yml,.csv,.http,.xml,.log,.js,.ts,.mjs,.cjs,text/*,application/json,application/xml,text/xml,text/csv'
 
+function assetPlanDisplayName(assetPlan: ImportAssetPlan) {
+  return assetPlan.assetName || assetPlan.matchedExistingAsset?.assetName || assetPlan.apiCode
+}
+
+function assetPlanDisplayType(assetPlan: ImportAssetPlan) {
+  return assetPlan.assetType || assetPlan.matchedExistingAsset?.assetType
+}
+
+function assetPlanDisplayCategory(assetPlan: ImportAssetPlan) {
+  return assetPlan.categoryCode || assetPlan.matchedExistingAsset?.categoryCode
+}
+
+function assetPlanDisplayMethod(assetPlan: ImportAssetPlan) {
+  return assetPlan.requestMethod || assetPlan.matchedExistingAsset?.requestMethod
+}
+
+function assetPlanDisplayAuthScheme(assetPlan: ImportAssetPlan) {
+  return assetPlan.authScheme || assetPlan.matchedExistingAsset?.authScheme
+}
+
+function assetPlanDisplayUpstreamUrl(assetPlan: ImportAssetPlan) {
+  return assetPlan.upstreamUrl || assetPlan.matchedExistingAsset?.upstreamUrl
+}
+
+function isExistingAssetPatch(assetPlan: ImportAssetPlan) {
+  return assetPlan.action === 'UPDATE_EXISTING'
+}
+
+function shouldShowAsyncTaskConfig(assetPlan: ImportAssetPlan) {
+  const config = assetPlan.asyncTaskConfig
+  return Boolean(
+    config &&
+    (config.enabled ||
+      config.queryMethod ||
+      config.queryUrlTemplate ||
+      config.authMode ||
+      config.authScheme ||
+      config.authConfig ||
+      config.queryResponseJsonSchema),
+  )
+}
+
 const clarificationGroups = computed(() => {
   const groups = new Map<
     string,
@@ -760,13 +802,23 @@ watch(
                         <div class="space-y-2">
                           <div class="flex flex-wrap items-center gap-2">
                             <span class="text-sm font-semibold text-foreground">{{
-                              assetPlan.assetName
+                              assetPlanDisplayName(assetPlan)
                             }}</span>
                             <DisplayTag tone="neutral" :label="assetPlan.apiCode" />
-                            <DisplayTag tone="info" :label="assetPlan.assetType" />
+                            <DisplayTag
+                              v-if="assetPlanDisplayType(assetPlan)"
+                              tone="info"
+                              :label="assetPlanDisplayType(assetPlan)!"
+                            />
+                            <DisplayTag
+                              v-if="assetPlan.action"
+                              :tone="isExistingAssetPatch(assetPlan) ? 'warning' : 'info'"
+                              :label="assetPlan.action"
+                            />
                           </div>
                           <div class="flex flex-wrap gap-2">
                             <DisplayTag
+                              v-if="!isExistingAssetPatch(assetPlan)"
                               :tone="assetPlan.publishAfterImport ? 'success' : 'neutral'"
                               :label="
                                 assetPlan.publishAfterImport
@@ -783,32 +835,76 @@ watch(
                         </div>
                         <div class="flex flex-wrap gap-2">
                           <DisplayTag
-                            v-if="assetPlan.requestMethod"
+                            v-if="assetPlanDisplayMethod(assetPlan)"
                             tone="neutral"
-                            :label="assetPlan.requestMethod"
+                            :label="assetPlanDisplayMethod(assetPlan)!"
                           />
                           <DisplayTag
-                            v-if="assetPlan.authScheme"
+                            v-if="assetPlanDisplayAuthScheme(assetPlan)"
                             tone="neutral"
-                            :label="assetPlan.authScheme"
+                            :label="assetPlanDisplayAuthScheme(assetPlan)!"
                           />
                         </div>
                       </div>
 
-                      <dl class="mt-4 grid gap-3 text-xs text-muted-foreground sm:grid-cols-2">
-                        <div v-if="assetPlan.categoryCode">
-                          <dt>{{ t('console.importAgent.assetMetaCategory') }}</dt>
-                          <dd class="mt-1 text-sm text-foreground">{{ assetPlan.categoryCode }}</dd>
+                      <div
+                        v-if="isExistingAssetPatch(assetPlan)"
+                        class="mt-4 rounded-[16px] border border-[rgb(34_34_34_/_0.06)] bg-secondary/50 p-4"
+                      >
+                        <div class="flex flex-wrap items-center gap-2 text-sm font-semibold">
+                          <RefreshCw class="size-4 text-primary" />
+                          <span>UPDATE_EXISTING</span>
+                          <DisplayTag
+                            v-if="assetPlan.matchedExistingAsset?.status"
+                            tone="neutral"
+                            :label="assetPlan.matchedExistingAsset.status"
+                          />
                         </div>
-                        <div v-if="assetPlan.requestMethod">
-                          <dt>{{ t('console.importAgent.assetMetaMethod') }}</dt>
+                        <div
+                          v-if="assetPlan.changedFields?.length"
+                          class="mt-3 flex flex-wrap gap-2"
+                        >
+                          <DisplayTag
+                            v-for="field in assetPlan.changedFields ?? []"
+                            :key="field"
+                            tone="info"
+                            :label="field"
+                          />
+                        </div>
+                        <dl class="mt-3 grid gap-3 text-xs text-muted-foreground sm:grid-cols-2">
+                          <div v-if="assetPlan.matchedExistingAsset?.assetName">
+                            <dt>{{ t('console.importAgent.assetPlansTitle') }}</dt>
+                            <dd class="mt-1 text-sm text-foreground">
+                              {{ assetPlan.matchedExistingAsset.assetName }}
+                            </dd>
+                          </div>
+                          <div v-if="assetPlan.matchedExistingAsset?.updatedAt">
+                            <dt>{{ t('console.importAgent.updatedAt') }}</dt>
+                            <dd class="mt-1 text-sm text-foreground">
+                              {{ assetPlan.matchedExistingAsset.updatedAt }}
+                            </dd>
+                          </div>
+                        </dl>
+                      </div>
+
+                      <dl class="mt-4 grid gap-3 text-xs text-muted-foreground sm:grid-cols-2">
+                        <div v-if="assetPlanDisplayCategory(assetPlan)">
+                          <dt>{{ t('console.importAgent.assetMetaCategory') }}</dt>
                           <dd class="mt-1 text-sm text-foreground">
-                            {{ assetPlan.requestMethod }}
+                            {{ assetPlanDisplayCategory(assetPlan) }}
                           </dd>
                         </div>
-                        <div v-if="assetPlan.authScheme">
+                        <div v-if="assetPlanDisplayMethod(assetPlan)">
+                          <dt>{{ t('console.importAgent.assetMetaMethod') }}</dt>
+                          <dd class="mt-1 text-sm text-foreground">
+                            {{ assetPlanDisplayMethod(assetPlan) }}
+                          </dd>
+                        </div>
+                        <div v-if="assetPlanDisplayAuthScheme(assetPlan)">
                           <dt>{{ t('console.importAgent.assetMetaAuthScheme') }}</dt>
-                          <dd class="mt-1 text-sm text-foreground">{{ assetPlan.authScheme }}</dd>
+                          <dd class="mt-1 text-sm text-foreground">
+                            {{ assetPlanDisplayAuthScheme(assetPlan) }}
+                          </dd>
                         </div>
                         <div v-if="assetPlan.aiProfile">
                           <dt>{{ t('console.importAgent.assetMetaAiModel') }}</dt>
@@ -816,10 +912,10 @@ watch(
                             {{ `${assetPlan.aiProfile.provider} · ${assetPlan.aiProfile.model}` }}
                           </dd>
                         </div>
-                        <div v-if="assetPlan.upstreamUrl" class="sm:col-span-2">
+                        <div v-if="assetPlanDisplayUpstreamUrl(assetPlan)" class="sm:col-span-2">
                           <dt>{{ t('console.importAgent.assetMetaUpstreamUrl') }}</dt>
                           <dd class="mt-1 break-all text-sm text-foreground">
-                            {{ assetPlan.upstreamUrl }}
+                            {{ assetPlanDisplayUpstreamUrl(assetPlan) }}
                           </dd>
                         </div>
                       </dl>
@@ -890,7 +986,7 @@ watch(
                       </div>
 
                       <div
-                        v-if="assetPlan.asyncTaskConfig?.enabled"
+                        v-if="shouldShowAsyncTaskConfig(assetPlan)"
                         class="mt-4 rounded-[16px] border border-[rgb(34_34_34_/_0.06)] bg-[color-mix(in_srgb,var(--accent)_18%,white)] p-4"
                       >
                         <div
@@ -899,42 +995,45 @@ watch(
                           <Clock3 class="size-4 text-[rgb(62_96_139)]" />
                           <span>{{ t('console.workspace.asyncTaskConfigGroup') }}</span>
                           <DisplayTag
-                            v-if="assetPlan.asyncTaskConfig.queryMethod"
+                            v-if="assetPlan.asyncTaskConfig?.queryMethod"
                             tone="neutral"
-                            :label="assetPlan.asyncTaskConfig.queryMethod"
+                            :label="assetPlan.asyncTaskConfig?.queryMethod"
                           />
                           <DisplayTag
-                            v-if="assetPlan.asyncTaskConfig.authMode"
+                            v-if="assetPlan.asyncTaskConfig?.authMode"
                             tone="info"
-                            :label="assetPlan.asyncTaskConfig.authMode"
+                            :label="assetPlan.asyncTaskConfig?.authMode"
                           />
                         </div>
                         <dl class="mt-3 grid gap-3 text-xs text-muted-foreground sm:grid-cols-2">
                           <div
-                            v-if="assetPlan.asyncTaskConfig.queryUrlTemplate"
+                            v-if="assetPlan.asyncTaskConfig?.queryUrlTemplate"
                             class="sm:col-span-2"
                           >
                             <dt>{{ t('console.workspace.fieldAsyncTaskQueryUrlTemplate') }}</dt>
                             <dd class="mt-1 break-all text-sm text-foreground">
-                              {{ assetPlan.asyncTaskConfig.queryUrlTemplate }}
+                              {{ assetPlan.asyncTaskConfig?.queryUrlTemplate }}
                             </dd>
                           </div>
-                          <div v-if="assetPlan.asyncTaskConfig.authScheme">
+                          <div v-if="assetPlan.asyncTaskConfig?.authScheme">
                             <dt>{{ t('console.workspace.fieldAsyncTaskAuthScheme') }}</dt>
                             <dd class="mt-1 text-sm text-foreground">
-                              {{ assetPlan.asyncTaskConfig.authScheme }}
+                              {{ assetPlan.asyncTaskConfig?.authScheme }}
                             </dd>
                           </div>
                           <div
-                            v-if="shouldShowAsyncAuthConfig(assetPlan.asyncTaskConfig)"
+                            v-if="
+                              assetPlan.asyncTaskConfig &&
+                              shouldShowAsyncAuthConfig(assetPlan.asyncTaskConfig)
+                            "
                             class="sm:col-span-2"
                           >
                             <dt>{{ t('console.workspace.fieldAsyncTaskAuthConfig') }}</dt>
                             <dd
-                              v-if="assetPlan.asyncTaskConfig.authConfig"
+                              v-if="assetPlan.asyncTaskConfig?.authConfig"
                               class="mt-1 break-all font-mono text-xs leading-5 text-foreground"
                             >
-                              {{ assetPlan.asyncTaskConfig.authConfig }}
+                              {{ assetPlan.asyncTaskConfig?.authConfig }}
                             </dd>
                             <dd v-else class="mt-1 text-sm text-muted-foreground">
                               {{ t('console.importAgent.assetAsyncAuthConfigInherited') }}
@@ -942,10 +1041,10 @@ watch(
                           </div>
                         </dl>
                         <CodeBlock
-                          v-if="assetPlan.asyncTaskConfig.queryResponseJsonSchema"
+                          v-if="assetPlan.asyncTaskConfig?.queryResponseJsonSchema"
                           class="mt-3"
                           :label="t('console.workspace.fieldAsyncTaskQueryResponseJsonSchema')"
-                          :value="assetPlan.asyncTaskConfig.queryResponseJsonSchema"
+                          :value="assetPlan.asyncTaskConfig?.queryResponseJsonSchema"
                           max-height-class="max-h-[220px]"
                         />
                       </div>

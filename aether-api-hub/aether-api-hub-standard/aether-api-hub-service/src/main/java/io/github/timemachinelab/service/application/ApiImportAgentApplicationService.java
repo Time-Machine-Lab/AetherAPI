@@ -1160,20 +1160,20 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                     return steps;
                 }
                 registerAsset(command, assetPlan);
-                apiAssetUseCase.reviseAsset(buildAssetRevisionCommand(command, assetPlan));
+                apiAssetUseCase.reviseAsset(buildAssetRevisionCommand(command, assetPlan, null));
                 steps.add(successStep(ImportAgentStepType.CREATE_ASSET, assetPlan.getApiCode(), "资产草稿已创建"));
             } else if (action == ImportAssetPlanAction.UPDATE_EXISTING) {
                 if (existing == null) {
                     steps.add(failedStep(ImportAgentStepType.UPDATE_EXISTING_ASSET, assetPlan.getApiCode(), "当前用户资产不存在"));
                     return steps;
                 }
-                apiAssetUseCase.reviseAsset(buildAssetRevisionCommand(command, assetPlan));
+                apiAssetUseCase.reviseAsset(buildAssetRevisionCommand(command, assetPlan, existing));
                 steps.add(successStep(ImportAgentStepType.UPDATE_EXISTING_ASSET, assetPlan.getApiCode(), "资产配置已更新"));
             } else {
                 if (existing == null) {
                     registerAsset(command, assetPlan);
                 }
-                apiAssetUseCase.reviseAsset(buildAssetRevisionCommand(command, assetPlan));
+                apiAssetUseCase.reviseAsset(buildAssetRevisionCommand(command, assetPlan, existing));
                 steps.add(successStep(ImportAgentStepType.UPSERT_ASSET, assetPlan.getApiCode(),
                         existing == null ? "资产草稿已创建" : "资产配置已更新"));
             }
@@ -1189,7 +1189,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 ));
                 steps.add(successStep(ImportAgentStepType.ATTACH_AI_PROFILE, assetPlan.getApiCode(), "AI 能力配置已关联"));
             }
-            if (assetPlan.isPublishAfterImport()) {
+            if (shouldPublishAfterImport(assetPlan, action)) {
                 apiAssetUseCase.publishAsset(
                         command.getOwnerUserId(),
                         normalizePublisherDisplayName(command.getPublisherDisplayName(), command.getOwnerUserId()),
@@ -1229,7 +1229,11 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
         ));
     }
 
-    private ReviseApiAssetCommand buildAssetRevisionCommand(StartImportAgentRunCommand command, ImportAssetPlanModel assetPlan) {
+    private ReviseApiAssetCommand buildAssetRevisionCommand(
+            StartImportAgentRunCommand command,
+            ImportAssetPlanModel assetPlan,
+            ApiAssetModel existingAsset) {
+        AsyncTaskConfigModel asyncTaskConfig = mergeAsyncTaskConfigForPatch(assetPlan, existingAsset);
         return new ReviseApiAssetCommand(
                 command.getOwnerUserId(),
                 normalizePublisherDisplayName(command.getPublisherDisplayName(), command.getOwnerUserId()),
@@ -1260,8 +1264,8 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 shouldApplyField(assetPlan, "requestJsonSchema", assetPlan.getRequestJsonSchema()),
                 assetPlan.getResponseJsonSchema(),
                 shouldApplyField(assetPlan, "responseJsonSchema", assetPlan.getResponseJsonSchema()),
-                assetPlan.getAsyncTaskConfig(),
-                shouldApplyField(assetPlan, "asyncTaskConfig", assetPlan.getAsyncTaskConfig()),
+                asyncTaskConfig,
+                shouldApplyField(assetPlan, "asyncTaskConfig", asyncTaskConfig),
                 null,
                 false,
                 null,
@@ -1277,6 +1281,53 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
             return changedFields.stream().anyMatch(changedField -> matchesChangedField(changedField, fieldName));
         }
         return fieldValue != null;
+    }
+
+    private AsyncTaskConfigModel mergeAsyncTaskConfigForPatch(ImportAssetPlanModel assetPlan, ApiAssetModel existingAsset) {
+        AsyncTaskConfigModel patch = assetPlan.getAsyncTaskConfig();
+        if (!shouldApplyField(assetPlan, "asyncTaskConfig", patch) || existingAsset == null) {
+            return patch;
+        }
+        if (patch == null) {
+            return null;
+        }
+        AsyncTaskConfigModel current = existingAsset.getAsyncTaskConfig();
+        if (current == null || assetPlan.getChangedFields() == null || assetPlan.getChangedFields().isEmpty()) {
+            return patch;
+        }
+        return new AsyncTaskConfigModel(
+                shouldApplyNestedField(assetPlan, "asyncTaskConfig.enabled") ? patch.getEnabled() : current.getEnabled(),
+                shouldApplyNestedField(assetPlan, "asyncTaskConfig.queryMethod") ? patch.getQueryMethod() : current.getQueryMethod(),
+                shouldApplyNestedField(assetPlan, "asyncTaskConfig.queryUrlTemplate") ? patch.getQueryUrlTemplate() : current.getQueryUrlTemplate(),
+                shouldApplyNestedField(assetPlan, "asyncTaskConfig.authMode") ? patch.getAuthMode() : current.getAuthMode(),
+                shouldApplyNestedField(assetPlan, "asyncTaskConfig.authScheme") ? patch.getAuthScheme() : current.getAuthScheme(),
+                shouldApplyNestedField(assetPlan, "asyncTaskConfig.authConfig") ? patch.getAuthConfig() : current.getAuthConfig(),
+                shouldApplyNestedField(assetPlan, "asyncTaskConfig.queryResponseJsonSchema")
+                        ? patch.getQueryResponseJsonSchema()
+                        : current.getQueryResponseJsonSchema()
+        );
+    }
+
+    private boolean shouldApplyNestedField(ImportAssetPlanModel assetPlan, String nestedFieldName) {
+        if (assetPlan.getChangedFields() == null || assetPlan.getChangedFields().isEmpty()) {
+            return true;
+        }
+        return assetPlan.getChangedFields().stream()
+                .anyMatch(changedField -> "asyncTaskConfig".equals(changedField == null ? null : changedField.trim())
+                        || matchesChangedField(changedField, nestedFieldName));
+    }
+
+    private boolean shouldPublishAfterImport(ImportAssetPlanModel assetPlan, ImportAssetPlanAction action) {
+        if (!assetPlan.isPublishAfterImport()) {
+            return false;
+        }
+        if (action != ImportAssetPlanAction.UPDATE_EXISTING) {
+            return true;
+        }
+        List<String> changedFields = assetPlan.getChangedFields();
+        return changedFields == null
+                || changedFields.isEmpty()
+                || changedFields.stream().anyMatch(changedField -> matchesChangedField(changedField, "publishAfterImport"));
     }
 
     private boolean matchesChangedField(String changedField, String fieldName) {

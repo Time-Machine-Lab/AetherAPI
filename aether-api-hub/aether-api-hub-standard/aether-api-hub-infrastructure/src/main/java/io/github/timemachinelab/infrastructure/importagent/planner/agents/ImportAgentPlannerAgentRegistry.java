@@ -95,6 +95,7 @@ public class ImportAgentPlannerAgentRegistry {
                         """
                         基于上下文和前序阶段输出生成完整的导入计划草稿 JSON。
                         如果识别到异步任务查询响应示例或字段文档，请生成 asyncTaskConfig.queryResponseJsonSchema；证据不足时保持为空并通过 clarificationQuestions 询问任务查询响应示例或字段说明，不要要求用户提供 JSONPath。
+                        如果用户要求修改 existingAssetCandidatesJson 或 targetExistingAssetsJson 中已有 API 的少数字段，并表达其他不变，请生成 UPDATE_EXISTING 补丁计划，只填 apiCode、action、changedFields 和 changedFields 对应的新值。
                         如果必需执行字段缺失，请通过 clarificationQuestions 让计划保持不可执行。
                         不要依赖平台侧修复。
                         """,
@@ -113,6 +114,7 @@ public class ImportAgentPlannerAgentRegistry {
                         最终 JSON 必须包含 summary、clarificationQuestions、categoryPlans 和 assetPlans。
                         每个 assetPlans[] 必须包含 action，取值 CREATE、UPDATE_EXISTING 或 UPSERT。用户意图不明确时不要默认 UPSERT，应保持计划不可执行并提出澄清。
                         UPDATE_EXISTING 必须使用 changedFields 表达本次明确修改的字段；未列入 changedFields 的字段视为保持已有资产原值。
+                        当用户指定 apicode 且表达“其他不变”或只要求修改某个字段时，生成最小 UPDATE_EXISTING 补丁；不要询问未列入 changedFields 的 AI 配置、请求方法、上游 URL、认证方案或认证密钥。
                         authConfig 必须是纯字符串：HEADER_TOKEN 使用 Authorization: Bearer token，QUERY_TOKEN 使用 access_token=token；不要输出 JSON 对象或 JSON 字符串。
                         asyncTaskConfig 只允许用 queryResponseJsonSchema 描述任务查询响应体；不要输出 statusPath、resultPath 或 errorPath。
                         缺失的执行字段必须继续保持缺失，并表示为澄清需求。

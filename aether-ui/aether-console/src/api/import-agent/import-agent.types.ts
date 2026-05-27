@@ -25,7 +25,11 @@ export type ImportStepType =
   | 'REVISE_ASSET'
   | 'ATTACH_AI_PROFILE'
   | 'PUBLISH_ASSET'
+  | 'CREATE_ASSET'
+  | 'UPDATE_EXISTING_ASSET'
+  | 'UPSERT_ASSET'
 export type ImportStepResultStatus = 'SUCCEEDED' | 'FAILED'
+export type ImportAssetPlanAction = 'CREATE' | 'UPDATE_EXISTING' | 'UPSERT'
 
 export interface CreateImportAgentSessionInput {
   documentSource?: string
@@ -127,10 +131,27 @@ export interface ImportCategoryPlan {
   action: ImportCategoryPlanAction
 }
 
-export interface ImportAssetPlan {
+export interface ImportExistingAssetSummary {
   apiCode: string
-  assetName: string
-  assetType: ImportAssetType
+  assetName?: string
+  assetType?: string
+  categoryCode?: string
+  status?: string
+  requestMethod?: string
+  upstreamUrl?: string
+  authScheme?: string
+  authConfigured: boolean
+  asyncTaskConfigured: boolean
+  aiProfileConfigured: boolean
+  updatedAt?: string
+}
+
+export interface ImportAssetPlan {
+  action?: ImportAssetPlanAction
+  apiCode: string
+  matchedExistingAsset?: ImportExistingAssetSummary
+  assetName?: string
+  assetType?: ImportAssetType
   categoryCode?: string
   requestMethod?: string
   upstreamUrl?: string
@@ -143,6 +164,7 @@ export interface ImportAssetPlan {
   requestJsonSchema?: string
   responseJsonSchema?: string
   publishAfterImport: boolean
+  changedFields?: string[]
   asyncTaskConfig: ImportAsyncTaskConfig | null
   aiProfile: ImportAiProfile | null
 }

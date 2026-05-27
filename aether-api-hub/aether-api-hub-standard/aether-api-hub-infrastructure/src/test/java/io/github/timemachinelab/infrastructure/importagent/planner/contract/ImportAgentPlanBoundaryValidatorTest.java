@@ -189,6 +189,28 @@ class ImportAgentPlanBoundaryValidatorTest {
     }
 
     @Test
+    @DisplayName("existing asset patch should not require unchanged execution fields")
+    void shouldAllowExistingAssetPatchWithoutUnchangedFields() {
+        ObjectNode source = OBJECT_MAPPER.createObjectNode();
+        source.put("summary", "update async response schema only");
+        ObjectNode assetNode = source.putArray("assetPlans").addObject();
+        assetNode.put("apiCode", "happyhorse-r2v-video");
+        assetNode.put("action", "UPDATE_EXISTING");
+        assetNode.putArray("changedFields").add("asyncTaskConfig.queryResponseJsonSchema");
+        assetNode.putObject("asyncTaskConfig")
+                .putObject("queryResponseJsonSchema")
+                .put("type", "object");
+
+        ImportAgentPlanModel result = ImportAgentPlannerJsonSupport.buildPlan(request(), source);
+
+        assertTrue(result.isExecutable());
+        assertEquals(ImportAssetPlanAction.UPDATE_EXISTING, result.getAssetPlans().get(0).getAction());
+        assertNull(result.getAssetPlans().get(0).getAssetType());
+        assertNull(result.getAssetPlans().get(0).getRequestMethod());
+        assertTrue(result.getClarificationQuestions().isEmpty());
+    }
+
+    @Test
     @DisplayName("multi-turn patch should preserve existing action and changedFields")
     void shouldPreservePatchSemanticsAcrossTurns() {
         ImportAgentPlanModel currentPlan = new ImportAgentPlanModel(

@@ -790,7 +790,7 @@ class ApiImportAgentApplicationServiceTest {
         when(sessionRepositoryPort.findOwnedSession("user-1", "session-1"))
                 .thenReturn(Optional.of(confirmedSession(existingAsyncTaskSchemaPatchPlan())));
         when(apiAssetUseCase.getAssetByCode("user-1", "weather-forecast"))
-                .thenReturn(existingAsset("weather-forecast", "Weather Forecast", "Authorization: Bearer secret"));
+                .thenReturn(existingAssetWithAsyncTaskConfig("weather-forecast", "Weather Forecast", "Authorization: Bearer secret"));
 
         service.startRun(new StartImportAgentRunCommand("user-1", "Alice", "session-1", 1));
 
@@ -802,6 +802,10 @@ class ApiImportAgentApplicationServiceTest {
         assertEquals(
                 "{\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"object\"}}}",
                 command.getAsyncTaskConfig().getQueryResponseJsonSchema());
+        assertEquals("POST", command.getAsyncTaskConfig().getQueryMethod());
+        assertEquals("https://upstream.example.com/weather/tasks/{taskId}",
+                command.getAsyncTaskConfig().getQueryUrlTemplate());
+        assertEquals("SAME_AS_SUBMIT", command.getAsyncTaskConfig().getAuthMode());
         assertFalse(command.isAssetNameSet());
         assertFalse(command.isResponseJsonSchemaSet());
     }
@@ -1102,10 +1106,10 @@ class ApiImportAgentApplicationServiceTest {
                         false,
                         List.of("asyncTaskConfig.queryResponseJsonSchema"),
                         new AsyncTaskConfigModel(
-                                true,
-                                "GET",
-                                "https://upstream.example.com/weather/tasks/{taskId}",
-                                "SAME_AS_SUBMIT",
+                                null,
+                                null,
+                                null,
+                                null,
                                 null,
                                 null,
                                 "{\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"object\"}}}"
@@ -1136,6 +1140,48 @@ class ApiImportAgentApplicationServiceTest {
                 "{\"type\":\"object\"}",
                 "{\"type\":\"object\"}",
                 null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                List.of(),
+                false,
+                "2026-05-20T00:00:00Z",
+                "2026-05-20T00:00:00Z"
+        );
+    }
+
+    private ApiAssetModel existingAssetWithAsyncTaskConfig(String apiCode, String assetName, String authConfig) {
+        return new ApiAssetModel(
+                "asset-1",
+                apiCode,
+                assetName,
+                "STANDARD_API",
+                "tools",
+                "UNPUBLISHED",
+                "Alice",
+                null,
+                "GET",
+                "https://upstream.example.com/weather",
+                authConfig == null ? "NONE" : "HEADER_TOKEN",
+                authConfig,
+                null,
+                "template",
+                "{\"city\":\"Shanghai\"}",
+                "{\"temperature\":26}",
+                "{\"type\":\"object\"}",
+                "{\"type\":\"object\"}",
+                new AsyncTaskConfigModel(
+                        true,
+                        "POST",
+                        "https://upstream.example.com/weather/tasks/{taskId}",
+                        "SAME_AS_SUBMIT",
+                        null,
+                        null,
+                        "{\"type\":\"object\",\"properties\":{\"status\":{\"type\":\"string\"}}}"
+                ),
                 null,
                 null,
                 null,

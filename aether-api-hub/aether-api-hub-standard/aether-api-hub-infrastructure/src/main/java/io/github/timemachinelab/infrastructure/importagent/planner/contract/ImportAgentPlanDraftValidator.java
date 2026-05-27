@@ -101,6 +101,16 @@ final class ImportAgentPlanDraftValidator {
             List<ImportAgentClarificationItemModel> items,
             int assetIndex,
             ImportAssetPlanModel assetPlan) {
+        if (isExistingPatch(assetPlan)) {
+            addAssetRequired(nextPlanVersion, questions, items, assetIndex, "apiCode", "API code",
+                    "Please provide the API code.", "TEXT", List.of(), assetPlan.getApiCode(), !hasText(assetPlan.getApiCode()));
+            addAssetRequired(nextPlanVersion, questions, items, assetIndex, "action", "Asset action",
+                    "Please choose CREATE, UPDATE_EXISTING, or UPSERT.", "SELECT", enumOptions(ImportAssetPlanAction.class), null,
+                    assetPlan.getAction() == null);
+            validateChangedFields(nextPlanVersion, questions, items, assetIndex, assetPlan);
+            validateExistingPatch(nextPlanVersion, questions, items, assetIndex, assetPlan);
+            return;
+        }
         addAssetRequired(nextPlanVersion, questions, items, assetIndex, "apiCode", "API 编码",
                 "请提供唯一 API 编码。", "TEXT", List.of(), assetPlan.getApiCode(), !hasText(assetPlan.getApiCode()));
         addAssetRequired(nextPlanVersion, questions, items, assetIndex, "assetName", "资产名称",
@@ -144,6 +154,79 @@ final class ImportAgentPlanDraftValidator {
                     "请提供上游认证配置。", "TEXT", List.of(), assetPlan.getAuthConfig(), true);
         }
         validateAsyncTaskConfig(nextPlanVersion, questions, items, assetIndex, assetPlan.getAsyncTaskConfig());
+    }
+
+    private static boolean isExistingPatch(ImportAssetPlanModel assetPlan) {
+        return assetPlan.getAction() == ImportAssetPlanAction.UPDATE_EXISTING
+                && assetPlan.getChangedFields() != null
+                && !assetPlan.getChangedFields().isEmpty();
+    }
+
+    private static void validateExistingPatch(
+            int nextPlanVersion,
+            LinkedHashSet<String> questions,
+            List<ImportAgentClarificationItemModel> items,
+            int assetIndex,
+            ImportAssetPlanModel assetPlan) {
+        for (String changedField : assetPlan.getChangedFields()) {
+            String topLevelField = topLevelChangedField(changedField);
+            if ("assetName".equals(topLevelField)) {
+                addAssetRequired(nextPlanVersion, questions, items, assetIndex, "assetName", "Asset name",
+                        "Please provide the asset display name.", "TEXT", List.of(),
+                        assetPlan.getAssetName(), !hasText(assetPlan.getAssetName()));
+            } else if ("assetType".equals(topLevelField)) {
+                addAssetRequired(nextPlanVersion, questions, items, assetIndex, "assetType", "Asset type",
+                        "Please choose STANDARD_API or AI_API.", "SELECT", enumOptions(AssetType.class), null,
+                        assetPlan.getAssetType() == null);
+            } else if ("requestMethod".equals(topLevelField)) {
+                addAssetRequired(nextPlanVersion, questions, items, assetIndex, "requestMethod", "Request method",
+                        "Please choose the upstream HTTP request method.", "SELECT", enumOptions(RequestMethod.class), null,
+                        assetPlan.getRequestMethod() == null);
+            } else if ("upstreamUrl".equals(topLevelField)) {
+                addAssetRequired(nextPlanVersion, questions, items, assetIndex, "upstreamUrl", "Upstream URL",
+                        "Please provide the upstream API URL.", "TEXT", List.of(), assetPlan.getUpstreamUrl(),
+                        !hasText(assetPlan.getUpstreamUrl()));
+            } else if ("authScheme".equals(topLevelField)) {
+                addAssetRequired(nextPlanVersion, questions, items, assetIndex, "authScheme", "Auth scheme",
+                        "Please choose the upstream auth scheme.", "SELECT", enumOptions(AuthScheme.class), null,
+                        assetPlan.getAuthScheme() == null);
+            } else if ("upstreamRequestHeaders".equals(topLevelField)) {
+                validateUpstreamRequestHeaders(nextPlanVersion, questions, items, assetIndex, assetPlan.getUpstreamRequestHeaders());
+            } else if ("asyncTaskConfig".equals(topLevelField)) {
+                validateAsyncTaskPatch(nextPlanVersion, questions, items, assetIndex, assetPlan, changedField);
+            } else if ("aiProfile".equals(topLevelField)
+                    && (assetPlan.getAiProfile() == null
+                    || !hasText(assetPlan.getAiProfile().getProvider())
+                    || !hasText(assetPlan.getAiProfile().getModel()))) {
+                addAssetRequired(nextPlanVersion, questions, items, assetIndex, "aiProfile", "AI profile",
+                        "Please provide AI provider and model.", "TEXT", List.of(), null, true);
+            }
+        }
+    }
+
+    private static void validateAsyncTaskPatch(
+            int nextPlanVersion,
+            LinkedHashSet<String> questions,
+            List<ImportAgentClarificationItemModel> items,
+            int assetIndex,
+            ImportAssetPlanModel assetPlan,
+            String changedField) {
+        AsyncTaskConfigModel config = assetPlan.getAsyncTaskConfig();
+        if (config == null) {
+            addAssetRequired(nextPlanVersion, questions, items, assetIndex, "asyncTaskConfig", "Async task config",
+                    "Please provide the async task config patch.", "TEXT", List.of(), null, true);
+            return;
+        }
+        if ("asyncTaskConfig.queryResponseJsonSchema".equals(changedField)
+                && !hasText(config.getQueryResponseJsonSchema())) {
+            addAsyncClarification(nextPlanVersion, questions, items, assetIndex, "queryResponseJsonSchema", "Async query response schema",
+                    "Please provide the task query response JSON Schema.", "TEXT", List.of(),
+                    config.getQueryResponseJsonSchema());
+            return;
+        }
+        if ("asyncTaskConfig".equals(changedField)) {
+            validateAsyncTaskConfig(nextPlanVersion, questions, items, assetIndex, config);
+        }
     }
 
     private static void validateChangedFields(

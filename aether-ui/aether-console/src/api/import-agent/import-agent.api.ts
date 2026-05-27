@@ -18,6 +18,7 @@ import type {
   ImportAsyncTaskConfigDto,
   ImportAssetPlanDto,
   ImportCategoryPlanDto,
+  ImportExistingAssetSummaryDto,
   ImportStepResultDto,
   StartImportAgentRunReqDto,
 } from './import-agent.dto'
@@ -36,6 +37,7 @@ import type {
   ImportAsyncTaskConfig,
   ImportAssetPlan,
   ImportCategoryPlan,
+  ImportExistingAssetSummary,
   ImportStepResult,
 } from './import-agent.types'
 
@@ -115,11 +117,35 @@ function mapCategoryPlan(dto: ImportCategoryPlanDto): ImportCategoryPlan {
   }
 }
 
-function mapAssetPlan(dto: ImportAssetPlanDto): ImportAssetPlan {
+function mapExistingAssetSummary(
+  dto?: ImportExistingAssetSummaryDto | null,
+): ImportExistingAssetSummary | undefined {
+  if (!dto) {
+    return undefined
+  }
   return {
     apiCode: dto.apiCode,
-    assetName: dto.assetName,
-    assetType: dto.assetType,
+    assetName: dto.assetName ?? undefined,
+    assetType: dto.assetType ?? undefined,
+    categoryCode: dto.categoryCode ?? undefined,
+    status: dto.status ?? undefined,
+    requestMethod: dto.requestMethod ?? undefined,
+    upstreamUrl: dto.upstreamUrl ?? undefined,
+    authScheme: dto.authScheme ?? undefined,
+    authConfigured: dto.authConfigured,
+    asyncTaskConfigured: dto.asyncTaskConfigured,
+    aiProfileConfigured: dto.aiProfileConfigured,
+    updatedAt: dto.updatedAt ?? undefined,
+  }
+}
+
+function mapAssetPlan(dto: ImportAssetPlanDto): ImportAssetPlan {
+  return {
+    action: dto.action ?? undefined,
+    apiCode: dto.apiCode,
+    matchedExistingAsset: mapExistingAssetSummary(dto.matchedExistingAsset),
+    assetName: dto.assetName ?? undefined,
+    assetType: dto.assetType ?? undefined,
     categoryCode: dto.categoryCode ?? undefined,
     requestMethod: dto.requestMethod ?? undefined,
     upstreamUrl: dto.upstreamUrl ?? undefined,
@@ -132,6 +158,7 @@ function mapAssetPlan(dto: ImportAssetPlanDto): ImportAssetPlan {
     requestJsonSchema: dto.requestJsonSchema ?? undefined,
     responseJsonSchema: dto.responseJsonSchema ?? undefined,
     publishAfterImport: dto.publishAfterImport,
+    changedFields: dto.changedFields ?? [],
     asyncTaskConfig: mapAsyncTaskConfig(dto.asyncTaskConfig),
     aiProfile: mapAiProfile(dto.aiProfile),
   }
