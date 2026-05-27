@@ -239,21 +239,11 @@ components:
           type: string
           nullable: true
           description: Sensitive override auth material. Discovery responses MUST omit this value.
-        statusPath:
+        queryResponseJsonSchema:
           type: string
           nullable: true
-          description: JSONPath-like path for task status in the upstream query response.
-          example: $.data.status
-        resultPath:
-          type: string
-          nullable: true
-          description: JSONPath-like path for task result in the upstream query response.
-          example: $.data.result
-        errorPath:
-          type: string
-          nullable: true
-          description: JSONPath-like path for task error in the upstream query response.
-          example: $.data.error
+          description: Published task query response body JSON Schema snapshot. This describes the upstream query response shape and is not used to normalize Unified Access passthrough responses.
+          example: '{"type":"object","properties":{"data":{"type":"object","properties":{"status":{"type":"string"},"result":{"type":"object"},"message":{"type":"string"}}}}}'
 
     ErrorResp:
       type: object
