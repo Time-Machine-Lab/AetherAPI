@@ -678,13 +678,26 @@ components:
           type: string
           nullable: true
           description: authMode 为 OVERRIDE 时使用的任务查询鉴权配置
-        queryResponseJsonSchema:
+        statusPath:
           type: string
           nullable: true
-          description: Task query response body JSON Schema snapshot. This describes the upstream query response shape and is not used to normalize Unified Access passthrough responses.
+          description: 预留字段：上游任务状态字段 JSONPath，一期不强制规范化响应
+          example: $.data.status
+        resultPath:
+          type: string
+          nullable: true
+          description: 预留字段：上游任务结果字段 JSONPath
+          example: $.data.result
+        errorPath:
+          type: string
+          nullable: true
+          description: 预留字段：上游任务错误字段 JSONPath
+          example: $.data.error
       example:
         enabled: true
         queryMethod: GET
         queryUrlTemplate: https://provider.example.com/v1/tasks/{taskId}
         authMode: SAME_AS_SUBMIT
-        queryResponseJsonSchema: '{"type":"object","properties":{"data":{"type":"object","properties":{"status":{"type":"string"},"result":{"type":"object"},"message":{"type":"string"}}}}}'
+        statusPath: $.data.status
+        resultPath: $.data.result
+        errorPath: $.data.error

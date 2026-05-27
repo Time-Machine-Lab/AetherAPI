@@ -532,17 +532,8 @@ components:
     ImportAssetPlanResp:
       type: object
       properties:
-        action:
-          type: string
-          description: 资产计划动作。CREATE 表示只创建新资产；UPDATE_EXISTING 表示只修改当前用户已有资产；UPSERT 表示存在则修改、不存在则创建。
-          enum:
-            - CREATE
-            - UPDATE_EXISTING
-            - UPSERT
         apiCode:
           type: string
-        matchedExistingAsset:
-          $ref: '#/components/schemas/ImportExistingAssetSummaryResp'
         assetName:
           type: string
         assetType:
@@ -588,77 +579,10 @@ components:
           nullable: true
         publishAfterImport:
           type: boolean
-        changedFields:
-          type: array
-          description: 本计划明确要写入的资产字段。UPDATE_EXISTING 使用该字段区分“未提及，保持原值”和“明确写入或清空”。
-          items:
-            type: string
-            enum:
-              - assetName
-              - assetType
-              - categoryCode
-              - requestMethod
-              - upstreamUrl
-              - authScheme
-              - authConfig
-              - upstreamRequestHeaders
-              - requestTemplate
-              - requestExample
-              - responseExample
-              - requestJsonSchema
-              - responseJsonSchema
-              - asyncTaskConfig
-              - aiProfile
-              - publishAfterImport
         asyncTaskConfig:
           $ref: '#/components/schemas/AsyncTaskConfig'
         aiProfile:
           $ref: '#/components/schemas/ImportAiProfileResp'
-
-    ImportExistingAssetSummaryResp:
-      type: object
-      nullable: true
-      description: 当前用户已有资产的安全摘要，用于展示 Import Agent 本次计划匹配到的目标资产；不得包含 authConfig 明文。
-      properties:
-        apiCode:
-          type: string
-        assetName:
-          type: string
-          nullable: true
-        assetType:
-          type: string
-          enum:
-            - STANDARD_API
-            - AI_API
-        categoryCode:
-          type: string
-          nullable: true
-        status:
-          type: string
-          enum:
-            - DRAFT
-            - PUBLISHED
-            - UNPUBLISHED
-        requestMethod:
-          type: string
-          nullable: true
-        upstreamUrl:
-          type: string
-          nullable: true
-        authScheme:
-          type: string
-          nullable: true
-        authConfigured:
-          type: boolean
-          description: 是否已配置上游鉴权；不暴露具体 authConfig 值。
-        asyncTaskConfigured:
-          type: boolean
-        aiProfileConfigured:
-          type: boolean
-        updatedAt:
-          type: string
-          format: date-time
-          nullable: true
 
     ImportUpstreamRequestHeaderResp:
       type: object
@@ -709,10 +633,18 @@ components:
           type: string
           nullable: true
           description: authMode 为 OVERRIDE 时使用的任务查询鉴权配置
-        queryResponseJsonSchema:
+        statusPath:
           type: string
           nullable: true
-          description: Task query response body JSON Schema snapshot generated from provider documentation or examples.
+          description: 上游任务状态字段 JSONPath
+        resultPath:
+          type: string
+          nullable: true
+          description: 上游任务结果字段 JSONPath
+        errorPath:
+          type: string
+          nullable: true
+          description: 上游任务错误字段 JSONPath
 
     ImportAiProfileResp:
       type: object
@@ -847,12 +779,8 @@ components:
           type: string
           enum:
             - ENSURE_CATEGORY
-            - RESOLVE_EXISTING_ASSET
             - REGISTER_ASSET
             - REVISE_ASSET
-            - CREATE_ASSET
-            - UPDATE_EXISTING_ASSET
-            - UPSERT_ASSET
             - ATTACH_AI_PROFILE
             - PUBLISH_ASSET
         targetRef:
