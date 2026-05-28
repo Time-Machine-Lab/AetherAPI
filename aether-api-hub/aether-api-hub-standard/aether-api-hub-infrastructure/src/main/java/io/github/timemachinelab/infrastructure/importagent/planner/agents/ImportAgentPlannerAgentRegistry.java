@@ -23,7 +23,7 @@ public class ImportAgentPlannerAgentRegistry {
 
     public ImportAgentPlannerAgentRegistry(List<ImportAgentPlannerAgentSpec> agents) {
         if (agents == null || agents.isEmpty()) {
-            throw new IllegalStateException("At least one import-agent planner agent must be declared");
+                        throw new IllegalStateException("至少需要声明一个导入规划 Agent");
         }
         this.agents = agents.stream()
                 .sorted(Comparator.comparingInt(ImportAgentPlannerAgentSpec::order)
@@ -34,7 +34,7 @@ public class ImportAgentPlannerAgentRegistry {
                         ImportAgentPlannerAgentSpec::name,
                         Function.identity(),
                         (left, right) -> {
-                            throw new IllegalStateException("Duplicate import-agent planner agent name: " + left.name());
+                                                        throw new IllegalStateException("导入规划 Agent 名称重复：" + left.name());
                         }));
     }
 
@@ -45,7 +45,7 @@ public class ImportAgentPlannerAgentRegistry {
     public ImportAgentPlannerAgentSpec getAgent(String name) {
         ImportAgentPlannerAgentSpec spec = agentsByName.get(name);
         if (spec == null) {
-            throw new IllegalArgumentException("Unknown import-agent planner agent: " + name);
+                        throw new IllegalArgumentException("未知的导入规划 Agent：" + name);
         }
         return spec;
     }

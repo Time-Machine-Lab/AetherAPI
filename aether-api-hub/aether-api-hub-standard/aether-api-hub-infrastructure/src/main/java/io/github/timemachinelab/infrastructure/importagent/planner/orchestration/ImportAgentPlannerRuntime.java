@@ -21,7 +21,7 @@ public class ImportAgentPlannerRuntime {
     private final ImportAgentPlannerAgentRegistry agentRegistry;
 
     public ImportAgentPlannerRuntime(ImportAgentPlannerAgentRegistry agentRegistry) {
-        this.agentRegistry = Objects.requireNonNull(agentRegistry, "Agent registry must not be null");
+        this.agentRegistry = Objects.requireNonNull(agentRegistry, "Agent 注册表不能为空");
     }
 
     public ImportAgentPlannerRuntime() {
@@ -32,8 +32,8 @@ public class ImportAgentPlannerRuntime {
             ImportAgentPlannerRequest request,
             ImportAgentStreamEmitter streamEmitter,
             ImportAgentPlannerAgentInvoker invoker) throws IOException, InterruptedException {
-        Objects.requireNonNull(request, "Planner request must not be null");
-        Objects.requireNonNull(invoker, "Planner agent invoker must not be null");
+        Objects.requireNonNull(request, "规划请求不能为空");
+        Objects.requireNonNull(invoker, "规划 Agent 调用器不能为空");
         ImportAgentStreamEmitter stream = streamEmitter == null ? ImportAgentStreamEmitter.noop() : streamEmitter;
         ImportAgentPlannerContext context = new ImportAgentPlannerContext(request);
         JsonNode finalPlanSource = null;

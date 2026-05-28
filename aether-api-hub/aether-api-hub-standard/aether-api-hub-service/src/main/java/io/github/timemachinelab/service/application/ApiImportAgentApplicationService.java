@@ -321,8 +321,8 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
             return List.copyOf(candidates);
         } catch (RuntimeException ex) {
             if (stream != null) {
-                stream.thinking("asset_candidates", "Asset candidates unavailable",
-                        "Unable to load current-user asset candidates; planning will continue and ask for clarification if needed.");
+                stream.thinking("asset_candidates", "资产候选不可用",
+                        "暂时无法加载当前用户的资产候选，规划会继续进行，并在需要时向用户发起澄清。");
             }
             return List.of();
         }
@@ -361,8 +361,8 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 }
             } catch (RuntimeException ex) {
                 if (stream != null) {
-                    stream.thinking("asset_detail", "Target asset detail skipped",
-                            "A target API code could not be loaded for the current user; its asset context was skipped.");
+                    stream.thinking("asset_detail", "目标资产详情已跳过",
+                            "当前用户下无法加载该目标 API 编码对应的资产，因此已跳过它的资产上下文。");
                 }
             }
         }
@@ -761,7 +761,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
             String targetPath = firstText(answer.getTargetPath(), item.getTargetPath());
             String fieldKey = firstText(answer.getFieldKey(), item.getFieldKey());
             if (targetPath == null || fieldKey == null) {
-                throw new IllegalArgumentException("Clarification answer must include targetPath and fieldKey.");
+                throw new IllegalArgumentException("澄清回答必须包含 targetPath 和 fieldKey。");
             }
             if (targetPath.startsWith("/assetPlans/")) {
                 applyAssetClarificationAnswer(assetPlans, targetPath, fieldKey, answer.getValue());
@@ -771,7 +771,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                 applyCategoryClarificationAnswer(categoryPlans, targetPath, fieldKey, answer.getValue());
                 continue;
             }
-            throw new IllegalArgumentException("Unsupported clarification targetPath: " + targetPath);
+            throw new IllegalArgumentException("不支持的澄清 targetPath: " + targetPath);
         }
         return new ImportAgentPlanModel(
                 currentPlan.getVersion(),
@@ -812,7 +812,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
                     List.of(),
                     null);
         }
-        throw new IllegalArgumentException("Clarification answer does not match the current plan.");
+        throw new IllegalArgumentException("澄清回答与当前计划不匹配。");
     }
 
     private void applyAssetClarificationAnswer(
@@ -822,7 +822,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
             String value) {
         int assetIndex = parseIndexedPath(targetPath, "assetPlans");
         if (assetIndex < 0 || assetIndex >= assetPlans.size()) {
-            throw new IllegalArgumentException("Clarification target asset does not exist: " + targetPath);
+            throw new IllegalArgumentException("澄清目标资产不存在: " + targetPath);
         }
         ImportAssetPlanModel current = assetPlans.get(assetIndex);
         if (targetPath.startsWith("/assetPlans/" + assetIndex + "/asyncTaskConfig")) {
@@ -845,7 +845,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
             String value) {
         int categoryIndex = parseIndexedPath(targetPath, "categoryPlans");
         if (categoryIndex < 0 || categoryIndex >= categoryPlans.size()) {
-            throw new IllegalArgumentException("Clarification target category does not exist: " + targetPath);
+            throw new IllegalArgumentException("澄清目标分类不存在: " + targetPath);
         }
         ImportCategoryPlanModel current = categoryPlans.get(categoryIndex);
         categoryPlans.set(categoryIndex, new ImportCategoryPlanModel(
@@ -932,7 +932,7 @@ public class ApiImportAgentApplicationService implements ApiImportAgentUseCase {
             String value) {
         int headerIndex = parseHeaderIndex(targetPath);
         if (headerIndex < 0) {
-            throw new IllegalArgumentException("Clarification target header does not exist: " + targetPath);
+            throw new IllegalArgumentException("澄清目标请求头不存在: " + targetPath);
         }
         List<UpstreamRequestHeaderModel> headers = new ArrayList<>(
                 current.getUpstreamRequestHeaders() == null ? List.of() : current.getUpstreamRequestHeaders());

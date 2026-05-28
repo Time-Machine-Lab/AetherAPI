@@ -43,8 +43,8 @@ public class OpenAiCompatibleImportAgentReplyPort implements ApiImportAgentReply
     private final ImportAgentLlmPlannerProperties properties;
 
     public OpenAiCompatibleImportAgentReplyPort(HttpClient httpClient, ImportAgentLlmPlannerProperties properties) {
-        this.httpClient = Objects.requireNonNull(httpClient, "HTTP client must not be null");
-        this.properties = Objects.requireNonNull(properties, "LLM planner properties must not be null");
+        this.httpClient = Objects.requireNonNull(httpClient, "HTTP 客户端不能为空");
+        this.properties = Objects.requireNonNull(properties, "LLM 规划配置不能为空");
     }
 
     @Override
@@ -57,7 +57,7 @@ public class OpenAiCompatibleImportAgentReplyPort implements ApiImportAgentReply
                 || isBlank(properties.getBaseUrl())
                 || isBlank(properties.getApiKey())
                 || isBlank(properties.getModel())) {
-            throw new IllegalStateException("Import agent reply streaming is not configured");
+            throw new IllegalStateException("API 导入助手回复流未配置完成");
         }
         try {
             HttpRequest httpRequest = HttpRequest.newBuilder(buildEndpointUri())
@@ -69,7 +69,7 @@ public class OpenAiCompatibleImportAgentReplyPort implements ApiImportAgentReply
                     .build();
             HttpResponse<Stream<String>> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofLines());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new IllegalStateException("Import agent reply request failed with status " + response.statusCode());
+                throw new IllegalStateException("API 导入助手回复请求失败，状态码：" + response.statusCode());
             }
 
             StringBuilder reply = new StringBuilder();
@@ -78,14 +78,14 @@ public class OpenAiCompatibleImportAgentReplyPort implements ApiImportAgentReply
             }
             String finalReply = reply.toString().trim();
             if (finalReply.isBlank()) {
-                throw new IllegalStateException("Import agent reply stream returned no textual content");
+                throw new IllegalStateException("API 导入助手回复流未返回任何文本内容");
             }
             return finalReply;
         } catch (IOException ex) {
-            throw new IllegalStateException("Import agent reply request failed", ex);
+            throw new IllegalStateException("API 导入助手回复请求失败", ex);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("Import agent reply request interrupted", ex);
+            throw new IllegalStateException("API 导入助手回复请求被中断", ex);
         }
     }
 
@@ -115,7 +115,7 @@ public class OpenAiCompatibleImportAgentReplyPort implements ApiImportAgentReply
             reply.append(content);
             streamEmitter.message(ImportAgentActorType.AGENT, content);
         } catch (IOException ex) {
-            throw new IllegalStateException("Failed to parse import agent reply stream chunk", ex);
+            throw new IllegalStateException("解析 API 导入助手回复流分片失败", ex);
         }
     }
 
@@ -163,8 +163,8 @@ public class OpenAiCompatibleImportAgentReplyPort implements ApiImportAgentReply
         appendField(prompt, "importIntent", request.getImportIntent());
         appendField(prompt, "latestUserMessage", request.getLatestUserMessage());
         prompt.append("finalPlanJson:\n").append(OBJECT_MAPPER.writeValueAsString(plan)).append("\n");
-        prompt.append("Do not echo authConfig, bearer tokens, API keys, secrets, or credential values in the assistant reply; say whether credentials are configured or need clarification instead.\n");
-        prompt.append("Do not echo upstreamRequestHeaders values in the assistant reply; mention header names only and ask for missing values through clarification.\n");
+        prompt.append("回复中不要回显 authConfig、Bearer Token、API Key、密钥或任何凭证值；只说明凭证是否已配置，或是否仍需澄清。\n");
+        prompt.append("回复中不要回显 upstreamRequestHeaders 的具体取值；只提请求头名称，并对缺失值发起澄清。\n");
         prompt.append("如果 finalPlanJson 中 clarificationQuestions 为空，请直接总结计划并邀请用户确认；否则请优先提出需要用户补充的信息。\n");
         return prompt.toString();
     }

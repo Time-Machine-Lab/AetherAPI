@@ -54,10 +54,10 @@ public class ImportAgentPlanningToolRegistry {
     }
 
     public List<ImportAgentPlanningToolDescriptor> getTools(PlannerStage stage) {
-        Objects.requireNonNull(stage, "Planner stage must not be null");
+        Objects.requireNonNull(stage, "规划阶段不能为空");
         List<ImportAgentPlanningToolDescriptor> descriptors = toolsByStage.get(stage);
         if (descriptors == null || descriptors.isEmpty()) {
-            throw new IllegalStateException("No planning tools registered for stage " + stage);
+            throw new IllegalStateException("规划阶段未注册任何工具：" + stage);
         }
         return descriptors;
     }
@@ -78,7 +78,7 @@ public class ImportAgentPlanningToolRegistry {
         for (String toolName : toolNames) {
             ImportAgentPlanningToolDescriptor descriptor = toolsByName.get(toolName);
             if (descriptor == null) {
-                throw new IllegalStateException("Unknown import-agent planning tool: " + toolName);
+                throw new IllegalStateException("未知的导入规划工具：" + toolName);
             }
             descriptors.add(descriptor);
         }
@@ -88,14 +88,14 @@ public class ImportAgentPlanningToolRegistry {
     public ImportAgentPlanningToolDescriptor getTool(String toolName) {
         ImportAgentPlanningToolDescriptor descriptor = toolsByName.get(toolName);
         if (descriptor == null) {
-            throw new IllegalStateException("Unknown import-agent planning tool: " + toolName);
+            throw new IllegalStateException("未知的导入规划工具：" + toolName);
         }
         return descriptor;
     }
 
     private RegistryIndex buildIndex(List<ImportAgentPlanningTool> tools) {
         if (tools == null || tools.isEmpty()) {
-            throw new IllegalStateException("At least one planning tool must be registered");
+            throw new IllegalStateException("至少需要注册一个规划工具");
         }
         Map<PlannerStage, List<ImportAgentPlanningToolDescriptor>> indexed = new EnumMap<>(PlannerStage.class);
         Map<String, ImportAgentPlanningToolDescriptor> names = new HashMap<>();
@@ -103,7 +103,7 @@ public class ImportAgentPlanningToolRegistry {
             ImportAgentPlanningToolDescriptor descriptor = buildDescriptor(tool);
             ImportAgentPlanningToolDescriptor previous = names.putIfAbsent(descriptor.name(), descriptor);
             if (previous != null) {
-                throw new IllegalStateException("Duplicate import-agent planning tool name: " + descriptor.name());
+                throw new IllegalStateException("导入规划工具名称重复：" + descriptor.name());
             }
             indexed.computeIfAbsent(descriptor.stage(), ignored -> new ArrayList<>()).add(descriptor);
         }
@@ -115,23 +115,23 @@ public class ImportAgentPlanningToolRegistry {
         }
         for (PlannerStage stage : Arrays.asList(PlannerStage.values())) {
             if (!indexed.containsKey(stage) || indexed.get(stage).isEmpty()) {
-                throw new IllegalStateException("Missing import-agent planning tool for stage " + stage);
+                throw new IllegalStateException("规划阶段缺少对应工具：" + stage);
             }
         }
         return new RegistryIndex(Map.copyOf(indexed), Map.copyOf(names));
     }
 
     private ImportAgentPlanningToolDescriptor buildDescriptor(ImportAgentPlanningTool tool) {
-        Objects.requireNonNull(tool, "Planning tool must not be null");
+        Objects.requireNonNull(tool, "规划工具不能为空");
         ImportAgentToolSpec spec = AnnotationUtils.findAnnotation(tool.getClass(), ImportAgentToolSpec.class);
         if (spec == null) {
-            throw new IllegalStateException("Planning tool is missing @ImportAgentToolSpec: " + tool.getClass().getName());
+            throw new IllegalStateException("规划工具缺少 @ImportAgentToolSpec 标注：" + tool.getClass().getName());
         }
         if (!hasText(spec.name())) {
-            throw new IllegalStateException("Planning tool name must not be blank: " + tool.getClass().getName());
+            throw new IllegalStateException("规划工具名称不能为空：" + tool.getClass().getName());
         }
         if (spec.stage() == null) {
-            throw new IllegalStateException("Planning tool stage must not be null: " + tool.getClass().getName());
+            throw new IllegalStateException("规划工具阶段不能为空：" + tool.getClass().getName());
         }
         return new ImportAgentPlanningToolDescriptor(spec.name().trim(), spec.stage(), spec.order(), tool);
     }

@@ -67,10 +67,10 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
             ImportAgentLlmPlannerProperties properties,
             ImportAgentPlanningToolRegistry toolRegistry,
             ImportAgentPlannerRuntime runtime) {
-        this.httpClient = Objects.requireNonNull(httpClient, "HTTP client must not be null");
-        this.properties = Objects.requireNonNull(properties, "LLM planner properties must not be null");
-        this.toolRegistry = Objects.requireNonNull(toolRegistry, "Planning tool registry must not be null");
-        this.runtime = Objects.requireNonNull(runtime, "Planner runtime must not be null");
+        this.httpClient = Objects.requireNonNull(httpClient, "HTTP 客户端不能为空");
+        this.properties = Objects.requireNonNull(properties, "LLM 规划配置不能为空");
+        this.toolRegistry = Objects.requireNonNull(toolRegistry, "规划工具注册表不能为空");
+        this.runtime = Objects.requireNonNull(runtime, "规划运行时不能为空");
     }
 
     OpenAiCompatibleImportAgentPlannerProvider(
@@ -78,10 +78,10 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
             ImportAgentLlmPlannerProperties properties) {
         this(
                 httpClient,
-                properties,
-                ImportAgentPlanningToolRegistry.defaultRegistry(),
-                new ImportAgentPlannerRuntime(new ImportAgentPlannerAgentRegistry()));
-    }
+            properties,
+            ImportAgentPlanningToolRegistry.defaultRegistry(),
+            new ImportAgentPlannerRuntime());
+        }
 
     @Override
     public boolean supports(ImportAgentPlannerRequest request) {
@@ -112,7 +112,7 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
                     (agent, context) -> executeAgentStage(request, agent, context));
             JsonNode planSource = runtimeResult.finalPlanSource();
             if (planSource == null || !planSource.isObject()) {
-                throw new IllegalStateException("LLM planner returned non-JSON final plan content");
+                throw new IllegalStateException("LLM 规划器返回的最终计划内容不是 JSON 对象");
             }
             log.debug("Import-agent planner final candidate: {}", ImportAgentPlannerStreamSummaries.summarize(planSource));
             ImportAgentPlanModel plan = ImportAgentPlannerJsonSupport.buildPlan(request, planSource);
@@ -129,11 +129,11 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
             return new ImportAgentPlannerResult(plan, ImportAgentPlannerJsonSupport.buildAgentMessage("LLM 规划器", plan));
         } catch (IOException ex) {
             log.error("Import-agent planner IO failure", ex);
-            throw new IllegalStateException("LLM planner request failed", ex);
+            throw new IllegalStateException("LLM 规划请求失败", ex);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             log.warn("Import-agent planner interrupted", ex);
-            throw new IllegalStateException("LLM planner request interrupted", ex);
+            throw new IllegalStateException("LLM 规划请求被中断", ex);
         } catch (RuntimeException ex) {
             log.error("Import-agent planner failed: {}", ex.getMessage(), ex);
             throw ex;
@@ -156,7 +156,7 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
             String errorBody = summarizeErrorBody(response.body());
             log.warn("Import-agent planner stage failed: agent={}, status={}, body={}", agent.name(), response.statusCode(), errorBody);
-            throw new IllegalStateException("LLM planner request failed with status " + response.statusCode() + ": " + errorBody);
+            throw new IllegalStateException("LLM 规划请求失败，状态码：" + response.statusCode() + "，响应：" + errorBody);
         }
         JsonNode payload = OBJECT_MAPPER.readTree(response.body());
         JsonNode stageOutput = extractStageOutput(payload, agent);
@@ -266,7 +266,7 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
         try {
             return OBJECT_MAPPER.writeValueAsString(request.getCurrentPlan());
         } catch (IOException ex) {
-            throw new IllegalStateException("Failed to serialize current import plan", ex);
+            throw new IllegalStateException("序列化当前导入计划失败", ex);
         }
     }
 
@@ -274,7 +274,7 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
         try {
             return OBJECT_MAPPER.writeValueAsString(request.getAvailableCategories());
         } catch (IOException ex) {
-            throw new IllegalStateException("Failed to serialize available categories", ex);
+            throw new IllegalStateException("序列化可用分类失败", ex);
         }
     }
 
@@ -282,7 +282,7 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
         try {
             return OBJECT_MAPPER.writeValueAsString(request.getExistingAssetCandidates());
         } catch (IOException ex) {
-            throw new IllegalStateException("Failed to serialize existing asset candidates", ex);
+            throw new IllegalStateException("序列化现有资产候选失败", ex);
         }
     }
 
@@ -290,7 +290,7 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
         try {
             return OBJECT_MAPPER.writeValueAsString(request.getTargetExistingAssets());
         } catch (IOException ex) {
-            throw new IllegalStateException("Failed to serialize target existing assets", ex);
+            throw new IllegalStateException("序列化目标现有资产失败", ex);
         }
     }
 
@@ -298,7 +298,7 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
         try {
             return OBJECT_MAPPER.writeValueAsString(request.getTurns());
         } catch (IOException ex) {
-            throw new IllegalStateException("Failed to serialize import agent turns", ex);
+            throw new IllegalStateException("序列化导入 Agent 对话记录失败", ex);
         }
     }
 
@@ -342,7 +342,7 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
     private JsonNode extractToolArguments(JsonNode payload, String expectedToolName) {
         JsonNode choices = payload.path("choices");
         if (!choices.isArray() || choices.isEmpty()) {
-            throw new IllegalStateException("LLM planner response is missing choices");
+            throw new IllegalStateException("LLM 规划响应缺少 choices 字段");
         }
         JsonNode messageNode = choices.get(0).path("message");
         JsonNode toolCalls = messageNode.path("tool_calls");
@@ -376,7 +376,7 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
     private String extractContent(JsonNode payload, boolean strict) {
         JsonNode choices = payload.path("choices");
         if (!choices.isArray() || choices.isEmpty()) {
-            throw new IllegalStateException("LLM planner response is missing choices");
+            throw new IllegalStateException("LLM 规划响应缺少 choices 字段");
         }
         JsonNode contentNode = choices.get(0).path("message").path("content");
         if (contentNode.isTextual()) {
@@ -396,7 +396,7 @@ public class OpenAiCompatibleImportAgentPlannerProvider implements ImportAgentPl
         if (!strict) {
             return null;
         }
-        throw new IllegalStateException("LLM planner response content is not textual");
+        throw new IllegalStateException("LLM 规划响应内容不是文本");
     }
 
     private boolean hasText(String value) {

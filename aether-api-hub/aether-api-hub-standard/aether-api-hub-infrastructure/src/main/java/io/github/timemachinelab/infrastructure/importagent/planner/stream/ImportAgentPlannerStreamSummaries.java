@@ -34,11 +34,11 @@ public final class ImportAgentPlannerStreamSummaries {
         if (!node.isObject()) {
             return node.getNodeType().name().toLowerCase();
         }
-        return "对象(assetPlans=" + sizeOfArray(node, "assetPlans")
-                + ", categoryPlans=" + sizeOfArray(node, "categoryPlans")
-                + ", clarificationQuestions=" + sizeOfArray(node, "clarificationQuestions")
-                + ", missingFields=" + sizeOfArray(node, "missingFields")
-                + ", risks=" + sizeOfArray(node, "risks")
+        return "对象(资产计划=" + sizeOfArray(node, "assetPlans")
+            + ", 分类计划=" + sizeOfArray(node, "categoryPlans")
+            + ", 澄清问题=" + sizeOfArray(node, "clarificationQuestions")
+            + ", 缺失字段=" + sizeOfArray(node, "missingFields")
+            + ", 风险=" + sizeOfArray(node, "risks")
                 + ")";
     }
 

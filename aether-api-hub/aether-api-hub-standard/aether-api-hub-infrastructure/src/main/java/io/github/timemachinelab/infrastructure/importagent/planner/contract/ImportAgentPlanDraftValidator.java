@@ -102,10 +102,10 @@ final class ImportAgentPlanDraftValidator {
             int assetIndex,
             ImportAssetPlanModel assetPlan) {
         if (isExistingPatch(assetPlan)) {
-            addAssetRequired(nextPlanVersion, questions, items, assetIndex, "apiCode", "API code",
-                    "Please provide the API code.", "TEXT", List.of(), assetPlan.getApiCode(), !hasText(assetPlan.getApiCode()));
-            addAssetRequired(nextPlanVersion, questions, items, assetIndex, "action", "Asset action",
-                    "Please choose CREATE, UPDATE_EXISTING, or UPSERT.", "SELECT", enumOptions(ImportAssetPlanAction.class), null,
+            addAssetRequired(nextPlanVersion, questions, items, assetIndex, "apiCode", "API 编码",
+                "请提供 API 编码。", "TEXT", List.of(), assetPlan.getApiCode(), !hasText(assetPlan.getApiCode()));
+            addAssetRequired(nextPlanVersion, questions, items, assetIndex, "action", "资产动作",
+                "请选择 CREATE、UPDATE_EXISTING 或 UPSERT。", "SELECT", enumOptions(ImportAssetPlanAction.class), null,
                     assetPlan.getAction() == null);
             validateChangedFields(nextPlanVersion, questions, items, assetIndex, assetPlan);
             validateExistingPatch(nextPlanVersion, questions, items, assetIndex, assetPlan);
@@ -171,24 +171,24 @@ final class ImportAgentPlanDraftValidator {
         for (String changedField : assetPlan.getChangedFields()) {
             String topLevelField = topLevelChangedField(changedField);
             if ("assetName".equals(topLevelField)) {
-                addAssetRequired(nextPlanVersion, questions, items, assetIndex, "assetName", "Asset name",
-                        "Please provide the asset display name.", "TEXT", List.of(),
+            addAssetRequired(nextPlanVersion, questions, items, assetIndex, "assetName", "资产名称",
+                "请提供资产展示名称。", "TEXT", List.of(),
                         assetPlan.getAssetName(), !hasText(assetPlan.getAssetName()));
             } else if ("assetType".equals(topLevelField)) {
-                addAssetRequired(nextPlanVersion, questions, items, assetIndex, "assetType", "Asset type",
-                        "Please choose STANDARD_API or AI_API.", "SELECT", enumOptions(AssetType.class), null,
+            addAssetRequired(nextPlanVersion, questions, items, assetIndex, "assetType", "资产类型",
+                "请选择 STANDARD_API 或 AI_API。", "SELECT", enumOptions(AssetType.class), null,
                         assetPlan.getAssetType() == null);
             } else if ("requestMethod".equals(topLevelField)) {
-                addAssetRequired(nextPlanVersion, questions, items, assetIndex, "requestMethod", "Request method",
-                        "Please choose the upstream HTTP request method.", "SELECT", enumOptions(RequestMethod.class), null,
+            addAssetRequired(nextPlanVersion, questions, items, assetIndex, "requestMethod", "请求方法",
+                "请选择上游 HTTP 请求方法。", "SELECT", enumOptions(RequestMethod.class), null,
                         assetPlan.getRequestMethod() == null);
             } else if ("upstreamUrl".equals(topLevelField)) {
-                addAssetRequired(nextPlanVersion, questions, items, assetIndex, "upstreamUrl", "Upstream URL",
-                        "Please provide the upstream API URL.", "TEXT", List.of(), assetPlan.getUpstreamUrl(),
+            addAssetRequired(nextPlanVersion, questions, items, assetIndex, "upstreamUrl", "上游 URL",
+                "请提供上游 API URL。", "TEXT", List.of(), assetPlan.getUpstreamUrl(),
                         !hasText(assetPlan.getUpstreamUrl()));
             } else if ("authScheme".equals(topLevelField)) {
-                addAssetRequired(nextPlanVersion, questions, items, assetIndex, "authScheme", "Auth scheme",
-                        "Please choose the upstream auth scheme.", "SELECT", enumOptions(AuthScheme.class), null,
+            addAssetRequired(nextPlanVersion, questions, items, assetIndex, "authScheme", "认证方案",
+                "请选择上游认证方案。", "SELECT", enumOptions(AuthScheme.class), null,
                         assetPlan.getAuthScheme() == null);
             } else if ("upstreamRequestHeaders".equals(topLevelField)) {
                 validateUpstreamRequestHeaders(nextPlanVersion, questions, items, assetIndex, assetPlan.getUpstreamRequestHeaders());
@@ -198,8 +198,8 @@ final class ImportAgentPlanDraftValidator {
                     && (assetPlan.getAiProfile() == null
                     || !hasText(assetPlan.getAiProfile().getProvider())
                     || !hasText(assetPlan.getAiProfile().getModel()))) {
-                addAssetRequired(nextPlanVersion, questions, items, assetIndex, "aiProfile", "AI profile",
-                        "Please provide AI provider and model.", "TEXT", List.of(), null, true);
+            addAssetRequired(nextPlanVersion, questions, items, assetIndex, "aiProfile", "AI 配置",
+                "请提供 AI 服务商和模型。", "TEXT", List.of(), null, true);
             }
         }
     }
@@ -213,14 +213,14 @@ final class ImportAgentPlanDraftValidator {
             String changedField) {
         AsyncTaskConfigModel config = assetPlan.getAsyncTaskConfig();
         if (config == null) {
-            addAssetRequired(nextPlanVersion, questions, items, assetIndex, "asyncTaskConfig", "Async task config",
-                    "Please provide the async task config patch.", "TEXT", List.of(), null, true);
+            addAssetRequired(nextPlanVersion, questions, items, assetIndex, "asyncTaskConfig", "异步任务配置",
+                "请提供异步任务配置补丁。", "TEXT", List.of(), null, true);
             return;
         }
         if ("asyncTaskConfig.queryResponseJsonSchema".equals(changedField)
                 && !hasText(config.getQueryResponseJsonSchema())) {
-            addAsyncClarification(nextPlanVersion, questions, items, assetIndex, "queryResponseJsonSchema", "Async query response schema",
-                    "Please provide the task query response JSON Schema.", "TEXT", List.of(),
+            addAsyncClarification(nextPlanVersion, questions, items, assetIndex, "queryResponseJsonSchema", "异步查询响应结构",
+                "请提供任务查询响应的 JSON Schema。", "TEXT", List.of(),
                     config.getQueryResponseJsonSchema());
             return;
         }
@@ -239,8 +239,8 @@ final class ImportAgentPlanDraftValidator {
         if (assetPlan.getAction() != null
                 && "UPDATE_EXISTING".equals(assetPlan.getAction().name())
                 && (changedFields == null || changedFields.isEmpty())) {
-            addAssetRequired(nextPlanVersion, questions, items, assetIndex, "changedFields", "Changed fields",
-                    "Please provide the fields to update for this existing asset.", "TEXT", List.of(), null, true);
+            addAssetRequired(nextPlanVersion, questions, items, assetIndex, "changedFields", "变更字段",
+                "请提供此存量资产需要更新的字段。", "TEXT", List.of(), null, true);
             return;
         }
         if (changedFields == null) {
@@ -249,8 +249,8 @@ final class ImportAgentPlanDraftValidator {
         for (String field : changedFields) {
             String topLevelField = topLevelChangedField(field);
             if (!EDITABLE_ASSET_FIELDS.contains(topLevelField)) {
-                addAssetRequired(nextPlanVersion, questions, items, assetIndex, "changedFields", "Changed fields",
-                        "changedFields contains an unsupported asset field.", "TEXT", List.of(), field, true);
+                addAssetRequired(nextPlanVersion, questions, items, assetIndex, "changedFields", "变更字段",
+                        "changedFields 包含不支持更新的资产字段。", "TEXT", List.of(), field, true);
                 return;
             }
         }

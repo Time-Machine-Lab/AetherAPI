@@ -19,11 +19,11 @@ public record ImportAgentPlannerAgentSpec(
 
     public ImportAgentPlannerAgentSpec {
         if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Agent name must not be blank");
+            throw new IllegalArgumentException("Agent 名称不能为空");
         }
-        Objects.requireNonNull(role, "Agent role must not be null");
+        Objects.requireNonNull(role, "Agent 角色不能为空");
         if (promptTemplate == null || promptTemplate.isBlank()) {
-            throw new IllegalArgumentException("Agent prompt template must not be blank");
+            throw new IllegalArgumentException("Agent 提示词模板不能为空");
         }
         allowedTools = allowedTools == null ? List.of() : List.copyOf(allowedTools);
         outputMode = outputMode == null ? ImportAgentPlannerOutputMode.STRUCTURED_NOTES : outputMode;

@@ -32,13 +32,13 @@ public class ProviderBackedApiImportAgentPlanner implements ApiImportAgentPlanne
             try {
                 return provider.plan(request, streamEmitter);
             } catch (RuntimeException ex) {
-                throw new IllegalStateException("Import agent planner provider failed", ex);
+                throw new IllegalStateException("导入规划 Provider 执行失败", ex);
             }
         }
         if (!matched) {
-            throw new IllegalStateException("No import agent planner provider matched request");
+            throw new IllegalStateException("没有匹配当前请求的导入规划 Provider");
         }
-        throw new IllegalStateException("No import agent planner provider produced a plan");
+        throw new IllegalStateException("没有导入规划 Provider 生成计划结果");
     }
 }
 

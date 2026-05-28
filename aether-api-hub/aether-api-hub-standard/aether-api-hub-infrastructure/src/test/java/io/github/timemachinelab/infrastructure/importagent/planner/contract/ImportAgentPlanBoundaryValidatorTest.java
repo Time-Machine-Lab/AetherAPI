@@ -164,8 +164,32 @@ class ImportAgentPlanBoundaryValidatorTest {
         assertEquals(ImportAssetPlanAction.UPDATE_EXISTING, result.getAssetPlans().get(0).getAction());
         assertTrue(result.getClarificationItems().stream().anyMatch(item ->
                 "/assetPlans/0/changedFields".equals(item.getTargetPath())
-                        && "changedFields".equals(item.getFieldKey())));
+                && "changedFields".equals(item.getFieldKey())
+                && "变更字段".equals(item.getLabel())
+                && "changedFields 包含不支持更新的资产字段。".equals(item.getDescription())));
     }
+
+        @Test
+        @DisplayName("existing patch missing async schema should return Chinese clarification text")
+        void shouldReturnChineseClarificationForAsyncPatchSchema() {
+        ObjectNode source = executablePlan();
+        ObjectNode assetNode = (ObjectNode) source.withArray("assetPlans").get(0);
+        assetNode.put("action", "UPDATE_EXISTING");
+        assetNode.putArray("changedFields").add("asyncTaskConfig.queryResponseJsonSchema");
+        assetNode.putObject("asyncTaskConfig")
+            .put("enabled", true)
+            .put("authMode", "SAME_AS_SUBMIT")
+            .put("queryMethod", "GET")
+            .put("queryUrlTemplate", "https://upstream.example.com/tasks/{taskId}");
+
+        ImportAgentPlanModel result = ImportAgentPlannerJsonSupport.buildPlan(request(), source);
+
+        assertFalse(result.isExecutable());
+        assertTrue(result.getClarificationItems().stream().anyMatch(item ->
+            "/assetPlans/0/asyncTaskConfig/queryResponseJsonSchema".equals(item.getTargetPath())
+                && "异步查询响应结构".equals(item.getLabel())
+                && "请提供任务查询响应的 JSON Schema。".equals(item.getDescription())));
+        }
 
     @Test
     @DisplayName("nested async task changedFields should be accepted as editable asset patch")

@@ -201,7 +201,7 @@ public final class ImportAgentJsonConverter {
                     assetPlans
             );
         } catch (IOException ex) {
-            throw new IllegalArgumentException("Invalid import plan json", ex);
+            throw new IllegalArgumentException("导入计划 JSON 非法", ex);
         }
     }
 
@@ -347,7 +347,7 @@ public final class ImportAgentJsonConverter {
             }
             return values;
         } catch (IOException ex) {
-            throw new IllegalArgumentException("Invalid string list json", ex);
+            throw new IllegalArgumentException("字符串列表 JSON 非法", ex);
         }
     }
 
@@ -382,7 +382,7 @@ public final class ImportAgentJsonConverter {
             }
             return values;
         } catch (IOException ex) {
-            throw new IllegalArgumentException("Invalid step results json", ex);
+            throw new IllegalArgumentException("步骤结果 JSON 非法", ex);
         }
     }
 
