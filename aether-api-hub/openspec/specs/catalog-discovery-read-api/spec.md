@@ -3,9 +3,7 @@
 ## Purpose
 
 Define the read-only discovery experience for API marketplace browsing so callers can list and inspect published API assets without depending on write-model internals.
-
 ## Requirements
-
 ### Requirement: Discovery list SHALL expose only published API assets
 The system SHALL provide a discovery list for API marketplace browsing that returns only API assets whose marketplace publication state is published and whose deletion flag is not active.
 
@@ -61,3 +59,52 @@ The system SHALL expose minimal publisher-facing summary data in discovery list 
 #### Scenario: Return publisher summary in discovery detail
 - **WHEN** the discovery detail returns a published asset
 - **THEN** the detail includes the asset's publisher summary fields required by the marketplace UI
+
+### Requirement: Discovery detail MUST expose published request and response JSON schemas
+
+Discovery detail MUST include nullable request/response JSON Schema snapshots for published, non-deleted API assets when those snapshots are present on the asset. The authority file for this behavior is `docs/api/api-catalog-discovery.yaml`, which maps to `CatalogDiscoveryController.java`.
+
+#### Scenario: Published asset has schema snapshots
+
+- **WHEN** a published non-deleted API asset has `requestJsonSchema` and `responseJsonSchema`
+- **THEN** `GET /api/v1/discovery/assets/{apiCode}` returns both schema snapshots in the Discovery detail response
+
+#### Scenario: Published asset has no schema snapshots
+
+- **WHEN** a published non-deleted API asset has no request or response JSON Schema snapshots
+- **THEN** `GET /api/v1/discovery/assets/{apiCode}` returns null or absent values for the corresponding schema fields without failing
+
+#### Scenario: Discovery list stays compact
+
+- **WHEN** a caller requests the Discovery asset list
+- **THEN** the list response does not include request/response JSON Schema snapshots
+
+#### Scenario: Update Discovery authority before code
+
+- **WHEN** the project exposes schema snapshots through Discovery detail
+- **THEN** it updates `docs/api/api-catalog-discovery.yaml` before backend code implementation
+
+### Requirement: Discovery-backed API document export MUST render request and response schema sections
+
+API document export derived from published Discovery detail MUST include machine-readable request and response schema sections when `requestJsonSchema` or `responseJsonSchema` is present on the published asset detail. The authority contract for those source fields remains `docs/api/api-catalog-discovery.yaml`, which maps to `CatalogDiscoveryController.java`.
+
+#### Scenario: Export both schema sections from published Discovery detail
+
+- **WHEN** an exported API document is generated for a published asset whose Discovery detail contains both `requestJsonSchema` and `responseJsonSchema`
+- **THEN** the exported document includes both a request schema section and a response schema section populated from those values
+
+#### Scenario: Export only the available schema section
+
+- **WHEN** an exported API document is generated for a published asset and only one of `requestJsonSchema` or `responseJsonSchema` is present
+- **THEN** the exported document renders the available schema section and omits only the missing schema section
+
+#### Scenario: Preserve export when schema snapshots are absent
+
+- **WHEN** an exported API document is generated for a published asset whose Discovery detail has no request or response schema snapshots
+- **THEN** the export still succeeds without rendering request or response schema sections
+
+#### Scenario: Reuse the existing Discovery authority boundary
+
+- **WHEN** the project adds request and response schema sections to exported API documents
+- **THEN** it reuses `requestJsonSchema` and `responseJsonSchema` from `docs/api/api-catalog-discovery.yaml` instead of introducing duplicate export-only schema fields
+

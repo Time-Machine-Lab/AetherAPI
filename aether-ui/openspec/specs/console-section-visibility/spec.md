@@ -9,7 +9,7 @@ TBD - created by archiving change hide-console-nonessential-sections. Update Pur
 #### Scenario: 用户查看控制台侧边导航
 - **WHEN** 已登录用户进入受保护的控制台壳层
 - **THEN** 侧边导航 MUST 不展示 `category-manage`、`usage`、`orders`、`billing` 与 `docs`
-- **THEN** 侧边导航 MUST 继续保留 `catalog-browse`、`catalog-manage`、`credentials`、`api-call-logs` 与 `unified-access-playground`
+- **THEN** 侧边导航 MUST 继续保留 `catalog-browse`、`catalog-manage`、`import-agent`、`credentials`、`api-call-logs` 与 `unified-access-playground`
 
 #### Scenario: 用户查看控制台顶部工具区
 - **WHEN** 已登录用户查看控制台顶部工具区

@@ -2,7 +2,7 @@
 
 ### Requirement: 控制台渲染结构化澄清控件
 
-控制台必须在现有 import-agent conversation workspace 内，把 Import Agent `clarificationItems` 渲染为结构化输入控件。这些控件必须嵌入主计划卡片或 assistant response 流中，不得要求单独路由或侧边栏。
+控制台 MUST 在现有 import-agent conversation workspace 内，把 Import Agent `clarificationItems` 渲染为结构化输入控件。这些控件必须嵌入主计划卡片或 assistant response 流中，不得要求单独路由或侧边栏。
 
 #### Scenario: 计划包含结构化澄清项
 
@@ -18,7 +18,7 @@
 
 ### Requirement: 控制台提交结构化澄清答案
 
-控制台必须通过 Import Agent API 把用户输入的澄清答案作为结构化 answer payload 提交，而不是转换成编号自由文本。
+控制台 MUST 通过 Import Agent API 把用户输入的澄清答案作为结构化 answer payload 提交，而不是转换成编号自由文本。
 
 #### Scenario: 用户提交 guided answers
 
@@ -34,7 +34,7 @@
 
 ### Requirement: 控制台从最终 session 快照对账澄清状态
 
-控制台必须使用最终 Import Agent session 快照作为 accepted、pending 和 remaining clarification state 的事实来源。
+控制台 MUST 使用最终 Import Agent session 快照作为 accepted、pending 和 remaining clarification state 的事实来源。
 
 #### Scenario: 后端接受答案
 
@@ -49,7 +49,7 @@
 
 ### Requirement: 控制台保留自由文本上下文
 
-控制台必须保留现有 message textarea，使用户可以添加结构化字段无法表达的上下文。
+控制台 MUST 保留现有 message textarea，使用户可以添加结构化字段无法表达的上下文。
 
 #### Scenario: 用户同时提交字段答案和额外指令
 

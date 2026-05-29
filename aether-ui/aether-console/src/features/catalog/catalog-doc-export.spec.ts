@@ -84,6 +84,21 @@ describe('catalog doc export helpers', () => {
     expect(markdown).not.toContain('## Response Body Schema')
   })
 
+  it('keeps export compact and valid when request and response schemas are both absent', () => {
+    const markdown = buildSingleApiMarkdown(
+      detail({
+        requestJsonSchema: undefined,
+        responseJsonSchema: undefined,
+      }),
+    )
+
+    expect(markdown).not.toContain('## Request Body Schema')
+    expect(markdown).not.toContain('## Response Body Schema')
+    expect(markdown).toContain('## Request Example')
+    expect(markdown).toContain('## Response Example')
+    expect(markdown).toContain('| Request Method | POST |')
+  })
+
   it('includes AI capability only for AI API details', () => {
     const markdown = buildSingleApiMarkdown(
       detail({

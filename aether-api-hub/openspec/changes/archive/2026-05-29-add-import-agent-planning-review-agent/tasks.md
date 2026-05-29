@@ -1,7 +1,7 @@
 ## 1. 权威对齐
 
-- [ ] 1.1 重新核对 `docs/design/aehter-api-hub/Aether API Hub架构设计文档.md`、`docs/api/api-import-agent.yaml` 和后端开发规范，确认本次 change 只影响内部 planner 组织，不引入新接口和新表结构。
-- [ ] 1.2 若设计阶段需要新增 review 诊断字段或 stream 事件，再单独回到顶层 `docs/api/` 权威文档更新后推进实现。
+- [x] 1.1 重新核对 `docs/design/aehter-api-hub/Aether API Hub架构设计文档.md`、`docs/api/api-import-agent.yaml` 和后端开发规范，确认本次 change 只影响内部 planner 组织，不引入新接口和新表结构。
+- [x] 1.2 若设计阶段需要新增 review 诊断字段或 stream 事件，再单独回到顶层 `docs/api/` 权威文档更新后推进实现。
 
 ## 2. 规划阶段新增专门检查 agent
 

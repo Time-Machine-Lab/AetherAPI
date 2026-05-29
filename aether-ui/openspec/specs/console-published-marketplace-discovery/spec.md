@@ -55,3 +55,50 @@ The console marketplace SHALL NOT render upstream URL, auth configuration secret
 - **WHEN** the backend returns not found for an unpublished, draft, deleted, or unknown asset
 - **THEN** the marketplace shows the existing detail error state and does not expose partial write-model data
 
+### Requirement: Marketplace detail SHALL display published API JSON schemas
+
+The console marketplace detail SHALL display request/response JSON Schema fields returned by the published Discovery detail contract without inventing schemas from examples or templates.
+
+#### Scenario: Discovery detail includes schemas
+
+- **WHEN** a selected marketplace asset detail includes `requestJsonSchema` or `responseJsonSchema`
+- **THEN** the marketplace detail panel MUST display each available schema through the reusable JSON schema display component
+
+#### Scenario: Discovery detail omits schemas
+
+- **WHEN** a selected marketplace asset detail has null or absent schema fields
+- **THEN** the marketplace detail panel MUST render a stable unavailable state or omit the schema section according to existing detail layout patterns
+
+#### Scenario: Schemas are not inferred
+
+- **WHEN** Discovery detail includes examples or request templates but no schema fields
+- **THEN** the frontend MUST NOT derive or display a fake JSON Schema from those examples or templates
+
+### Requirement: Marketplace detail SHALL expose request and response schema through a compact visual inspection workflow
+
+The console marketplace detail SHALL keep request and response schema presentation compact in-page and provide a dedicated visual inspection surface for each available schema.
+
+#### Scenario: Marketplace detail has request schema
+
+- **WHEN** a selected marketplace asset detail includes `requestJsonSchema`
+- **THEN** the detail panel MUST show a compact request-schema trigger or summary surface
+- **THEN** activating that surface MUST open a dedicated schema inspection overlay for the request schema
+
+#### Scenario: Marketplace detail has response schema
+
+- **WHEN** a selected marketplace asset detail includes `responseJsonSchema`
+- **THEN** the detail panel MUST show a compact response-schema trigger or summary surface
+- **THEN** activating that surface MUST open a dedicated schema inspection overlay for the response schema
+
+#### Scenario: Large schemas do not overwhelm the detail page
+
+- **WHEN** the request or response schema is large or deeply nested
+- **THEN** the marketplace detail page MUST NOT inline the entire visual schema tree in the normal page flow
+- **THEN** the primary inspection experience MUST use a dedicated overlay such as a dialog or narrow-screen drawer/sheet
+
+#### Scenario: Schema fields remain contract-backed only
+
+- **WHEN** the selected marketplace detail has request templates or examples but no schema fields
+- **THEN** the frontend MUST NOT derive a visual schema from those other fields
+- **THEN** the schema inspection entry points MUST remain absent or disabled according to existing empty-state patterns
+

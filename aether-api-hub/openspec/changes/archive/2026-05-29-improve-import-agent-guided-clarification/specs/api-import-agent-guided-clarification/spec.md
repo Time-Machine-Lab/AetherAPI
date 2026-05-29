@@ -2,7 +2,7 @@
 
 ### Requirement: Import Agent 计划暴露结构化澄清项
 
-当缺失字段或冲突字段阻止执行时，系统必须在 Import Agent 计划响应中暴露机器可寻址的结构化澄清项。系统必须保留 `clarificationQuestions`，作为由结构化澄清项派生的向后兼容文本摘要。
+当缺失字段或冲突字段阻止执行时，系统 MUST 在 Import Agent 计划响应中暴露机器可寻址的结构化澄清项。系统必须保留 `clarificationQuestions`，作为由结构化澄清项派生的向后兼容文本摘要。
 
 #### Scenario: 缺失可执行字段时生成结构化澄清项
 
@@ -17,7 +17,7 @@
 
 ### Requirement: 结构化澄清答案确定性细化当前计划
 
-系统必须在追加 Import Agent turn 时接受结构化澄清答案，并且必须在调用 planner provider 生成下一版计划前，把这些答案应用到当前计划。
+系统 MUST 在追加 Import Agent turn 时接受结构化澄清答案，并且必须在调用 planner provider 生成下一版计划前，把这些答案应用到当前计划。
 
 #### Scenario: 答案更新匹配的计划字段
 
@@ -34,7 +34,7 @@
 
 ### Requirement: 匿名资产计划被更新而不是被复制
 
-当结构化答案通过 clarification id 或 target path 指向匿名资产计划时，系统必须保留并更新现有匿名资产计划。用户补充身份字段后，系统不得遗留旧的匿名资产副本。
+当结构化答案通过 clarification id 或 target path 指向匿名资产计划时，系统 MUST 保留并更新现有匿名资产计划。用户补充身份字段后，系统不得遗留旧的匿名资产副本。
 
 #### Scenario: 用户为匿名资产提供 apiCode
 
@@ -45,7 +45,7 @@
 
 ### Requirement: Staged tool-calling 是优先的已配置 planner 路径
 
-当配置的 provider 支持时，系统必须默认使用分阶段 Import Agent tool-calling 路径，同时保留可以关闭 tool-calling 的配置开关用于回滚。
+当配置的 provider 支持时，系统 MUST 默认使用分阶段 Import Agent tool-calling 路径，同时保留可以关闭 tool-calling 的配置开关用于回滚。
 
 #### Scenario: 已配置环境启动 planner
 
