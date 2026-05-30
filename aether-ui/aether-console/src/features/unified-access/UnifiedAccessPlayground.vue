@@ -32,6 +32,8 @@ import {
   AlertTriangle,
 } from 'lucide-vue-next'
 import { buildUnifiedAccessAddress } from '@/utils/platform-url'
+import { copyTextToClipboard } from '@/utils/code-display'
+import type { UnifiedAccessCurlFormat } from '@/utils/unified-access-curl'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -64,6 +66,10 @@ const {
   methodSupportsBody,
   canInvoke,
   canQueryTask,
+  curlFormat,
+  curlIssue,
+  canCopyCurl,
+  curlCommand,
   invoke,
   queryTask,
   resetForm,
@@ -75,8 +81,10 @@ const showApiKey = ref(false)
 const showDiscoveryPicker = ref(false)
 const showGuidance = ref(false)
 const responseCopied = ref(false)
+const curlCopyFeedback = ref<'idle' | 'success' | 'failed'>('idle')
 
 const METHODS: UnifiedAccessMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+const CURL_FORMATS: UnifiedAccessCurlFormat[] = ['linux', 'windows']
 
 function handleSelectAsset(asset: DiscoveryAsset) {
   selectDiscoveryAsset(asset)
@@ -110,6 +118,14 @@ async function handleCopyResponse() {
   } catch {
     // clipboard may not be available
   }
+}
+
+async function handleCopyCurl() {
+  if (!canCopyCurl.value) return
+  curlCopyFeedback.value = (await copyTextToClipboard(curlCommand.value)) ? 'success' : 'failed'
+  window.setTimeout(() => {
+    curlCopyFeedback.value = 'idle'
+  }, 1800)
 }
 
 function handleDownloadBlob() {
@@ -168,6 +184,16 @@ function subscriptionStatusTone() {
     return 'success'
   }
   return 'warning'
+}
+
+function curlIssueMessage() {
+  if (curlIssue.value === 'apiCode') {
+    return t('console.playground.copyCurlMissingApiCode')
+  }
+  if (curlIssue.value === 'apiKey') {
+    return t('console.playground.copyCurlMissingApiKey')
+  }
+  return ''
 }
 
 function routeApiCode() {
@@ -449,6 +475,68 @@ watch(
             spellcheck="false"
           />
         </FieldGroup>
+
+        <!-- Copy curl card -->
+        <Card>
+          <CardHeader>
+            <CardTitle class="flex flex-wrap items-center justify-between gap-3">
+              <span>{{ t('console.playground.copyCurlTitle') }}</span>
+              <div
+                class="flex rounded-[10px] border border-[rgb(34_34_34_/_0.08)] bg-secondary p-1"
+              >
+                <button
+                  v-for="format in CURL_FORMATS"
+                  :key="format"
+                  type="button"
+                  class="rounded-[8px] px-3 py-1.5 text-xs font-semibold transition-colors"
+                  :class="
+                    curlFormat === format
+                      ? 'bg-white text-foreground shadow-console'
+                      : 'text-muted-foreground hover:text-foreground'
+                  "
+                  @click="curlFormat = format"
+                >
+                  {{ t(`console.playground.copyCurlFormat.${format}`) }}
+                </button>
+              </div>
+            </CardTitle>
+            <CardDescription>{{ t('console.playground.copyCurlDescription') }}</CardDescription>
+          </CardHeader>
+          <CardContent class="space-y-3">
+            <div
+              v-if="curlIssue"
+              class="rounded-[14px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+            >
+              {{ curlIssueMessage() }}
+            </div>
+            <CodeBlock
+              :value="curlCommand"
+              :label="t('console.playground.copyCurlPreview')"
+              :copyable="false"
+              max-height-class="max-h-[260px]"
+            />
+            <div class="flex flex-wrap items-center gap-3">
+              <Button size="sm" :disabled="!canCopyCurl" @click="handleCopyCurl">
+                <Copy v-if="curlCopyFeedback !== 'success'" class="mr-2 h-4 w-4" />
+                <CheckCircle2 v-else class="mr-2 h-4 w-4 text-emerald-300" />
+                {{
+                  curlCopyFeedback === 'success'
+                    ? t('console.playground.copyCurlCopied')
+                    : t('console.playground.copyCurlAction')
+                }}
+              </Button>
+              <p
+                v-if="curlCopyFeedback === 'failed'"
+                class="text-sm text-destructive"
+              >
+                {{ t('console.playground.copyCurlFailed') }}
+              </p>
+              <p v-else class="text-sm text-muted-foreground">
+                {{ t('console.playground.copyCurlCredentialHint') }}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         <!-- Actions -->
         <div class="flex items-center gap-3">

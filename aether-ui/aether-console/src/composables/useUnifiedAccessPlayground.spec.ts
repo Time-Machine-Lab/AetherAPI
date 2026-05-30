@@ -291,6 +291,51 @@ describe('useUnifiedAccessPlayground', () => {
     expect(playground.result.value).toBeNull()
   })
 
+  it('generates copyable curl commands without requiring discovery selection', () => {
+    const playground = useUnifiedAccessPlayground()
+    playground.apiCode.value = 'manual-api'
+    playground.apiKey.value = 'ak_live_valid'
+    playground.method.value = 'POST'
+    playground.requestBody.value = '{"message":"hello"}'
+    playground.extraHeaders.value = '{"Accept":"application/json"}'
+
+    expect(playground.curlCommand.value).toContain('/v1/access/manual-api')
+    expect(playground.curlCommand.value).toContain("-H 'X-Aether-Api-Key: ak_live_valid'")
+    expect(playground.curlCommand.value).toContain("--data '{\"message\":\"hello\"}'")
+    expect(playground.curlIssue.value).toBeNull()
+    expect(playground.canCopyCurl.value).toBe(true)
+  })
+
+  it('updates curl format without changing invocation inputs or result state', () => {
+    const playground = useUnifiedAccessPlayground()
+    playground.apiCode.value = 'weather-api'
+    playground.apiKey.value = 'ak_live_valid'
+    playground.method.value = 'GET'
+    playground.requestBody.value = '{"stale":true}'
+    playground.result.value = jsonResult()
+
+    const linuxCommand = playground.curlCommand.value
+    playground.curlFormat.value = 'windows'
+
+    expect(playground.curlCommand.value).not.toBe(linuxCommand)
+    expect(playground.curlCommand.value).toContain('curl -X GET ^')
+    expect(playground.curlCommand.value).not.toContain('--data')
+    expect(playground.apiCode.value).toBe('weather-api')
+    expect(playground.apiKey.value).toBe('ak_live_valid')
+    expect(playground.result.value?.kind).toBe('json')
+  })
+
+  it('reports missing curl inputs separately from invocation execution', () => {
+    const playground = useUnifiedAccessPlayground()
+
+    expect(playground.curlIssue.value).toBe('apiCode')
+    expect(playground.canCopyCurl.value).toBe(false)
+
+    playground.apiCode.value = 'weather-api'
+    expect(playground.curlIssue.value).toBe('apiKey')
+    expect(playground.canCopyCurl.value).toBe(false)
+  })
+
   it('clears API key, result, and form state independently', async () => {
     const playground = useUnifiedAccessPlayground()
     playground.apiCode.value = 'weather-api'

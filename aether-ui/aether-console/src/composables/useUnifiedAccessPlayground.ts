@@ -11,6 +11,12 @@ import type {
   UnifiedAccessMethod,
   UnifiedAccessResult,
 } from '@/api/unified-access/unified-access.types'
+import {
+  buildUnifiedAccessCurlCommand,
+  getUnifiedAccessCurlIssue,
+  type UnifiedAccessCurlFormat,
+} from '@/utils/unified-access-curl'
+import { buildUnifiedAccessAddress } from '@/utils/platform-url'
 
 export function useUnifiedAccessPlayground() {
   // ── Form state ──────────────────────────────────────────
@@ -20,6 +26,7 @@ export function useUnifiedAccessPlayground() {
   const requestBody = ref('')
   const extraHeaders = ref('')
   const taskId = ref('')
+  const curlFormat = ref<UnifiedAccessCurlFormat>('linux')
 
   // ── Discovery assist ────────────────────────────────────
   const discoveryAssets = ref<DiscoveryAsset[]>([])
@@ -49,6 +56,38 @@ export function useUnifiedAccessPlayground() {
       apiCode.value.trim().length > 0 &&
       apiKey.value.trim().length > 0 &&
       taskId.value.trim().length > 0,
+  )
+  const parsedExtraHeaders = computed<Record<string, string>>(() => {
+    if (!extraHeaders.value.trim()) return {}
+    try {
+      const parsed = JSON.parse(extraHeaders.value.trim())
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return {}
+      return Object.fromEntries(
+        Object.entries(parsed)
+          .filter(([name]) => name.trim().length > 0)
+          .map(([name, value]) => [name, String(value)]),
+      )
+    } catch {
+      return {}
+    }
+  })
+  const curlIssue = computed(() =>
+    getUnifiedAccessCurlIssue({
+      apiCode: apiCode.value,
+      apiKey: apiKey.value,
+    }),
+  )
+  const canCopyCurl = computed(() => curlIssue.value === null)
+  const curlCommand = computed(() =>
+    buildUnifiedAccessCurlCommand({
+      format: curlFormat.value,
+      apiCode: apiCode.value.trim(),
+      method: method.value,
+      apiKey: apiKey.value.trim(),
+      address: buildUnifiedAccessAddress(apiCode.value.trim()),
+      requestBody: methodSupportsBody.value ? requestBody.value : undefined,
+      extraHeaders: parsedExtraHeaders.value,
+    }),
   )
 
   // ── Discovery helpers ───────────────────────────────────
@@ -201,6 +240,7 @@ export function useUnifiedAccessPlayground() {
     requestBody,
     extraHeaders,
     taskId,
+    curlFormat,
     // discovery
     discoveryAssets,
     discoveryLoading,
@@ -225,6 +265,9 @@ export function useUnifiedAccessPlayground() {
     methodSupportsBody,
     canInvoke,
     canQueryTask,
+    curlIssue,
+    canCopyCurl,
+    curlCommand,
     // actions
     invoke,
     queryTask,

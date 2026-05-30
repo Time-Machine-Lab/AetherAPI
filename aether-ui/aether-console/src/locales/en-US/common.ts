@@ -833,6 +833,21 @@ export default {
       taskQueryResponseLabel: 'Task query',
       fieldExtraHeaders: 'Extra Headers (optional)',
       extraHeadersHint: 'Enter additional headers as a JSON object.',
+      copyCurlTitle: 'Copy request curl',
+      copyCurlDescription:
+        'Generate a terminal command from the current playground fields. Subscription and API Key checks still happen when the command runs.',
+      copyCurlPreview: 'curl preview',
+      copyCurlAction: 'Copy curl',
+      copyCurlCopied: 'Curl copied',
+      copyCurlFailed: 'Copy failed. The command remains selectable for manual copy.',
+      copyCurlCredentialHint:
+        'The preview uses the API Key currently typed in this form and is not saved by the console.',
+      copyCurlMissingApiCode: 'Enter an API Code before copying a curl command.',
+      copyCurlMissingApiKey: 'Enter an API Key before copying a curl command.',
+      copyCurlFormat: {
+        linux: 'Linux',
+        windows: 'Windows',
+      },
       invoke: 'Send Request',
       invoking: 'Sending…',
       reset: 'Reset',
