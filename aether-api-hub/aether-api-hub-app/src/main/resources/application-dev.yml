@@ -18,8 +18,8 @@ mybatis-plus:
 
 logging:
   level:
-    root: INFO
-    io.github.timemachinelab: WARN
+    root: DEBUG
+    io.github.timemachinelab: DEBUG
     io.github.timemachinelab.infrastructure.importagent.planner: DEBUG
     com.baomidou.mybatisplus: ERROR
 

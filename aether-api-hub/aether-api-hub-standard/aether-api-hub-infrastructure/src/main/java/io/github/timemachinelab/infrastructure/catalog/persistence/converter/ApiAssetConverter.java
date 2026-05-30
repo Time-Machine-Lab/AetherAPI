@@ -1,5 +1,7 @@
 package io.github.timemachinelab.infrastructure.catalog.persistence.converter;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.timemachinelab.domain.catalog.model.AiCapabilityProfile;
 import io.github.timemachinelab.domain.catalog.model.AsyncTaskAuthMode;
 import io.github.timemachinelab.domain.catalog.model.AsyncTaskConfig;
@@ -16,19 +18,18 @@ import io.github.timemachinelab.domain.catalog.model.UpstreamEndpointConfig;
 import io.github.timemachinelab.domain.catalog.model.UpstreamRequestHeader;
 import io.github.timemachinelab.infrastructure.catalog.persistence.entity.ApiAssetDo;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * API asset converter.
  */
 public final class ApiAssetConverter {
 
-    private static final Pattern JSON_STRING_PATTERN = Pattern.compile("\"((?:\\\\.|[^\"])*)\"");
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private ApiAssetConverter() {
     }
@@ -148,15 +149,16 @@ public final class ApiAssetConverter {
         if (json == null || json.isBlank()) {
             return null;
         }
+        JsonNode root = readJsonNode(json, "async task config");
         try {
             return AsyncTaskConfig.of(
-                    extractJsonBoolean(json, "enabled"),
-                    toRequestMethod(extractJsonString(json, "queryMethod")),
-                    extractJsonString(json, "queryUrlTemplate"),
-                    toAsyncTaskAuthMode(extractJsonString(json, "authMode")),
-                    toAuthScheme(extractJsonString(json, "authScheme")),
-                    extractJsonString(json, "authConfig"),
-                    extractJsonString(json, "queryResponseJsonSchema")
+                    readBooleanField(root, "enabled"),
+                    toRequestMethod(readStringField(root, "queryMethod")),
+                    readStringField(root, "queryUrlTemplate"),
+                    toAsyncTaskAuthMode(readStringField(root, "authMode")),
+                    toAuthScheme(readStringField(root, "authScheme")),
+                    readStringField(root, "authConfig"),
+                    readStringField(root, "queryResponseJsonSchema")
             );
         } catch (IllegalArgumentException ex) {
             throw new IllegalStateException("Stored async task config is invalid", ex);
@@ -184,11 +186,19 @@ public final class ApiAssetConverter {
         if (json == null || json.isBlank()) {
             return result;
         }
-        Matcher objectMatcher = Pattern.compile("\\{([^{}]*)}").matcher(json);
-        while (objectMatcher.find()) {
-            String objectJson = objectMatcher.group();
-            String name = extractJsonString(objectJson, "name");
-            String value = extractJsonString(objectJson, "value");
+        JsonNode root = readJsonNode(json, "upstream request headers");
+        if (root == null || root.isNull()) {
+            return result;
+        }
+        if (root.isObject()) {
+            root = OBJECT_MAPPER.createArrayNode().add(root);
+        }
+        if (!root.isArray()) {
+            return result;
+        }
+        for (JsonNode headerNode : root) {
+            String name = readStringField(headerNode, "name");
+            String value = readStringField(headerNode, "value");
             if (name != null || value != null) {
                 result.add(UpstreamRequestHeader.of(name, value));
             }
@@ -237,17 +247,47 @@ public final class ApiAssetConverter {
         }
     }
 
-    private static Boolean extractJsonBoolean(String json, String fieldName) {
-        Matcher matcher = Pattern.compile("\"" + Pattern.quote(fieldName) + "\"\\s*:\\s*(true|false)").matcher(json);
-        return matcher.find() ? Boolean.valueOf(matcher.group(1)) : null;
+    private static JsonNode readJsonNode(String json, String fieldLabel) {
+        try {
+            return OBJECT_MAPPER.readTree(json);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Stored " + fieldLabel + " is invalid JSON", ex);
+        }
     }
 
-    private static String extractJsonString(String json, String fieldName) {
-        Matcher matcher = Pattern.compile("\"" + Pattern.quote(fieldName) + "\"\\s*:\\s*\"((?:\\\\.|[^\"])*)\"").matcher(json);
-        if (!matcher.find()) {
+    private static Boolean readBooleanField(JsonNode root, String fieldName) {
+        if (root == null || fieldName == null) {
             return null;
         }
-        return unescapeJson(matcher.group(1));
+        JsonNode fieldNode = root.get(fieldName);
+        if (fieldNode == null || fieldNode.isNull()) {
+            return null;
+        }
+        if (fieldNode.isBoolean()) {
+            return fieldNode.booleanValue();
+        }
+        if (fieldNode.isTextual()) {
+            String normalized = fieldNode.asText().trim();
+            if (normalized.equalsIgnoreCase("true")) {
+                return Boolean.TRUE;
+            }
+            if (normalized.equalsIgnoreCase("false")) {
+                return Boolean.FALSE;
+            }
+        }
+        return null;
+    }
+
+    private static String readStringField(JsonNode root, String fieldName) {
+        if (root == null || fieldName == null) {
+            return null;
+        }
+        JsonNode fieldNode = root.get(fieldName);
+        if (fieldNode == null || fieldNode.isNull()) {
+            return null;
+        }
+        String rawValue = fieldNode.isTextual() ? fieldNode.asText() : fieldNode.toString();
+        return rawValue == null || rawValue.isBlank() ? null : rawValue;
     }
 
     private static RequestMethod toRequestMethod(String value) {
@@ -301,9 +341,18 @@ public final class ApiAssetConverter {
         if (json == null || json.isBlank()) {
             return result;
         }
-        Matcher matcher = JSON_STRING_PATTERN.matcher(json);
-        while (matcher.find()) {
-            result.add(matcher.group(1).replace("\\\"", "\"").replace("\\\\", "\\"));
+        JsonNode root = readJsonNode(json, "AI capability tags");
+        if (root == null || !root.isArray()) {
+            return result;
+        }
+        for (JsonNode item : root) {
+            if (item == null || item.isNull()) {
+                continue;
+            }
+            String value = item.isTextual() ? item.asText() : item.toString();
+            if (value != null && !value.isBlank()) {
+                result.add(value);
+            }
         }
         return result;
     }

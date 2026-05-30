@@ -30,6 +30,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
@@ -149,6 +150,33 @@ class MybatisApiAssetRepositoryTest {
         assertEquals("OpenAI-Beta", aggregate.getUpstreamConfig().getUpstreamRequestHeaders().get(0).getName());
         assertEquals("assistants=v2", aggregate.getUpstreamConfig().getUpstreamRequestHeaders().get(0).getValue());
     }
+
+        @Test
+        @DisplayName("find should reconstitute async task config when schema contains heavily escaped content")
+        void shouldReconstituteAsyncTaskConfigWithEscapedSchemaPayload() {
+                ApiAssetDo existing = existingDo();
+                existing.setRequestMethod("POST");
+                existing.setUpstreamUrl("https://upstream.example.com/video/tasks");
+                existing.setAuthScheme("HEADER_TOKEN");
+                existing.setAuthConfig("Authorization: Bearer secret");
+                String patternPayload = "\\".repeat(2048);
+                String querySchema = "{\"type\":\"object\",\"properties\":{\"pattern\":{\"type\":\"string\",\"pattern\":\""
+                                + patternPayload.replace("\\", "\\\\")
+                                + "\"}}}";
+                existing.setAsyncTaskConfig(
+                                "{\"enabled\":true,\"queryMethod\":\"GET\",\"queryUrlTemplate\":\"https://upstream.example.com/video/tasks/{taskId}\",\"authMode\":\"SAME_AS_SUBMIT\",\"queryResponseJsonSchema\":\""
+                                                + escapeJson(querySchema)
+                                                + "\"}"
+                );
+                when(mapper.selectByCode("weather-forecast")).thenReturn(existing);
+
+                ApiAssetAggregate aggregate = repository.findByCode(ApiCode.of("weather-forecast")).orElseThrow();
+
+                assertNotNull(aggregate.getAsyncTaskConfig());
+                assertEquals("GET", aggregate.getAsyncTaskConfig().getQueryMethod().name());
+                assertEquals("https://upstream.example.com/video/tasks/{taskId}", aggregate.getAsyncTaskConfig().getQueryUrlTemplate());
+                assertEquals(querySchema, aggregate.getAsyncTaskConfig().getQueryResponseJsonSchema());
+        }
 
     @Test
     @DisplayName("update should persist extension blocks as nullable asset fields")
@@ -388,4 +416,8 @@ class MybatisApiAssetRepositoryTest {
                 version
         );
     }
+
+        private String escapeJson(String value) {
+                return value.replace("\\", "\\\\").replace("\"", "\\\"");
+        }
 }
