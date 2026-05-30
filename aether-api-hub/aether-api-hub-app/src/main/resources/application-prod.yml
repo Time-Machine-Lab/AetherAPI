@@ -18,7 +18,7 @@ mybatis-plus:
 
 logging:
   level:
-    root: WARN
+    root: INFO
     io.github.timemachinelab: INFO
     com.baomidou.mybatisplus: WARN
 
