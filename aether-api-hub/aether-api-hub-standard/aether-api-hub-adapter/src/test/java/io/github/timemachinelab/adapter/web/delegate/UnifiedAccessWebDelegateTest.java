@@ -8,6 +8,7 @@ import io.github.timemachinelab.service.port.in.UnifiedAccessUseCase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
@@ -221,6 +222,68 @@ class UnifiedAccessWebDelegateTest {
     }
 
     @Test
+    @DisplayName("invoke should skip unsafe upstream content type when parser overflows")
+    void shouldSkipUnsafeUpstreamContentTypeForResponseEntity() {
+        byte[] upstreamBody = "{\"accepted\":true}".getBytes(StandardCharsets.UTF_8);
+        StubUnifiedAccessUseCase useCase = new StubUnifiedAccessUseCase(
+                UnifiedAccessProxyResponseModel.success(
+                        202,
+                        Map.of("X-Upstream-Trace", List.of("up-1")),
+                        upstreamBody,
+                        "application/json",
+                        false
+                )
+        );
+        UnifiedAccessWebDelegate delegate = new StackOverflowingContentTypeDelegate(useCase);
+
+        ResponseEntity<?> response = assertDoesNotThrow(() -> delegate.invoke(
+                "chat-completions",
+                "POST",
+                new HttpHeaders(),
+                new LinkedMultiValueMap<>(),
+                upstreamBody,
+                "application/json"
+        ));
+
+        assertEquals(202, response.getStatusCode().value());
+        assertArrayEquals(upstreamBody, assertInstanceOf(byte[].class, response.getBody()));
+        assertEquals(null, response.getHeaders().getContentType());
+        assertEquals(List.of("up-1"), response.getHeaders().get("X-Upstream-Trace"));
+    }
+
+    @Test
+    @DisplayName("invokeToResponse should skip unsafe upstream content type when parser overflows")
+    void shouldSkipUnsafeUpstreamContentTypeForServletResponse() {
+        byte[] upstreamBody = "{\"accepted\":true}".getBytes(StandardCharsets.UTF_8);
+        StubUnifiedAccessUseCase useCase = new StubUnifiedAccessUseCase(
+                UnifiedAccessProxyResponseModel.success(
+                        202,
+                        Map.of("X-Upstream-Trace", List.of("up-1")),
+                        upstreamBody,
+                        "application/json",
+                        false
+                )
+        );
+        UnifiedAccessWebDelegate delegate = new StackOverflowingContentTypeDelegate(useCase);
+        MockHttpServletResponse servletResponse = new MockHttpServletResponse();
+
+        assertDoesNotThrow(() -> delegate.invokeToResponse(
+                "chat-completions",
+                "POST",
+                new HttpHeaders(),
+                new LinkedMultiValueMap<>(),
+                upstreamBody,
+                "application/json",
+                servletResponse
+        ));
+
+        assertEquals(202, servletResponse.getStatus());
+        assertEquals(null, servletResponse.getContentType());
+        assertEquals("up-1", servletResponse.getHeader("X-Upstream-Trace"));
+        assertArrayEquals(upstreamBody, servletResponse.getContentAsByteArray());
+    }
+
+    @Test
     @DisplayName("invoke should not treat console bearer token as unified access api key")
     void shouldKeepConsoleBearerTokenSeparateFromApiKeyAuth() {
         StubUnifiedAccessUseCase useCase = new StubUnifiedAccessUseCase(
@@ -317,6 +380,18 @@ class UnifiedAccessWebDelegateTest {
             return response;
         }
     }
+
+        private static final class StackOverflowingContentTypeDelegate extends UnifiedAccessWebDelegate {
+
+                private StackOverflowingContentTypeDelegate(UnifiedAccessUseCase unifiedAccessUseCase) {
+                        super(unifiedAccessUseCase);
+                }
+
+                @Override
+                MediaType parseResponseContentType(String contentType) {
+                        throw new StackOverflowError("simulated parser overflow");
+                }
+        }
 
     private static final class FailingInputStream extends InputStream {
 

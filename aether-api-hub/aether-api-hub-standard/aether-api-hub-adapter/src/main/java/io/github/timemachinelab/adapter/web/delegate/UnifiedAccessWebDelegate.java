@@ -160,13 +160,9 @@ public class UnifiedAccessWebDelegate {
                 );
             }
         }
-        if (response.getContentType() != null && !response.getContentType().isBlank()) {
-            try {
-                headers.setContentType(MediaType.parseMediaType(response.getContentType()));
-            } catch (IllegalArgumentException ex) {
-                log.warn("Unified access upstream returned an invalid content type; skipping response Content-Type. contentType={}",
-                        response.getContentType());
-            }
+        MediaType contentType = resolveResponseContentType(response.getContentType(), "response");
+        if (contentType != null) {
+            headers.setContentType(contentType);
         }
         return headers;
     }
@@ -212,13 +208,9 @@ public class UnifiedAccessWebDelegate {
                     }
                 }
             }
-            if (response.getContentType() != null && !response.getContentType().isBlank()) {
-                try {
-                    servletResponse.setContentType(MediaType.parseMediaType(response.getContentType()).toString());
-                } catch (IllegalArgumentException ex) {
-                    log.warn("Unified access upstream returned an invalid content type; skipping servlet Content-Type. contentType={}",
-                            response.getContentType());
-                }
+            MediaType contentType = resolveResponseContentType(response.getContentType(), "servlet");
+            if (contentType != null) {
+                servletResponse.setContentType(contentType.toString());
             }
             OutputStream outputStream = servletResponse.getOutputStream();
             if (response.isStreaming() && response.hasResponseStream()) {
@@ -254,6 +246,27 @@ public class UnifiedAccessWebDelegate {
             return true;
         }
         return ADAPTER_CONTROLLED_RESPONSE_HEADERS.contains(headerName.toLowerCase(Locale.ROOT));
+    }
+
+    private MediaType resolveResponseContentType(String contentType, String responseTarget) {
+        if (contentType == null || contentType.isBlank()) {
+            return null;
+        }
+        try {
+            return parseResponseContentType(contentType);
+        } catch (RuntimeException | StackOverflowError ex) {
+            log.warn(
+                    "Unified access upstream returned an invalid content type; skipping {} Content-Type. contentType={}, parserFailureType={}",
+                    responseTarget,
+                    contentType,
+                    ex.getClass().getSimpleName()
+            );
+            return null;
+        }
+    }
+
+    MediaType parseResponseContentType(String contentType) {
+        return MediaType.parseMediaType(contentType);
     }
 
     private Map<String, List<String>> copyMultiValueMap(MultiValueMap<String, String> source) {
